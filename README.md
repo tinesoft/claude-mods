@@ -49,7 +49,7 @@ Targets per mod: `lint`, `typecheck`, `validate` (`claude plugin validate . --st
 Each mod versions independently and is tagged `<mod>@<version>`.
 
 - Push to `main`: `release.yml` runs `nx release --skip-publish`, which bumps each mod with releasable commits, updates its changelog, syncs the version into `.claude-plugin/plugin.json` (`tools/sync-plugin-version.mjs`), commits, tags and creates a GitHub Release. It then back-merges `main` into `develop`.
-- One mod by hand: run the `Release` workflow with `project` and an optional `specifier` (`patch`, `minor`, `major` or an exact version). Use `0.1.0` as the specifier for a mod's first release.
+- One mod by hand: run the `Release` workflow with `project` and an optional `specifier` (`patch`, `minor`, `major` or an exact version). The first release of the repository must be run this way with specifier `0.1.0`: until a release tag exists, the automatic run on `main` skips, because nx would tag it `0.1.1`.
 - Preview locally: `pnpm nx release --projects=session-activity --dry-run`.
 
 ## License

@@ -63,6 +63,7 @@ Chips belong to one conversation. `/clear` and `/resume` empty them; muting last
 - Rule chips mean a file was loaded, not that a line in it shaped an action.
 - Where an organization manages Claude Code, skill, hook, rule and compaction events reach only plugins the organization lists, so those chips stay empty.
 - Memory and checkpoint chips are not supported: no event names them.
+- When another mod also draws in the band, its content comes first in the row and this mod's chips are sized as if they had the row to themselves, so the row can wrap.
 
 ## Development
 
