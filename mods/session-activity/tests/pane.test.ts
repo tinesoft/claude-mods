@@ -87,17 +87,6 @@ test('muting hides a chip from the band, keeps it in the pane, and unmutes', asy
   expect(await (await mountBand($)).find({ key: 'chip-skill-docx' })).toBeDefined()
 })
 
-test('a blocked chip stays in the band when muted', async ($, on) => {
-  session(on, HOOKS)
-  stubEngine(on)
-  blocking(on)
-  await activity($)
-  const pane = await mountPane($)
-  await pane.press({ key: 'row-hook-PreToolUse' })
-  await pane.press({ key: 'mute' })
-  expect(await (await mountBand($)).find({ key: 'chip-hook-PreToolUse' })).toBeDefined()
-})
-
 test('copy path puts the source on the clipboard', async ($, on) => {
   session(on, HOOKS)
   const { copied } = stubEngine(on)
@@ -182,4 +171,39 @@ test('the filter row lists only the types the settings show', async ($, on) => {
   const pane = await mountPane($)
   expect(await pane.find({ key: 'filter-command' })).toBeUndefined()
   expect(await pane.find({ key: 'filter-skill' })).toBeDefined()
+})
+
+test('a blocked chip of a hidden type is still listed in the pane, without a mute button', async ($, on) => {
+  session(on, HOOKS, new Map([['overrides', { shown: { hook: false } }]]))
+  stubEngine(on)
+  blocking(on)
+  await activity($)
+  await (await mountBand($)).press({ key: 'chip-hook-PreToolUse' })
+  const pane = await mountPane($)
+  expect(await pane.find({ key: 'filter-hook' })).toBeDefined()
+  expect(await pane.find({ key: 'row-hook-PreToolUse' })).toBeDefined()
+  expect(await pane.find({ key: 'mute' })).toBeUndefined()
+})
+
+test('toggling a type twice turns it back on', async ($, on) => {
+  const store = new Map<string, unknown>()
+  session(on, HOOKS, store)
+  stubEngine(on)
+  await activity($)
+  const pane = await mountPane($)
+  await pane.press({ key: 'tab-settings' })
+  await pane.press({ key: 'toggle-skill' })
+  await pane.press({ key: 'toggle-skill' })
+  expect(store.get('overrides')).toEqual({ shown: { skill: true } })
+})
+
+test('turn everything on keeps the chosen layout', async ($, on) => {
+  const store = new Map<string, unknown>()
+  session(on, HOOKS, store)
+  stubEngine(on)
+  const pane = await mountPane($)
+  await pane.press({ key: 'tab-settings' })
+  await pane.select({ key: 'layout', value: 'summary' })
+  await pane.press({ key: 'all-on' })
+  expect(store.get('overrides')).toMatchObject({ layout: 'summary', enabled: true })
 })

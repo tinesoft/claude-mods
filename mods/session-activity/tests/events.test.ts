@@ -162,3 +162,25 @@ test('every observed event reaches the caller exactly as the engine answered it'
   })
   expect(await $.command.run({ command: 'review', args: 'x' } as never)).toEqual({ text: 'ran' })
 })
+
+test('an MCP call that was denied records no server chip', async ($, on) => {
+  session(on)
+  stubEngine(on, { call: { deny: 'not allowed' } })
+  await $.tool.call({ tool: 'mcp__github__create_issue' } as never)
+  expect(await band($)).toEqual([])
+})
+
+test('an interrupted subagent ends as an error, not a success', async ($, on) => {
+  session(on)
+  stubEngine(on)
+  await $.agent.spawn(spawn('pr'))
+  await $.turn.complete({
+    answer: '',
+    durationMs: 1,
+    isAborted: true,
+    turnId: 't',
+    agentId: 'agent-pr',
+    reason: 'aborted',
+  })
+  expect(await band($)).toEqual(['chip-agent-code-reviewer|◉ code-reviewer ERROR '])
+})

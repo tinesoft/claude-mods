@@ -15,6 +15,7 @@ import {
   fromSkill,
   fromSpawn,
   hookCommands,
+  hookTarget,
   lineCount,
 } from '../src/classify'
 import {
@@ -53,9 +54,10 @@ async function readOverrides($: EngineInterface): Promise<Overrides> {
 }
 
 async function writeOverrides($: EngineInterface, change: (old: Overrides) => Overrides) {
-  const next = change(await readOverrides($))
-  await update($, overrides, () => next)
-  await $.store.set(STORE_OVERRIDES, next)
+  const base = await readOverrides($)
+  let written = base
+  await update($, overrides, held => (written = change(held ?? base)))
+  await $.store.set(STORE_OVERRIDES, written)
 }
 
 async function openPane($: EngineInterface, id?: string) {
@@ -123,7 +125,7 @@ export const register: Register = (on, options) => {
   on('turn.complete', async ($, e, next) => {
     const agentId = e.agentId
     if (agentId !== undefined) {
-      const status = e.reason === 'error' || e.reason === 'refusal' ? 'error' : 'ok'
+      const status = e.reason === 'answer' ? 'ok' : 'error'
       const at = await $.clock.now()
       await update($, activations, list => finishAgent(list, agentId, status, at))
     }
@@ -140,10 +142,11 @@ export const register: Register = (on, options) => {
 
   on('tool.call', async ($, e, next) => {
     const ran = await next(e)
-    const isError = ran.isError === true
-    await observe($, fromMcpCall(e.tool, isError))
-    if (e.tool === 'Bash' && e.run_in_background === true && ran.deny === undefined) {
-      await observe($, fromBackground(e.command, await $.session.cwd()))
+    if (ran.deny === undefined) {
+      await observe($, fromMcpCall(e.tool, ran.isError === true))
+      if (e.tool === 'Bash' && e.run_in_background === true) {
+        await observe($, fromBackground(e.command, await $.session.cwd()))
+      }
     }
     const at = await $.clock.now()
     await update($, activations, list =>
@@ -155,12 +158,7 @@ export const register: Register = (on, options) => {
   on('classic.*', async ($, e, next) => {
     const result = (await next(e)) as Record<string, unknown>
     const event = 'hook_event_name' in e ? String(e.hook_event_name) : 'PreToolUse'
-    const target =
-      'tool_name' in e && typeof e.tool_name === 'string'
-        ? e.tool_name
-        : 'tool' in e && typeof e.tool === 'string'
-          ? e.tool
-          : undefined
+    const target = hookTarget(e)
     const commands = hookCommands(await $.settings.read(), event, target)
     const blocked = blockedBy(result)
     await observe($, fromHook(event, commands, blocked === undefined ? {} : { blocked }, target))
@@ -240,12 +238,14 @@ export const register: Register = (on, options) => {
         toggleKind: kind =>
           writeOverrides($, old => ({
             ...old,
-            shown: { ...old.shown, [kind]: !settings.shown[kind] },
+            shown: { ...old.shown, [kind]: !resolveSettings(options, old).shown[kind] },
           })),
-        toggleEnabled: () => writeOverrides($, old => ({ ...old, enabled: !settings.enabled })),
+        toggleEnabled: () =>
+          writeOverrides($, old => ({ ...old, enabled: !resolveSettings(options, old).enabled })),
         reset: () => writeOverrides($, () => ({})),
         allOn: () =>
-          writeOverrides($, () => ({
+          writeOverrides($, old => ({
+            ...old,
             enabled: true,
             shown: Object.fromEntries(KIND_ORDER.map(kind => [kind, true])),
           })),

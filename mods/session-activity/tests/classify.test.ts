@@ -5,6 +5,8 @@ import {
   fromHook,
   fromInstructions,
   fromPermission,
+  fromSpawn,
+  hookTarget,
   hookCommands,
   mcpParts,
 } from '../src/classify'
@@ -124,4 +126,42 @@ test('rule files inside the project show their relative path', () => {
   expect(
     fromInstructions({ path: '/home/me/.claude/CLAUDE.md', tier: 'user' }, '/repo').label,
   ).toBe('.claude/CLAUDE.md')
+})
+
+test('non-tool hook matchers are tested against the start source or compaction trigger', () => {
+  const start = {
+    hooks: {
+      SessionStart: [{ matcher: 'compact', hooks: [{ type: 'command', command: 'a.sh' }] }],
+    },
+  }
+  expect(hookCommands(start, 'SessionStart', hookTarget({ source: 'startup' }))).toEqual([])
+  expect(hookCommands(start, 'SessionStart', hookTarget({ source: 'compact' }))).toEqual(['a.sh'])
+  expect(hookTarget({ tool_name: 'Bash', source: 'x' })).toBe('Bash')
+})
+
+test('prompt and http hooks count as configured', () => {
+  const settings = {
+    hooks: {
+      Stop: [
+        {
+          hooks: [
+            { type: 'prompt', prompt: 'check' },
+            { type: 'http', url: 'u' },
+          ],
+        },
+      ],
+    },
+  }
+  expect(hookCommands(settings, 'Stop')).toEqual(['prompt hook', 'http hook'])
+})
+
+test('a subagent with no id to wait on is not shown as running', () => {
+  const e = {
+    subagentType: 'Explore',
+    description: 'x',
+    background: false,
+    provider: { plugin: 'engine' },
+  }
+  expect(fromSpawn(e, undefined).status).toBe('ok')
+  expect(fromSpawn(e, 'a1').status).toBe('running')
 })

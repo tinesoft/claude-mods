@@ -7,6 +7,12 @@ export type Observed = Omit<Activation, 'count' | 'firstAt' | 'lastAt' | 'runnin
 
 const MAX_ACTIVATIONS = 500
 
+const trim = (list: Activation[]) => {
+  if (list.length <= MAX_ACTIVATIONS) return list
+  const oldest = list.findIndex(a => !isUrgent(a.status))
+  return list.filter((_, i) => i !== (oldest === -1 ? 0 : oldest))
+}
+
 export const chipId = (a: Pick<Activation, 'kind' | 'key'>) => `${a.kind}:${a.key}`
 
 const mergeMeta = (old: string | undefined, next: string | undefined) => {
@@ -22,7 +28,7 @@ export const record = (list: readonly Activation[], seen: Observed, at: number):
   if (index === -1) {
     const fresh: Activation = { ...fields, count: 1, firstAt: at, lastAt: at }
     if (startedAgentId !== undefined) fresh.runningAgentIds = [startedAgentId]
-    return [...list, fresh].slice(-MAX_ACTIVATIONS)
+    return trim([...list, fresh])
   }
   const old = list[index]!
   const running =
@@ -56,8 +62,8 @@ export const settleAsked = (
       status: hasRun ? 'ok' : 'denied',
       lastAt: at,
       detail: hasRun
-        ? 'Claude asked you, and you let it run.'
-        : 'Claude asked you, and it did not run.',
+        ? 'Asked for permission, and it ran.'
+        : 'Asked for permission, and it did not run.',
     }
   })
 
@@ -132,11 +138,18 @@ export const bandCandidates = (
     a => isUrgent(a.status) || (settings.shown[a.kind] && !muted.includes(chipId(a))),
   )
 
+/** Hidden types still list their stopped and errored chips, which the band always shows. */
+export const inPane = (a: Activation, settings: Settings) =>
+  settings.shown[a.kind] || isUrgent(a.status)
+
 export const paneGroups = (
   list: readonly Activation[],
   settings: Settings,
   filter: Kind | 'all',
 ): { kind: Kind; rows: Activation[] }[] =>
-  KIND_ORDER.filter(kind => (filter === 'all' ? settings.shown[kind] : kind === filter))
-    .map(kind => ({ kind, rows: bandOrder(list.filter(a => a.kind === kind)) }))
+  KIND_ORDER.filter(kind => filter === 'all' || kind === filter)
+    .map(kind => ({
+      kind,
+      rows: bandOrder(list.filter(a => a.kind === kind && inPane(a, settings))),
+    }))
     .filter(group => group.rows.length > 0)

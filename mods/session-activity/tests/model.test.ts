@@ -115,3 +115,11 @@ test('max_chips is clamped to its documented 1 to 20 range', () => {
   expect(resolveSettings({ max_chips: 99 }, undefined).maxChips).toBe(20)
   expect(resolveSettings({ max_chips: 0 }, undefined).maxChips).toBe(1)
 })
+
+test('the list cap drops the oldest quiet chip, never a stopped one', () => {
+  let list = record([], hook('blocked'), 0)
+  for (let i = 0; i < 500; i++) list = record(list, { ...skill, key: `s${i}` }, i + 1)
+  expect(list).toHaveLength(500)
+  expect(list[0]).toMatchObject({ kind: 'hook', status: 'blocked' })
+  expect(list.some(a => a.key === 's0')).toBe(false)
+})

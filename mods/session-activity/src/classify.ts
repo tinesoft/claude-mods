@@ -93,7 +93,7 @@ export const fromSpawn = (
   detail: e.description ? `Started for: ${e.description}` : 'Started a subagent.',
   meta: e.background ? 'background' : 'foreground',
   ...(e.provider.plugin !== 'engine' && { plugin: e.provider.plugin }),
-  status: 'running',
+  status: agentId === undefined ? 'ok' : 'running',
   ...(agentId !== undefined && { startedAgentId: agentId, agentId }),
 })
 
@@ -124,7 +124,7 @@ export const fromPermission = (
       ? `Auto-allowed by ${by}.`
       : verdict.decision === 'deny'
         ? `Denied by ${by}${verdict.reason ? `: ${verdict.reason}` : '.'}`
-        : 'Claude asked you before running it.'
+        : 'Claude asked for permission before running it.'
   return {
     kind: 'perm',
     key: verdict.rule ?? `${tool}:${summary}`,
@@ -144,10 +144,19 @@ export const hookCommands = (settings: unknown, event: string, target?: string):
   if (!Array.isArray(entries)) return []
   return (entries as HookEntry[]).flatMap(entry => {
     if (!matches(entry.matcher, target) || !Array.isArray(entry.hooks)) return []
-    return (entry.hooks as { command?: unknown }[]).flatMap(h =>
-      typeof h.command === 'string' ? [h.command] : [],
+    return (entry.hooks as { command?: unknown; type?: unknown }[]).map(h =>
+      typeof h.command === 'string' ? h.command : `${String(h.type ?? 'unknown')} hook`,
     )
   })
+}
+
+/** What a hook's matcher is tested against: the tool, or the start source or compaction trigger. */
+export const hookTarget = (e: object): string | undefined => {
+  for (const name of ['tool_name', 'tool', 'source', 'trigger']) {
+    const value = (e as Record<string, unknown>)[name]
+    if (typeof value === 'string') return value
+  }
+  return undefined
 }
 
 const matches = (matcher: unknown, target: string | undefined) => {

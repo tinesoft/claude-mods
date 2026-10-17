@@ -1,8 +1,8 @@
 import type { ElementTable, RenderElement, RenderSurface, SelectProps } from 'claude-code'
 
 import type { Activation, Filter, Kind, Layout, PaneTab } from '../types'
-import { chipId, paneGroups, type Settings } from './model'
-import { isStopped, KIND_ORDER, KINDS, STATUSES } from './theme'
+import { chipId, inPane, paneGroups, type Settings } from './model'
+import { isStopped, isUrgent, KIND_ORDER, KINDS, STATUSES } from './theme'
 
 export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'> & {
   Select?: (props: SelectProps) => RenderElement
@@ -182,10 +182,9 @@ const Tabs = ({ ui, tab, on }: Pick<PaneArgs, 'ui' | 'tab' | 'on'>) => {
 const Filters = (args: PaneArgs) => {
   const { ui, activations, settings, filter, on } = args
   const { Box, Button, Text } = ui
-  const kinds = KIND_ORDER.filter(
-    kind => settings.shown[kind] && activations.some(a => a.kind === kind),
-  )
-  const total = activations.filter(a => settings.shown[a.kind]).length
+  const listed = activations.filter(a => inPane(a, settings))
+  const kinds = KIND_ORDER.filter(kind => listed.some(a => a.kind === kind))
+  const total = listed.length
   return (
     <Box flexDirection="row" flexWrap="wrap" columnGap={GAP}>
       <Button key="filter-all" plain hotkey="a" onPress={() => on.filter('all')}>
@@ -199,7 +198,7 @@ const Filters = (args: PaneArgs) => {
           onPress={() => on.filter(kind)}
         >
           <Text bold={filter === kind}>
-            {`${KINDS[kind].plural} ${activations.filter(a => a.kind === kind).length}`}
+            {`${KINDS[kind].plural} ${listed.filter(a => a.kind === kind).length}`}
           </Text>
         </Button>
       ))}
@@ -236,13 +235,17 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
           )}
           {a.plugin !== undefined && <Text dimColor>{`from plugin ${a.plugin}`}</Text>}
           <Box flexDirection="row" columnGap={GAP}>
-            <Button
-              key="mute"
-              plain
-              hotkey="m"
-              label={isMuted ? 'Unmute' : 'Mute'}
-              onPress={() => on.mute(id)}
-            />
+            {isUrgent(a.status) ? (
+              <Text dimColor>Stopped and errored chips always show.</Text>
+            ) : (
+              <Button
+                key="mute"
+                plain
+                hotkey="m"
+                label={isMuted ? 'Unmute' : 'Mute'}
+                onPress={() => on.mute(id)}
+              />
+            )}
             {a.source !== undefined && (
               <Button
                 key="copy"

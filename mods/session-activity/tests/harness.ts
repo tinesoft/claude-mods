@@ -72,11 +72,12 @@ export const stubEngine = (
   answers: {
     verdict?: { decision: 'allow' | 'ask' | 'deny'; rule?: string; reason?: string }
     stop?: { block?: string }
+    call?: { deny: string }
   } = {},
 ) => {
   const opened: string[] = []
   const copied: string[] = []
-  on('tool.call', () => ({ result: 'ran' }))
+  on('tool.call', () => answers.call ?? { result: 'ran' })
   on('tool.check', () => answers.verdict ?? { decision: 'allow' })
   on('skill.prompt', ($, e) => ({ text: `body of ${e.skill}` }))
   on('agent.spawn', ($, e) => ({ model: 'haiku', agentId: `agent-${e.description}` }))
