@@ -1,0 +1,5 @@
+packages:
+  - mods/*
+
+allowBuilds:
+  nx: true

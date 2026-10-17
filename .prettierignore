@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+tools/claude-code-types
+**/CHANGELOG.md
+.nx
+design

@@ -1,0 +1,7 @@
+{
+  "name": "session-activity",
+  "version": "0.1.0",
+  "description": "Chips above the prompt for the skills, agents, MCP servers, permissions, hooks and rules that activated this session",
+  "author": { "name": "tinesoft", "url": "https://github.com/tinesoft" },
+  "license": "MIT"
+}

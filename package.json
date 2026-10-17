@@ -1,0 +1,35 @@
+{
+  "name": "claude-mods",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "lint": "nx run-many -t lint",
+    "typecheck": "nx run-many -t typecheck",
+    "validate": "nx run-many -t validate",
+    "test": "nx run-many -t test",
+    "check": "nx affected -t lint typecheck validate test",
+    "format": "prettier --write .",
+    "sync:check": "node tools/sync-plugin-version.mjs --check"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@commitlint/config-nx-scopes": "^21.2.3",
+    "@eslint/js": "^10.0.1",
+    "@nx/js": "^23.3.0",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "nx": "^23.3.0",
+    "prettier": "^3.9.10",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.2"
+  }
+}

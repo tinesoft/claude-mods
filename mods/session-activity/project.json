@@ -1,0 +1,29 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "session-activity",
+  "projectType": "application",
+  "sourceRoot": "mods/session-activity",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint .", "cwd": "{projectRoot}" }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsc -p . --noEmit", "cwd": "{projectRoot}" }
+    },
+    "validate": {
+      "executor": "nx:run-commands",
+      "options": { "command": "claude plugin validate . --strict", "cwd": "{projectRoot}" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "claude plugin test .", "cwd": "{projectRoot}" }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "claude --plugin-dir .", "cwd": "{projectRoot}" }
+    }
+  }
+}

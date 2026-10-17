@@ -1,0 +1,15 @@
+{
+  "name": "tinesoft-mods",
+  "owner": { "name": "tinesoft", "url": "https://github.com/tinesoft" },
+  "description": "Claude Code mods by tinesoft",
+  "metadata": { "pluginRoot": "./mods" },
+  "plugins": [
+    {
+      "name": "session-activity",
+      "source": "session-activity",
+      "description": "Chips above the prompt for the skills, agents, MCP servers, permissions, hooks and rules that activated this session",
+      "category": "productivity",
+      "tags": ["mod", "observability", "ui"]
+    }
+  ]
+}
