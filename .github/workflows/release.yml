@@ -63,7 +63,14 @@ jobs:
           args=(--skip-publish)
           if [ -n "$NX_PROJECT" ]; then args+=("--projects=$NX_PROJECT"); fi
           if [ -n "$NX_SPECIFIER" ]; then args+=("$NX_SPECIFIER"); fi
-          if [ -z "$(git tag --list '*@*')" ]; then args+=(--first-release); fi
+          if [ -z "$(git tag --list '*@*')" ]; then
+            # nx bumps even a first release, so 0.1.0 would ship as 0.1.1: the first one is run by hand.
+            if [ -z "$NX_SPECIFIER" ]; then
+              echo "::notice::No release tag yet. Run the Release workflow with specifier 0.1.0 for the first release."
+              exit 0
+            fi
+            args+=(--first-release)
+          fi
           pnpm nx release "${args[@]}"
 
       - name: Back-merge main into develop

@@ -39,6 +39,8 @@ jobs:
       - run: node tools/sync-plugin-version.mjs --check
 
       - uses: nrwl/nx-set-shas@v4
+        with:
+          main-branch-name: develop
 
       - run: pnpm nx affected -t lint typecheck validate test
 

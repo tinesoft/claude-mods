@@ -48,7 +48,6 @@
     },
     "version": {
       "conventionalCommits": true,
-      "preVersionCommand": "pnpm nx affected -t validate test",
       "versionActions": "./tools/release/version-actions.cjs"
     },
     "changelog": {
