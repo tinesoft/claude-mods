@@ -1,3 +1,4 @@
 {
-  "modules": ["./register.ts"]
+  "description": "session-activity hooks module",
+  "modules": ["./register.tsx"]
 }

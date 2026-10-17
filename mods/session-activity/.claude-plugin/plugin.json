@@ -1,7 +1,98 @@
 {
   "name": "session-activity",
+  "displayName": "Session Activity",
   "version": "0.1.0",
   "description": "Chips above the prompt for the skills, agents, MCP servers, permissions, hooks and rules that activated this session",
-  "author": { "name": "tinesoft", "url": "https://github.com/tinesoft" },
-  "license": "MIT"
+  "author": {
+    "name": "tinesoft",
+    "url": "https://github.com/tinesoft"
+  },
+  "homepage": "https://github.com/tinesoft/claude-mods/tree/main/mods/session-activity",
+  "repository": "https://github.com/tinesoft/claude-mods",
+  "license": "MIT",
+  "keywords": ["mod", "session", "observability"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Show chips above the prompt",
+      "description": "Blocked and denied actions are always shown while this is on",
+      "default": true
+    },
+    "layout": {
+      "type": "string",
+      "title": "Layout",
+      "description": "A row of chips, or one summary chip",
+      "options": ["row", "summary"],
+      "default": "row"
+    },
+    "show_skills": {
+      "type": "boolean",
+      "title": "Skills",
+      "description": "Skills Claude loaded",
+      "default": true
+    },
+    "show_agents": {
+      "type": "boolean",
+      "title": "Agents",
+      "description": "Subagents Claude started",
+      "default": true
+    },
+    "show_mcp": {
+      "type": "boolean",
+      "title": "MCP servers",
+      "description": "MCP servers whose tools were called",
+      "default": true
+    },
+    "show_permissions": {
+      "type": "boolean",
+      "title": "Permissions",
+      "description": "Auto-allowed, asked and denied tool calls",
+      "default": true
+    },
+    "show_hooks": {
+      "type": "boolean",
+      "title": "Hooks",
+      "description": "Settings hooks that ran",
+      "default": true
+    },
+    "show_rules": {
+      "type": "boolean",
+      "title": "Rules",
+      "description": "CLAUDE.md and .claude/rules files loaded",
+      "default": true
+    },
+    "show_commands": {
+      "type": "boolean",
+      "title": "Slash commands",
+      "description": "Optional",
+      "default": false
+    },
+    "show_context": {
+      "type": "boolean",
+      "title": "Context",
+      "description": "Optional: compaction and context use",
+      "default": false
+    },
+    "show_model": {
+      "type": "boolean",
+      "title": "Output style and model",
+      "description": "Optional",
+      "default": false
+    },
+    "show_background": {
+      "type": "boolean",
+      "title": "Background tasks",
+      "description": "Optional",
+      "default": false
+    },
+    "max_chips": {
+      "type": "number",
+      "title": "Chips before overflow",
+      "description": "Chips shown before +N more",
+      "default": 6,
+      "min": 1,
+      "max": 20
+    }
+  }
 }

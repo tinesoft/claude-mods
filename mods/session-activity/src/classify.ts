@@ -1,0 +1,263 @@
+import type { Observed } from './model'
+
+export const mcpParts = (tool: string) => {
+  const match = /^mcp__(.+?)__(.+)$/.exec(tool)
+  return match ? { server: match[1]!, name: match[2]! } : undefined
+}
+
+export const relativePath = (path: string, cwd: string) => {
+  const root = cwd.endsWith('/') ? cwd : `${cwd}/`
+  return path.startsWith(root) ? path.slice(root.length) : path
+}
+
+const lastSegments = (path: string, n: number) =>
+  path.split('/').filter(Boolean).slice(-n).join('/')
+
+const field = (input: unknown, name: string) => {
+  const value = (input as Record<string, unknown> | null)?.[name]
+  return typeof value === 'string' ? value : undefined
+}
+
+export const callSummary = (tool: string, input: unknown, cwd: string) => {
+  const command = field(input, 'command')
+  if (tool === 'Bash' && command !== undefined) {
+    const words = command
+      .trim()
+      .split(/\s+/)
+      .filter(w => !/^\w+=/.test(w))
+    return words.slice(0, 2).join(' ') || 'Bash'
+  }
+  const path = field(input, 'file_path') ?? field(input, 'notebook_path') ?? field(input, 'path')
+  if (path !== undefined) return relativePath(path, cwd)
+  const url = field(input, 'url')
+  if (url !== undefined) {
+    try {
+      return new URL(url).hostname
+    } catch {
+      return tool
+    }
+  }
+  const mcp = mcpParts(tool)
+  return mcp ? `${mcp.server} · ${mcp.name}` : tool
+}
+
+export const fromMcpCall = (tool: string, isError: boolean): Observed | undefined => {
+  const mcp = mcpParts(tool)
+  if (!mcp) return undefined
+  return {
+    kind: 'mcp',
+    key: mcp.server,
+    label: mcp.server,
+    detail: isError ? `${mcp.name} returned an error` : `Called ${mcp.name}`,
+    meta: mcp.name,
+    status: isError ? 'error' : 'ok',
+  }
+}
+
+const SKILL_SOURCES: Record<string, string> = {
+  userSettings: 'your user skills',
+  projectSettings: 'this project',
+  policySettings: 'your organization',
+  plugin: 'a plugin',
+  'built-in': 'Claude Code',
+  mcp: 'an MCP server',
+}
+
+export const fromSkill = (e: {
+  skill: string
+  source: string
+  pluginName?: string
+  path?: string
+}): Observed => ({
+  kind: 'skill',
+  key: e.skill,
+  label: e.skill,
+  detail: `Claude loaded this skill from ${e.pluginName ?? SKILL_SOURCES[e.source] ?? e.source}.`,
+  ...(e.path !== undefined && { source: e.path }),
+  ...(e.pluginName !== undefined && { plugin: e.pluginName }),
+  status: 'active',
+})
+
+export const fromSpawn = (
+  e: {
+    subagentType: string
+    description: string
+    background: boolean
+    provider: { plugin: string }
+  },
+  agentId: string | undefined,
+): Observed => ({
+  kind: 'agent',
+  key: e.subagentType,
+  label: e.subagentType,
+  detail: e.description ? `Started for: ${e.description}` : 'Started a subagent.',
+  meta: e.background ? 'background' : 'foreground',
+  ...(e.provider.plugin !== 'engine' && { plugin: e.provider.plugin }),
+  status: 'running',
+  ...(agentId !== undefined && { startedAgent: agentId, agentId }),
+})
+
+export type Verdict = {
+  decision: 'allow' | 'ask' | 'deny'
+  reason?: string
+  rule?: string
+  hook?: string
+}
+
+/**
+ * A permission chip for a decision a rule made, a deny, or an ask. Calls the
+ * mode allows on its own (reads, accepted edits) would fill the band with
+ * noise, and a hook's allow or deny already has its hook chip.
+ */
+export const fromPermission = (
+  tool: string,
+  input: unknown,
+  verdict: Verdict,
+  cwd: string,
+): Observed | undefined => {
+  const byHook = verdict.rule === undefined && verdict.hook !== undefined
+  if (verdict.decision !== 'ask' && byHook) return undefined
+  if (verdict.decision === 'allow' && verdict.rule === undefined) return undefined
+  const summary = callSummary(tool, input, cwd)
+  const by = verdict.rule ?? 'the permission mode'
+  const detail =
+    verdict.decision === 'allow'
+      ? `Auto-allowed by ${by}.`
+      : verdict.decision === 'deny'
+        ? `Denied by ${by}${verdict.reason ? `: ${verdict.reason}` : '.'}`
+        : 'Claude asked you before running it.'
+  return {
+    kind: 'perm',
+    key: verdict.rule ?? `${tool}:${summary}`,
+    label: summary,
+    detail,
+    meta: tool,
+    status: verdict.decision === 'deny' ? 'denied' : verdict.decision === 'ask' ? 'running' : 'ok',
+  }
+}
+
+type HookEntry = { matcher?: unknown; hooks?: unknown }
+
+export const hookCommands = (settings: unknown, event: string, target?: string): string[] => {
+  const hooks = (settings as { hooks?: Record<string, unknown> } | null)?.hooks
+  const entries = hooks?.[event]
+  if (!Array.isArray(entries)) return []
+  return (entries as HookEntry[]).flatMap(entry => {
+    if (!matches(entry.matcher, target) || !Array.isArray(entry.hooks)) return []
+    return (entry.hooks as { command?: unknown }[]).flatMap(h =>
+      typeof h.command === 'string' ? [h.command] : [],
+    )
+  })
+}
+
+const matches = (matcher: unknown, target: string | undefined) => {
+  if (typeof matcher !== 'string' || matcher === '' || matcher === '*' || target === undefined) {
+    return true
+  }
+  try {
+    return new RegExp(`^(?:${matcher})$`).test(target)
+  } catch {
+    return matcher === target
+  }
+}
+
+export const commandName = (command: string) => {
+  const words = command.trim().split(/\s+/)
+  const script =
+    words.find(w => w.includes('/') || /\.(sh|js|mjs|ts|py)$/.test(w)) ?? words[0] ?? ''
+  const base = script.split('/').pop() ?? script
+  return base.replace(/\.(sh|js|mjs|cjs|ts|py)$/, '') || command
+}
+
+export type HookOutcome = { blocked?: string }
+
+export const fromHook = (
+  event: string,
+  commands: readonly string[],
+  outcome: HookOutcome,
+  target: string | undefined,
+): Observed | undefined => {
+  if (commands.length === 0 && outcome.blocked === undefined) return undefined
+  const only = commands.length === 1 ? commands[0] : undefined
+  const ran = commands.length === 1 ? 'Ran 1 command' : `Ran ${commands.length} commands`
+  return {
+    kind: 'hook',
+    key: event,
+    label: only !== undefined ? commandName(only) : `${event} hooks`,
+    detail: outcome.blocked !== undefined ? `Blocked: ${outcome.blocked}` : `${ran}.`,
+    meta: target !== undefined ? `${event} · ${target}` : event,
+    ...(only !== undefined && { source: only }),
+    status: outcome.blocked !== undefined ? 'blocked' : 'ok',
+  }
+}
+
+const REASONS: Record<string, string> = {
+  session_start: 'at session start',
+  nested_traversal: 'when Claude entered its folder',
+  path_glob_match: 'when a matching file was read',
+  include: 'through an @ import',
+  compact: 'after compaction',
+}
+
+export const fromInstructions = (
+  file: { path: string; tier: string; reason?: string; lines?: number | undefined },
+  cwd: string,
+): Observed => {
+  const relative = relativePath(file.path, cwd)
+  const isOutside = relative === file.path
+  const when =
+    file.reason !== undefined ? (REASONS[file.reason] ?? file.reason) : 'at session start'
+  const lines = file.lines !== undefined ? ` · ${file.lines} lines` : ''
+  return {
+    kind: 'rule',
+    key: file.path,
+    label: isOutside ? lastSegments(file.path, 2) : relative,
+    detail: `Loaded ${when}${lines}.`,
+    meta: file.tier.toLowerCase(),
+    source: file.path,
+    status: 'active',
+  }
+}
+
+export const lineCount = (text: string) => (text === '' ? 0 : text.split('\n').length)
+
+export const fromCommand = (command: string, args: string): Observed => ({
+  kind: 'command',
+  key: command,
+  label: `/${command}`,
+  detail: args ? `Ran /${command} ${args}` : `Ran /${command}`,
+  status: 'ok',
+})
+
+export const fromCompaction = (trigger: string): Observed => ({
+  kind: 'context',
+  key: 'compaction',
+  label: 'Compacted',
+  detail: `The conversation was compacted (${trigger}).`,
+  status: 'active',
+})
+
+export const fromContextUsage = (percent: number): Observed => ({
+  kind: 'context',
+  key: 'usage',
+  label: `${Math.round(percent)}% used`,
+  detail: `The context window is ${Math.round(percent)}% full.`,
+  status: 'active',
+})
+
+export const fromModel = (model: string): Observed => ({
+  kind: 'model',
+  key: model,
+  label: model,
+  detail: `Model requests went to ${model}.`,
+  status: 'active',
+})
+
+export const fromBackground = (command: string, cwd: string): Observed => ({
+  kind: 'background',
+  key: callSummary('Bash', { command }, cwd),
+  label: callSummary('Bash', { command }, cwd),
+  detail: 'Started in the background.',
+  source: command,
+  status: 'ok',
+})
