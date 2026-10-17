@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,7 +7,6 @@ const modsDir = path.join(root, 'mods')
 
 const args = process.argv.slice(2)
 const check = args.includes('--check')
-const fromTags = args.includes('--from-head-tags')
 const named = args.filter(a => !a.startsWith('--'))
 
 const readJson = file => JSON.parse(readFileSync(file, 'utf8'))
@@ -18,16 +16,7 @@ const allMods = () =>
     .filter(d => d.isDirectory() && existsSync(path.join(modsDir, d.name, 'package.json')))
     .map(d => d.name)
 
-// Mods released by the last `nx release` are the ones whose tag points at HEAD.
-const modsTaggedAtHead = () => {
-  const tags = execFileSync('git', ['tag', '--points-at', 'HEAD'], { cwd: root, encoding: 'utf8' })
-  return tags
-    .split('\n')
-    .map(t => t.match(/^(.+)@\d+\.\d+\.\d+.*$/)?.[1])
-    .filter(Boolean)
-}
-
-const mods = named.length ? named : fromTags ? modsTaggedAtHead() : allMods()
+const mods = named.length ? named : allMods()
 const known = new Set(allMods())
 
 let drift = 0
