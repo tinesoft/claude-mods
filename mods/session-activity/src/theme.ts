@@ -1,17 +1,17 @@
+import type { Color } from 'claude-code'
+
 import type { Kind, Status } from '../types'
 
 export type KindTheme = {
   glyph: string
-  /** Terminal colour: a theme key where one fits, so chips follow the user's theme. */
-  color: string
+  color: Color
   dim: boolean
   hex: string
   title: string
   plural: string
   hotkey: string
   isOptional: boolean
-  /** Whether `×N` means something: a context reading is one value, not a tally. */
-  counts: boolean
+  showsTally: boolean
 }
 
 export const KINDS: Record<Kind, KindTheme> = {
@@ -24,7 +24,7 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'Skills',
     hotkey: 's',
     isOptional: false,
-    counts: true,
+    showsTally: true,
   },
   agent: {
     glyph: '◉',
@@ -35,7 +35,7 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'Agents',
     hotkey: 'g',
     isOptional: false,
-    counts: true,
+    showsTally: true,
   },
   mcp: {
     glyph: '⇌',
@@ -46,7 +46,7 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'MCP',
     hotkey: 'p',
     isOptional: false,
-    counts: true,
+    showsTally: true,
   },
   perm: {
     glyph: '⚷',
@@ -57,7 +57,7 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'Permissions',
     hotkey: 'k',
     isOptional: false,
-    counts: true,
+    showsTally: true,
   },
   hook: {
     glyph: '↯',
@@ -68,7 +68,7 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'Hooks',
     hotkey: 'h',
     isOptional: false,
-    counts: true,
+    showsTally: true,
   },
   rule: {
     glyph: '▣',
@@ -79,7 +79,7 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'Rules',
     hotkey: 'r',
     isOptional: false,
-    counts: true,
+    showsTally: true,
   },
   command: {
     glyph: '/',
@@ -90,7 +90,7 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'Commands',
     hotkey: 'o',
     isOptional: true,
-    counts: true,
+    showsTally: true,
   },
   context: {
     glyph: '◔',
@@ -101,7 +101,7 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'Context',
     hotkey: 'x',
     isOptional: true,
-    counts: false,
+    showsTally: false,
   },
   model: {
     glyph: '≡',
@@ -112,7 +112,7 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'Model',
     hotkey: 'l',
     isOptional: true,
-    counts: true,
+    showsTally: true,
   },
   background: {
     glyph: '▶',
@@ -123,13 +123,13 @@ export const KINDS: Record<Kind, KindTheme> = {
     plural: 'Background',
     hotkey: 'b',
     isOptional: true,
-    counts: true,
+    showsTally: true,
   },
 }
 
 export const KIND_ORDER = Object.keys(KINDS) as Kind[]
 
-export type StatusTheme = { badge?: string; color?: string; dim?: boolean }
+export type StatusTheme = { badge?: string; color?: Color; dim?: boolean }
 
 export const STATUSES: Record<Status, StatusTheme> = {
   active: {},

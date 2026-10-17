@@ -94,7 +94,7 @@ export const fromSpawn = (
   meta: e.background ? 'background' : 'foreground',
   ...(e.provider.plugin !== 'engine' && { plugin: e.provider.plugin }),
   status: 'running',
-  ...(agentId !== undefined && { startedAgent: agentId, agentId }),
+  ...(agentId !== undefined && { startedAgentId: agentId, agentId }),
 })
 
 export type Verdict = {
@@ -104,20 +104,19 @@ export type Verdict = {
   hook?: string
 }
 
-/**
- * A permission chip for a decision a rule made, a deny, or an ask. Calls the
- * mode allows on its own (reads, accepted edits) would fill the band with
- * noise, and a hook's allow or deny already has its hook chip.
- */
+const earnsChip = (verdict: Verdict) =>
+  verdict.decision === 'ask' ||
+  verdict.rule !== undefined ||
+  (verdict.decision === 'deny' && verdict.hook === undefined)
+
 export const fromPermission = (
   tool: string,
   input: unknown,
   verdict: Verdict,
   cwd: string,
+  callId: string,
 ): Observed | undefined => {
-  const byHook = verdict.rule === undefined && verdict.hook !== undefined
-  if (verdict.decision !== 'ask' && byHook) return undefined
-  if (verdict.decision === 'allow' && verdict.rule === undefined) return undefined
+  if (!earnsChip(verdict)) return undefined
   const summary = callSummary(tool, input, cwd)
   const by = verdict.rule ?? 'the permission mode'
   const detail =
@@ -132,6 +131,7 @@ export const fromPermission = (
     label: summary,
     detail,
     meta: tool,
+    ...(verdict.decision === 'ask' && { askedCallId: callId }),
     status: verdict.decision === 'deny' ? 'denied' : verdict.decision === 'ask' ? 'running' : 'ok',
   }
 }

@@ -8,7 +8,6 @@ const FILES: Record<string, string> = { '/repo/CLAUDE.md': 'a\nb\nc' }
 
 export const SURFACES = ['terminal', 'desktop'] as const
 
-/** Answers what a session answers beneath the plugin: the clock, the store, cwd and settings. */
 export const session = (
   on: On,
   settings: Record<string, unknown> = {},
@@ -68,8 +67,7 @@ export const mountPane = <S extends RenderSurface = 'terminal'>(
 export const chipTexts = async (band: { findAll: (q: ElementQuery) => Promise<FoundElement[]> }) =>
   (await band.findAll({ type: 'Button' })).map(b => `${b.key}|${b.text}`)
 
-/** Bottoms for every event the mod observes, each answering a fixed result the test can compare. */
-export const engine = (
+export const stubEngine = (
   on: On,
   answers: {
     verdict?: { decision: 'allow' | 'ask' | 'deny'; rule?: string; reason?: string }

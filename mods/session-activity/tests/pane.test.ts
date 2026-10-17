@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { ElementQuery, Engine, FoundElement } from 'claude-code/testing'
-import { engine, mountBand, mountPane, session } from './harness'
+import { stubEngine, mountBand, mountPane, session } from './harness'
 
 const HOOKS = {
   hooks: {
@@ -30,7 +30,7 @@ const texts = async (pane: { findAll: (q: ElementQuery) => Promise<FoundElement[
 
 test('/session-activity opens the pane', async ($, on) => {
   session(on)
-  const { opened } = engine(on)
+  const { opened } = stubEngine(on)
   expect(await $.command.run({ command: 'session-activity', args: '' } as never)).toEqual({
     text: 'Opened the session activity pane.',
   })
@@ -40,7 +40,7 @@ test('/session-activity opens the pane', async ($, on) => {
 for (const columns of [40, 100]) {
   test(`pressing a chip opens the pane on that item at ${columns} columns`, async ($, on) => {
     session(on, HOOKS)
-    const { opened } = engine(on)
+    const { opened } = stubEngine(on)
     blocking(on)
     await activity($)
     await (await mountBand($)).press({ key: 'chip-hook-PreToolUse' })
@@ -55,7 +55,7 @@ for (const columns of [40, 100]) {
 
 test('the +N more button opens the pane', { options: { max_chips: 1 } }, async ($, on) => {
   session(on, HOOKS)
-  const { opened } = engine(on)
+  const { opened } = stubEngine(on)
   await activity($)
   await (await mountBand($)).press({ key: 'more' })
   expect(opened).toEqual(['session-activity'])
@@ -63,7 +63,7 @@ test('the +N more button opens the pane', { options: { max_chips: 1 } }, async (
 
 test('a type filter shows that type alone', async ($, on) => {
   session(on, HOOKS)
-  engine(on)
+  stubEngine(on)
   await activity($)
   const pane = await mountPane($)
   expect(await pane.find({ key: 'row-skill-docx' })).toBeDefined()
@@ -76,7 +76,7 @@ test('a type filter shows that type alone', async ($, on) => {
 
 test('muting hides a chip from the band, keeps it in the pane, and unmutes', async ($, on) => {
   session(on, HOOKS)
-  engine(on)
+  stubEngine(on)
   await activity($)
   const pane = await mountPane($)
   await pane.press({ key: 'row-skill-docx' })
@@ -89,7 +89,7 @@ test('muting hides a chip from the band, keeps it in the pane, and unmutes', asy
 
 test('a blocked chip stays in the band when muted', async ($, on) => {
   session(on, HOOKS)
-  engine(on)
+  stubEngine(on)
   blocking(on)
   await activity($)
   const pane = await mountPane($)
@@ -100,7 +100,7 @@ test('a blocked chip stays in the band when muted', async ($, on) => {
 
 test('copy path puts the source on the clipboard', async ($, on) => {
   session(on, HOOKS)
-  const { copied } = engine(on)
+  const { copied } = stubEngine(on)
   await activity($)
   const pane = await mountPane($)
   await pane.press({ key: 'row-skill-docx' })
@@ -111,7 +111,7 @@ test('copy path puts the source on the clipboard', async ($, on) => {
 test('a settings toggle hides the type from the band and persists to the store', async ($, on) => {
   const store = new Map<string, unknown>()
   session(on, HOOKS, store)
-  engine(on)
+  stubEngine(on)
   await activity($)
   const pane = await mountPane($)
   await pane.press({ key: 'tab-settings' })
@@ -124,7 +124,7 @@ test('a settings toggle hides the type from the band and persists to the store',
 test('the layout picker switches the band to one summary chip', async ($, on) => {
   const store = new Map<string, unknown>()
   session(on, HOOKS, store)
-  engine(on)
+  stubEngine(on)
   await activity($)
   const pane = await mountPane($)
   await pane.press({ key: 'tab-settings' })
@@ -136,7 +136,7 @@ test('the layout picker switches the band to one summary chip', async ($, on) =>
 
 test('overrides saved by an earlier session apply in a new one', async ($, on) => {
   session(on, HOOKS, new Map([['overrides', { shown: { mcp: false } }]]))
-  engine(on)
+  stubEngine(on)
   await activity($)
   expect(await (await mountBand($)).find({ key: 'chip-mcp-github' })).toBeUndefined()
 })
@@ -147,7 +147,7 @@ test(
   async ($, on) => {
     const store = new Map<string, unknown>()
     session(on, HOOKS, store)
-    engine(on)
+    stubEngine(on)
     await activity($)
     await $.command.run({ command: 'review', args: '' } as never)
     const pane = await mountPane($)
@@ -166,7 +166,7 @@ test(
 
 test('the pane draws on desktop', async ($, on) => {
   session(on, HOOKS)
-  engine(on)
+  stubEngine(on)
   await activity($)
   const pane = await mountPane($, 'desktop')
   expect(await pane.find({ key: 'row-mcp-github' })).toBeDefined()
@@ -176,7 +176,7 @@ test('the pane draws on desktop', async ($, on) => {
 
 test('the filter row lists only the types the settings show', async ($, on) => {
   session(on, HOOKS)
-  engine(on)
+  stubEngine(on)
   await activity($)
   await $.command.run({ command: 'review', args: '' } as never)
   const pane = await mountPane($)

@@ -22,7 +22,7 @@ import {
   finishAgent,
   record,
   resolveSettings,
-  settle,
+  settleAsked,
   type Observed,
 } from '../src/model'
 import { renderBand, renderPane } from '../src/render'
@@ -37,8 +37,7 @@ const muted = atom({ plugin: 'session-activity', key: 'muted' } as const, [])
 const selected = atom({ plugin: 'session-activity', key: 'selected' } as const, null)
 const paneTab = atom({ plugin: 'session-activity', key: 'paneTab' } as const, 'activity')
 const filter = atom({ plugin: 'session-activity', key: 'filter' } as const, 'all')
-const overrides = atom({ plugin: 'session-activity', key: 'overrides' } as const, {})
-const overridesRef = { plugin: 'session-activity', key: 'overrides' } as const
+const overrides = atom({ plugin: 'session-activity', key: 'overrides' } as const, null)
 
 async function observe($: EngineInterface, seen: Observed | undefined) {
   if (seen === undefined) return
@@ -46,10 +45,9 @@ async function observe($: EngineInterface, seen: Observed | undefined) {
   await update($, activations, list => record(list, seen, at))
 }
 
-/** The store keeps overrides across sessions; `$.state` holds the copy the drawings subscribe to. */
 async function readOverrides($: EngineInterface): Promise<Overrides> {
-  const held = await $.state.get(overridesRef)
-  if (held.version > 0 && held.value !== undefined) return held.value
+  const held = await read($, overrides)
+  if (held !== null) return held
   const stored = await $.store.get(STORE_OVERRIDES)
   return stored !== null && typeof stored === 'object' ? (stored as Overrides) : {}
 }
@@ -79,10 +77,6 @@ function blockedBy(result: Record<string, unknown>): string | undefined {
 }
 
 export const register: Register = (on, options) => {
-  // Asked permission chips wait for the call's outcome, by tool_use_id. A reload
-  // forgets them, and those chips then keep their "asked" status.
-  const asked = new Map<string, string>()
-
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'session-activity',
@@ -140,9 +134,7 @@ export const register: Register = (on, options) => {
     const verdict = await next(e)
     if (e.tool_use_id === undefined) return verdict
     const cwd = await $.session.cwd()
-    const seen = fromPermission(e.tool, e.input, verdict, cwd)
-    if (seen !== undefined && verdict.decision === 'ask') asked.set(e.tool_use_id, seen.key)
-    await observe($, seen)
+    await observe($, fromPermission(e.tool, e.input, verdict, cwd, e.tool_use_id))
     return verdict
   })
 
@@ -153,24 +145,10 @@ export const register: Register = (on, options) => {
     if (e.tool === 'Bash' && e.run_in_background === true && ran.deny === undefined) {
       await observe($, fromBackground(e.command, await $.session.cwd()))
     }
-    const key = asked.get(e.tool_use_id)
-    if (key !== undefined) {
-      asked.delete(e.tool_use_id)
-      const wasDenied = ran.deny !== undefined
-      const at = await $.clock.now()
-      await update($, activations, list =>
-        settle(
-          list,
-          'perm',
-          key,
-          wasDenied ? 'denied' : 'ok',
-          at,
-          wasDenied
-            ? 'Claude asked you, and it did not run.'
-            : 'Claude asked you, and you let it run.',
-        ),
-      )
-    }
+    const at = await $.clock.now()
+    await update($, activations, list =>
+      settleAsked(list, e.tool_use_id, ran.deny === undefined, at),
+    )
     return ran
   })
 

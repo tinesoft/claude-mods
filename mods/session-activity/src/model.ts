@@ -1,9 +1,8 @@
 import type { Activation, Kind, Layout, Overrides, Status } from '../types'
 import { isUrgent, KIND_ORDER, KINDS } from './theme'
 
-export type Observed = Omit<Activation, 'count' | 'firstAt' | 'lastAt' | 'running'> & {
-  /** A subagent id that starts running under this chip. */
-  startedAgent?: string
+export type Observed = Omit<Activation, 'count' | 'firstAt' | 'lastAt' | 'runningAgentIds'> & {
+  startedAgentId?: string
 }
 
 const MAX_ACTIVATIONS = 500
@@ -18,43 +17,50 @@ const mergeMeta = (old: string | undefined, next: string | undefined) => {
 }
 
 export const record = (list: readonly Activation[], seen: Observed, at: number): Activation[] => {
-  const { startedAgent, ...fields } = seen
+  const { startedAgentId, ...fields } = seen
   const index = list.findIndex(a => a.kind === seen.kind && a.key === seen.key)
   if (index === -1) {
     const fresh: Activation = { ...fields, count: 1, firstAt: at, lastAt: at }
-    if (startedAgent !== undefined) fresh.running = [startedAgent]
+    if (startedAgentId !== undefined) fresh.runningAgentIds = [startedAgentId]
     return [...list, fresh].slice(-MAX_ACTIVATIONS)
   }
   const old = list[index]!
-  const running = startedAgent === undefined ? old.running : [...(old.running ?? []), startedAgent]
-  // A stop is the signal the person most needs, so a later clean run does not hide it.
-  const keepsStop = isUrgent(old.status) && !isUrgent(seen.status)
+  const running =
+    startedAgentId === undefined
+      ? old.runningAgentIds
+      : [...(old.runningAgentIds ?? []), startedAgentId]
+  const keepsUrgent = isUrgent(old.status) && !isUrgent(seen.status)
   const merged: Activation = {
     ...old,
     ...fields,
-    detail: keepsStop ? old.detail : fields.detail,
+    detail: keepsUrgent ? old.detail : fields.detail,
     meta: seen.kind === 'mcp' ? mergeMeta(old.meta, seen.meta) : (seen.meta ?? old.meta),
     count: old.count + 1,
     lastAt: at,
-    status: keepsStop ? old.status : running?.length ? 'running' : seen.status,
+    status: keepsUrgent ? old.status : running?.length ? 'running' : seen.status,
   }
-  if (running !== undefined) merged.running = running
+  if (running !== undefined) merged.runningAgentIds = running
   return list.map((a, i) => (i === index ? merged : a))
 }
 
-export const settle = (
+export const settleAsked = (
   list: readonly Activation[],
-  kind: Kind,
-  key: string,
-  status: Status,
+  callId: string,
+  hasRun: boolean,
   at: number,
-  detail?: string,
 ): Activation[] =>
-  list.map(a =>
-    a.kind === kind && a.key === key ? { ...a, status, lastAt: at, detail: detail ?? a.detail } : a,
-  )
+  list.map(({ askedCallId, ...a }) => {
+    if (askedCallId !== callId) return askedCallId === undefined ? a : { ...a, askedCallId }
+    return {
+      ...a,
+      status: hasRun ? 'ok' : 'denied',
+      lastAt: at,
+      detail: hasRun
+        ? 'Claude asked you, and you let it run.'
+        : 'Claude asked you, and it did not run.',
+    }
+  })
 
-/** Ends one subagent; its chip leaves `running` once no other subagent of that type runs. */
 export const finishAgent = (
   list: readonly Activation[],
   agentId: string,
@@ -62,12 +68,12 @@ export const finishAgent = (
   at: number,
 ): Activation[] =>
   list.map(a => {
-    if (!a.running?.includes(agentId)) return a
-    const running = a.running.filter(id => id !== agentId)
+    if (!a.runningAgentIds?.includes(agentId)) return a
+    const running = a.runningAgentIds.filter(id => id !== agentId)
     const keepsRunning = running.length > 0
     return {
       ...a,
-      running,
+      runningAgentIds: running,
       lastAt: at,
       status: keepsRunning ? 'running' : a.status === 'error' ? 'error' : status,
     }

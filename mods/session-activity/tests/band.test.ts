@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
-import { engine, mountBand, session, SURFACES } from './harness'
+import { stubEngine, mountBand, session, SURFACES } from './harness'
 
 const SKILLS = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel']
 
@@ -20,7 +20,7 @@ const buttons = async (
 for (const columns of [60, 100, 200]) {
   test(`at ${columns} columns the row fits and every chip is either shown or counted`, async ($, on) => {
     const clock = session(on)
-    engine(on)
+    stubEngine(on)
     await loadSkills($, clock)
     const row = await buttons($, columns)
     const chips = row.filter(b => b.key?.startsWith('chip-'))
@@ -37,7 +37,7 @@ for (const columns of [60, 100, 200]) {
 
 test('a wider band shows more chips', async ($, on) => {
   const clock = session(on)
-  engine(on)
+  stubEngine(on)
   await loadSkills($, clock)
   const narrow = (await buttons($, 60)).filter(b => b.key?.startsWith('chip-')).length
   const wide = (await buttons($, 100)).filter(b => b.key?.startsWith('chip-')).length
@@ -46,7 +46,7 @@ test('a wider band shows more chips', async ($, on) => {
 
 test('max_chips caps the row', { options: { max_chips: 2 } }, async ($, on) => {
   const clock = session(on)
-  engine(on)
+  stubEngine(on)
   await loadSkills($, clock)
   const row = await buttons($, 200)
   expect(row.map(b => b.text)).toEqual(['▤ hotel', '▤ golf', '+6 more'])
@@ -54,7 +54,7 @@ test('max_chips caps the row', { options: { max_chips: 2 } }, async ($, on) => {
 
 test('chips carry digit hotkeys in band order, newest first', async ($, on) => {
   const clock = session(on)
-  engine(on)
+  stubEngine(on)
   await loadSkills($, clock)
   const row = await buttons($, 200)
   expect(row.slice(0, 2).map(b => [b.props.hotkey, b.text])).toEqual([
@@ -67,7 +67,7 @@ test('a blocked hook takes the first seat even when everything else is newer', a
   const clock = session(on, {
     hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'guard.sh' }] }] },
   })
-  engine(on)
+  stubEngine(on)
   on('classic.PreToolUse', () => ({ deny: 'no' }))
   await $.tool.call({ tool: 'Bash', command: 'cat .env' } as never)
   await loadSkills($, clock)
@@ -80,7 +80,7 @@ test(
   { options: { layout: 'summary' } },
   async ($, on) => {
     const clock = session(on)
-    engine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
+    stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
     await loadSkills($, clock)
     await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
     const row = await buttons($, 100)
@@ -90,7 +90,7 @@ test(
 
 test('with nothing recorded the band is what the engine drew', async ($, on) => {
   session(on)
-  engine(on)
+  stubEngine(on)
   const band = await mountBand($)
   expect(await band.drawn()).toEqual({ type: 'Box', part: { plugin: 'test' } })
 })
@@ -100,7 +100,7 @@ test(
   { options: { enabled: false } },
   async ($, on) => {
     const clock = session(on)
-    engine(on)
+    stubEngine(on)
     await loadSkills($, clock)
     const band = await mountBand($)
     expect(await band.drawn()).toEqual({ type: 'Box', part: { plugin: 'test' } })
@@ -109,7 +109,7 @@ test(
 
 test('the band keeps another mod content first in the row', async ($, on) => {
   const clock = session(on)
-  engine(on)
+  stubEngine(on)
   await loadSkills($, clock)
   const drawn = (await (await mountBand($)).drawn()) as {
     children: { part?: { plugin: string } }[]
@@ -119,7 +119,7 @@ test('the band keeps another mod content first in the row', async ($, on) => {
 
 test('the band draws on the terminal and on desktop', async ($, on) => {
   const clock = session(on)
-  engine(on)
+  stubEngine(on)
   await loadSkills($, clock)
   for (const surface of SURFACES) {
     const row = await buttons($, 100, surface)

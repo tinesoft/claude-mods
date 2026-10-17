@@ -69,19 +69,19 @@ test('a hook event with nothing configured and nothing blocked records no chip',
 test('a hook that allowed or denied a call leaves it to the hook chip', () => {
   const input = { command: 'cat .env' }
   expect(
-    fromPermission('Bash', input, { decision: 'deny', hook: 'PreToolUse' }, '/repo'),
+    fromPermission('Bash', input, { decision: 'deny', hook: 'PreToolUse' }, '/repo', 'tu'),
   ).toBeUndefined()
   expect(
-    fromPermission('Bash', input, { decision: 'allow', hook: 'PreToolUse' }, '/repo'),
+    fromPermission('Bash', input, { decision: 'allow', hook: 'PreToolUse' }, '/repo', 'tu'),
   ).toBeUndefined()
   expect(
-    fromPermission('Bash', input, { decision: 'ask', hook: 'PreToolUse' }, '/repo')?.status,
+    fromPermission('Bash', input, { decision: 'ask', hook: 'PreToolUse' }, '/repo', 'tu')?.status,
   ).toBe('running')
 })
 
 test('the mode allowing a call on its own records no permission chip', () => {
   expect(
-    fromPermission('Read', { file_path: '/repo/a' }, { decision: 'allow' }, '/repo'),
+    fromPermission('Read', { file_path: '/repo/a' }, { decision: 'allow' }, '/repo', 'tu'),
   ).toBeUndefined()
   expect(
     fromPermission(
@@ -89,6 +89,7 @@ test('the mode allowing a call on its own records no permission chip', () => {
       { command: 'git push' },
       { decision: 'allow', rule: 'Bash(git push:*)' },
       '/repo',
+      'tu',
     ),
   ).toMatchObject({
     key: 'Bash(git push:*)',
@@ -96,7 +97,13 @@ test('the mode allowing a call on its own records no permission chip', () => {
     status: 'ok',
   })
   expect(
-    fromPermission('Bash', { command: 'rm -rf /' }, { decision: 'deny', reason: 'nope' }, '/repo'),
+    fromPermission(
+      'Bash',
+      { command: 'rm -rf /' },
+      { decision: 'deny', reason: 'nope' },
+      '/repo',
+      'tu',
+    ),
   ).toMatchObject({
     key: 'Bash:rm -rf',
     status: 'denied',

@@ -14,7 +14,7 @@ const LABEL_MAX = 24
 export const clip = (text: string, max: number) =>
   text.length <= max ? text : `${text.slice(0, Math.max(1, max - 1))}…`
 
-const countText = (a: Activation) => (a.count > 1 && KINDS[a.kind].counts ? ` ×${a.count}` : '')
+const countText = (a: Activation) => (a.count > 1 && KINDS[a.kind].showsTally ? ` ×${a.count}` : '')
 
 const kindColor = (kind: Kind, surface: RenderSurface) =>
   surface === 'desktop' ? KINDS[kind].hex : KINDS[kind].color

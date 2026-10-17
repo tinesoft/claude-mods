@@ -78,7 +78,7 @@ test('an agent chip stays running until its last subagent finishes', () => {
     label: 'Explore',
     detail: '',
     status: 'running',
-    startedAgent: id,
+    startedAgentId: id,
   })
   let list = record(record([], spawn('a1'), 1), spawn('a2'), 2)
   list = finishAgent(list, 'a1', 'ok', 3)

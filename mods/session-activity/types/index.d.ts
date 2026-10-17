@@ -24,8 +24,8 @@ export type Activation = {
   count: number
   firstAt: number
   lastAt: number
-  /** Subagent ids still running under this chip; the chip is `running` while any remain. */
-  running?: string[]
+  runningAgentIds?: string[]
+  askedCallId?: string
   agentId?: string
 }
 
@@ -49,7 +49,7 @@ declare module 'claude-code' {
       selected: string | null
       paneTab: PaneTab
       filter: Filter
-      overrides: Overrides
+      overrides: Overrides | null
     }
   }
 }
