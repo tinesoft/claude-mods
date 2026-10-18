@@ -38,23 +38,6 @@ The build can start on the recommended defaults below; items 1 to 4 change scope
 | 11 | Optional types with no clear signal (checkpoints, memory) | No event names them directly. | Ship the five with clear signals first; checkpoints and memory only after a spike. |
 | 12 | License | Needed for a public marketplace. | MIT. |
 
-## M1 findings (Claude Code 2.1.302)
-
-The spikes were answered from the generated declarations and checked in a live `claude --plugin-dir` session.
-
-| Question | Finding | What v1 does |
-| --- | --- | --- |
-| Hooks: command and exit code visible? | No. `classic.<Event>` gives the stdin JSON and, after `next(e)`, the event's merged result (`deny` for `PreToolUse`, `block` or `preventContinuation` for the rest). `$.settings.read()` lists configured commands; plugin-configured hooks are not in it. Each `classic.*` event fires whether or not a hook is configured. | One chip per event, recorded only when a settings hook matches or the event was blocked. Label is the script name for one command, else `<Event> hooks`. |
-| Rules: which fields name instruction files? | `classic.InstructionsLoaded` carries `file_path`, `memory_type` and `load_reason` for every load. `prompt.context` also lists `instructionFiles`, for the same loads, so using both counts each file twice. | `classic.InstructionsLoaded` only; the line count comes from `$.fs.read`. |
-| Permissions: "once" vs "always"? | Not visible. `tool.check` resolves `{ decision, reason, rule, hook }`. | Rule allows, denies and asks get chips; an ask settles to approved or declined from the `tool.call` result. Mode-only allows are skipped, and a hook's allow or deny is left to its hook chip. |
-| `skill.prompt` fields, `agent.spawn` type | `skill.prompt` has `skill`, `source`, `pluginName`, `path`. `agent.spawn` has `subagentType`, `description`, `background`; `next(e)` gives `agentId`, and `turn.complete` with that `agentId` is the finish. | As specified. |
-| Typecheck in CI | Snapshot chosen: `tools/claude-code-types/2.1.302/index.d.ts`, named by the mod's own `tsconfig.json`. | Refresh on each Claude Code bump. |
-| `$.state` on `/clear` | The types do not promise a reset. `session.end` fires with `reason: 'clear'` or `'resume'`, and no `session.start` follows. | The mod empties activations, mute and selection itself in `session.end`. Overrides live in `$.store`, so they survive. |
-| Glyph widths | `⚡` (U+26A1) is East Asian Wide, two cells. `⚷`, `◉`, `⇌` and `↯` are narrow. | Hooks use `↯`. The other glyphs render one cell wide in xterm.js; iTerm2, Terminal.app, Windows Terminal and Ghostty are still unchecked. |
-| Managed installs | `claude plugin validate` reports that `skill.prompt`, `classic.*` and `session.compact` reach only organization-listed plugins where Claude Code is managed. | Documented in the mod README. |
-
-Memory and checkpoints have no event that names them, so they are cut from v1 and their `userConfig` rows removed. The plugins option is dropped too: chips carry their plugin in the pane detail whenever the event names one.
-
 ## Repository
 
 `tinesoft/claude-mods` is one Nx workspace and one plugin marketplace: each mod is an Nx project under `mods/`, and the root `.claude-plugin/marketplace.json` lists them. Claude Code loads `.ts` directly, so there is no build target; Nx runs lint, type-check, validate, test and release.
@@ -278,15 +261,15 @@ The band shows one line of chips. Pressing a chip, or `+N more`, opens the pane 
  Done. The summary is in release-summary.docx, and the settings page now passes lint.
 
  1 ⚡ block-secrets  BLOCKED   2 ◉ code-reviewer   3 ⇌ github ×3   4 ⚷ git push   5 ⚡ lint-staged ×4   +10 more
-╭───────────────────────────────────────────────────────────────────────────────────────────────╮
+╭────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ > _                                                                                             │
-╰───────────────────────────────────────────────────────────────────────────────────────────────╯
+╰────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 And the pane, opened on the blocked hook:
 
 ```text
-╭ Session activity ─────────────────────────────────────────────────────────────────────────── ✕ ╮
+╭ Session activity ────────────────────────────────────────────────────────────────────────── ✕ ╮
 │ a: All 16   s: Skills 2   g: Agents 2   p: MCP 2   k: Permissions 3   h: Hooks 4   r: Rules 3   │
 │                                                                                                 │
 │ ▸ ⚡ block-secrets   PreToolUse · Bash    ×1 · 3 min   BLOCKED                                    │
@@ -296,7 +279,7 @@ And the pane, opened on the blocked hook:
 │   ⇌ github          get_pull_request · …  ×3 · 1 min                                            │
 │   …                                                                                             │
 │ 1: Activity   2: Settings                                                                       │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ### Band (`AbovePrompt`)
@@ -386,7 +369,7 @@ Six milestones in order; each ends in a PR to `develop`, and M5 ends in the firs
 - [ ] `ci.yml` green on an empty mod that only registers `/session-activity`
 - [ ] Root `README.md` with install instructions pinned to `@main`, `CLAUDE.md`, `LICENSE`
 
-**M1 · Spikes** (one throwaway branch, findings written into this doc)
+**M1 · Spikes** (one throwaway branch, findings written into this file)
 
 - [ ] Log every `classic.*` event and the result of `next(e)` for a `PreToolUse` hook that blocks: can a mod see the hook command and its exit code?
 - [ ] Log `prompt.context` and `prompt.attachment` payloads at startup: which fields name CLAUDE.md and rules files?
@@ -440,4 +423,4 @@ References (as of the date above; Claude Code v2.1.287):
 - [Mods reference](https://code.claude.com/docs/en/plugins/mods/reference): events, API, render sites, limits
 - [Plugin manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference): `userConfig`, `options`
 - [Marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference): `metadata.pluginRoot`, reserved names, `ref` pinning
-- Design source: the Session Activity Chips canvas (Main, Expanded, Settings, States boards)
+- Design source: `DESIGN.md` and `artboards/` next to this file

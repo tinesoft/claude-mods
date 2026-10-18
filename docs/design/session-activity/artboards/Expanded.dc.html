@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Session activity tray</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F4FC1}a:hover{color:#163a8f}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+button{font:inherit}
+</style>
+</helmet>
+<div style="min-height: 760px; box-sizing: border-box; background: #F5F6F8; color: #17181C; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; justify-content: flex-end; padding: 40px 24px 32px">
+  <div style="width: 100%; max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px">
+
+    <section aria-label="Session activity" style="background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 14px; box-shadow: 0 8px 24px rgba(23,24,28,0.08); display: flex; flex-direction: column; overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border-bottom: 1px solid #ECEDF0; flex-wrap: wrap">
+        <div style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600">Session activity</h2>
+          <span style="font-size: 12.5px; color: #5A5E68">16 items · 27 activations · started 18 min ago · <a href="Settings.dc.html" style="color: #3B3F48">Customize</a></span>
+        </div>
+        <div role="group" aria-label="Filter by type" style="display: flex; gap: 2px; background: #F0F1F4; padding: 3px; border-radius: 9px">
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+            <button onClick="{{f.pick}}" aria-pressed="{{f.pressed}}" style="height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: {{f.bg}}; color: #17181C; font-size: 13px; font-weight: {{f.weight}}; box-shadow: {{f.shadow}}; cursor: pointer">{{f.label}} <span style="color: #5A5E68; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px">{{f.n}}</span></button>
+          </sc-for>
+        </div>
+        <a href="Main.dc.html" aria-label="Collapse to chips" style="width: 36px; height: 36px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #3B3F48; text-decoration: none"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg></a>
+      </div>
+
+      <div style="max-height: 440px; overflow-y: auto; padding: 6px 0 8px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+          <sc-if value="{{g.show}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-direction: column">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px 4px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: {{g.fg}}">{{g.label}}<span style="color: #5A5E68">{{g.n}}</span></div>
+              <ul style="list-style: none; margin: 0; padding: 0">
+                <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+                  <li style="display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 12px 10px 16px; opacity: {{r.opacity}}">
+                    <span style="width: 28px; height: 28px; border-radius: 7px; background: {{g.bg}}; border: 1px solid {{g.bd}}; color: {{g.fg}}; display: inline-flex; align-items: center; justify-content: center">
+                      <sc-if value="{{g.isSkill}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg></sc-if>
+                      <sc-if value="{{g.isHook}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg></sc-if>
+                      <sc-if value="{{g.isRule}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8l5 2v4c0 3-2.2 5.2-5 6.4-2.8-1.2-5-3.4-5-6.4v-4z"></path></svg></sc-if>
+                      <sc-if value="{{g.isAgent}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8" rx="2"></rect><path d="M8 2.5V5"></path><path d="M6 8.5v1M10 8.5v1"></path></svg></sc-if>
+                      <sc-if value="{{g.isMcp}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 1.5v3M10 1.5v3"></path><path d="M4 4.5h8v3a4 4 0 0 1-8 0z"></path><path d="M8 11.5v3"></path></svg></sc-if>
+                      <sc-if value="{{g.isPerm}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="10.5" r="3"></circle><path d="M7.6 8.4l5.9-5.9"></path><path d="M11 5l1.5 1.5M12.5 3.5L14 5"></path></svg></sc-if>
+                    </span>
+                    <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+                        <span style="font-size: 14px; font-weight: 600">{{r.name}}</span>
+                        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: #5A5E68">{{r.meta}}</span>
+                        <sc-if value="{{r.blocked}}" hint-placeholder-val="{{ false }}"><span style="font-size: 11.5px; font-weight: 600; color: #FFFFFF; background: #B42318; padding: 1px 6px; border-radius: 5px">{{r.badge}}</span></sc-if>
+                        <sc-if value="{{r.muted}}" hint-placeholder-val="{{ false }}"><span style="font-size: 11.5px; font-weight: 600; color: #3B3F48; background: #ECEDF0; padding: 1px 6px; border-radius: 5px">Muted</span></sc-if>
+                      </div>
+                      <span style="font-size: 13px; line-height: 1.45; color: #3B3F48">{{r.why}}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px">
+                      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: #3B3F48; white-space: nowrap">×{{r.count}} · {{r.last}}</span>
+                      <button onClick="{{r.toggle}}" style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid #DADCE1; background: #FFFFFF; color: #17181C; font-size: 12.5px; cursor: pointer">{{r.action}}</button>
+                    </div>
+                  </li>
+                </sc-for>
+              </ul>
+            </div>
+          </sc-if>
+        </sc-for>
+      </div>
+    </section>
+
+    <div style="background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 16px; box-shadow: 0 1px 2px rgba(23,24,28,0.05); padding: 14px 14px 10px 16px; display: flex; flex-direction: column; gap: 10px">
+      <label for="prompt2" class="sr">Message Claude</label>
+      <textarea id="prompt2" rows="2" placeholder="Reply to Claude…" style="border: 0; outline: none; resize: none; font: inherit; font-size: 15px; line-height: 1.5; color: #17181C; background: transparent"></textarea>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button aria-label="Add attachment" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #3B3F48; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg></button>
+        <span style="flex-grow: 1"></span>
+        <button style="height: 36px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: #3B3F48; font-size: 13px; cursor: pointer">Opus 5.5</button>
+        <button aria-label="Send message" style="width: 36px; height: 36px; border-radius: 10px; border: 0; background: #17181C; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var st = this.state || {};
+    var filter = st.filter || 'all';
+    var muted = st.muted || { notify: true };
+    var data = [
+      { kind: 'skill', label: 'Skills', fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7', rows: [
+        { id: 'docx', name: 'docx', meta: 'skills/public', why: 'Matched “export as a Word file”; document conventions applied.', count: 1, last: '2 min' },
+        { id: 'fe', name: 'frontend-design', meta: 'skills/public', why: 'Loaded while editing the settings page component.', count: 1, last: '6 min' }
+      ]},
+      { kind: 'agent', label: 'Agents', fg: '#5B3A99', bg: '#F3EEFB', bd: '#D9CCF0', rows: [
+        { id: 'reviewer', name: 'code-reviewer', meta: '.claude/agents', why: 'Reviewed 4 edited files in its own context; flagged 1 unused import.', count: 1, last: '1 min' },
+        { id: 'explore', name: 'Explore', meta: 'built-in · Task', why: 'Searched 23 files for settings usages and returned a summary.', count: 2, last: '9 min' }
+      ]},
+      { kind: 'mcp', label: 'MCP servers', fg: '#9C1F62', bg: '#FCEEF5', bd: '#F0C8DC', rows: [
+        { id: 'github', name: 'github', meta: 'get_pull_request · list_comments · create_review', why: 'Read PR #418 and posted the review summary.', count: 3, last: '1 min' },
+        { id: 'linear', name: 'linear', meta: 'update_issue', why: 'Moved ENG-2291 to In Review.', count: 1, last: '1 min' }
+      ]},
+      { kind: 'perm', label: 'Permissions', fg: '#0E6159', bg: '#E8F5F2', bd: '#BCE0D8', rows: [
+        { id: 'push', name: 'git push origin settings-page', meta: 'Bash · asked you', why: 'Not on the allowlist; you chose “Allow once”.', count: 1, last: '30 s' },
+        { id: 'test', name: 'pnpm test', meta: 'Bash · allowlist', why: 'Auto-allowed by permissions.allow “Bash(pnpm test:*)”.', count: 3, last: '2 min' },
+        { id: 'infra', name: 'Write ../infra/.env', meta: 'Write · deny rule', why: 'Outside the project and matched permissions.deny, so it never ran.', count: 1, last: '4 min', blocked: true, badge: 'Denied' }
+      ]},
+      { kind: 'hook', label: 'Hooks', fg: '#9A4A0B', bg: '#FDF1E6', bd: '#F0CFAE', rows: [
+        { id: 'lint', name: 'lint-staged', meta: 'PreToolUse · Edit', why: 'Ran before each edit; 4 of 4 passed.', count: 4, last: '40 s' },
+        { id: 'fmt', name: 'prettier-write', meta: 'PostToolUse · Edit', why: 'Formatted each file after it was edited.', count: 4, last: '40 s' },
+        { id: 'secrets', name: 'block-secrets', meta: 'PreToolUse · Bash', why: 'Stopped `cat .env` before it ran. Nothing was exposed.', count: 1, last: '3 min', blocked: true, badge: 'Blocked' },
+        { id: 'notify', name: 'desktop-notify', meta: 'Stop', why: 'Sent a desktop notification when the turn finished.', count: 1, last: '12 min' }
+      ]},
+      { kind: 'rule', label: 'Rules', fg: '#2A2D35', bg: '#FFFFFF', bd: '#CFD2D8', rows: [
+        { id: 'pnpm', name: 'Use pnpm, not npm', meta: 'CLAUDE.md:12', why: 'Ran pnpm add zod instead of npm install.', count: 2, last: '5 min' },
+        { id: 'exports', name: 'No default exports', meta: 'CLAUDE.md:18', why: 'Kept SettingsPage as a named export.', count: 1, last: '7 min' },
+        { id: 'tests', name: 'Tests live next to source', meta: '.claude/rules/testing.md', why: 'Placed settings.test.tsx beside settings.tsx.', count: 1, last: '7 min' }
+      ]}
+    ];
+    var counts = { all: 16, skill: 2, agent: 2, mcp: 2, perm: 3, hook: 4, rule: 3 };
+    var filters = [['all', 'All'], ['skill', 'Skills'], ['agent', 'Agents'], ['mcp', 'MCP'], ['perm', 'Permissions'], ['hook', 'Hooks'], ['rule', 'Rules']].map(function (p) {
+      var on = filter === p[0];
+      return { label: p[1], n: counts[p[0]], pressed: on ? 'true' : 'false', bg: on ? '#FFFFFF' : 'transparent',
+        weight: on ? '600' : '500', shadow: on ? '0 1px 2px rgba(23,24,28,0.12)' : 'none',
+        pick: function () { self.setState({ filter: p[0] }); } };
+    });
+    var groups = data.map(function (g) {
+      return { label: g.label, n: g.rows.length, fg: g.fg, bg: g.bg, bd: g.bd,
+        isSkill: g.kind === 'skill', isHook: g.kind === 'hook', isRule: g.kind === 'rule', isAgent: g.kind === 'agent', isMcp: g.kind === 'mcp', isPerm: g.kind === 'perm',
+        show: filter === 'all' || filter === g.kind,
+        rows: g.rows.map(function (r) {
+          var m = !!muted[r.id];
+          return { name: r.name, meta: r.meta, why: r.why, count: r.count, last: r.last, blocked: !!r.blocked,
+            muted: m, opacity: m ? '0.6' : '1', action: m ? 'Unmute' : 'Mute',
+            toggle: function () { var n = Object.assign({}, muted); n[r.id] = !m; self.setState({ muted: n }); } };
+        }) };
+    });
+    return { filters: filters, groups: groups };
+  }
+}
+</script>
+</body>
+</html>

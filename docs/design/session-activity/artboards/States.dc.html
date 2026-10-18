@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chip types, states and overflow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F4FC1}a:hover{color:#163a8f}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 1280px; height: 1500px; box-sizing: border-box; background: #FFFFFF; color: #17181C; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; padding: 56px 64px; display: flex; flex-direction: column; gap: 44px">
+
+  <section style="display: flex; flex-direction: column; gap: 16px">
+    <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">Types</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+      <sc-for list="{{types}}" as="t" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid #ECEDF0; border-radius: 12px; background: #F9FAFB">
+          <div style="display: flex">
+            <span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; font-size: 13px; font-weight: 500">
+              <sc-if value="{{t.isSkill}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg></sc-if>
+              <sc-if value="{{t.isHook}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg></sc-if>
+              <sc-if value="{{t.isRule}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8l5 2v4c0 3-2.2 5.2-5 6.4-2.8-1.2-5-3.4-5-6.4v-4z"></path></svg></sc-if>
+              <sc-if value="{{t.isAgent}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8" rx="2"></rect><path d="M8 2.5V5"></path><path d="M6 8.5v1M10 8.5v1"></path></svg></sc-if>
+              <sc-if value="{{t.isMcp}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 1.5v3M10 1.5v3"></path><path d="M4 4.5h8v3a4 4 0 0 1-8 0z"></path><path d="M8 11.5v3"></path></svg></sc-if>
+              <sc-if value="{{t.isPerm}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="10.5" r="3"></circle><path d="M7.6 8.4l5.9-5.9"></path><path d="M11 5l1.5 1.5M12.5 3.5L14 5"></path></svg></sc-if>
+              {{t.example}}
+            </span>
+          </div>
+          <div style="font-size: 15px; font-weight: 600">{{t.label}}</div>
+          <div style="font-size: 13.5px; line-height: 1.5; color: #3B3F48">{{t.desc}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">Optional types</h2>
+      <span style="font-size: 12.5px; color: #3B3F48">Off by default. Turned on per type in Settings › Session activity.</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px">
+      <sc-for list="{{optional}}" as="o" hint-placeholder-count="7">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px dashed #CFD2D8; border-radius: 12px">
+          <div style="display: flex">
+            <span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #DADCE1; background: #F0F1F4; color: #2A2D35; font-size: 13px; font-weight: 500; white-space: nowrap"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{o.icon}}"></path></svg>{{o.example}}</span>
+          </div>
+          <div style="font-size: 14px; font-weight: 600">{{o.label}}</div>
+          <div style="font-size: 12.5px; line-height: 1.45; color: #3B3F48">{{o.desc}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 16px">
+    <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">States</h2>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 24px">
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #1F4FC1; background: #EDF2FD; color: #1F4FC1; font-size: 13px; font-weight: 500; box-shadow: 0 0 0 4px rgba(31,79,193,0.14)"><span style="width: 7px; height: 7px; border-radius: 50%; background: #1F4FC1"></span>docx</span></div>
+        <div style="font-size: 13.5px; font-weight: 600">Just activated</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Slides in from the left with a halo; settles after 4 s.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #F0CFAE; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.5" stroke="#F0CFAE" stroke-width="2"></circle><path d="M8 2.5a5.5 5.5 0 0 1 5.5 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>lint-staged</span></div>
+        <div style="font-size: 13.5px; font-weight: 600">Running</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Hook in progress; the icon becomes a spinner.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #F0CFAE; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>lint-staged<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: rgba(23,24,28,0.07)">×4</span></span></div>
+        <div style="font-size: 13.5px; font-weight: 600">Repeated</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">One chip per source; a counter instead of duplicates.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #E8A39C; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>block-secrets<span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: #FFFFFF; background: #B42318; padding: 1px 6px; border-radius: 5px"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M3.8 12.2l8.4-8.4"></path></svg>Blocked</span></span></div>
+        <div style="font-size: 13.5px; font-weight: 600">Blocked an action</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Hook exited 2 and stopped a tool call. Always shown first.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px dashed #B42318; background: #FFFFFF; color: #B42318; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M8 2L14.5 13.5h-13z"></path><path d="M8 6.5v3M8 11.6v.1"></path></svg>prettier-write<span style="font-size: 11.5px; font-weight: 600">Error</span></span></div>
+        <div style="font-size: 13.5px; font-weight: 600">Hook failed</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Non-blocking error. Popover shows stderr and exit code.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #DADCE1; background: #F5F6F8; color: #5A5E68; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6h2.5l3-2.5v9L5 10H2.5z"></path><path d="M11 6l3 4M14 6l-3 4"></path></svg><span style="text-decoration: line-through">desktop-notify</span></span></div>
+        <div style="font-size: 13.5px; font-weight: 600">Muted</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Hidden from the rail for this session; still runs.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #CFD2D8; background: #FFFFFF; color: #2A2D35; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h4l-.5 4 2.5 2.5H4L6.5 6z"></path><path d="M8 8.5V14"></path></svg>Use pnpm, not npm</span></div>
+        <div style="font-size: 13.5px; font-weight: 600">Pinned</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Stays at the front of the rail in every session.</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #1F4FC1; background: #EDF2FD; color: #1F4FC1; font-size: 13px; font-weight: 500; box-shadow: 0 0 0 3px rgba(31,79,193,0.18)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg>frontend-design</span></div>
+        <div style="font-size: 13.5px; font-weight: 600">Selected</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Opens the detail popover above the rail.</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 16px">
+    <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">Overflow and collapsed</h2>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 1px solid #ECEDF0; border-radius: 12px; background: #F9FAFB">
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap">
+          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px solid #E8A39C; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500">block-secrets</span>
+          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px solid #C9D7F7; background: #EDF2FD; color: #1F4FC1; font-size: 13px; font-weight: 500">docx</span>
+          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px solid #F0CFAE; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500">lint-staged ×4</span>
+          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px dashed #B9BCC4; color: #3B3F48; font-size: 13px; font-weight: 500">+8 more</span>
+        </div>
+        <div style="font-size: 13.5px; font-weight: 600">One row, then overflow</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Order: blocked or failed, pinned, most recent. The rest fold into “+N more”, which opens the tray.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 1px solid #ECEDF0; border-radius: 12px; background: #F9FAFB">
+        <div style="display: flex">
+          <span style="height: 32px; display: inline-flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #17181C; font-size: 13px; font-weight: 500">
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: #1F4FC1"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg>2</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: #5B3A99"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8" rx="2"></rect><path d="M8 2.5V5"></path><path d="M6 8.5v1M10 8.5v1"></path></svg>2</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: #9A4A0B"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>4</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: #2A2D35"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8l5 2v4c0 3-2.2 5.2-5 6.4-2.8-1.2-5-3.4-5-6.4v-4z"></path></svg>3</span>
+            <span style="width: 1px; height: 14px; background: #DADCE1"></span>
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #B42318"></span><span style="color: #B42318">1 blocked</span>
+          </span>
+        </div>
+        <div style="font-size: 13.5px; font-weight: 600">Collapsed summary</div>
+        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">For a quiet composer: one chip with counts per type. Anything blocked stays visible.</div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      types: [
+        { isSkill: true, isHook: false, isRule: false, label: 'Skill', example: 'docx', fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7',
+          desc: 'A SKILL.md that Claude loaded because the request matched it. Layered icon, blue tint.' },
+        { isSkill: false, isHook: true, isRule: false, label: 'Hook', example: 'lint-staged', fg: '#9A4A0B', bg: '#FDF1E6', bd: '#F0CFAE',
+          desc: 'A command from settings that ran on an event such as PreToolUse or Stop. Bolt icon, orange tint.' },
+        { isSkill: false, isHook: false, isRule: true, label: 'Rule', example: 'Use pnpm, not npm', fg: '#2A2D35', bg: '#FFFFFF', bd: '#CFD2D8',
+          desc: 'A line from CLAUDE.md or .claude/rules that shaped an action. Shield icon, neutral outline.' },
+        { isSkill: false, isHook: false, isRule: false, isAgent: true, label: 'Agent', example: 'code-reviewer', fg: '#5B3A99', bg: '#F3EEFB', bd: '#D9CCF0',
+          desc: 'A subagent Claude handed work to, built-in or from .claude/agents. Robot icon, violet tint; shows running while it works.' },
+        { isMcp: true, label: 'MCP server', example: 'github ×3', fg: '#9C1F62', bg: '#FCEEF5', bd: '#F0C8DC',
+          desc: 'One chip per server, counting its tool calls. Plug icon, magenta tint; turns red when auth fails.' },
+        { isPerm: true, label: 'Permission', example: 'Allowed: git push', fg: '#0E6159', bg: '#E8F5F2', bd: '#BCE0D8',
+          desc: 'A permission decision: asked and approved, auto-allowed by a rule, or denied. Key icon, teal tint.' }
+      ],
+      optional: [
+        { label: 'Slash command', example: '/release-notes', desc: 'A custom command from .claude/commands ran.', icon: 'M5.5 13.5l5-11' },
+        { label: 'Memory', example: 'Remembered: prefers pnpm', desc: 'Claude read or wrote a memory.', icon: 'M4.5 2h7v12L8 11.5 4.5 14z' },
+        { label: 'Plugin', example: 'via acme-devtools', desc: 'Groups chips by the plugin that supplied them.', icon: 'M2.5 5.5L8 2.5l5.5 3v5L8 13.5l-5.5-3zM2.5 5.5L8 8.5l5.5-3M8 8.5v5' },
+        { label: 'Context', example: 'Compacted · 62% used', desc: 'Compaction and context usage.', icon: 'M2.5 11a5.5 5.5 0 1 1 11 0M8 11l2.5-3' },
+        { label: 'Checkpoint', example: 'Checkpoint 3 · Rewind', desc: 'Restore points made before edits.', icon: 'M3.5 14V2.5M3.5 3h8l-2 3 2 3h-8' },
+        { label: 'Style / model', example: 'Style: Explanatory', desc: 'Output style or model switched mid-session.', icon: 'M2.5 4.5h11M2.5 11.5h11M10 3v3M6 10v3' },
+        { label: 'Background task', example: 'pnpm dev · running', desc: 'Long-running shells still alive; stop from the chip.', icon: 'M2.5 3.5h11v9h-11zM5 7l2 1.5L5 10M8.5 10.5h2.5' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

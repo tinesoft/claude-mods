@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Session chips above the prompt bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F4FC1}a:hover{color:#163a8f}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+button{font:inherit}
+</style>
+</helmet>
+<div style="min-height: 760px; box-sizing: border-box; background: #F5F6F8; color: #17181C; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; justify-content: flex-end; padding: 40px 24px 32px">
+  <div style="width: 100%; max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="align-self: flex-end; max-width: 80%; background: #E8EAEE; border-radius: 14px; padding: 12px 16px; font-size: 15px; line-height: 1.5">Export the release summary as a Word file, then fix the lint errors in the settings page.</div>
+      <div style="font-size: 15px; line-height: 1.6; color: #17181C">
+        <p style="margin: 0 0 10px">Done. The summary is in <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; background: #E8EAEE; padding: 1px 6px; border-radius: 4px">release-summary.docx</span>, and the settings page now passes lint across all four edited files.</p>
+        <p style="margin: 0">One command was stopped by a hook before it ran, because it would have printed your <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; background: #E8EAEE; padding: 1px 6px; border-radius: 4px">.env</span> file. Nothing was exposed.</p>
+      </div>
+    </div>
+
+    <div style="position: relative; display: flex; flex-direction: column; gap: 8px">
+
+      <sc-if value="{{hasOpen}}" hint-placeholder-val="{{ true }}">
+        <div role="dialog" aria-label="Activation details" style="position: absolute; left: 0; bottom: calc(100% + 8px); width: 420px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 12px; box-shadow: 0 12px 32px rgba(23,24,28,0.12), 0 2px 6px rgba(23,24,28,0.06); padding: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 5">
+          <div style="display: flex; align-items: flex-start; gap: 10px">
+            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0">
+              <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: {{cur.fg}}">{{cur.typeLabel}} · {{cur.event}}</div>
+              <div style="font-size: 17px; font-weight: 600">{{cur.name}}</div>
+            </div>
+            <button onClick="{{close}}" aria-label="Close details" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: #5A5E68; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+          </div>
+          <div style="font-size: 14px; line-height: 1.5; color: #2A2D35">{{cur.why}}</div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 12.5px">
+            <div style="background: #F5F6F8; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px"><span style="color: #5A5E68">Status</span><span style="font-weight: 600; color: {{cur.statusFg}}">{{cur.status}}</span></div>
+            <div style="background: #F5F6F8; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px"><span style="color: #5A5E68">Activations</span><span style="font-weight: 600">{{cur.count}}</span></div>
+            <div style="background: #F5F6F8; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px"><span style="color: #5A5E68">Last</span><span style="font-weight: 600">{{cur.last}}</span></div>
+          </div>
+          <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: #5A5E68; overflow-wrap: anywhere">{{cur.source}}</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #17181C; font-size: 13.5px; font-weight: 500; cursor: pointer">Open source</button>
+            <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #17181C; font-size: 13.5px; font-weight: 500; cursor: pointer">Mute for this session</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <div role="list" aria-label="Activated this session" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+        <sc-for list="{{chips}}" as="c" hint-placeholder-count="5">
+          <div role="listitem" style="display: flex">
+            <button onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" aria-label="{{c.aria}}" style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid {{c.bd}}; background: {{c.bg}}; color: {{c.fg}}; font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: {{c.ring}}">
+              <sc-if value="{{c.isSkill}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg></sc-if>
+              <sc-if value="{{c.isHook}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg></sc-if>
+              <sc-if value="{{c.isRule}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8l5 2v4c0 3-2.2 5.2-5 6.4-2.8-1.2-5-3.4-5-6.4v-4z"></path></svg></sc-if>
+              <sc-if value="{{c.isAgent}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8" rx="2"></rect><path d="M8 2.5V5"></path><path d="M6 8.5v1M10 8.5v1"></path></svg></sc-if>
+              <sc-if value="{{c.isMcp}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 1.5v3M10 1.5v3"></path><path d="M4 4.5h8v3a4 4 0 0 1-8 0z"></path><path d="M8 11.5v3"></path></svg></sc-if>
+              <sc-if value="{{c.isPerm}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="10.5" r="3"></circle><path d="M7.6 8.4l5.9-5.9"></path><path d="M11 5l1.5 1.5M12.5 3.5L14 5"></path></svg></sc-if>
+              <span style="white-space: nowrap">{{c.label}}</span>
+              <sc-if value="{{c.hasCount}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: rgba(23,24,28,0.07)">×{{c.count}}</span></sc-if>
+              <sc-if value="{{c.isBlocked}}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: #FFFFFF; background: #B42318; padding: 1px 6px; border-radius: 5px"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M3.8 12.2l8.4-8.4"></path></svg>Blocked</span></sc-if>
+            </button>
+          </div>
+        </sc-for>
+        <a href="Expanded.dc.html" style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px dashed #B9BCC4; color: #3B3F48; font-size: 13px; font-weight: 500; text-decoration: none">+10 more</a>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 16px; box-shadow: 0 1px 2px rgba(23,24,28,0.05); padding: 14px 14px 10px 16px; display: flex; flex-direction: column; gap: 10px">
+        <label for="prompt" class="sr">Message Claude</label>
+        <textarea id="prompt" rows="2" placeholder="Reply to Claude…" style="border: 0; outline: none; resize: none; font: inherit; font-size: 15px; line-height: 1.5; color: #17181C; background: transparent"></textarea>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <button aria-label="Add attachment" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #3B3F48; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg></button>
+          <span style="font-size: 12.5px; color: #5A5E68; flex-grow: 1">16 active this session · <a href="Settings.dc.html" style="color: #3B3F48">Customize chips</a></span>
+          <button style="height: 36px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: #3B3F48; font-size: 13px; cursor: pointer">Opus 5.5</button>
+          <button aria-label="Send message" style="width: 36px; height: 36px; border-radius: 10px; border: 0; background: #17181C; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var open = (this.state && this.state.open !== undefined) ? this.state.open : 'secrets';
+    var self = this;
+    var T = {
+      skill: { fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7', label: 'Skill' },
+      hook:  { fg: '#9A4A0B', bg: '#FDF1E6', bd: '#F0CFAE', label: 'Hook' },
+      rule:  { fg: '#2A2D35', bg: '#FFFFFF', bd: '#CFD2D8', label: 'Rule' },
+      agent: { fg: '#5B3A99', bg: '#F3EEFB', bd: '#D9CCF0', label: 'Agent' },
+      mcp:   { fg: '#9C1F62', bg: '#FCEEF5', bd: '#F0C8DC', label: 'MCP' },
+      perm:  { fg: '#0E6159', bg: '#E8F5F2', bd: '#BCE0D8', label: 'Permission' }
+    };
+    var raw = [
+      { id: 'reviewer', kind: 'agent', label: 'code-reviewer', name: 'code-reviewer', event: 'Subagent · Task', why: 'Reviewed the four edited files in its own context and flagged one unused import, which was then removed.', status: 'Finished', count: 1, last: '1 min ago', source: '.claude/agents/code-reviewer.md' },
+      { id: 'github', kind: 'mcp', label: 'github', name: 'github', event: 'MCP server · 3 tools', why: 'Called get_pull_request, list_comments and create_review to read PR #418 and post the summary.', status: 'Connected', count: 3, last: '1 min ago', source: '.mcp.json → mcpServers.github' },
+      { id: 'push', kind: 'perm', label: 'Allowed: git push', name: 'git push origin settings-page', event: 'Bash · asked you', why: 'Not on the allowlist, so Claude asked first. You chose “Allow once”.', status: 'Approved by you', count: 1, last: '30 s ago', source: '.claude/settings.json → permissions' },
+      { id: 'lint', kind: 'hook', label: 'lint-staged', name: 'lint-staged', event: 'PreToolUse · Edit', why: 'Ran before each file edit. All four runs passed after the fixes.', status: 'Passed', count: 4, last: '40 s ago', source: '.claude/settings.json → hooks.PreToolUse[0]' },
+      { id: 'secrets', kind: 'hook', label: 'block-secrets', name: 'block-secrets', event: 'PreToolUse · Bash', why: 'Stopped `cat .env` before it ran, so its contents never entered the transcript.', status: 'Blocked 1 call', count: 1, last: '3 min ago', source: '.claude/hooks/block-secrets.sh', blocked: true },
+      { id: 'pnpm', kind: 'rule', label: 'Use pnpm, not npm', name: 'Use pnpm, not npm', event: 'CLAUDE.md', why: 'Applied when adding a dependency: ran pnpm add zod instead of npm install.', status: 'Applied', count: 2, last: '5 min ago', source: './CLAUDE.md:12' }
+    ];
+    var cur = null;
+    var chips = raw.map(function (r) {
+      var t = T[r.kind];
+      var sel = r.id === open;
+      var item = {
+        label: r.label, count: r.count, hasCount: r.count > 1,
+        isSkill: r.kind === 'skill', isHook: r.kind === 'hook', isRule: r.kind === 'rule', isAgent: r.kind === 'agent', isMcp: r.kind === 'mcp', isPerm: r.kind === 'perm',
+        isBlocked: !!r.blocked,
+        fg: t.fg, bg: t.bg, bd: sel ? t.fg : (r.blocked ? '#E8A39C' : t.bd),
+        ring: sel ? '0 0 0 3px rgba(31,79,193,0.18)' : 'none',
+        pressed: sel ? 'true' : 'false',
+        aria: t.label + ': ' + r.name + (r.blocked ? ', blocked a call' : '') + (r.count > 1 ? ', ' + r.count + ' times' : ''),
+        pick: function () { self.setState({ open: sel ? null : r.id }); }
+      };
+      if (sel) {
+        cur = { typeLabel: t.label, fg: t.fg, name: r.name, event: r.event, why: r.why, status: r.status,
+          statusFg: r.blocked ? '#B42318' : '#17181C', count: r.count, last: r.last, source: r.source };
+      }
+      return item;
+    });
+    return {
+      chips: chips,
+      hasOpen: !!cur,
+      cur: cur || { typeLabel: '', fg: '#17181C', name: '', event: '', why: '', status: '', statusFg: '#17181C', count: '', last: '', source: '' },
+      close: function () { self.setState({ open: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
