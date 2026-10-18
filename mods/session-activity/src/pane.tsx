@@ -110,7 +110,7 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
           {a.meta !== undefined && (
             <Text dimColor>{` ${clip(a.meta, Math.max(8, columns - 52))}`}</Text>
           )}
-          {badgeText && <Badge ui={ui} text={badgeText} tone={tone} />}
+          {badgeText !== undefined && <Badge ui={ui} text={badgeText} tone={tone} />}
           {isMuted && (
             <Text bold inverse dimColor>
               {' Muted '}

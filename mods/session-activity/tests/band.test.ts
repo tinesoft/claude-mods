@@ -343,8 +343,14 @@ test('pressing a chip grows a detail card under the row; pressing it again close
   expect(shown).toContain('docx')
   expect(shown).toContain('/skills/docx/SKILL.md')
   expect(shown).toEqual(expect.arrayContaining(['Status', 'Activations', 'Last', 'Active', '1']))
-  expect((await open.find({ key: 'open' }))?.props.hotkey).toBe('o')
-  expect((await open.find({ key: 'mute' }))?.props.hotkey).toBe('m')
+  expect(await open.find({ key: 'open' })).toMatchObject({
+    text: 'o: Open source',
+    props: { hotkey: 'o' },
+  })
+  expect(await open.find({ key: 'mute' })).toMatchObject({
+    text: 'm: Mute',
+    props: { hotkey: 'm' },
+  })
   expect(await open.find({ key: 'chip-skill-docx' })).toBeDefined()
   await open.press({ key: 'chip-skill-docx' })
   expect(await (await mountBand($)).find({ key: 'card' })).toBeUndefined()

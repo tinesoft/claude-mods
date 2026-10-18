@@ -177,13 +177,13 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
           {p.lead + p.label}
         </Text>
       </Button>
-      {p.count && <Text {...paint}>{p.count}</Text>}
+      {p.count !== '' && <Text {...paint}>{p.count}</Text>}
       {p.via && (
         <Text dimColor {...withTint(tint)}>
           {p.via}
         </Text>
       )}
-      {p.badge && <Badge ui={ui} text={p.badge} tone={tone} />}
+      {p.badge !== '' && <Badge ui={ui} text={p.badge} tone={tone} />}
     </Box>
   )
 }
@@ -320,12 +320,12 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
       )}
       <Box flexDirection="row" columnGap={2}>
         {a.source !== undefined && (
-          <Button key="open" hotkey="o" label="Open source" onPress={() => on.copy(a.source!)} />
+          <Button key="open" hotkey="o" label="o: Open source" onPress={() => on.copy(a.source!)} />
         )}
         <Button
           key="mute"
           hotkey="m"
-          label={isMuted ? 'Unmute' : 'Mute'}
+          label={isMuted ? 'm: Unmute' : 'm: Mute'}
           onPress={() => on.mute(id)}
         />
       </Box>
