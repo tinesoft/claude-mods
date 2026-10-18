@@ -1,13 +1,16 @@
 # Session Activity
 
-A Claude Code mod that shows what took part in your session. A row of chips above the prompt names each skill, subagent, MCP server, permission decision, settings hook and rule file that activated. Press a chip, or type its digit into an empty prompt, to open the details pane.
+A Claude Code mod that shows what took part in your session. A row of chips above the prompt names each skill, subagent, MCP server, permission decision, settings hook and rule file that activated. Press a chip to see why it is there. The detail card grows under the row, or the pane opens when the band is too short for it.
 
 ```text
- 1 ↯ block-secrets  BLOCKED    2 ◉ code-reviewer    3 ⇌ github ×3    4 ⚷ git push    +10 more
+ ↯ block-secrets  BLOCKED    ◉ code-reviewer    ⇌ github ×3    ⚷ git push    +10 more
 ╭──────────────────────────────────────────────────────────────────────────────────────────╮
 │ > _                                                                                       │
 ╰──────────────────────────────────────────────────────────────────────────────────────────╯
+  16 active · /session-activity
 ```
+
+Chips are tinted with a light or dark palette chosen from your Claude Code theme (`dark`, `light` and their daltonized variants). Under any other theme, such as `auto` or the ANSI themes, they fall back to coloured text. Set `chip_style` to `text` to always use coloured text.
 
 Tested with Claude Code 2.1.302. Mods need 2.1.287 or later.
 
@@ -32,27 +35,42 @@ claude plugin marketplace add tinesoft/claude-mods@main
 | Hook       | `↯`   | A settings hook configured for the event ran, or the event was blocked | ok, blocked                 |
 | Rule       | `▣`   | A `CLAUDE.md` or `.claude/rules` file was loaded                       | active                      |
 
-Optional types are off by default: slash commands (`/`), context use and compaction (`◔`), the model each request went to (`≡`), and background Bash tasks (`▶`).
+Optional types are off by default: slash commands (`/`), memory (`✎`), context use and compaction (`◔`), the model each request went to (`≡`), background Bash tasks (`▶`), and checkpoints (`⚑`, not yet supported). The plugin option tags every chip that a plugin supplied with a dim `via <plugin>`; it is a tag, not a chip of its own.
+
+A memory chip appears when Claude writes or edits `CLAUDE.md`, `CLAUDE.local.md` or a markdown file in a `memory/` folder, labelled `Remembered: <file>`.
+
+A chip that was just activated is bold with a `●` for four seconds. A running agent or asked permission cycles `◐◓◑◒`. A failed one shows a red `▲` and an `ERROR` badge. When an action is blocked or denied, one toast names it, such as `↯ block-secrets blocked Bash`; turn it off with `toast_on_block`. The status line under the prompt keeps the count: `16 active · /session-activity`.
 
 Blocked, denied and errored chips sit first in the row and stay visible even when their type is hidden or muted. Each status is also a text badge, so the colour is never the only signal.
 
+## Keyboard and mouse
+
+Press Ctrl+X then Tab to focus the band, then move between chips and press Enter. In fullscreen mode and in the Desktop app a click works too. Pressing the selected chip again, or the `✕` on the card, closes the card. The card's `o: Open source` copies the source path (a mod cannot open an editor) and `m: Mute` hides the chip from the band.
+
+Digit hotkeys on the chips (`1` to `9`, `0` for `+N more`) are off by default, because a bare digit typed into an empty prompt would open a chip. Turn them on with `chip_hotkeys`.
+
+A mod cannot read Esc in the band, so the card closes with the chip or its `✕`, not with Esc.
+
 ## The pane
 
-Open it with `/session-activity`, a chip, or `+N more` (hotkey `0`).
+Open it with `/session-activity`, `+N more`, or a chip when the band is too short for the card (the pane then opens on that item).
 
-- **Activity** (`1`). Filter by type with the letter hotkeys (`a` all, `s` skills, `g` agents, `p` MCP, `k` permissions, `h` hooks, `r` rules). Select a row to see why it is there and where it came from. `m` mutes or unmutes it in the band, and `c` copies its path.
-- **Settings** (`2`). Turn the band on or off, pick the layout, and show or hide each type. `Reset to defaults` returns to your plugin options.
+- **Activity** (`1`). A header counts the items and activations. Filter by type with the letter hotkeys (`a` all, `s` skills, `g` agents, `p` MCP, `k` permissions, `h` hooks, `r` rules, with a count each). Rows are grouped by type. Select a row to see why it is there and where it came from. `m` mutes or unmutes it in the band, `c` copies its path, and `Customize` jumps to the settings. A muted row is dim with a `Muted` badge.
+- **Settings** (`2`). The master switch, a live preview drawn by the band renderer with `Chip row` and `Collapsed summary`, one switch per type in "Shown by default" and "Optional", then chip style, digit hotkeys and the toast. `Reset to defaults` returns to your plugin options and `Turn everything on` shows every type.
 
 ## Settings
 
-The plugin options (`/config`, or `pluginConfigs` in settings) are the defaults. Changes made in the pane override them and persist across sessions.
+The plugin options (`/config`, or `pluginConfigs` in settings) are the defaults. Changes made in the pane override them, persist across sessions, and are reloaded when a session starts, including after `/clear`.
 
-| Option        | Default               | Effect                                                                           |
-| ------------- | --------------------- | -------------------------------------------------------------------------------- |
-| `enabled`     | `true`                | Show chips above the prompt                                                      |
-| `layout`      | `row`                 | `row` of chips, or one `summary` chip such as `16 active · ▤2 ◉2 ⇌2 · 1 stopped` |
-| `max_chips`   | `6`                   | Chips shown before `+N more` (1 to 20)                                           |
-| `show_<type>` | core on, optional off | Show that type in the band                                                       |
+| Option           | Default               | Effect                                                                                                                             |
+| ---------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`        | `true`                | Show chips above the prompt                                                                                                        |
+| `layout`         | `row`                 | `row` of chips, or one `summary` chip such as `16 active · ▤2 ◉2 ⇌2 · ● 1 stopped`                                                 |
+| `max_chips`      | `6`                   | Chips shown before `+N more` (1 to 20)                                                                                             |
+| `show_<type>`    | core on, optional off | Show that type: skills, agents, mcp, permissions, hooks, rules, commands, memory, plugins, context, checkpoints, model, background |
+| `chip_style`     | `tinted`              | `tinted` chips, or `text` for coloured text only                                                                                   |
+| `chip_hotkeys`   | `false`               | Digit hotkeys on chips                                                                                                             |
+| `toast_on_block` | `true`                | Toast when an action is blocked or denied                                                                                          |
 
 Chips belong to one conversation. `/clear` and `/resume` empty them; muting lasts until then too.
 
@@ -62,7 +80,8 @@ Chips belong to one conversation. `/clear` and `/resume` empty them; muting last
 - Permission chips leave out calls your permission mode allows on its own, such as reads, to keep the band readable. A call a hook allowed or denied shows on that hook's chip instead. Whether you approved "once" or "always" is not visible to a mod.
 - Rule chips mean a file was loaded, not that a line in it shaped an action.
 - Where an organization manages Claude Code, skill, hook, rule and compaction events reach only plugins the organization lists, so those chips stay empty.
-- Memory and checkpoint chips are not supported: no event names them.
+- Checkpoints are not supported yet: Claude Code 2.1.302 sends no event for them, so the toggle exists and records nothing. Memory chips come only from writes Claude makes with `Write`, `Edit` or `MultiEdit`.
+- `auto` and the ANSI themes cannot be told apart as light or dark, so chips fall back to coloured text there.
 - When another mod also draws in the band, its content comes first in the row and this mod's chips are sized as if they had the row to themselves, so the row can wrap.
 
 ## Development
@@ -74,4 +93,4 @@ pnpm nx run session-activity:dev        # claude --plugin-dir mods/session-activ
 pnpm nx run-many -t lint typecheck validate test
 ```
 
-`hooks/register.tsx` holds every hook and every `$` call. `src/` holds pure helpers that take plain data: `model.ts` (the activation list and its reducer), `classify.ts` (event data to chips), `render.tsx` (band and pane trees) and `theme.ts` (glyphs, colours, hotkeys). Tests in `tests/` run under `claude plugin test` and drive the mod through the engine's events and drawings.
+`hooks/register.tsx` holds every hook and every `$` call. `src/` holds pure helpers that take plain data: `model.ts` (the activation list and its reducer), `classify.ts` (event data to chips), `render.tsx` (band row and detail card), `pane.tsx` (the pane tabs) and `theme.ts` (the registry of types with their glyphs, colours and settings copy). Tests in `tests/` run under `claude plugin test` and drive the mod through the engine's events and drawings.
