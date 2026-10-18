@@ -126,3 +126,13 @@ test('the band draws on the terminal and on desktop', async ($, on) => {
     expect(row[0]!.text).toBe('▤ hotel')
   }
 })
+
+test('a chip is bold for four seconds after it activates, then settles', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on)
+  await $.skill.prompt({ skill: 'docx', text: '', frontmatter: {}, source: 'plugin' } as never)
+  const label = async () => (await mountBand($)).find({ type: 'Text', text: ' docx' })
+  expect((await label())?.props.bold).toBe(true)
+  await clock.advance(4000)
+  expect((await label())?.props.bold).toBe(false)
+})

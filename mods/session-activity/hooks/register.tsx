@@ -32,6 +32,7 @@ import { KIND_ORDER } from '../src/theme'
 const PANE = 'session-activity'
 const COMMAND = 'session-activity'
 const STORE_OVERRIDES = 'overrides'
+const FRESH_MS = 4000
 
 const activations = atom({ plugin: 'session-activity', key: 'activations' } as const, [])
 const muted = atom({ plugin: 'session-activity', key: 'muted' } as const, [])
@@ -44,6 +45,7 @@ async function observe($: EngineInterface, seen: Observed | undefined) {
   if (seen === undefined) return
   const at = await $.clock.now()
   await update($, activations, list => record(list, seen, at))
+  $.clock.after(FRESH_MS, () => void update($, activations, list => [...list]))
 }
 
 async function readOverrides($: EngineInterface): Promise<Overrides> {
@@ -84,6 +86,7 @@ export const register: Register = (on, options) => {
       name: 'session-activity',
       description:
         'Show the skills, agents, MCP servers, permissions, hooks and rules of this session',
+      immediate: true,
     })
     const stored = await $.store.get(STORE_OVERRIDES)
     if (stored !== null && typeof stored === 'object') {
@@ -204,6 +207,7 @@ export const register: Register = (on, options) => {
       ui: $.ui.resolve(e),
       surface: e.surface,
       columns: e.props.bodyColumns,
+      freshSince: (await $.clock.now()) - FRESH_MS,
       chips,
       settings,
       below,

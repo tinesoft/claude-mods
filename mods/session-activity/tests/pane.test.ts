@@ -28,6 +28,17 @@ const blocking = (on: Parameters<typeof session>[0]) =>
 const texts = async (pane: { findAll: (q: ElementQuery) => Promise<FoundElement[]> }) =>
   (await pane.findAll({ type: 'Text' })).map(t => t.text)
 
+test('session start registers /session-activity to run mid-turn', async ($, on) => {
+  session(on)
+  const registered: unknown[] = []
+  on('command.register', ($, e) => (registered.push(e), { value: { command: e.name } }))
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  await $.session.start({ cwd: '/repo', surface: 'terminal' } as never)
+  expect(registered).toEqual([
+    expect.objectContaining({ name: 'session-activity', immediate: true }),
+  ])
+})
+
 test('/session-activity opens the pane', async ($, on) => {
   session(on)
   const { opened } = stubEngine(on)
@@ -82,7 +93,7 @@ test('muting hides a chip from the band, keeps it in the pane, and unmutes', asy
   await pane.press({ key: 'row-skill-docx' })
   await pane.press({ key: 'mute' })
   expect(await (await mountBand($)).find({ key: 'chip-skill-docx' })).toBeUndefined()
-  expect((await pane.find({ key: 'row-skill-docx' }))?.text).toContain('muted')
+  expect((await pane.find({ key: 'row-skill-docx' }))?.text).toContain('Muted')
   await pane.press({ key: 'mute' })
   expect(await (await mountBand($)).find({ key: 'chip-skill-docx' })).toBeDefined()
 })
@@ -206,4 +217,20 @@ test('turn everything on keeps the chosen layout', async ($, on) => {
   await pane.select({ key: 'layout', value: 'summary' })
   await pane.press({ key: 'all-on' })
   expect(store.get('overrides')).toMatchObject({ layout: 'summary', enabled: true })
+})
+
+test('the settings tab uses the design copy and counts the optional types on', async ($, on) => {
+  session(on)
+  stubEngine(on)
+  const pane = await mountPane($)
+  await pane.press({ key: 'tab-settings' })
+  expect((await pane.find({ key: 'toggle-enabled' }))?.text).toBe(
+    '[x] Show chips above the prompt bar',
+  )
+  expect(await texts(pane)).toContain(
+    'Blocked and denied actions are always shown while this is on.',
+  )
+  expect(await texts(pane)).toContain('Optional · off by default (0 of 4 on)')
+  await pane.press({ key: 'toggle-model' })
+  expect(await texts(pane)).toContain('Optional · off by default (1 of 4 on)')
 })

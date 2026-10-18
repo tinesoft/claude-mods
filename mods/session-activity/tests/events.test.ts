@@ -40,7 +40,7 @@ test('a subagent chip runs until its turn completes', async ($, on) => {
   session(on)
   stubEngine(on)
   await $.agent.spawn(spawn('pr'))
-  expect(await band($)).toEqual(['chip-agent-code-reviewer|◉ code-reviewer RUNNING'])
+  expect(await band($)).toEqual(['chip-agent-code-reviewer|◉ code-reviewer RUNNING '])
   await $.turn.complete({
     answer: 'ok',
     durationMs: 1,
@@ -67,7 +67,7 @@ test('an asked call that runs ends as approved, not pending', async ($, on) => {
   session(on)
   stubEngine(on, { verdict: { decision: 'ask' } })
   await $.tool.check({ tool: 'Bash', input: { command: 'git push' }, tool_use_id: 'tu2' } as never)
-  expect(await band($)).toEqual(['chip-perm-Bash:git push|⚷ git push RUNNING'])
+  expect(await band($)).toEqual(['chip-perm-Bash:git push|⚷ git push RUNNING '])
   await $.tool.call({ tool: 'Bash', command: 'git push', tool_use_id: 'tu2' } as never)
   expect(await band($)).toEqual(['chip-perm-Bash:git push|⚷ git push'])
 })

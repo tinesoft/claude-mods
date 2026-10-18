@@ -52,11 +52,7 @@ const Badge = ({ ui, a }: { ui: Ui; a: Activation }) => {
   const { Text } = ui
   const status = STATUSES[a.status]
   if (!status.badge) return null
-  return status.dim ? (
-    <Text dimColor>{` ${status.badge}`}</Text>
-  ) : (
-    <Text inverse bold color={status.color}>{` ${status.badge} `}</Text>
-  )
+  return <Text inverse bold dimColor={status.dim} color={status.color}>{` ${status.badge} `}</Text>
 }
 
 const Glyph = ({ ui, kind, surface }: { ui: Ui; kind: Kind; surface: RenderSurface }) => {
@@ -72,6 +68,7 @@ export type BandArgs = {
   ui: Ui
   surface: RenderSurface
   columns: number
+  freshSince: number
   chips: readonly Activation[]
   settings: Settings
   below: RenderElement
@@ -89,7 +86,16 @@ export const summaryLabel = (chips: readonly Activation[]) => {
     .join(' · ')
 }
 
-export const renderBand = ({ ui, surface, columns, chips, settings, below, onOpen }: BandArgs) => {
+export const renderBand = ({
+  ui,
+  surface,
+  columns,
+  freshSince,
+  chips,
+  settings,
+  below,
+  onOpen,
+}: BandArgs) => {
   const { Box, Button, Text } = ui
   if (settings.layout === 'summary') {
     return (
@@ -113,7 +119,7 @@ export const renderBand = ({ ui, surface, columns, chips, settings, below, onOpe
           onPress={() => onOpen(chipId(a))}
         >
           <Glyph ui={ui} kind={a.kind} surface={surface} />
-          {` ${clip(a.label, LABEL_MAX)}${countText(a)}`}
+          <Text bold={a.lastAt > freshSince}>{` ${clip(a.label, LABEL_MAX)}${countText(a)}`}</Text>
           <Badge ui={ui} a={a} />
         </Button>
       ))}
@@ -218,11 +224,11 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
       <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
         {isSelected ? '▸ ' : '  '}
         <Glyph ui={ui} kind={a.kind} surface={surface} />
-        {` ${pad(a.label, 18)} `}
+        <Text dimColor={isMuted}>{` ${pad(a.label, 18)} `}</Text>
         <Text
           dimColor
         >{`${pad(a.meta ?? '', metaWidth)} ×${a.count} · ${ago(now - a.lastAt)}`}</Text>
-        {isMuted && <Text dimColor> muted</Text>}
+        {isMuted && <Text dimColor> Muted</Text>}
         <Badge ui={ui} a={a} />
       </Button>
       {isSelected && (
@@ -298,12 +304,14 @@ const SettingsTab = (args: PaneArgs) => {
   const { ui, settings, on } = args
   const { Box, Button, Text, Select } = ui
   const layouts: Layout[] = ['row', 'summary']
+  const optional = KIND_ORDER.filter(kind => KINDS[kind].isOptional)
+  const optionalOn = optional.filter(kind => settings.shown[kind]).length
   return (
     <Box flexDirection="column">
       <Button key="toggle-enabled" plain onPress={() => on.toggleEnabled()}>
-        {`${settings.enabled ? '[x]' : '[ ]'} Show chips above the prompt`}
-        <Text dimColor> (blocked and denied always show while on)</Text>
+        {`${settings.enabled ? '[x]' : '[ ]'} Show chips above the prompt bar`}
       </Button>
+      <Text dimColor>Blocked and denied actions are always shown while this is on.</Text>
       {Select ? (
         <Select
           key="layout"
@@ -328,8 +336,8 @@ const SettingsTab = (args: PaneArgs) => {
       {KIND_ORDER.filter(kind => !KINDS[kind].isOptional).map(kind => (
         <Toggle args={args} kind={kind} />
       ))}
-      <Text bold>Optional</Text>
-      {KIND_ORDER.filter(kind => KINDS[kind].isOptional).map(kind => (
+      <Text bold>{`Optional · off by default (${optionalOn} of ${optional.length} on)`}</Text>
+      {optional.map(kind => (
         <Toggle args={args} kind={kind} />
       ))}
       <Text dimColor>Memory and checkpoints are not supported yet.</Text>
