@@ -11,9 +11,9 @@ The validated mockups were drawn as a GUI. A mod draws in Claude Code's terminal
 | Mockup board | In the mod | Render site / API |
 | --- | --- | --- |
 | Chip row above the prompt | One row of plain buttons with an icon glyph, label and count, coloured by type; overflow as `+N more` | `ui.render` on `AbovePrompt` |
-| Chip popover | Detail view for the focused chip inside the tray pane (no floating popovers exist) | `ui.render` on `Pane` |
+| Chip popover | Detail card that grows in the band under the selected chip; small pane as fallback (see UI spec, U2) | `ui.render` on `AbovePrompt`, else `Pane` |
 | Expanded tray | A pane with type filters, grouped rows, mute/unmute | `$.ui.open` + `Pane`, opened by `/session-activity` or the `+N more` button |
-| Settings board | Plugin `userConfig` (persistent defaults) plus a Settings tab in the pane for session toggles | `plugin.json` `userConfig`, `$.store` |
+| Settings board | `2: Settings` tab in the pane, with live preview, saved in `$.store`; `userConfig` holds defaults (U5) | `Pane`, `$.store`, `plugin.json` `userConfig` |
 | Types and states sheet | Glyph + colour + text badge per type and state; never colour alone | `Text` `color`, `bold`, `dimColor`, `inverse` |
 | Mobile board | Out of scope: mods run in the terminal and Desktop only | n/a |
 
@@ -33,27 +33,10 @@ The build can start on the recommended defaults below; items 1 to 4 change scope
 | 6 | Release mechanics on `main` | Decides the tooling and tag format. | `nx release` with conventional commits, each mod versioned and released independently (all affected mods on push to main, or one via workflow\_dispatch), tags `session-activity@x.y.z`, GitHub Release + changelog. |
 | 7 | Package manager and Node version for tooling | The mod needs no runtime deps; tooling does (Nx, husky, commitlint, lint-staged). | pnpm, Node 22 LTS. |
 | 8 | Desktop app support in v1? | Desktop draws the same tree and allows `Svg`. | Terminal-first; Desktop must render without errors, no Desktop-only polish. |
-| 9 | Where settings live | `userConfig` is set at install or in `pluginConfigs`; in-pane toggles need `$.store`. | `userConfig` = defaults; pane toggles override them and persist in `$.store`. |
+| 9 | Where settings live | `userConfig` is set at install or in `pluginConfigs`; in-pane toggles need `$.store`. | Decided (U5): pane Settings tab is primary, saved in `$.store`; `userConfig` = defaults. |
 | 10 | History scope | Chips per session, or a history across sessions? | Per session in `$.state`, reset on `/clear`, `/resume`, `/branch`. |
 | 11 | Optional types with no clear signal (checkpoints, memory) | No event names them directly. | Ship the five with clear signals first; checkpoints and memory only after a spike. |
 | 12 | License | Needed for a public marketplace. | MIT. |
-
-## M1 findings (Claude Code 2.1.302)
-
-The spikes were answered from the generated declarations and checked in a live `claude --plugin-dir` session.
-
-| Question | Finding | What v1 does |
-| --- | --- | --- |
-| Hooks: command and exit code visible? | No. `classic.<Event>` gives the stdin JSON and, after `next(e)`, the event's merged result (`deny` for `PreToolUse`, `block` or `preventContinuation` for the rest). `$.settings.read()` lists configured commands; plugin-configured hooks are not in it. Each `classic.*` event fires whether or not a hook is configured. | One chip per event, recorded only when a settings hook matches or the event was blocked. Label is the script name for one command, else `<Event> hooks`. |
-| Rules: which fields name instruction files? | `classic.InstructionsLoaded` carries `file_path`, `memory_type` and `load_reason` for every load. `prompt.context` also lists `instructionFiles`, for the same loads, so using both counts each file twice. | `classic.InstructionsLoaded` only; the line count comes from `$.fs.read`. |
-| Permissions: "once" vs "always"? | Not visible. `tool.check` resolves `{ decision, reason, rule, hook }`. | Rule allows, denies and asks get chips; an ask settles to approved or declined from the `tool.call` result. Mode-only allows are skipped, and a hook's allow or deny is left to its hook chip. |
-| `skill.prompt` fields, `agent.spawn` type | `skill.prompt` has `skill`, `source`, `pluginName`, `path`. `agent.spawn` has `subagentType`, `description`, `background`; `next(e)` gives `agentId`, and `turn.complete` with that `agentId` is the finish. | As specified. |
-| Typecheck in CI | Snapshot chosen: `tools/claude-code-types/2.1.302/index.d.ts`, named by the mod's own `tsconfig.json`. | Refresh on each Claude Code bump. |
-| `$.state` on `/clear` | The types do not promise a reset. `session.end` fires with `reason: 'clear'` or `'resume'`, and no `session.start` follows. | The mod empties activations, mute and selection itself in `session.end`. Overrides live in `$.store`, so they survive. |
-| Glyph widths | `⚡` (U+26A1) is East Asian Wide, two cells. `⚷`, `◉`, `⇌` and `↯` are narrow. | Hooks use `↯`. The other glyphs render one cell wide in xterm.js; iTerm2, Terminal.app, Windows Terminal and Ghostty are still unchecked. |
-| Managed installs | `claude plugin validate` reports that `skill.prompt`, `classic.*` and `session.compact` reach only organization-listed plugins where Claude Code is managed. | Documented in the mod README. |
-
-Memory and checkpoints have no event that names them, so they are cut from v1 and their `userConfig` rows removed. The plugins option is dropped too: chips carry their plugin in the pane detail whenever the event names one.
 
 ## Repository
 
@@ -190,15 +173,21 @@ The mod is a plugin with three required files plus a types file for `$.state`. S
     "show_hooks":       { "type": "boolean", "title": "Hooks", "description": "Settings hooks that ran", "default": true },
     "show_rules":       { "type": "boolean", "title": "Rules", "description": "CLAUDE.md and .claude/rules files loaded", "default": true },
     "show_commands":    { "type": "boolean", "title": "Slash commands", "description": "Optional", "default": false },
+    "show_memory":      { "type": "boolean", "title": "Memory", "description": "Optional", "default": false },
+    "show_plugins":     { "type": "boolean", "title": "Plugins", "description": "Optional: tag chips with their plugin", "default": false },
     "show_context":     { "type": "boolean", "title": "Context", "description": "Optional: compaction and context use", "default": false },
+    "show_checkpoints": { "type": "boolean", "title": "Checkpoints", "description": "Optional", "default": false },
     "show_model":       { "type": "boolean", "title": "Output style and model", "description": "Optional", "default": false },
     "show_background":  { "type": "boolean", "title": "Background tasks", "description": "Optional", "default": false },
-    "max_chips":        { "type": "number",  "title": "Chips before overflow", "description": "Chips shown before +N more", "default": 6, "min": 1, "max": 20 }
+    "max_chips":        { "type": "number",  "title": "Chips before overflow", "description": "Chips shown before +N more", "default": 6, "min": 1, "max": 20 },
+    "chip_style":       { "type": "string",  "title": "Chip style", "description": "Tinted chips, or coloured text only", "options": ["tinted", "text"], "default": "tinted" },
+    "chip_hotkeys":     { "type": "boolean", "title": "Digit hotkeys on chips", "description": "Type 1-9 alone in an empty prompt to open a chip", "default": false },
+    "toast_on_block":   { "type": "boolean", "title": "Toast when blocked or denied", "description": "Show a short notice when an action is blocked or denied", "default": true }
   }
 }
 ```
 
-`options` on `layout` needs Claude Code v2.1.271 or later, which v2.1.287 already covers.
+`options` on `layout` and `chip_style` needs Claude Code v2.1.271 or later, which v2.1.287 already covers.
 
 `mods/session-activity/hooks/hooks.json`:
 
@@ -217,8 +206,8 @@ The module is split so that the logic is testable without the mods API:
 | `src/model.ts` | `Activation` type, reducer `record(list, event)`, dedupe by `kind + key`, counters, sort order |
 | `src/classify.ts` | Pure functions from event data to an `Activation`: MCP server from `mcp__<server>__<tool>`, rule file from a path, and so on |
 | `src/render.ts` | Pure functions that build the band and pane trees from the element functions passed in |
-| `src/theme.ts` | Glyph, colour and label per type and state |
-| `types/index.d.ts` | `PluginState` for `session-activity`: `activations`, `muted`, `selected`, `paneTab`, `filter` |
+| `src/theme.ts` | Glyph, label, light and dark palettes per type and state; theme detection from `$.config.list()` rows |
+| `types/index.d.ts` | `PluginState` for `session-activity`: `activations`, `muted`, `selected`, `paneView`, `filter`, `prefs` (settings loaded from `$.store`) |
 
 Two rules from the validator shape the code: never alias `$` or a namespace (`const ui = $.ui` fails), and pass `$` only to top-level functions in `register.ts` or to the `read`/`update` helpers from `claude-code`. The `src/` helpers therefore receive plain data and element constructors, never `$`.
 
@@ -269,67 +258,120 @@ All observer hooks must return `next(e)` or the result of `await next(e)` unchan
 
 ## UI spec
 
-The band shows one line of chips. Pressing a chip, or `+N more`, opens the pane on that item, and the pane carries everything the popover, tray and settings boards held. Terminal rendering of the default board, at 100 columns:
+The terminal UI follows the design files in `artboards/` as closely as the mods interface allows. Every decision below was settled with the owner; the table maps each design element to its terminal form and how faithful it is.
 
-```text
- Done. The summary is in release-summary.docx, and the settings page now passes lint.
+### Decisions
 
- 1 ↯ block-secrets  BLOCKED   2 ◉ code-reviewer   3 ⇌ github ×3   4 ⚷ git push   5 ↯ lint-staged ×4   +10 more
-╭────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ > _                                                                                             │
-╰────────────────────────────────────────────────────────────────────────────────────────────────╯
-```
+| # | Topic | Decision |
+| --- | --- | --- |
+| U1 | Chip look | Tinted chips, as in the design. Light palette for light themes, dark palette for dark themes, picked from Claude Code's theme read through `$.config.list()`. If the theme can't be read (M1 spike), fall back to coloured text with no background. Setting `chip_style: tinted \| text` overrides. |
+| U2 | Chip popover | The band grows under the chip row to show the detail card (anchored, like the design). When `e.props.maxRows` is too small for the card, open the pane in its `detail` view instead (`rows: 10`). |
+| U3 | Digit hotkeys on the band | Off by default (a bare `1` typed into the prompt would open a chip). Setting `chip_hotkeys` turns them on. Keyboard path: Ctrl+X then Tab to focus, Up/Down, Enter. Mouse: click, in fullscreen mode and Desktop. |
+| U4 | Footer counter | `$.ui.status` line under the prompt: `16 active · /session-activity`. `PromptHint` is left alone. |
+| U5 | Settings | The pane's `2: Settings` tab is the main place; changes are saved per user in `$.store`. `userConfig` holds install-time defaults only; "Reset to defaults" returns to them. |
+| U6 | Toast | A 4-second `$.ui.toast` when an action is blocked or denied, e.g. `↯ block-secrets blocked Bash`. Setting `toast_on_block`, on by default. Not in the design; agreed addition. |
 
-And the pane, opened on the blocked hook:
+Input model: keyboard first. Mouse clicks only reach Claude Code in fullscreen rendering (`/tui fullscreen`, a research preview) and in the Desktop app; whether a click presses a mod's `Button` in the terminal is an M1 spike. Nothing may require the mouse.
 
-```text
-╭ Session activity ────────────────────────────────────────────────────────────────────────── ✕ ╮
-│ a: All 16   s: Skills 2   g: Agents 2   p: MCP 2   k: Permissions 3   h: Hooks 4   r: Rules 3   │
-│                                                                                                 │
-│ ▸ ↯ block-secrets   PreToolUse · Bash    ×1 · 3 min   BLOCKED                                    │
-│     Stopped `cat .env` before it ran. Nothing was exposed.                                      │
-│     .claude/hooks/block-secrets.sh                        [ m: Mute ]  [ c: Copy path ]          │
-│   ◉ code-reviewer   .claude/agents        ×1 · 1 min                                            │
-│   ⇌ github          get_pull_request · …  ×3 · 1 min                                            │
-│   …                                                                                             │
-│ 1: Activity   2: Settings                                                                       │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
-```
+### Mapping: chip row (`Main.dc.html`)
 
-### Band (`AbovePrompt`)
+| Design | Terminal | Fidelity |
+| --- | --- | --- |
+| Rounded tinted chip: icon, label, `×N` | `Box` with the type's `backgroundColor` and `paddingX: 1`, holding a coloured glyph `Text`, a `Button` (`plain: true`) for the label, and a `×N` `Text` | Close: same tints and order, square ends |
+| Type colours | Palette tokens below (light and dark), with theme keys as fallback | Exact in truecolor terminals, approximate in 256-colour |
+| `Blocked` / `Denied` badge | `Text` with `inverse`, `bold`, red: ` BLOCKED ` | Exact |
+| Selected chip, focus ring | Claude Code's focus highlight plus `underline` on the selected label | Close |
+| `+N more`, dashed outline | Plain `Button`, `dimColor`, label `+10 more` (no dashed borders exist) | Approximate |
+| One row, overflow | One row sized to `e.props.bodyColumns`, first row 2 cells shorter, blocked/denied/error first, rest folded into `+N more` | Exact |
+| Footer "16 active · Customize chips" | `$.ui.status`: `16 active · /session-activity` (U4) | Close |
 
-1. One `Box` row, `columnGap: 3`, width `e.props.bodyColumns`, which already leaves out the engine's five `[-]` cells. When another mod draws in the band too, its content comes first and the row can wrap.
-2. Each chip is a `Button` with `plain: true`, a digit `hotkey` 1–9 in band order, and `key: 'chip-<kind>-<key>'`. Its label is glyph, label, then `×N` when `count > 1`. A digit typed alone into an empty prompt presses it.
-3. Status badges are `Text` with `inverse` and `bold`: `BLOCKED`, `DENIED`, `ERROR` in red, `RUNNING` dimmed. Text always carries the meaning, so colour is never the only signal.
-4. Visible chips = as many as fit in `bodyColumns`, capped by `max_chips`. Blocked, denied and error chips always fit first. The rest fold into a `+N more` button.
-5. Layout `summary` replaces the row with one button: `16 active · ▤2 ◉2 ⇌2 ⚷3 ↯4 ▣3`, plus `· 2 stopped` when anything was blocked or denied.
-6. With nothing recorded yet, or `enabled` off, return `next(e)` so the band stays empty and other mods' content still shows.
-7. Call `await next(e)` and put its result first in the row, so this mod never hides another mod's band content.
+### Mapping: chip popover
 
-### Pane (`Pane`, id `session-activity`)
+| Design | Terminal | Fidelity |
+| --- | --- | --- |
+| Card above the chip row | Detail card drawn in the band under the chips (U2); pane `detail` view as fallback | Close (band) / framed (pane) |
+| Eyebrow `TYPE · event`, name | Coloured `Text` small-caps-style eyebrow (`SKILL · Loaded on match`), bold name | Exact |
+| Why line | `Text`, `wrap: 'wrap'` | Exact |
+| Three stat tiles | Three `Box`es in a row, `backgroundColor` = neutral tile token, each a dim label over a bold value | Close |
+| Source path | `Text`, `dimColor`, `wrap: 'truncate-middle'` | Exact |
+| Open source, Mute for this session | `[ o: Open source ]` copies the path (`$.ui.copy`; a mod can't open an editor), `[ m: Mute ]` | Close |
+| Close ✕ | Esc, or pressing the same chip again | Exact behaviour |
 
-1. Opened with `$.ui.open({ id: 'session-activity', title: 'Session activity', focus: true, closeOnEscape: true })` from a chip press, `+N more`, or `/session-activity` registered with `immediate: true`.
-2. Two tabs as plain buttons, `1: Activity` and `2: Settings`, as in the docs' `hello-tabs` pattern.
-3. Activity: a filter row of plain buttons with letter hotkeys, then grouped rows. The selected row expands to show its `detail` and `source`, which replaces the mockup's popover. Row actions are `m: Mute` / `Unmute` and `c: Copy path` (`$.ui.copy`).
-4. Settings: a `Select` for layout and one plain button per type that toggles it, grouped into "Shown by default" and "Optional", plus `Reset to defaults` and `Turn everything on`. Toggles write overrides to `$.store`; `userConfig` stays the default.
+### Mapping: expanded tray (`Expanded.dc.html`)
 
-### Glyphs and colours
+| Design | Terminal | Fidelity |
+| --- | --- | --- |
+| Panel above the composer | Pane id `session-activity`, title `Session activity`; inline above the prompt, or a sidebar in wide fullscreen | Exact / docked |
+| Header line with counts | First row: `16 items · 27 activations · started 18 min ago` | Exact |
+| Segmented filter with counts | Plain buttons `a: All 16  s: Skills 2  g: Agents 2  p: MCP 2  k: Permissions 3  h: Hooks 4  r: Rules 3`; inactive ones `dimColor` | Close |
+| Group headers | Coloured eyebrow `Text` + dim count | Exact |
+| Row: tinted icon tile, name, meta, badge, why, `×N · last` | Glyph `Text` on tint, bold name, dim meta, badge, why line below, right-aligned `×N · last`; the row is a focusable `Button` | Close |
+| Per-row Mute / Unmute | Up/Down to a row, then `m` (one hotkey per drawing, so it acts on the focused row) | Same result, different input |
+| Muted row at 60% opacity | `dimColor` + `Muted` badge | Close |
+| Collapse chevron | Esc, or `+N more` again | Exact behaviour |
+| Customize link | `,: Settings` switches to the Settings tab | Exact |
 
-| Type | Glyph | Terminal colour | Desktop hex (from the mockups) |
-| --- | --- | --- | --- |
-| Skill | `▤` | blue | `#1F4FC1` |
-| Agent | `◉` | magenta | `#5B3A99` |
-| MCP | `⇌` | magenta, dim | `#9C1F62` |
-| Permission | `⚷` | cyan | `#0E6159` |
-| Hook | `↯` | yellow | `#9A4A0B` |
-| Rule | `▣` | default text | `#2A2D35` |
-| Optional types | `/` `◔` `≡` `▶` | dim | `#2A2D35` on `#F0F1F4` |
+### Mapping: settings (`Settings.dc.html`)
 
-Every glyph must be one cell wide. Hooks use `↯` because `⚡` is two cells wide (see M1 findings). M3 checks the rest in iTerm2, Terminal.app, Windows Terminal and Ghostty, and swaps `⚷` for `⌐` if needed. Use theme keys from the generated types instead of named colours where one fits, so the chips follow the user's theme.
+| Design | Terminal | Fidelity |
+| --- | --- | --- |
+| Settings page with left nav | Tab `2: Settings` in the pane (tabs `1: Activity`, `2: Settings`) | Approximate |
+| Master switch | Plain button `● Show chips above the prompt` / `○ …` | Close |
+| Live preview + layout segmented control | The real band renderer drawn inside the tab, with plain buttons `Chip row` / `Collapsed summary` | Exact |
+| "Shown by default" and "Optional · N of 7 on" | Two titled groups; each row a button toggling `●`/`○`, dimmed when off, description below | Close |
+| Reset to defaults, Turn everything on | Bracketed buttons | Exact |
+| Extra rows (not on the board) | `Chip style` (tinted / text), `Digit hotkeys on chips`, `Toast when blocked or denied` | Additions from U1, U3, U6 |
+
+### Mapping: types and states (`States.dc.html`)
+
+| Design | Terminal | Fidelity |
+| --- | --- | --- |
+| Just activated: halo + dot, 4 s | `bold` + `●` prefix, cleared by `$.clock.after(4000)` | Close |
+| Running: spinner ring | Glyph cycles `◐◓◑◒` on `$.clock.every(150)`, started only while something runs | Close |
+| Repeated `×N` | Same | Exact |
+| Blocked / Denied | Red ` BLOCKED ` / ` DENIED ` badge, sorted first, plus toast (U6) | Exact + |
+| Hook failed: dashed red outline, triangle | Red `▲` glyph + ` ERROR ` badge | Close |
+| Muted: struck through | Hidden from the band; dim + `Muted` in the tray (`Text` has no strikethrough) | Approximate |
+| Pinned | Out of scope for v1 | n/a |
+| Collapsed summary chip | One tinted `Box`: `16 active · ▤2 ◉2 ⇌2 ⚷3 ↯4 ▣3 · ● 2 stopped` | Exact |
+
+`Mobile.dc.html` is out of scope.
+
+### Band (`AbovePrompt`) rules
+
+1. One chip row; the detail card (U2) adds rows below it only while a chip is selected.
+2. Width `e.props.bodyColumns`, first row 2 cells shorter. Respect `e.props.maxRows`; hide entirely while `e.props.hasSurvey` is true.
+3. Always include `await next(e)` first, so other mods' band content stays.
+4. Nothing recorded, or disabled: return `next(e)`.
+5. Chip buttons get a `hotkey` digit only when `chip_hotkeys` is on.
+
+### Pane (`Pane`, id `session-activity`) rules
+
+1. Opened with `$.ui.open({ id: 'session-activity', title: 'Session activity', focus: true, closeOnEscape: true })` from `+N more`, `/session-activity` (registered with `immediate: true`), or the fallback of U2 (`rows: 10`, view `detail`).
+2. Views: `detail` (one item, popover content), `activity` (tab 1), `settings` (tab 2), kept in `$.state` as `paneView`.
+3. Opened only by user action, so it places at any width.
+
+### Palette
+
+Light palette = the design's hex values. Dark palette = same hue, deeper tint, lighter text. Tune both in M3 against real terminals.
+
+| Type | Glyph | Light fg / tint | Dark fg / tint | Theme-key fallback |
+| --- | --- | --- | --- | --- |
+| Skill | `▤` | `#1F4FC1` / `#EDF2FD` | `#8FB0FF` / `#1B2A4A` | blue |
+| Agent | `◉` | `#5B3A99` / `#F3EEFB` | `#C3A8F5` / `#2C2147` | magenta |
+| MCP | `⇌` | `#9C1F62` / `#FCEEF5` | `#F29BC8` / `#3D1A2D` | magenta |
+| Permission | `⚷` | `#0E6159` / `#E8F5F2` | `#7FD6C8` / `#123A35` | cyan |
+| Hook | `↯` | `#9A4A0B` / `#FDF1E6` | `#F5B47A` / `#3D2614` | yellow |
+| Rule | `▣` | `#2A2D35` / `#FFFFFF` | `#D5D8DE` / `#24262C` | default |
+| Optional | `/ ✎ ⬡ ◔ ⚑ ≡ ▶` | `#2A2D35` / `#F0F1F4` | `#C9CCD3` / `#2A2C31` | dim |
+| Blocked / error | — | `#FFFFFF` on `#B42318` | `#FFFFFF` on `#B42318` | red |
+| Stat tile | — | `#F5F6F8` | `#2A2C31` | — |
+
+Every glyph must be one cell wide. `↯` replaces `⚡` for hooks; `⚷` is checked in M3 and swapped for `⌐` if it renders two cells wide.
 
 ### Desktop
 
-The same tree renders in the Desktop app. `e.surface === 'desktop'` may use the hex colours above, but v1 adds no Desktop-only elements.
+The same tree renders in the Desktop app, where clicks press buttons. `e.surface === 'desktop'` uses the light or dark palette from the app's theme; no Desktop-only elements in v1.
 
 ## Testing, validation and CI
 
@@ -342,9 +384,10 @@ Test files under `mods/session-activity/tests/`:
 | `model.test.ts` | Dedupe, counters, sort order (blocked first), mute filtering |
 | `classify.test.ts` | `mcp__github__get_pull_request` → server `github`; rule paths; command summaries |
 | `events.test.ts` | Fire `tool.call`, `tool.check`, `agent.spawn`, `skill.prompt`, `classic.*`; assert the recorded activations; assert every hook passes the event on unchanged |
-| `band.test.ts` | Render `AbovePrompt` at 60, 100 and 200 columns; overflow count; `summary` layout; empty state returns `next(e)` |
+| `band.test.ts` | Render `AbovePrompt` at 60, 100 and 200 columns; overflow count; `summary` layout; detail card under a selected chip and pane fallback at small `maxRows`; `chip_style: text`; no hotkeys unless `chip_hotkeys`; empty state returns `next(e)` |
 | `pane.test.ts` | Press a chip's hotkey → pane opens on that item; filters; mute; settings toggles persist to a stubbed `$.store` |
 | `reset.test.ts` | Activations are empty after `/clear`, and settings survive it |
+| `toast.test.ts` | A denied `tool.check` or blocked call shows one toast; none when `toast_on_block` is off |
 
 A minimal events test, in the style of the docs' tutorial:
 
@@ -378,38 +421,44 @@ Six milestones in order; each ends in a PR to `develop`, and M5 ends in the firs
 **M0 · Repo scaffold**
 
 - [ ] `tinesoft/claude-mods` created with `develop` as the default branch and `main` protected
-- [x] Nx workspace, pnpm workspace, husky, commitlint (config-conventional + nx-scopes), lint-staged and Prettier/ESLint in place
-- [x] `.claude-plugin/marketplace.json` passes `claude plugin validate . --strict` with the chosen marketplace name
+- [ ] Nx workspace, pnpm workspace, husky, commitlint (config-conventional + nx-scopes), lint-staged and Prettier/ESLint in place
+- [ ] `.claude-plugin/marketplace.json` passes `claude plugin validate . --strict` with the chosen marketplace name
 - [ ] `ci.yml` green on an empty mod that only registers `/session-activity`
-- [x] Root `README.md` with install instructions pinned to `@main`, `CLAUDE.md`, `LICENSE`
+- [ ] Root `README.md` with install instructions pinned to `@main`, `CLAUDE.md`, `LICENSE`
 
 **M1 · Spikes** (one throwaway branch, findings written into this file)
 
-- [x] Log every `classic.*` event and the result of `next(e)` for a `PreToolUse` hook that blocks: can a mod see the hook command and its exit code?
-- [x] Log `prompt.context` and `prompt.attachment` payloads at startup: which fields name CLAUDE.md and rules files?
-- [x] Log `tool.check` decisions through an asked-and-approved call: is "once" vs "always" visible?
-- [x] Confirm `skill.prompt` field names and whether `agent.spawn` exposes the subagent type
-- [x] Decide how `typecheck` gets declarations in CI
+- [ ] Log every `classic.*` event and the result of `next(e)` for a `PreToolUse` hook that blocks: can a mod see the hook command and its exit code?
+- [ ] Log `prompt.context` and `prompt.attachment` payloads at startup: which fields name CLAUDE.md and rules files?
+- [ ] Log `tool.check` decisions through an asked-and-approved call: is "once" vs "always" visible?
+- [ ] Confirm `skill.prompt` field names and whether `agent.spawn` exposes the subagent type
+- [ ] Decide how `typecheck` gets declarations in CI
+- [ ] Read Claude Code's theme from `$.config.list()`: which row and values? Decides U1 (tinted vs text fallback)
+- [ ] In fullscreen rendering (`/tui fullscreen`), does clicking a mod `Button` call `onPress`? Does Ctrl+X then Tab focus the band?
+- [ ] Check that hex `backgroundColor` renders in truecolor terminals and degrades acceptably in a 256-colour one
 
 **M2 · Core model and band**
 
-- [x] Skills, agents, MCP, permissions recorded from real events; hooks and rules per M1 findings
-- [x] Band renders chips with glyph, label, count, status badges, overflow and the summary layout
-- [x] Blocked and denied always visible and first; digit hotkeys press chips
-- [x] Hooks never change event results (a test asserts this for each hooked event)
-- [x] `claude plugin validate --strict` and `claude plugin test` green
+- [ ] Skills, agents, MCP, permissions recorded from real events; hooks and rules per M1 findings
+- [ ] Band renders chips with glyph, label, count, status badges, overflow and the summary layout
+- [ ] Blocked and denied always visible and first; toast on block/deny (U6)
+- [ ] Tinted chips with light and dark palettes, text fallback (U1); status line counter (U4)
+- [ ] Detail card grows in the band under the selected chip, pane fallback when `maxRows` is too small (U2)
+- [ ] Hooks never change event results (a test asserts this for each hooked event)
+- [ ] `claude plugin validate --strict` and `claude plugin test` green
 
 **M3 · Pane and settings**
 
-- [x] `/session-activity` and chip presses open the pane on the right item, at any terminal width
-- [x] Filters, row detail (replaces popover), mute/unmute, copy path
-- [x] Settings tab toggles each type; `userConfig` defaults apply; overrides persist across sessions and survive `/clear`
-- [ ] Glyph widths checked in four terminals; Desktop renders without refusal lines
+- [ ] `/session-activity` and chip presses open the pane on the right item, at any terminal width
+- [ ] Filters, row detail (replaces popover), mute/unmute, copy path
+- [ ] Settings tab with live preview, type toggles, chip style, digit hotkeys (off by default) and toast toggle; `userConfig` defaults apply; overrides in `$.store` persist across sessions and are reloaded after `/clear` via `classic.SessionStart`
+- [ ] Glyph widths and both palettes checked in four terminals and one light and one dark theme; Desktop renders without refusal lines
+- [ ] Every action reachable by keyboard alone
 
 **M4 · Optional types**
 
-- [x] Slash commands, context, model/style, background tasks, all off by default
-- [x] Memory and checkpoints only if M1 found a signal; otherwise listed in the README as not yet supported
+- [ ] Slash commands, plugins tag, context, model/style, background tasks, all off by default
+- [ ] Memory and checkpoints only if M1 found a signal; otherwise listed in the README as not yet supported
 
 **M5 · Release**
 
@@ -425,6 +474,8 @@ Six milestones in order; each ends in a PR to `develop`, and M5 ends in the firs
 | Hook and rule signals are thinner than the design assumes | Hook and rule chips show less detail | M1 spikes decide; event-level fallback is already specified |
 | The band is shared with other mods | Chips push out, or hide, another mod's content | Always include `await next(e)`; one row only |
 | Wide glyphs misalign the row | Chips overlap in some terminals | M3 terminal check; one-cell fallbacks |
+| Theme can't be detected | Tinted chips look wrong on one theme | Text-only fallback (U1); `chip_style` override |
+| Clicks don't press mod buttons in the terminal | Mouse users can't use chips | Keyboard path for everything; clicks are a bonus (fullscreen, Desktop) |
 | Marketplace name refused | Users can't add the marketplace | Validate the name in M0 before any docs mention it |
 | Unbumped `plugin.json` version | Installed users never get updates | `tools/sync-plugin-version.mjs` in the release job, and a CI check that `plugin.json` matches `package.json` |
 | `develop` as default branch | Users who add the marketplace without a ref get unreleased code | Install docs always use `@main` |

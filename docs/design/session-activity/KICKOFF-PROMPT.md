@@ -13,8 +13,9 @@ Read these first, in order:
 1. `docs/design/session-activity/plan.md`: the implementation plan (repo setup, mod structure, event mapping, UI spec, tests, milestones).
 2. `docs/design/session-activity/DESIGN.md`: the design spec (types, glyphs, colours, states, band and pane rules).
 3. `docs/design/session-activity/artboards/*.dc.html`: the validated mockups. They are web UI; treat them
-   as visual and behavioural reference, not code to port. Their `<script data-dc-script>` blocks hold the
-   sample data and interactions.
+   as visual and behavioural reference, not code to port or run. Their `<script data-dc-script>` blocks hold
+   the sample data and interactions. Their `./support.js` is served by the design canvas and is
+   intentionally absent; don't look for it or recreate it.
 4. The mods docs: https://code.claude.com/docs/en/plugins/mods/create, /interface, /events, /reference.
    Load `/plugin-authoring` too. The generated `.claude-plugin/types/claude-code/index.d.ts` wins over any doc.
 
