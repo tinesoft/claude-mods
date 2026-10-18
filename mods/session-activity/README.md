@@ -1,39 +1,61 @@
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../assets/images/session-activity-logo-dark.svg">
+  <img alt="session-activity — see what took part in your Claude Code session" src="../../assets/images/session-activity-logo-light.svg" width="128">
+</picture>
+
 # Session Activity
+
+[![CI](https://github.com/tinesoft/claude-mods/actions/workflows/ci.yml/badge.svg)](https://github.com/tinesoft/claude-mods/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-%E2%89%A52.1.287-D97757.svg)](https://claude.com/claude-code)
+
+</div>
 
 A Claude Code mod that shows what took part in your session. A row of chips above the prompt names each skill, subagent, MCP server, permission decision, settings hook and rule file that activated. Press a chip to see why it is there. The detail card grows under the row, or the pane opens when the band is too short for it.
 
 ```text
  ↯ block-secrets  BLOCKED    ◉ code-reviewer    ⇌ github ×3    ⚷ git push    +10 more
 ╭──────────────────────────────────────────────────────────────────────────────────────────╮
-│ > _                                                                                       │
+│ > _                                                                                      │
 ╰──────────────────────────────────────────────────────────────────────────────────────────╯
   16 active · /session-activity
 ```
 
-Chips are tinted with a light or dark palette chosen from your Claude Code theme (`dark`, `light` and their daltonized variants). Under any other theme, such as `auto` or the ANSI themes, they fall back to coloured text. Set `chip_style` to `text` to always use coloured text.
+---
 
-Tested with Claude Code 2.1.302. Mods need 2.1.287 or later.
+## ✨ Features
 
-## Install
+- 🧩 **One chip per participant** — skills, subagents, MCP servers, permission decisions, settings hooks and rule files, each with its own glyph
+- 🔍 **Why is it there?** — press a chip for a detail card with the reason and the source it came from
+- 🚨 **Problems first** — blocked, denied and errored chips lead the row, stay visible when their type is hidden, and raise one toast
+- 📋 **A full pane** — `/session-activity` opens every activation grouped by type, with filters, muting and live settings
+- 🎛️ **Optional types** — slash commands, memory writes, context use, the model per request and background Bash tasks
+- 🌓 **Follows your theme** — tinted chips with a light or dark palette chosen from your Claude Code theme
+- ♿ **Never colour alone** — every status is also a text badge
+- 🖥️ **Terminal and Desktop** — glyphs in the terminal, `Svg` icons and clickable chips in the Desktop app, a text summary elsewhere
+
+---
+
+## 📦 Installation
+
+Requires Claude Code 2.1.287 or later. Tested with 2.1.302.
+
+Add the marketplace from `main`, which holds released code only:
 
 ```sh
 claude plugin marketplace add tinesoft/claude-mods@main
 ```
 
+Then install the mod from inside Claude Code:
+
 ```text
 /plugin install session-activity@tinesoft-mods
 ```
 
-## Surfaces
-
-| Surface                                         | What you get                                                                                                           |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Terminal (`claude`, editor terminals)           | The full UI, drawn with glyphs and a palette that approximates the design                                              |
-| Claude Desktop app, Code tab                    | The full UI with `Svg` icons, exact colours, rounded tinted chips, a darker tint on hover, and clicks on every control |
-| claude.ai/code cloud sessions                   | Text only: `/session-activity` replies with a summary, and `text_summary` adds a line after each answer                |
-| claude.ai chat, VS Code chat panel, `claude -p` | Nothing is drawn. Hooks still run, so `/session-activity` replies in text where it is available                        |
-
-Remote Control from claude.ai or a phone shows the chips in the terminal on your machine. Desktop WSL sessions do not load plugins.
+<details>
+<summary><strong>claude.ai/code cloud sessions</strong></summary>
 
 Cloud sessions do not install plugins from your settings. If your cloud environment's setup script can run these commands, the mod works there in text form:
 
@@ -44,7 +66,24 @@ claude plugin install session-activity@tinesoft-mods
 
 This is unverified until the cloud spike confirms that a setup script can install a plugin and that the text shows in the transcript.
 
-## What the chips show
+</details>
+
+### Surfaces
+
+| Surface                                         | What you get                                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Terminal (`claude`, editor terminals)           | The full UI, drawn with glyphs and a palette that approximates the design                                              |
+| Claude Desktop app, Code tab                    | The full UI with `Svg` icons, exact colours, rounded tinted chips, a darker tint on hover, and clicks on every control |
+| claude.ai/code cloud sessions                   | Text only: `/session-activity` replies with a summary, and `text_summary` adds a line after each answer                |
+| claude.ai chat, VS Code chat panel, `claude -p` | Nothing is drawn. Hooks still run, so `/session-activity` replies in text where it is available                        |
+
+Remote Control from claude.ai or a phone shows the chips in the terminal on your machine. Desktop WSL sessions do not load plugins.
+
+---
+
+## 🚀 Usage
+
+### What the chips show
 
 | Chip       | Glyph | Recorded when                                                          | States                      |
 | ---------- | ----- | ---------------------------------------------------------------------- | --------------------------- |
@@ -63,22 +102,33 @@ A chip that was just activated is bold with a `●` for four seconds. A running 
 
 Blocked, denied and errored chips sit first in the row and stay visible even when their type is hidden or muted. Each status is also a text badge, so the colour is never the only signal.
 
-## Keyboard and mouse
+Chips are tinted with a light or dark palette chosen from your Claude Code theme (`dark`, `light` and their daltonized variants). Under any other theme, such as `auto` or the ANSI themes, they fall back to coloured text. Set `chip_style` to `text` to always use coloured text.
 
-Press Ctrl+X then Tab to focus the band, then move between chips and press Enter. In fullscreen mode and in the Desktop app a click works too. Pressing the selected chip again, or the `✕` on the card, closes the card. The card's `o: Open source` copies the source path (a mod cannot open an editor) and `m: Mute` hides the chip from the band.
+### Key bindings
 
-Digit hotkeys on the chips (`1` to `9`, `0` for `+N more`) are off by default, because a bare digit typed into an empty prompt would open a chip. Turn them on with `chip_hotkeys`.
+Press Ctrl+X then Tab to focus the band. In fullscreen mode and in the Desktop app a click works too.
 
-A mod cannot read Esc in the band, so the card closes with the chip or its `✕`, not with Esc.
+| Keys            | Action                                                     |
+| --------------- | ---------------------------------------------------------- |
+| `Ctrl+X` `Tab`  | Focus the band                                             |
+| `Enter`         | Open the selected chip's detail card                       |
+| `Enter` again   | Close the card (as does its `✕`)                           |
+| `o`             | Copy the source path (a mod cannot open an editor)         |
+| `m`             | Mute the chip, hiding it from the band                     |
+| `1` to `9`, `0` | Open a chip, or `+N more` (off by default; `chip_hotkeys`) |
 
-## The pane
+Digit hotkeys are off by default, because a bare digit typed into an empty prompt would open a chip. A mod cannot read Esc in the band, so the card closes with the chip or its `✕`, not with Esc.
+
+### The pane
 
 Open it with `/session-activity`, `+N more`, or a chip when the band is too short for the card (the pane then opens on that item).
 
 - **Activity** (`1`). A header counts the items and activations. Filter by type with the letter hotkeys (`a` all, `s` skills, `g` agents, `p` MCP, `k` permissions, `h` hooks, `r` rules, with a count each). Rows are grouped by type. Select a row to see why it is there and where it came from. `m` mutes or unmutes it in the band, `c` copies its path, and `Customize` jumps to the settings. A muted row is dim with a `Muted` badge.
 - **Settings** (`2`). The master switch, a live preview drawn by the band renderer with `Chip row` and `Collapsed summary`, one switch per type in "Shown by default" and "Optional", then chip style, digit hotkeys and the toast. `Reset to defaults` returns to your plugin options and `Turn everything on` shows every type.
 
-## Settings
+---
+
+## ⚙️ Settings
 
 The plugin options (`/config`, or `pluginConfigs` in settings) are the defaults. Changes made in the pane override them, persist across sessions, and are reloaded when a session starts, including after `/clear`.
 
@@ -95,7 +145,9 @@ The plugin options (`/config`, or `pluginConfigs` in settings) are the defaults.
 
 Chips belong to one conversation. `/clear` and `/resume` empty them; muting lasts until then too.
 
-## Limits
+---
+
+## ⚠️ Limits
 
 - Hook chips are one per event (`PreToolUse`, `PostToolUse`, ...). Claude Code does not expose each command's exit code to a mod, so a chip names the script when one command is configured and `<Event> hooks` otherwise. Hooks that plugins configure are not in your settings, so they show only when they block.
 - Permission chips leave out calls your permission mode allows on its own, such as reads, to keep the band readable. A call a hook allowed or denied shows on that hook's chip instead. Whether you approved "once" or "always" is not visible to a mod.
@@ -105,7 +157,9 @@ Chips belong to one conversation. `/clear` and `/resume` empty them; muting last
 - `auto` and the ANSI themes cannot be told apart as light or dark, so chips fall back to coloured text there.
 - When another mod also draws in the band, its content comes first in the row and this mod's chips are sized as if they had the row to themselves, so the row can wrap.
 
-## Development
+---
+
+## 🛠️ Development
 
 From the repository root:
 
@@ -115,3 +169,15 @@ pnpm nx run-many -t lint typecheck validate test
 ```
 
 `hooks/register.tsx` holds every hook and every `$` call. `src/` holds pure helpers that take plain data: `model.ts` (the activation list and its reducer), `classify.ts` (event data to chips), `render.tsx` (band row and detail card), `pane.tsx` (the pane tabs), `icons.ts` (the Desktop `Svg` icons), `summary.ts` (the text summaries) and `theme.ts` (the registry of types with their glyphs, colours and settings copy). Tests in `tests/` run under `claude plugin test` and drive the mod through the engine's events and drawings.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! See the [repository README](../../README.md#development) for setup, branch flow, commit conventions and releases.
+
+---
+
+## 📄 License
+
+[MIT](../../LICENSE) © 2026 Tine Kondo. Not affiliated with or endorsed by Anthropic.
