@@ -60,5 +60,6 @@
       "commit": true,
       "tag": true
     }
-  }
+  },
+  "analytics": false
 }

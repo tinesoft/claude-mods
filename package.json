@@ -15,7 +15,8 @@
     "test": "nx run-many -t test",
     "check": "nx affected -t lint typecheck validate test",
     "format": "prettier --write .",
-    "sync:check": "node tools/sync-plugin-version.mjs --check"
+    "sync:check": "node tools/sync-plugin-version.mjs --check",
+    "session-activity:dev": "nx dev session-activity"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
