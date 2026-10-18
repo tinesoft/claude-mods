@@ -110,7 +110,7 @@ Chips belong to one conversation. `/clear` and `/resume` empty them; muting last
 From the repository root:
 
 ```sh
-pnpm nx run session-activity:dev        # claude --plugin-dir mods/session-activity
+pnpm nx dev session-activity            # claude --plugin-dir mods/session-activity
 pnpm nx run-many -t lint typecheck validate test
 ```
 

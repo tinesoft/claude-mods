@@ -30,7 +30,7 @@ Requires Node 22 or later, pnpm, and the `claude` CLI on the PATH.
 
 ```sh
 pnpm install
-pnpm nx run session-activity:dev   # claude --plugin-dir mods/session-activity
+pnpm nx dev session-activity       # claude --plugin-dir mods/session-activity
 pnpm check                         # nx affected -t lint typecheck validate test
 ```
 
