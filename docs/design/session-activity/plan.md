@@ -17,6 +17,17 @@ The validated mockups were drawn as a GUI. A mod draws in Claude Code's terminal
 | Types and states sheet | Glyph + colour + text badge per type and state; never colour alone | `Text` `color`, `bold`, `dimColor`, `inverse` |
 | Mobile board | Out of scope: mods run in the terminal and Desktop only | n/a |
 
+Surfaces, as agreed with the owner:
+
+| Surface | Scope |
+| --- | --- |
+| Terminal (`claude`, including editor terminals and JetBrains) | Full UI |
+| Claude Desktop app, Code tab | Full UI, first-class: clicks, hover, exact colours, `Svg` icons; the closest to the design |
+| claude.ai/code cloud sessions | Optional milestone M6: text summaries only, after a spike confirms the plugin can be installed and the text shows |
+| Remote Control from claude.ai or mobile | Nothing to build: the chips appear in the terminal on the user's machine |
+| claude.ai chat, VS Code chat panel, `claude -p` | Out of scope: claude.ai chat has no mod support; the other two run hooks but draw nothing |
+| Desktop WSL sessions | Out of scope: plugins don't load there |
+
 Target: Claude Code v2.1.287 or later, the first version with mods. Events and methods can change between releases, so the generated `.claude-plugin/types/claude-code/index.d.ts` overrides this document wherever they disagree.
 
 ## Open decisions
@@ -32,7 +43,7 @@ The build can start on the recommended defaults below; items 1 to 4 change scope
 | 5 | Which branch should users install from? | A marketplace added as `tinesoft/claude-mods` tracks the default branch, `develop`, which is unreleased. | Document `claude plugin marketplace add tinesoft/claude-mods@main`, and pin each entry's `source.ref` to its release tag. |
 | 6 | Release mechanics on `main` | Decides the tooling and tag format. | `nx release` with conventional commits, each mod versioned and released independently (all affected mods on push to main, or one via workflow\_dispatch), tags `session-activity@x.y.z`, GitHub Release + changelog. |
 | 7 | Package manager and Node version for tooling | The mod needs no runtime deps; tooling does (Nx, husky, commitlint, lint-staged). | pnpm, Node 22 LTS. |
-| 8 | Desktop app support in v1? | Desktop draws the same tree and allows `Svg`. | Terminal-first; Desktop must render without errors, no Desktop-only polish. |
+| 8 | Desktop app support in v1? | Desktop draws the same tree, adds clicks, hover, exact hex colours and `Svg`. | Decided: Desktop is a first-class target with its own rendering path (see UI spec, Desktop). claude.ai chat is out of scope; cloud sessions get optional text summaries (M6). |
 | 9 | Where settings live | `userConfig` is set at install or in `pluginConfigs`; in-pane toggles need `$.store`. | Decided (U5): pane Settings tab is primary, saved in `$.store`; `userConfig` = defaults. |
 | 10 | History scope | Chips per session, or a history across sessions? | Per session in `$.state`, reset on `/clear`, `/resume`, `/branch`. |
 | 11 | Optional types with no clear signal (checkpoints, memory) | No event names them directly. | Ship the five with clear signals first; checkpoints and memory only after a spike. |
@@ -182,7 +193,8 @@ The mod is a plugin with three required files plus a types file for `$.state`. S
     "max_chips":        { "type": "number",  "title": "Chips before overflow", "description": "Chips shown before +N more", "default": 6, "min": 1, "max": 20 },
     "chip_style":       { "type": "string",  "title": "Chip style", "description": "Tinted chips, or coloured text only", "options": ["tinted", "text"], "default": "tinted" },
     "chip_hotkeys":     { "type": "boolean", "title": "Digit hotkeys on chips", "description": "Type 1-9 alone in an empty prompt to open a chip", "default": false },
-    "toast_on_block":   { "type": "boolean", "title": "Toast when blocked or denied", "description": "Show a short notice when an action is blocked or denied", "default": true }
+    "toast_on_block":   { "type": "boolean", "title": "Toast when blocked or denied", "description": "Show a short notice when an action is blocked or denied", "default": true },
+    "text_summary":     { "type": "boolean", "title": "Text summary after each answer", "description": "Where nothing can be drawn (cloud sessions), add a one-line activity summary", "default": false }
   }
 }
 ```
@@ -206,6 +218,7 @@ The module is split so that the logic is testable without the mods API:
 | `src/model.ts` | `Activation` type, reducer `record(list, event)`, dedupe by `kind + key`, counters, sort order |
 | `src/classify.ts` | Pure functions from event data to an `Activation`: MCP server from `mcp__<server>__<tool>`, rule file from a path, and so on |
 | `src/render.ts` | Pure functions that build the band and pane trees from the element functions passed in |
+| `src/icons.ts` | `Svg` path strings for the Desktop icons, taken from the artboards |
 | `src/theme.ts` | Glyph, label, light and dark palettes per type and state; theme detection from `$.config.list()` rows |
 | `types/index.d.ts` | `PluginState` for `session-activity`: `activations`, `muted`, `selected`, `paneView`, `filter`, `prefs` (settings loaded from `$.store`) |
 
@@ -371,7 +384,32 @@ Every glyph must be one cell wide. `↯` replaces `⚡` for hooks; `⚷` is chec
 
 ### Desktop
 
-The same tree renders in the Desktop app, where clicks press buttons. `e.surface === 'desktop'` uses the light or dark palette from the app's theme; no Desktop-only elements in v1.
+The Desktop app (Code tab) is a first-class target. The same hooks render both surfaces, branching on `e.surface === 'desktop'` only where Desktop can get closer to the design:
+
+| Design element | Terminal (above) | Desktop |
+| --- | --- | --- |
+| Chip icon | One-cell Unicode glyph | `Svg` icon redrawn from the artboards (layers, robot, plug, key, bolt, shield; optional-type icons), 14 px, in the type colour |
+| Chip shape | Tinted `Box`, square ends | Tinted `Box` with `borderStyle: 'round'` and the type's border colour, if the M1 spike shows it reads as a pill; else tinted `Box` without border |
+| Colours | Palette with theme-key fallback | Exact hex values from the light or dark palette, matching the app's theme |
+| Selecting a chip, filters, toggles, Mute | Keyboard first; clicks only in fullscreen mode | Click (and keyboard) |
+| Hover | None | `hover` on chips and tray rows: tint one step darker |
+| Popover | Detail card grown in the band | Same card, with `Svg` icon and stat tiles; still anchored in the band, not floating |
+| Settings switches | `●` / `○` buttons | Same buttons, plus an `Svg` switch drawing beside each label |
+| Spinner (running) | Cycling glyphs | `Svg` ring, redrawn on the same timer |
+
+Rules for the Desktop path:
+
+1. No Desktop-only behaviour: every action stays reachable in the terminal; Desktop only changes how things look and adds clicks.
+2. `Svg` icons live in `src/icons.ts` as path strings taken from the artboards' SVG markup; each stays far below the 131,072-character limit.
+3. Never use elements the reference marks terminal-only on the Desktop path, and never `Svg` on the terminal path (it doesn't draw there).
+4. The `Client` element (a region drawn by a second file, with pointer input) is not used in v1. M1 checks what it can render on Desktop; if it can draw the chip row pixel-close to the design, it becomes a later option.
+
+### claude.ai/code cloud sessions (optional, M6)
+
+Nothing a mod draws appears in a cloud session, and a cloud session doesn't install plugins from the repo's `enabledPlugins` or from user settings. If the M1 spike shows the environment's setup script can install the plugin (`claude plugin marketplace add tinesoft/claude-mods@main` then `claude plugin install session-activity@tinesoft-mods`), the mod falls back to text when `$.session.surfaces` has no drawing surface:
+
+- `/session-activity` replies with a Markdown summary grouped like the tray.
+- An optional one-line summary after each answer through `turn.complete`, e.g. `Activity: ▤ docx · ◉ code-reviewer · ↯ block-secrets BLOCKED`, behind a `text_summary` setting (off by default).
 
 ## Testing, validation and CI
 
@@ -384,9 +422,10 @@ Test files under `mods/session-activity/tests/`:
 | `model.test.ts` | Dedupe, counters, sort order (blocked first), mute filtering |
 | `classify.test.ts` | `mcp__github__get_pull_request` → server `github`; rule paths; command summaries |
 | `events.test.ts` | Fire `tool.call`, `tool.check`, `agent.spawn`, `skill.prompt`, `classic.*`; assert the recorded activations; assert every hook passes the event on unchanged |
-| `band.test.ts` | Render `AbovePrompt` at 60, 100 and 200 columns; overflow count; `summary` layout; detail card under a selected chip and pane fallback at small `maxRows`; `chip_style: text`; no hotkeys unless `chip_hotkeys`; empty state returns `next(e)` |
+| `band.test.ts` | Render `AbovePrompt` on both the terminal and desktop surfaces, at 60, 100 and 200 columns; `Svg` only on desktop; overflow count; `summary` layout; detail card under a selected chip and pane fallback at small `maxRows`; `chip_style: text`; no hotkeys unless `chip_hotkeys`; empty state returns `next(e)` |
 | `pane.test.ts` | Press a chip's hotkey → pane opens on that item; filters; mute; settings toggles persist to a stubbed `$.store` |
 | `reset.test.ts` | Activations are empty after `/clear`, and settings survive it |
+| `fallback.test.ts` | With no drawing surface, `/session-activity` replies with the Markdown summary and `text_summary` adds one line per turn |
 | `toast.test.ts` | A denied `tool.check` or blocked call shows one toast; none when `toast_on_block` is off |
 
 A minimal events test, in the style of the docs' tutorial:
@@ -416,7 +455,7 @@ The `.claude-plugin/types/` folder Claude Code generates is git-ignored, so `typ
 
 ## Milestones and acceptance criteria
 
-Six milestones in order; each ends in a PR to `develop`, and M5 ends in the first release from `main`.
+Six milestones in order, plus an optional seventh; each ends in a PR to `develop`, and M5 ends in the first release from `main`.
 
 **M0 · Repo scaffold**
 
@@ -436,6 +475,9 @@ Six milestones in order; each ends in a PR to `develop`, and M5 ends in the firs
 - [ ] Read Claude Code's theme from `$.config.list()`: which row and values? Decides U1 (tinted vs text fallback)
 - [ ] In fullscreen rendering (`/tui fullscreen`), does clicking a mod `Button` call `onPress`? Does Ctrl+X then Tab focus the band?
 - [ ] Check that hex `backgroundColor` renders in truecolor terminals and degrades acceptably in a 256-colour one
+- [ ] Desktop: how the app styles a `Button`; whether a tinted `Box` with `borderStyle: 'round'` reads as a pill; `hover` behaviour; `Svg` icon sizing next to text
+- [ ] Desktop: what the `Client` element can render and whether it receives clicks (decides if a pixel-close chip row is a later option)
+- [ ] Cloud: can a cloud environment's setup script install the plugin, and does a `/session-activity` text reply or a `turn.complete` line show in the claude.ai/code transcript? (decides M6)
 
 **M2 · Core model and band**
 
@@ -452,7 +494,8 @@ Six milestones in order; each ends in a PR to `develop`, and M5 ends in the firs
 - [ ] `/session-activity` and chip presses open the pane on the right item, at any terminal width
 - [ ] Filters, row detail (replaces popover), mute/unmute, copy path
 - [ ] Settings tab with live preview, type toggles, chip style, digit hotkeys (off by default) and toast toggle; `userConfig` defaults apply; overrides in `$.store` persist across sessions and are reloaded after `/clear` via `classic.SessionStart`
-- [ ] Glyph widths and both palettes checked in four terminals and one light and one dark theme; Desktop renders without refusal lines
+- [ ] Glyph widths and both palettes checked in four terminals and one light and one dark theme
+- [ ] Desktop path: `Svg` icons, exact colours, round tinted chips (per M1), hover, click on every control, light and dark app themes; no refusal lines
 - [ ] Every action reachable by keyboard alone
 
 **M4 · Optional types**
@@ -464,12 +507,19 @@ Six milestones in order; each ends in a PR to `develop`, and M5 ends in the firs
 
 - [ ] `release.yml` runs `nx release`, syncs the version into `plugin.json`, tags `session-activity@0.1.0`, publishes a GitHub Release and back-merges to `develop`
 - [ ] Clean install works: `claude plugin marketplace add tinesoft/claude-mods@main`, then `/plugin install session-activity@tinesoft-mods`
-- [ ] Mod README states the tested Claude Code version and includes a screenshot of the band and the pane
+- [ ] Mod README states the tested Claude Code version, lists supported surfaces (terminal, Desktop Code tab; not claude.ai chat), and includes terminal and Desktop screenshots of the band and the pane
+
+**M6 · Cloud text summaries** (optional, only if the M1 cloud spike succeeds)
+
+- [ ] README section with the cloud environment setup script that installs the plugin
+- [ ] `/session-activity` Markdown reply and the opt-in `text_summary` line, tested with no drawing surface
 
 ## Risks and references
 
 | Risk | Effect | Mitigation |
 | --- | --- | --- |
+| Desktop draws buttons and fonts its own way | Desktop chips look less like the design than hoped | M1 Desktop spike; `Svg` icons and exact colours carry the likeness |
+| Users expect the chips on claude.ai | Confusion after install | README and marketplace description state the supported surfaces |
 | Mods API changes between Claude Code releases | Events or props break silently | Pin the tested version in CI and the README; regenerate types on each bump; re-run `validate` |
 | Hook and rule signals are thinner than the design assumes | Hook and rule chips show less detail | M1 spikes decide; event-level fallback is already specified |
 | The band is shared with other mods | Chips push out, or hide, another mod's content | Always include `await next(e)`; one row only |

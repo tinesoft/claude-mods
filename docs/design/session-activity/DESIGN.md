@@ -22,7 +22,7 @@ filters, mute, toggles), which is the most useful part to read.
 | Expanded tray | `Expanded.dc.html` | `Pane` id `session-activity`, tab `1: Activity`: filter row, grouped rows, mute |
 | Settings | `Settings.dc.html` | `userConfig` defaults + pane tab `2: Settings` overrides stored in `$.store` |
 | Types, states, overflow | `States.dc.html` | Glyph + colour + text badge rules below |
-| Mobile | `Mobile.dc.html` | Out of scope (mods run in terminal and Desktop only) |
+| Mobile | `Mobile.dc.html` | Out of scope (mods draw only in the terminal and the Desktop app's Code tab) |
 
 `canvas.json` is the board index; ignore its layout coordinates.
 
@@ -32,6 +32,14 @@ handoff**, so the `.dc.html` files don't open on their own in a browser. Read th
 them rendered, open the canvas link above, or use an artboard's Export menu there: the HTML export bundles
 `support.js` and the vendor files, and PNG export gives screenshots you can drop into `artboards/`.
 See `artboards/README.md`.
+
+## Surfaces
+
+The design is implemented on two surfaces. The **Desktop app (Code tab)** gets closest: exact hex colours,
+the artboards' icons redrawn as `Svg`, rounded tinted chips (if the M1 spike confirms), hover and clicks.
+The **terminal** uses the glyph and palette approximations below. claude.ai chat can't show a mod's UI and is
+out of scope; claude.ai/code cloud sessions get text summaries at most (optional milestone M6).
+See "Desktop" in the UI spec of `plan.md`.
 
 ## Chip types
 
@@ -94,6 +102,7 @@ Dark-theme palette values are in `plan.md` (Palette).
 5. Nothing recorded, or disabled: return `next(e)` (empty band). Always include `await next(e)` so other mods' band content stays.
 6. Counter in the status line under the prompt: `16 active · /session-activity`.
 7. Everything reachable by keyboard (Ctrl+X then Tab, Up/Down, Enter); clicks work in fullscreen mode and Desktop.
+8. On Desktop, chips and rows use `hover` (tint one step darker) and `Svg` icons from the artboards.
 
 ## Pane rules
 
