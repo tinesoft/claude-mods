@@ -18,6 +18,7 @@ export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'>
 
 const LABEL_MAX = 24
 const MORE_RESERVE = 2
+const PROMPT_ROWS = 6
 
 export const clip = (text: string, max: number) =>
   text.length <= max ? text : `${text.slice(0, Math.max(1, max - 1))}…`
@@ -342,7 +343,7 @@ export type BandArgs = Omit<RowArgs, 'fits' | 'on'> & {
 export const renderBand = (args: BandArgs) => {
   const { ui, columns, maxRows, now, tone, chips, settings, selected, below, on } = args
   const { Box } = ui
-  const fits = (a: Activation) => maxRows >= 1 + cardRows(a, columns)
+  const fits = (a: Activation) => maxRows >= PROMPT_ROWS + 1 + cardRows(a, columns)
   const current = settings.layout === 'row' ? chips.find(a => chipId(a) === selected) : undefined
   return (
     <Box flexDirection="column">
