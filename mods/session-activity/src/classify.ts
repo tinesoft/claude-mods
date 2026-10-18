@@ -72,6 +72,7 @@ export const fromSkill = (e: {
   kind: 'skill',
   key: e.skill,
   label: e.skill,
+  meta: 'Loaded',
   detail: `Claude loaded this skill from ${e.pluginName ?? SKILL_SOURCES[e.source] ?? e.source}.`,
   ...(e.path !== undefined && { source: e.path }),
   ...(e.pluginName !== undefined && { plugin: e.pluginName }),
@@ -270,3 +271,41 @@ export const fromBackground = (command: string, cwd: string): Observed => ({
   source: command,
   status: 'ok',
 })
+
+const MEMORY_TOOLS = new Set(['Write', 'Edit', 'MultiEdit'])
+
+const isMemoryFile = (path: string) => {
+  const name = path.split('/').pop() ?? path
+  return (
+    name === 'CLAUDE.md' ||
+    name === 'CLAUDE.local.md' ||
+    (name.endsWith('.md') && path.split('/').includes('memory'))
+  )
+}
+
+export const fromMemoryWrite = (tool: string, input: unknown): Observed | undefined => {
+  const path = field(input, 'file_path')
+  if (!MEMORY_TOOLS.has(tool) || path === undefined || !isMemoryFile(path)) return undefined
+  const name = path.split('/').pop() ?? path
+  return {
+    kind: 'memory',
+    key: path,
+    label: `Remembered: ${name}`,
+    detail: `Claude updated ${name} with ${tool}.`,
+    meta: tool,
+    source: path,
+    status: 'active',
+  }
+}
+
+/** The one-line notice for an action that was just stopped; undefined for anything else. */
+export const stopNotice = (
+  seen: Pick<Observed, 'status' | 'label' | 'meta'>,
+): string | undefined => {
+  if (seen.status === 'blocked') {
+    const tool = seen.meta?.split(' · ')[1]
+    return `↯ ${seen.label} blocked ${tool ?? 'an action'}`
+  }
+  if (seen.status === 'denied') return `⚷ ${seen.meta ?? 'A tool'} denied: ${seen.label}`
+  return undefined
+}

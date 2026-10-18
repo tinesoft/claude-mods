@@ -68,10 +68,28 @@
       "description": "Optional",
       "default": false
     },
+    "show_memory": {
+      "type": "boolean",
+      "title": "Memory",
+      "description": "Optional",
+      "default": false
+    },
+    "show_plugins": {
+      "type": "boolean",
+      "title": "Plugins",
+      "description": "Optional: tag chips with their plugin",
+      "default": false
+    },
     "show_context": {
       "type": "boolean",
       "title": "Context",
       "description": "Optional: compaction and context use",
+      "default": false
+    },
+    "show_checkpoints": {
+      "type": "boolean",
+      "title": "Checkpoints",
+      "description": "Optional",
       "default": false
     },
     "show_model": {
@@ -93,6 +111,25 @@
       "default": 6,
       "min": 1,
       "max": 20
+    },
+    "chip_style": {
+      "type": "string",
+      "title": "Chip style",
+      "description": "Tinted chips, or coloured text only",
+      "options": ["tinted", "text"],
+      "default": "tinted"
+    },
+    "chip_hotkeys": {
+      "type": "boolean",
+      "title": "Digit hotkeys on chips",
+      "description": "Type 1-9 alone in an empty prompt to open a chip",
+      "default": false
+    },
+    "toast_on_block": {
+      "type": "boolean",
+      "title": "Toast when blocked or denied",
+      "description": "Show a short notice when an action is blocked or denied",
+      "default": true
     }
   }
 }

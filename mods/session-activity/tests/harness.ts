@@ -12,21 +12,34 @@ export const session = (
   on: On,
   settings: Record<string, unknown> = {},
   store = new Map<string, unknown>(),
+  theme = 'dark',
 ) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   on('store.get', ($, e) => ({ value: store.get(e.key) }))
   on('store.set', ($, e) => (store.set(e.key, e.value), { value: undefined }))
   on('session.cwd', () => ({ value: CWD }))
   on('settings.read', () => ({ value: settings }))
+  on('config.list', () => ({
+    value: [
+      {
+        key: 'theme',
+        label: 'Theme',
+        kind: 'choice',
+        value: theme,
+        provider: { plugin: 'engine', tier: 'core' },
+        isLocked: false,
+      },
+    ],
+  }))
   on('ui.render', ($, e) => $.ui.resolve(e).Box({}))
   on('fs.read', ($, e) => (e.path in FILES ? { value: FILES[e.path]! } : { deny: 'no such file' }))
   return clock
 }
 
-export const bandProps = (bodyColumns: number) => ({
+export const bandProps = (bodyColumns: number, maxRows = 24) => ({
   hasSurvey: false,
   isWorking: false,
-  maxRows: 10,
+  maxRows,
   bodyColumns,
   scroll: { offset: 0, bodyRows: 9 },
   view: {},
@@ -36,12 +49,13 @@ export const mountBand = <S extends RenderSurface = 'terminal'>(
   $: Engine,
   surface: S = 'terminal' as S,
   columns = 100,
+  maxRows = 24,
 ) =>
   $.ui.mount({
     plugin: 'session-activity',
     surface,
     component: 'AbovePrompt',
-    props: bandProps(columns),
+    props: bandProps(columns, maxRows),
   })
 
 export const mountPane = <S extends RenderSurface = 'terminal'>(
@@ -64,8 +78,14 @@ export const mountPane = <S extends RenderSurface = 'terminal'>(
     },
   })
 
-export const chipTexts = async (band: { findAll: (q: ElementQuery) => Promise<FoundElement[]> }) =>
-  (await band.findAll({ type: 'Button' })).map(b => `${b.key}|${b.text}`)
+export type Finder = { findAll: (q: ElementQuery) => Promise<FoundElement[]> }
+
+export const chipTexts = async (band: Finder) =>
+  (await band.findAll({ type: 'Box' }))
+    .filter(b => b.key?.startsWith('box-'))
+    .map(b => `${b.key!.slice(4)}|${b.text}`)
+
+export const FRESH = 4001
 
 export const stubEngine = (
   on: On,
@@ -76,7 +96,11 @@ export const stubEngine = (
   } = {},
 ) => {
   const opened: string[] = []
+  const opens: { id: string; rows?: number }[] = []
   const copied: string[] = []
+  const toasts: string[] = []
+  let invalidations = 0
+  const status: { text: string | undefined }[] = []
   on('tool.call', () => answers.call ?? { result: 'ran' })
   on('tool.check', () => answers.verdict ?? { decision: 'allow' })
   on('skill.prompt', ($, e) => ({ text: `body of ${e.skill}` }))
@@ -87,7 +111,17 @@ export const stubEngine = (
   on('classic.PostToolUse', () => ({}))
   on('session.end', ($, e) => ({ sessionId: e.sessionId }))
   on('command.run', () => ({ text: 'ran' }))
-  on('ui.open', ($, e) => (opened.push(e.id), { value: { isPlaced: true } }))
+  on('ui.open', ($, e) => (opened.push(e.id), opens.push(e), { value: { isPlaced: true } }))
   on('ui.copy', ($, e) => (copied.push(e.text), { value: { isCopied: true } }))
-  return { opened, copied }
+  on('ui.invalidate', () => (invalidations++, { value: undefined }))
+  on('ui.toast', ($, e) => (toasts.push(e.text), { value: undefined }))
+  on('ui.status', ($, e) => (status.push({ text: e.text }), { value: undefined }))
+  return {
+    opened,
+    copied,
+    toasts,
+    invalidations: () => invalidations,
+    opens,
+    status: () => status.at(-1)?.text,
+  }
 }

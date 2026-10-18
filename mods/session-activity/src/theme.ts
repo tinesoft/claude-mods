@@ -1,143 +1,273 @@
 import type { Color } from 'claude-code'
 
-import type { Kind, Status } from '../types'
+import type { Kind, Status, Toggle } from '../types'
 
-export type KindTheme = {
-  glyph: string
-  color: Color
-  dim: boolean
-  hex: string
+export type Palette = 'light' | 'dark' | undefined
+
+type Tone = { fg: string; tint: string }
+
+export type TogglePalette = { light: Tone; dark: Tone; key: Color }
+
+export type ToggleTheme = {
+  option: string
   title: string
+  noun: string
   plural: string
+  description: string
+  example: string
+  glyph: string
   hotkey: string
-  isOptional: boolean
+  optional: boolean
   showsTally: boolean
+  dim: boolean
+  palette: TogglePalette
 }
 
-export const KINDS: Record<Kind, KindTheme> = {
+const NEUTRAL: TogglePalette = {
+  light: { fg: '#2A2D35', tint: '#F0F1F4' },
+  dark: { fg: '#C9CCD3', tint: '#2A2C31' },
+  key: 'subtle',
+}
+
+export const TOGGLES: Record<Toggle, ToggleTheme> = {
   skill: {
-    glyph: '▤',
-    color: 'suggestion',
-    dim: false,
-    hex: '#1F4FC1',
-    title: 'Skill',
+    option: 'show_skills',
+    title: 'Skills',
+    noun: 'Skill',
     plural: 'Skills',
+    description: 'SKILL.md files Claude loaded because your request matched them.',
+    example: 'docx',
+    glyph: '▤',
     hotkey: 's',
-    isOptional: false,
+    optional: false,
     showsTally: true,
+    dim: false,
+    palette: {
+      light: { fg: '#1F4FC1', tint: '#EDF2FD' },
+      dark: { fg: '#8FB0FF', tint: '#1B2A4A' },
+      key: 'suggestion',
+    },
   },
   agent: {
-    glyph: '◉',
-    color: 'merged',
-    dim: false,
-    hex: '#5B3A99',
-    title: 'Agent',
+    option: 'show_agents',
+    title: 'Agents',
+    noun: 'Agent',
     plural: 'Agents',
+    description: 'Subagents Claude handed work to, built-in or from .claude/agents.',
+    example: 'code-reviewer',
+    glyph: '◉',
     hotkey: 'g',
-    isOptional: false,
+    optional: false,
     showsTally: true,
+    dim: false,
+    palette: {
+      light: { fg: '#5B3A99', tint: '#F3EEFB' },
+      dark: { fg: '#C3A8F5', tint: '#2C2147' },
+      key: 'merged',
+    },
   },
   mcp: {
-    glyph: '⇌',
-    color: 'merged',
-    dim: true,
-    hex: '#9C1F62',
-    title: 'MCP server',
+    option: 'show_mcp',
+    title: 'MCP servers',
+    noun: 'MCP server',
     plural: 'MCP',
+    description: 'Servers whose tools were called, with a count and any auth failures.',
+    example: 'github',
+    glyph: '⇌',
     hotkey: 'p',
-    isOptional: false,
+    optional: false,
     showsTally: true,
+    dim: true,
+    palette: {
+      light: { fg: '#9C1F62', tint: '#FCEEF5' },
+      dark: { fg: '#F29BC8', tint: '#3D1A2D' },
+      key: 'merged',
+    },
   },
   perm: {
-    glyph: '⚷',
-    color: 'permission',
-    dim: false,
-    hex: '#0E6159',
-    title: 'Permission',
+    option: 'show_permissions',
+    title: 'Permissions',
+    noun: 'Permission',
     plural: 'Permissions',
+    description: 'Actions you approved, auto-allowed by a rule, or denied.',
+    example: 'git push',
+    glyph: '⚷',
     hotkey: 'k',
-    isOptional: false,
+    optional: false,
     showsTally: true,
+    dim: false,
+    palette: {
+      light: { fg: '#0E6159', tint: '#E8F5F2' },
+      dark: { fg: '#7FD6C8', tint: '#123A35' },
+      key: 'permission',
+    },
   },
   hook: {
-    glyph: '↯',
-    color: 'warning',
-    dim: false,
-    hex: '#9A4A0B',
-    title: 'Hook',
+    option: 'show_hooks',
+    title: 'Hooks',
+    noun: 'Hook',
     plural: 'Hooks',
+    description: 'Commands from settings that ran on events like PreToolUse or Stop.',
+    example: 'lint-staged',
+    glyph: '↯',
     hotkey: 'h',
-    isOptional: false,
+    optional: false,
     showsTally: true,
+    dim: false,
+    palette: {
+      light: { fg: '#9A4A0B', tint: '#FDF1E6' },
+      dark: { fg: '#F5B47A', tint: '#3D2614' },
+      key: 'warning',
+    },
   },
   rule: {
-    glyph: '▣',
-    color: 'text',
-    dim: false,
-    hex: '#2A2D35',
-    title: 'Rule',
+    option: 'show_rules',
+    title: 'Rules',
+    noun: 'Rule',
     plural: 'Rules',
+    description: 'CLAUDE.md and .claude/rules files Claude loaded.',
+    example: 'CLAUDE.md',
+    glyph: '▣',
     hotkey: 'r',
-    isOptional: false,
+    optional: false,
     showsTally: true,
+    dim: false,
+    palette: {
+      light: { fg: '#2A2D35', tint: '#FFFFFF' },
+      dark: { fg: '#D5D8DE', tint: '#24262C' },
+      key: 'text',
+    },
   },
   command: {
-    glyph: '/',
-    color: 'subtle',
-    dim: true,
-    hex: '#2A2D35',
-    title: 'Slash command',
+    option: 'show_commands',
+    title: 'Slash commands',
+    noun: 'Slash command',
     plural: 'Commands',
+    description: 'Custom commands from .claude/commands that ran.',
+    example: '/release-notes',
+    glyph: '/',
     hotkey: 'o',
-    isOptional: true,
+    optional: true,
     showsTally: true,
+    dim: true,
+    palette: NEUTRAL,
+  },
+  memory: {
+    option: 'show_memory',
+    title: 'Memory',
+    noun: 'Memory',
+    plural: 'Memory',
+    description: 'When Claude writes a memory file, so you can see what it learned.',
+    example: 'Remembered: CLAUDE.md',
+    glyph: '✎',
+    hotkey: 'e',
+    optional: true,
+    showsTally: true,
+    dim: true,
+    palette: NEUTRAL,
+  },
+  plugin: {
+    option: 'show_plugins',
+    title: 'Plugins',
+    noun: 'Plugin',
+    plural: 'Plugins',
+    description: 'Tags each chip with the plugin that supplied it.',
+    example: 'via acme-devtools',
+    glyph: '⬡',
+    hotkey: 'u',
+    optional: true,
+    showsTally: false,
+    dim: true,
+    palette: NEUTRAL,
   },
   context: {
-    glyph: '◔',
-    color: 'subtle',
-    dim: true,
-    hex: '#2A2D35',
+    option: 'show_context',
     title: 'Context',
+    noun: 'Context',
     plural: 'Context',
+    description: 'Compaction events and a context-usage gauge.',
+    example: 'Compacted',
+    glyph: '◔',
     hotkey: 'x',
-    isOptional: true,
+    optional: true,
     showsTally: false,
+    dim: true,
+    palette: NEUTRAL,
+  },
+  checkpoint: {
+    option: 'show_checkpoints',
+    title: 'Checkpoints',
+    noun: 'Checkpoint',
+    plural: 'Checkpoints',
+    description: 'Restore points made before edits. Not supported yet: Claude Code sends no event.',
+    example: 'Checkpoint 3',
+    glyph: '⚑',
+    hotkey: 'f',
+    optional: true,
+    showsTally: true,
+    dim: true,
+    palette: NEUTRAL,
   },
   model: {
-    glyph: '≡',
-    color: 'subtle',
-    dim: true,
-    hex: '#2A2D35',
-    title: 'Model',
+    option: 'show_model',
+    title: 'Output style and model',
+    noun: 'Model',
     plural: 'Model',
+    description: 'A quiet chip when the style or model changes mid-session.',
+    example: 'Style: Explanatory',
+    glyph: '≡',
     hotkey: 'l',
-    isOptional: true,
+    optional: true,
     showsTally: true,
+    dim: true,
+    palette: NEUTRAL,
   },
   background: {
-    glyph: '▶',
-    color: 'subtle',
-    dim: true,
-    hex: '#2A2D35',
-    title: 'Background task',
+    option: 'show_background',
+    title: 'Background tasks',
+    noun: 'Background task',
     plural: 'Background',
+    description: 'Long-running shells or dev servers still alive.',
+    example: 'pnpm dev',
+    glyph: '▶',
     hotkey: 'b',
-    isOptional: true,
+    optional: true,
     showsTally: true,
+    dim: true,
+    palette: NEUTRAL,
   },
 }
 
-export const KIND_ORDER = Object.keys(KINDS) as Kind[]
+export const TOGGLE_ORDER = Object.keys(TOGGLES) as Toggle[]
 
-export type StatusTheme = { badge?: string; color?: Color; dim?: boolean }
+export const isKind = (toggle: Toggle): toggle is Kind => toggle !== 'plugin'
+
+export const KIND_ORDER = TOGGLE_ORDER.filter(isKind)
+
+export const STAT_TILE = { light: '#F5F6F8', dark: '#2A2C31' } as const
+
+export const STOPPED = { fg: '#FFFFFF', bg: '#B42318' } as const
+
+export const SPINNER = ['◐', '◓', '◑', '◒'] as const
+
+export const SPIN_MS = 150
+
+export const FRESH_MS = 4000
+
+export const paletteFor = (theme: unknown): Palette => {
+  const match = typeof theme === 'string' ? /^(light|dark)(-daltonized)?$/.exec(theme) : null
+  return match ? (match[1] === 'light' ? 'light' : 'dark') : undefined
+}
+
+export type StatusTheme = { label: string; badge?: string; glyph?: string; color?: Color }
 
 export const STATUSES: Record<Status, StatusTheme> = {
-  active: {},
-  ok: {},
-  running: { badge: 'RUNNING', dim: true },
-  blocked: { badge: 'BLOCKED', color: 'error' },
-  denied: { badge: 'DENIED', color: 'error' },
-  error: { badge: 'ERROR', color: 'error' },
+  active: { label: 'Active' },
+  ok: { label: 'OK' },
+  running: { label: 'Running' },
+  blocked: { label: 'Blocked', badge: 'BLOCKED', color: 'error' },
+  denied: { label: 'Denied', badge: 'DENIED', color: 'error' },
+  error: { label: 'Error', badge: 'ERROR', glyph: '▲', color: 'error' },
 }
 
 export const isStopped = (status: Status) => status === 'blocked' || status === 'denied'

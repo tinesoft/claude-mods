@@ -4,8 +4,10 @@ import {
   commandName,
   fromHook,
   fromInstructions,
+  fromMemoryWrite,
   fromPermission,
   fromSpawn,
+  stopNotice,
   hookTarget,
   hookCommands,
   mcpParts,
@@ -164,4 +166,32 @@ test('a subagent with no id to wait on is not shown as running', () => {
   }
   expect(fromSpawn(e, undefined).status).toBe('ok')
   expect(fromSpawn(e, 'a1').status).toBe('running')
+})
+
+test('a write to CLAUDE.md or a memory markdown file is a memory chip', () => {
+  expect(fromMemoryWrite('Edit', { file_path: '/repo/CLAUDE.md' })).toMatchObject({
+    kind: 'memory',
+    label: 'Remembered: CLAUDE.md',
+    source: '/repo/CLAUDE.md',
+  })
+  expect(fromMemoryWrite('Write', { file_path: '/repo/CLAUDE.local.md' })?.kind).toBe('memory')
+  expect(
+    fromMemoryWrite('MultiEdit', { file_path: '/home/me/.claude/memory/prefs.md' })?.label,
+  ).toBe('Remembered: prefs.md')
+})
+
+test('other writes, and reads of memory files, are not memory chips', () => {
+  expect(fromMemoryWrite('Write', { file_path: '/repo/README.md' })).toBeUndefined()
+  expect(fromMemoryWrite('Write', { file_path: '/repo/memory/data.json' })).toBeUndefined()
+  expect(fromMemoryWrite('Read', { file_path: '/repo/CLAUDE.md' })).toBeUndefined()
+})
+
+test('a stopped action has a one-line notice; a quiet one has none', () => {
+  expect(stopNotice({ status: 'blocked', label: 'block-secrets', meta: 'PreToolUse · Bash' })).toBe(
+    '↯ block-secrets blocked Bash',
+  )
+  expect(stopNotice({ status: 'denied', label: 'rm -rf', meta: 'Bash' })).toBe(
+    '⚷ Bash denied: rm -rf',
+  )
+  expect(stopNotice({ status: 'ok', label: 'x' })).toBeUndefined()
 })

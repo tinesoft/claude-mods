@@ -6,9 +6,13 @@ export type Kind =
   | 'hook'
   | 'rule'
   | 'command'
+  | 'memory'
   | 'context'
+  | 'checkpoint'
   | 'model'
   | 'background'
+
+export type Toggle = Kind | 'plugin'
 
 export type Status = 'active' | 'running' | 'ok' | 'blocked' | 'denied' | 'error'
 
@@ -31,15 +35,25 @@ export type Activation = {
 
 export type Layout = 'row' | 'summary'
 
-export type Overrides = {
-  enabled?: boolean
-  layout?: Layout
-  shown?: Partial<Record<Kind, boolean>>
+export type ChipStyle = 'tinted' | 'text'
+
+export type Settings = {
+  enabled: boolean
+  layout: Layout
+  maxChips: number
+  chipStyle: ChipStyle
+  hotkeys: boolean
+  toastOnBlock: boolean
+  shown: Record<Toggle, boolean>
+}
+
+export type Overrides = Partial<Omit<Settings, 'maxChips' | 'shown'>> & {
+  shown?: Partial<Settings['shown']>
 }
 
 export type Filter = Kind | 'all'
 
-export type PaneTab = 'activity' | 'settings'
+export type PaneView = 'detail' | 'activity' | 'settings'
 
 declare module 'claude-code' {
   interface PluginState {
@@ -47,7 +61,7 @@ declare module 'claude-code' {
       activations: Activation[]
       muted: string[]
       selected: string | null
-      paneTab: PaneTab
+      paneView: PaneView
       filter: Filter
       overrides: Overrides | null
     }

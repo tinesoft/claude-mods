@@ -49,20 +49,71 @@ test('/session-activity opens the pane', async ($, on) => {
 })
 
 for (const columns of [40, 100]) {
-  test(`pressing a chip opens the pane on that item at ${columns} columns`, async ($, on) => {
+  test(`pressing a chip in a band too short for the card opens its detail view at ${columns} columns`, async ($, on) => {
     session(on, HOOKS)
-    const { opened } = stubEngine(on)
+    const { opens } = stubEngine(on)
     blocking(on)
     await activity($)
-    await (await mountBand($)).press({ key: 'chip-hook-PreToolUse' })
-    expect(opened).toEqual(['session-activity'])
+    await (await mountBand($, 'terminal', columns, 3)).press({ key: 'chip-hook-PreToolUse' })
+    expect(opens).toEqual([expect.objectContaining({ id: 'session-activity', rows: 10 })])
     const pane = await mountPane($, 'terminal', columns)
-    const row = await pane.find({ key: 'row-hook-PreToolUse' })
-    expect(row?.text).toStartWith('▸ ↯ block-secrets')
     expect(await texts(pane)).toContain('Blocked: reads a secret')
     expect(await texts(pane)).toContain('bash .claude/hooks/block-secrets.sh')
+    expect(await texts(pane)).toContain('HOOK · PreToolUse · Bash')
+    await pane.press({ key: 'back' })
+    expect(await pane.find({ key: 'row-hook-PreToolUse' })).toBeDefined()
   })
 }
+
+test('the activity header counts items and activations', async ($, on) => {
+  const clock = session(on, HOOKS)
+  stubEngine(on)
+  blocking(on)
+  await activity($)
+  await clock.advance(18 * 60_000)
+  const pane = await mountPane($)
+  expect(await texts(pane)).toContain('3 items · 4 activations · started 18 min ago')
+})
+
+test('filters carry their hotkey and count, and the active one is the only one not dim', async ($, on) => {
+  session(on, HOOKS)
+  stubEngine(on)
+  await activity($)
+  const pane = await mountPane($)
+  const all = await pane.find({ key: 'filter-all' })
+  expect([all?.props.hotkey, all?.text]).toEqual(['a', 'All 3'])
+  const skills = await pane.find({ key: 'filter-skill' })
+  expect([skills?.props.hotkey, skills?.text]).toEqual(['s', 'Skills 1'])
+  await pane.press({ key: 'filter-skill' })
+  const label = async (text: string) =>
+    (await pane.findAll({ type: 'Text' })).find(t => t.text === text)
+  expect((await label('Skills 1'))?.props.dimColor).toBe(false)
+  expect((await label('All 3'))?.props.dimColor).toBe(true)
+})
+
+test('rows are grouped under a coloured eyebrow with a dim count and show their why line', async ($, on) => {
+  session(on, HOOKS)
+  stubEngine(on)
+  await activity($)
+  const pane = await mountPane($)
+  const all = await pane.findAll({ type: 'Text' })
+  expect(all.find(t => t.text === 'SKILLS')?.props.color).toBe('#8FB0FF')
+  expect(all.find(t => t.text === 'MCP')).toBeDefined()
+  expect(all.map(t => t.text)).toContain('Claude loaded this skill from a plugin.')
+  expect((await pane.find({ key: 'row-skill-docx' }))?.text).toContain('docx')
+})
+
+test('selecting a row expands it with its source, and the band shows the same selection', async ($, on) => {
+  session(on, HOOKS)
+  stubEngine(on)
+  await activity($)
+  const pane = await mountPane($)
+  await pane.press({ key: 'row-skill-docx' })
+  expect(await texts(pane)).toContain('/skills/docx/SKILL.md')
+  expect((await pane.find({ key: 'mute' }))?.props.hotkey).toBe('m')
+  expect((await pane.find({ key: 'copy' }))?.props.hotkey).toBe('c')
+  expect(await (await mountBand($)).find({ key: 'card' })).toBeDefined()
+})
 
 test('the +N more button opens the pane', { options: { max_chips: 1 } }, async ($, on) => {
   session(on, HOOKS)
@@ -85,17 +136,19 @@ test('a type filter shows that type alone', async ($, on) => {
   expect(await pane.find({ key: 'row-skill-docx' })).toBeDefined()
 })
 
-test('muting hides a chip from the band, keeps it in the pane, and unmutes', async ($, on) => {
+test('muting hides a chip from the band, keeps it dim with a Muted badge in the pane, and unmutes', async ($, on) => {
   session(on, HOOKS)
-  stubEngine(on)
+  const { status } = stubEngine(on)
   await activity($)
   const pane = await mountPane($)
   await pane.press({ key: 'row-skill-docx' })
   await pane.press({ key: 'mute' })
   expect(await (await mountBand($)).find({ key: 'chip-skill-docx' })).toBeUndefined()
   expect((await pane.find({ key: 'row-skill-docx' }))?.text).toContain('Muted')
+  expect(status()).toBe('2 active · /session-activity')
   await pane.press({ key: 'mute' })
   expect(await (await mountBand($)).find({ key: 'chip-skill-docx' })).toBeDefined()
+  expect(status()).toBe('3 active · /session-activity')
 })
 
 test('copy path puts the source on the clipboard', async ($, on) => {
@@ -108,6 +161,15 @@ test('copy path puts the source on the clipboard', async ($, on) => {
   expect(copied).toEqual(['/skills/docx/SKILL.md'])
 })
 
+test('Customize switches to the settings tab', async ($, on) => {
+  session(on, HOOKS)
+  stubEngine(on)
+  await activity($)
+  const pane = await mountPane($)
+  await pane.press({ key: 'customize' })
+  expect(await pane.find({ key: 'reset' })).toBeDefined()
+})
+
 test('a settings toggle hides the type from the band and persists to the store', async ($, on) => {
   const store = new Map<string, unknown>()
   session(on, HOOKS, store)
@@ -118,20 +180,63 @@ test('a settings toggle hides the type from the band and persists to the store',
   await pane.press({ key: 'toggle-skill' })
   expect(await (await mountBand($)).find({ key: 'chip-skill-docx' })).toBeUndefined()
   expect(store.get('overrides')).toEqual({ shown: { skill: false } })
-  expect((await pane.find({ key: 'toggle-skill' }))?.text).toStartWith('[ ]')
+  expect((await pane.find({ key: 'toggle-skill' }))?.text).toStartWith('○')
 })
 
-test('the layout picker switches the band to one summary chip', async ($, on) => {
+test('the layout buttons switch the band to one summary chip', async ($, on) => {
   const store = new Map<string, unknown>()
   session(on, HOOKS, store)
   stubEngine(on)
   await activity($)
   const pane = await mountPane($)
   await pane.press({ key: 'tab-settings' })
-  await pane.select({ key: 'layout', value: 'summary' })
-  const row = await (await mountBand($)).findAll({ type: 'Button' })
-  expect(row.map(b => b.key)).toEqual(['summary'])
+  await pane.press({ key: 'layout-summary' })
+  const buttons = await (await mountBand($)).findAll({ type: 'Button' })
+  expect(buttons.map(b => b.key)).toEqual(['summary'])
   expect(store.get('overrides')).toEqual({ layout: 'summary' })
+  await pane.press({ key: 'layout-row' })
+  expect(store.get('overrides')).toEqual({ layout: 'row' })
+})
+
+test('chip style, digit hotkeys and the block toast are settings with their own rows', async ($, on) => {
+  const store = new Map<string, unknown>()
+  session(on, HOOKS, store)
+  stubEngine(on)
+  await activity($)
+  const pane = await mountPane($)
+  await pane.press({ key: 'tab-settings' })
+  await pane.press({ key: 'style-text' })
+  await pane.press({ key: 'toggle-hotkeys' })
+  await pane.press({ key: 'toggle-toast' })
+  expect(store.get('overrides')).toEqual({ chipStyle: 'text', hotkeys: true, toastOnBlock: false })
+  const chip = await (await mountBand($)).find({ key: 'chip-mcp-github' })
+  expect(chip?.props.hotkey).toBeDefined()
+  expect(
+    (await (await mountBand($)).findAll({ type: 'Box' })).some(b => b.props.backgroundColor),
+  ).toBe(false)
+  expect((await pane.find({ key: 'toggle-hotkeys' }))?.text).toStartWith('●')
+  expect((await pane.find({ key: 'toggle-toast' }))?.text).toStartWith('○')
+})
+
+test('the settings preview is drawn by the band renderer and follows the toggles', async ($, on) => {
+  session(on)
+  stubEngine(on)
+  const pane = await mountPane($, 'terminal', 200)
+  await pane.press({ key: 'tab-settings' })
+  const preview = async () =>
+    (await pane.findAll({ type: 'Box' })).filter(b => b.key?.startsWith('box-')).map(b => b.text)
+  expect(await preview()).toContain('▤docx')
+  expect(await preview()).not.toContain('✎Remembered: CLAUDE.md')
+  await pane.press({ key: 'toggle-memory' })
+  expect(await preview()).toContain('✎Remembered: CLAUDE.md')
+  await pane.press({ key: 'toggle-skill' })
+  expect(await preview()).not.toContain('▤docx')
+  await pane.press({ key: 'layout-summary' })
+  expect((await pane.find({ key: 'summary' }))?.text).toStartWith('6 active')
+  await pane.press({ key: 'toggle-enabled' })
+  expect(await texts(pane)).toContain(
+    'Chips are hidden. Activity is still listed in the session tray.',
+  )
 })
 
 test('overrides saved by an earlier session apply in a new one', async ($, on) => {
@@ -171,7 +276,7 @@ test('the pane draws on desktop', async ($, on) => {
   const pane = await mountPane($, 'desktop')
   expect(await pane.find({ key: 'row-mcp-github' })).toBeDefined()
   await pane.press({ key: 'tab-settings' })
-  expect(await pane.find({ key: 'layout' })).toBeDefined()
+  expect(await pane.find({ key: 'layout-row' })).toBeDefined()
 })
 
 test('the filter row lists only the types the settings show', async ($, on) => {
@@ -189,10 +294,9 @@ test('a blocked chip of a hidden type is still listed in the pane, without a mut
   stubEngine(on)
   blocking(on)
   await activity($)
-  await (await mountBand($)).press({ key: 'chip-hook-PreToolUse' })
   const pane = await mountPane($)
   expect(await pane.find({ key: 'filter-hook' })).toBeDefined()
-  expect(await pane.find({ key: 'row-hook-PreToolUse' })).toBeDefined()
+  await pane.press({ key: 'row-hook-PreToolUse' })
   expect(await pane.find({ key: 'mute' })).toBeUndefined()
 })
 
@@ -214,7 +318,7 @@ test('turn everything on keeps the chosen layout', async ($, on) => {
   stubEngine(on)
   const pane = await mountPane($)
   await pane.press({ key: 'tab-settings' })
-  await pane.select({ key: 'layout', value: 'summary' })
+  await pane.press({ key: 'layout-summary' })
   await pane.press({ key: 'all-on' })
   expect(store.get('overrides')).toMatchObject({ layout: 'summary', enabled: true })
 })
@@ -225,12 +329,17 @@ test('the settings tab uses the design copy and counts the optional types on', a
   const pane = await mountPane($)
   await pane.press({ key: 'tab-settings' })
   expect((await pane.find({ key: 'toggle-enabled' }))?.text).toBe(
-    '[x] Show chips above the prompt bar',
+    '● Show chips above the prompt bar',
   )
-  expect(await texts(pane)).toContain(
-    'Blocked and denied actions are always shown while this is on.',
-  )
-  expect(await texts(pane)).toContain('Optional · off by default (0 of 4 on)')
+  const shown = await texts(pane)
+  expect(shown).toContain('Blocked and denied actions are always shown while this is on.')
+  expect(shown).toContain('Shown by default')
+  expect(shown).toContain('Optional · off by default (0 of 7 on)')
+  expect(shown).toContain('Chip row')
+  expect(shown).toContain('Collapsed summary')
+  expect((await pane.find({ key: 'toggle-memory' }))?.text).toContain('○')
   await pane.press({ key: 'toggle-model' })
-  expect(await texts(pane)).toContain('Optional · off by default (1 of 4 on)')
+  expect(await texts(pane)).toContain('Optional · off by default (1 of 7 on)')
+  expect(await pane.find({ key: 'reset' })).toBeDefined()
+  expect(await pane.find({ key: 'all-on' })).toBeDefined()
 })

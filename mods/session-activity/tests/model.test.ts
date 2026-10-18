@@ -111,6 +111,31 @@ test('userConfig sets the defaults and pane overrides win', () => {
   expect(overridden).toMatchObject({ layout: 'summary', shown: { mcp: true } })
 })
 
+test('every toggle, the plugin tag included, follows its userConfig option', () => {
+  const defaults = resolveSettings({}, undefined)
+  expect(defaults.shown).toMatchObject({ skill: true, rule: true, memory: false, plugin: false })
+  expect(defaults).toMatchObject({ chipStyle: 'tinted', hotkeys: false, toastOnBlock: true })
+  const configured = resolveSettings(
+    {
+      show_memory: true,
+      show_plugins: true,
+      show_checkpoints: true,
+      chip_style: 'text',
+      chip_hotkeys: true,
+      toast_on_block: false,
+    },
+    undefined,
+  )
+  expect(configured.shown).toMatchObject({ memory: true, plugin: true, checkpoint: true })
+  expect(configured).toMatchObject({ chipStyle: 'text', hotkeys: true, toastOnBlock: false })
+  expect(
+    resolveSettings({ chip_style: 'text' }, { chipStyle: 'tinted', hotkeys: true }),
+  ).toMatchObject({
+    chipStyle: 'tinted',
+    hotkeys: true,
+  })
+})
+
 test('max_chips is clamped to its documented 1 to 20 range', () => {
   expect(resolveSettings({ max_chips: 99 }, undefined).maxChips).toBe(20)
   expect(resolveSettings({ max_chips: 0 }, undefined).maxChips).toBe(1)

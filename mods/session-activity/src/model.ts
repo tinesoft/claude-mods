@@ -1,5 +1,5 @@
-import type { Activation, Kind, Layout, Overrides, Status } from '../types'
-import { isUrgent, KIND_ORDER, KINDS } from './theme'
+import type { Activation, Kind, Overrides, Settings, Status, Toggle } from '../types'
+import { isUrgent, KIND_ORDER, TOGGLE_ORDER, TOGGLES } from './theme'
 
 export type Observed = Omit<Activation, 'count' | 'firstAt' | 'lastAt' | 'runningAgentIds'> & {
   startedAgentId?: string
@@ -90,41 +90,25 @@ const rank = (status: Status) => (isUrgent(status) ? 0 : status === 'running' ? 
 export const bandOrder = (list: readonly Activation[]): Activation[] =>
   [...list].sort((a, b) => rank(a.status) - rank(b.status) || b.lastAt - a.lastAt)
 
-export type Settings = {
-  enabled: boolean
-  layout: Layout
-  maxChips: number
-  shown: Record<Kind, boolean>
-}
-
-const showOption: Record<Kind, string> = {
-  skill: 'show_skills',
-  agent: 'show_agents',
-  mcp: 'show_mcp',
-  perm: 'show_permissions',
-  hook: 'show_hooks',
-  rule: 'show_rules',
-  command: 'show_commands',
-  context: 'show_context',
-  model: 'show_model',
-  background: 'show_background',
-}
+const flag = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback)
 
 export const resolveSettings = (
   options: Readonly<Record<string, unknown>>,
   overrides: Overrides | undefined,
 ): Settings => {
-  const shown = {} as Record<Kind, boolean>
-  for (const kind of KIND_ORDER) {
-    const configured = options[showOption[kind]]
-    const fallback = typeof configured === 'boolean' ? configured : !KINDS[kind].isOptional
-    shown[kind] = overrides?.shown?.[kind] ?? fallback
+  const shown = {} as Record<Toggle, boolean>
+  for (const toggle of TOGGLE_ORDER) {
+    const { option, optional } = TOGGLES[toggle]
+    shown[toggle] = overrides?.shown?.[toggle] ?? flag(options[option], !optional)
   }
   const max = Number(options.max_chips)
   return {
     enabled: overrides?.enabled ?? options.enabled !== false,
     layout: overrides?.layout ?? (options.layout === 'summary' ? 'summary' : 'row'),
     maxChips: Number.isFinite(max) ? Math.min(20, Math.max(1, Math.round(max))) : 6,
+    chipStyle: overrides?.chipStyle ?? (options.chip_style === 'text' ? 'text' : 'tinted'),
+    hotkeys: overrides?.hotkeys ?? flag(options.chip_hotkeys, false),
+    toastOnBlock: overrides?.toastOnBlock ?? flag(options.toast_on_block, true),
     shown,
   }
 }
@@ -153,3 +137,19 @@ export const paneGroups = (
       rows: bandOrder(list.filter(a => a.kind === kind && inPane(a, settings))),
     }))
     .filter(group => group.rows.length > 0)
+
+export const startedAgo = (list: readonly Activation[], now: number) =>
+  list.length === 0 ? 0 : now - Math.min(...list.map(a => a.firstAt))
+
+export const sampleActivations = (settings: Settings, at: number): Activation[] =>
+  KIND_ORDER.filter(kind => settings.shown[kind]).map((kind, index) => ({
+    kind,
+    key: TOGGLES[kind].example,
+    label: TOGGLES[kind].example,
+    detail: TOGGLES[kind].description,
+    ...(index === 0 && settings.shown.plugin && { plugin: 'acme-devtools' }),
+    status: 'ok',
+    count: 1,
+    firstAt: at,
+    lastAt: at - 60_000,
+  }))

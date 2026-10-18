@@ -1,136 +1,26 @@
-import type { ElementTable, RenderElement, RenderSurface, SelectProps } from 'claude-code'
+import type { Color, ElementTable, RenderElement } from 'claude-code'
 
-import type { Activation, Filter, Kind, Layout, PaneTab } from '../types'
-import { chipId, inPane, paneGroups, type Settings } from './model'
-import { isStopped, isUrgent, KIND_ORDER, KINDS, STATUSES } from './theme'
+import type { Activation, Kind, Settings } from '../types'
+import { chipId } from './model'
+import {
+  FRESH_MS,
+  isStopped,
+  KIND_ORDER,
+  type Palette,
+  SPINNER,
+  STAT_TILE,
+  STATUSES,
+  STOPPED,
+  TOGGLES,
+} from './theme'
 
-export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'> & {
-  Select?: (props: SelectProps) => RenderElement
-}
+export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'>
 
-const GAP = 3
 const LABEL_MAX = 24
+const MORE_RESERVE = 2
 
 export const clip = (text: string, max: number) =>
   text.length <= max ? text : `${text.slice(0, Math.max(1, max - 1))}…`
-
-const countText = (a: Activation) => (a.count > 1 && KINDS[a.kind].showsTally ? ` ×${a.count}` : '')
-
-const kindColor = (kind: Kind, surface: RenderSurface) =>
-  surface === 'desktop' ? KINDS[kind].hex : KINDS[kind].color
-
-export const chipWidth = (a: Activation, index: number) => {
-  const hotkey = index < 9 ? 3 : 0
-  const badge = STATUSES[a.status].badge
-  return (
-    hotkey +
-    2 +
-    clip(a.label, LABEL_MAX).length +
-    countText(a).length +
-    (badge ? badge.length + 3 : 0)
-  )
-}
-
-const moreLabel = (n: number) => `+${n} more`
-
-export const fitChips = (chips: readonly Activation[], columns: number, max: number) => {
-  const shown: Activation[] = []
-  let used = 0
-  for (const [index, chip] of chips.entries()) {
-    if (shown.length >= max) break
-    const width = chipWidth(chip, index) + (shown.length > 0 ? GAP : 0)
-    const rest = chips.length - shown.length - 1
-    const reserve = rest > 0 ? GAP + 3 + moreLabel(rest).length : 0
-    if (shown.length > 0 && used + width + reserve > columns) break
-    shown.push(chip)
-    used += width
-  }
-  return { shown, hidden: chips.length - shown.length }
-}
-
-const Badge = ({ ui, a }: { ui: Ui; a: Activation }) => {
-  const { Text } = ui
-  const status = STATUSES[a.status]
-  if (!status.badge) return null
-  return <Text inverse bold dimColor={status.dim} color={status.color}>{` ${status.badge} `}</Text>
-}
-
-const Glyph = ({ ui, kind, surface }: { ui: Ui; kind: Kind; surface: RenderSurface }) => {
-  const { Text } = ui
-  return (
-    <Text color={kindColor(kind, surface)} dimColor={KINDS[kind].dim}>
-      {KINDS[kind].glyph}
-    </Text>
-  )
-}
-
-export type BandArgs = {
-  ui: Ui
-  surface: RenderSurface
-  columns: number
-  freshSince: number
-  chips: readonly Activation[]
-  settings: Settings
-  below: RenderElement
-  onOpen: (id?: string) => void
-}
-
-export const summaryLabel = (chips: readonly Activation[]) => {
-  const perKind = KIND_ORDER.flatMap(kind => {
-    const n = chips.filter(a => a.kind === kind).length
-    return n > 0 ? [`${KINDS[kind].glyph}${n}`] : []
-  })
-  const stopped = chips.filter(a => isStopped(a.status)).length
-  return [`${chips.length} active`, perKind.join(' '), stopped > 0 ? `${stopped} stopped` : '']
-    .filter(Boolean)
-    .join(' · ')
-}
-
-export const renderBand = ({
-  ui,
-  surface,
-  columns,
-  freshSince,
-  chips,
-  settings,
-  below,
-  onOpen,
-}: BandArgs) => {
-  const { Box, Button, Text } = ui
-  if (settings.layout === 'summary') {
-    return (
-      <Box flexDirection="row" columnGap={GAP}>
-        {below}
-        <Button key="summary" plain hotkey="1" onPress={() => onOpen()}>
-          <Text>{summaryLabel(chips)}</Text>
-        </Button>
-      </Box>
-    )
-  }
-  const { shown, hidden } = fitChips(chips, columns, settings.maxChips)
-  return (
-    <Box flexDirection="row" columnGap={GAP}>
-      {below}
-      {shown.map((a, index) => (
-        <Button
-          key={`chip-${a.kind}-${a.key}`}
-          plain
-          {...(index < 9 && { hotkey: String(index + 1) })}
-          onPress={() => onOpen(chipId(a))}
-        >
-          <Glyph ui={ui} kind={a.kind} surface={surface} />
-          <Text bold={a.lastAt > freshSince}>{` ${clip(a.label, LABEL_MAX)}${countText(a)}`}</Text>
-          <Badge ui={ui} a={a} />
-        </Button>
-      ))}
-      {hidden > 0 && (
-        <Button key="more" plain hotkey="0" onPress={() => onOpen()}>
-          <Text dimColor>{moreLabel(hidden)}</Text>
-        </Button>
-      )}
-    </Box>
-  )
-}
 
 export const ago = (ms: number) => {
   const minutes = Math.floor(ms / 60_000)
@@ -139,224 +29,335 @@ export const ago = (ms: number) => {
   return `${Math.floor(minutes / 60)} h`
 }
 
-const pad = (text: string, width: number) => clip(text, width).padEnd(width)
+export const agoLabel = (ms: number) => (ago(ms) === 'now' ? 'now' : `${ago(ms)} ago`)
 
-export type PaneArgs = {
-  ui: Ui
-  surface: RenderSurface
-  columns: number
-  now: number
-  activations: readonly Activation[]
-  settings: Settings
-  muted: readonly string[]
-  selected: string | null
-  tab: PaneTab
-  filter: Filter
-  on: {
-    tab: (tab: PaneTab) => void
-    filter: (filter: Filter) => void
-    select: (id: string) => void
-    mute: (id: string) => void
-    copy: (text: string) => void
-    layout: (layout: Layout) => void
-    toggleKind: (kind: Kind) => void
-    toggleEnabled: () => void
-    reset: () => void
-    allOn: () => void
+export type Look = { color: Color; tint: Color | undefined; dim: boolean }
+
+export const lookOf = (kind: Kind | 'plugin', tone: Palette): Look => {
+  const { palette, dim } = TOGGLES[kind]
+  if (tone === undefined) return { color: palette.key, tint: undefined, dim }
+  return { color: palette[tone].fg, tint: palette[tone].tint, dim: false }
+}
+
+const withTint = (tint: Color | undefined) => (tint === undefined ? {} : { backgroundColor: tint })
+
+export const gapOf = (tone: Palette) => (tone === undefined ? 2 : 1)
+
+type Parts = {
+  glyph: string
+  lead: string
+  label: string
+  count: string
+  via: string
+  badge: string
+}
+
+const partsOf = (a: Activation, settings: Settings, now: number): Parts => {
+  const status = STATUSES[a.status]
+  const frame = Math.floor(now / 150)
+  return {
+    glyph:
+      a.status === 'running'
+        ? SPINNER[frame % SPINNER.length]!
+        : (status.glyph ?? TOGGLES[a.kind].glyph),
+    lead: a.lastAt > now - FRESH_MS ? '● ' : '',
+    label: clip(a.label, LABEL_MAX),
+    count: a.count > 1 && TOGGLES[a.kind].showsTally ? `×${a.count}` : '',
+    via: settings.shown.plugin && a.plugin !== undefined ? `via ${clip(a.plugin, 16)}` : '',
+    badge: status.badge ?? '',
   }
 }
 
-const Tabs = ({ ui, tab, on }: Pick<PaneArgs, 'ui' | 'tab' | 'on'>) => {
-  const { Box, Button, Text } = ui
-  const tabs: [PaneTab, string, string][] = [
-    ['activity', '1', 'Activity'],
-    ['settings', '2', 'Settings'],
-  ]
-  return (
-    <Box flexDirection="row" columnGap={GAP}>
-      {tabs.map(([id, hotkey, title]) => (
-        <Button key={`tab-${id}`} plain hotkey={hotkey} onPress={() => on.tab(id)}>
-          <Text bold={tab === id} dimColor={tab !== id}>
-            {title}
-          </Text>
-        </Button>
-      ))}
-    </Box>
+export const chipWidth = (
+  a: Activation,
+  settings: Settings,
+  now: number,
+  tone: Palette,
+  hasHotkey: boolean,
+) => {
+  const p = partsOf(a, settings, now)
+  const segments = [
+    1,
+    p.lead.length + p.label.length + (hasHotkey ? 3 : 0),
+    p.count.length,
+    p.via.length,
+    p.badge.length > 0 ? p.badge.length + 2 : 0,
+  ].filter(n => n > 0)
+  return segments.reduce((sum, n) => sum + n, 0) + segments.length - 1 + (tone ? 2 : 0)
+}
+
+const moreLabel = (n: number) => `+${n} more`
+
+export const fitChips = (
+  chips: readonly Activation[],
+  columns: number,
+  settings: Settings,
+  now: number,
+  tone: Palette,
+) => {
+  const gap = gapOf(tone)
+  const shown: Activation[] = []
+  let used = 0
+  for (const [index, chip] of chips.entries()) {
+    if (shown.length >= settings.maxChips) break
+    const width =
+      chipWidth(chip, settings, now, tone, settings.hotkeys && index < 9) +
+      (shown.length > 0 ? gap : 0)
+    const rest = chips.length - shown.length - 1
+    const reserve = rest > 0 ? gap + moreLabel(rest).length + (settings.hotkeys ? 3 : 0) : 0
+    if (shown.length > 0 && used + width + reserve > columns) break
+    shown.push(chip)
+    used += width
+  }
+  return { shown, hidden: chips.length - shown.length }
+}
+
+export const summaryLabel = (chips: readonly Activation[]) => {
+  const perKind = KIND_ORDER.flatMap(kind => {
+    const n = chips.filter(a => a.kind === kind).length
+    return n > 0 ? [`${TOGGLES[kind].glyph}${n}`] : []
+  })
+  return [`${chips.length} active`, perKind.join(' ')].filter(Boolean).join(' · ')
+}
+
+export const Badge = ({ ui, text, tone }: { ui: Ui; text: string; tone: Palette }) => {
+  const { Text } = ui
+  return tone === undefined ? (
+    <Text inverse bold color="error">{` ${text} `}</Text>
+  ) : (
+    <Text bold color={STOPPED.fg} backgroundColor={STOPPED.bg}>{` ${text} `}</Text>
   )
 }
 
-const Filters = (args: PaneArgs) => {
-  const { ui, activations, settings, filter, on } = args
-  const { Box, Button, Text } = ui
-  const listed = activations.filter(a => inPane(a, settings))
-  const kinds = KIND_ORDER.filter(kind => listed.some(a => a.kind === kind))
-  const total = listed.length
-  return (
-    <Box flexDirection="row" flexWrap="wrap" columnGap={GAP}>
-      <Button key="filter-all" plain hotkey="a" onPress={() => on.filter('all')}>
-        <Text bold={filter === 'all'}>{`All ${total}`}</Text>
-      </Button>
-      {kinds.map(kind => (
-        <Button
-          key={`filter-${kind}`}
-          plain
-          hotkey={KINDS[kind].hotkey}
-          onPress={() => on.filter(kind)}
-        >
-          <Text bold={filter === kind}>
-            {`${KINDS[kind].plural} ${listed.filter(a => a.kind === kind).length}`}
-          </Text>
-        </Button>
-      ))}
-    </Box>
-  )
+export type Actions = {
+  pick: (id: string, fitsCard: boolean) => void
+  open: () => void
+  close: () => void
+  mute: (id: string) => void
+  copy: (text: string) => void
 }
 
-const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
-  const { ui, surface, columns, now, muted, selected, on } = args
+type RowArgs = {
+  ui: Ui
+  columns: number
+  now: number
+  tone: Palette
+  chips: readonly Activation[]
+  settings: Settings
+  selected: string | null
+  fits: (a: Activation) => boolean
+  on: Pick<Actions, 'pick' | 'open'>
+}
+
+const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number }) => {
+  const { ui, now, tone, settings, selected, fits, on } = args
   const { Box, Button, Text } = ui
+  const p = partsOf(a, settings, now)
+  const { color, tint, dim } = lookOf(a.kind, tone)
+  const paint = { color, dimColor: dim, ...withTint(tint) }
   const id = chipId(a)
-  const isSelected = selected === id
-  const isMuted = muted.includes(id)
-  const metaWidth = Math.max(8, Math.min(24, columns - 52))
   return (
-    <Box flexDirection="column">
-      <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
-        {isSelected ? '▸ ' : '  '}
-        <Glyph ui={ui} kind={a.kind} surface={surface} />
-        <Text dimColor={isMuted}>{` ${pad(a.label, 18)} `}</Text>
-        <Text
-          dimColor
-        >{`${pad(a.meta ?? '', metaWidth)} ×${a.count} · ${ago(now - a.lastAt)}`}</Text>
-        {isMuted && <Text dimColor> Muted</Text>}
-        <Badge ui={ui} a={a} />
+    <Box
+      key={`box-${id}`}
+      flexDirection="row"
+      columnGap={1}
+      paddingX={tone === undefined ? 0 : 1}
+      {...withTint(tint)}
+    >
+      <Text {...paint} {...(a.status === 'error' && { color: 'error', dimColor: false })}>
+        {p.glyph}
+      </Text>
+      <Button
+        key={`chip-${a.kind}-${a.key}`}
+        plain
+        {...(settings.hotkeys && index < 9 && { hotkey: String(index + 1) })}
+        onPress={() => on.pick(id, fits(a))}
+      >
+        <Text {...paint} bold={p.lead !== ''} underline={selected === id}>
+          {p.lead + p.label}
+        </Text>
       </Button>
-      {isSelected && (
-        <Box flexDirection="column" paddingLeft={4}>
-          <Text wrap="wrap">{a.detail}</Text>
-          {a.source !== undefined && (
-            <Text dimColor wrap="truncate-start">
-              {a.source}
-            </Text>
-          )}
-          {a.plugin !== undefined && <Text dimColor>{`from plugin ${a.plugin}`}</Text>}
-          <Box flexDirection="row" columnGap={GAP}>
-            {isUrgent(a.status) ? (
-              <Text dimColor>Stopped and errored chips always show.</Text>
-            ) : (
-              <Button
-                key="mute"
-                plain
-                hotkey="m"
-                label={isMuted ? 'Unmute' : 'Mute'}
-                onPress={() => on.mute(id)}
-              />
-            )}
-            {a.source !== undefined && (
-              <Button
-                key="copy"
-                plain
-                hotkey="c"
-                label="Copy path"
-                onPress={() => on.copy(a.source!)}
-              />
-            )}
-          </Box>
-        </Box>
+      {p.count && <Text {...paint}>{p.count}</Text>}
+      {p.via && (
+        <Text dimColor {...withTint(tint)}>
+          {p.via}
+        </Text>
       )}
+      {p.badge && <Badge ui={ui} text={p.badge} tone={tone} />}
     </Box>
   )
 }
 
-const Activity = (args: PaneArgs) => {
-  const { ui, activations, settings, filter } = args
-  const { Box, Text } = ui
-  const groups = paneGroups(activations, settings, filter)
-  return (
-    <Box flexDirection="column">
-      <Filters {...args} />
-      {groups.length === 0 && <Text dimColor>Nothing has activated yet in this session.</Text>}
-      {groups.map(group => (
-        <Box key={`group-${group.kind}`} flexDirection="column" marginTop={1}>
-          <Text bold>{KINDS[group.kind].plural}</Text>
-          {group.rows.map(a => (
-            <Row args={args} a={a} />
-          ))}
-        </Box>
-      ))}
-    </Box>
-  )
-}
-
-const Toggle = ({ args, kind }: { args: PaneArgs; kind: Kind }) => {
-  const { ui, surface, settings, on } = args
-  const { Button } = ui
-  return (
-    <Button key={`toggle-${kind}`} plain onPress={() => on.toggleKind(kind)}>
-      {settings.shown[kind] ? '[x] ' : '[ ] '}
-      <Glyph ui={ui} kind={kind} surface={surface} />
-      {` ${KINDS[kind].plural}`}
-    </Button>
-  )
-}
-
-const SettingsTab = (args: PaneArgs) => {
-  const { ui, settings, on } = args
-  const { Box, Button, Text, Select } = ui
-  const layouts: Layout[] = ['row', 'summary']
-  const optional = KIND_ORDER.filter(kind => KINDS[kind].isOptional)
-  const optionalOn = optional.filter(kind => settings.shown[kind]).length
-  return (
-    <Box flexDirection="column">
-      <Button key="toggle-enabled" plain onPress={() => on.toggleEnabled()}>
-        {`${settings.enabled ? '[x]' : '[ ]'} Show chips above the prompt bar`}
-      </Button>
-      <Text dimColor>Blocked and denied actions are always shown while this is on.</Text>
-      {Select ? (
-        <Select
-          key="layout"
-          label="Layout"
-          value={settings.layout}
-          options={[
-            { value: 'row', label: 'A row of chips' },
-            { value: 'summary', label: 'One summary chip' },
-          ]}
-          onSelect={value => on.layout(value === 'summary' ? 'summary' : 'row')}
-        />
-      ) : (
+export const ChipRow = (args: RowArgs) => {
+  const { ui, columns, now, tone, chips, settings, on } = args
+  const { Box, Button, Text } = ui
+  const gap = gapOf(tone)
+  if (settings.layout === 'summary') {
+    const stopped = chips.filter(a => isStopped(a.status)).length
+    const neutral = lookOf('rule', tone)
+    return (
+      <Box
+        flexDirection="row"
+        columnGap={1}
+        paddingX={tone === undefined ? 0 : 1}
+        {...withTint(neutral.tint)}
+      >
         <Button
-          key="layout"
+          key="summary"
           plain
-          onPress={() => on.layout(layouts.find(l => l !== settings.layout)!)}
+          {...(settings.hotkeys && { hotkey: '1' })}
+          onPress={() => on.open()}
         >
-          {`Layout: ${settings.layout}`}
+          <Text {...withTint(neutral.tint)}>{summaryLabel(chips)}</Text>
+        </Button>
+        {stopped > 0 && (
+          <Text color="error" {...withTint(neutral.tint)}>{`· ● ${stopped} stopped`}</Text>
+        )}
+      </Box>
+    )
+  }
+  const { shown, hidden } = fitChips(chips, columns - MORE_RESERVE, settings, now, tone)
+  return (
+    <Box flexDirection="row" columnGap={gap}>
+      {shown.map((a, index) => (
+        <Chip args={args} a={a} index={index} />
+      ))}
+      {hidden > 0 && (
+        <Button
+          key="more"
+          plain
+          dimColor
+          {...(settings.hotkeys && { hotkey: '0' })}
+          onPress={() => on.open()}
+        >
+          <Text dimColor>{moreLabel(hidden)}</Text>
         </Button>
       )}
-      <Text bold>Shown by default</Text>
-      {KIND_ORDER.filter(kind => !KINDS[kind].isOptional).map(kind => (
-        <Toggle args={args} kind={kind} />
-      ))}
-      <Text bold>{`Optional · off by default (${optionalOn} of ${optional.length} on)`}</Text>
-      {optional.map(kind => (
-        <Toggle args={args} kind={kind} />
-      ))}
-      <Text dimColor>Memory and checkpoints are not supported yet.</Text>
-      <Box flexDirection="row" columnGap={2} marginTop={1}>
-        <Button key="reset" label="Reset to defaults" onPress={() => on.reset()} />
-        <Button key="all-on" label="Turn everything on" onPress={() => on.allOn()} />
+    </Box>
+  )
+}
+
+const Tile = ({
+  ui,
+  tone,
+  title,
+  value,
+  color,
+}: {
+  ui: Ui
+  tone: Palette
+  title: string
+  value: string
+  color?: Color
+}) => {
+  const { Box, Text } = ui
+  const tint = tone === undefined ? undefined : STAT_TILE[tone]
+  return (
+    <Box key={`tile-${title}`} flexDirection="column" flexGrow={1} paddingX={1} {...withTint(tint)}>
+      <Text dimColor {...withTint(tint)}>
+        {title}
+      </Text>
+      <Text bold {...(color !== undefined && { color })} {...withTint(tint)}>
+        {value}
+      </Text>
+    </Box>
+  )
+}
+
+export const cardRows = (a: Activation, columns: number) => {
+  const inner = Math.max(10, columns - 4)
+  const why = Math.max(1, Math.ceil(a.detail.length / inner))
+  return 2 + 1 + 1 + why + 2 + (a.source === undefined ? 0 : 1) + 1
+}
+
+export type CardArgs = {
+  ui: Ui
+  tone: Palette
+  now: number
+  a: Activation
+  isMuted: boolean
+  on: Pick<Actions, 'mute' | 'copy'> & { close?: () => void }
+}
+
+export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
+  const { Box, Button, Text } = ui
+  const { color, dim } = lookOf(a.kind, tone)
+  const theme = TOGGLES[a.kind]
+  const status = STATUSES[a.status]
+  const id = chipId(a)
+  return (
+    <Box
+      key="card"
+      flexDirection="column"
+      borderStyle="round"
+      borderColor={color}
+      borderDimColor={dim}
+      paddingX={1}
+    >
+      <Box flexDirection="row" justifyContent="space-between">
+        <Text color={color} dimColor={dim}>
+          {[theme.noun.toUpperCase(), a.meta].filter(Boolean).join(' · ')}
+        </Text>
+        {on.close && <Button key="close" plain label="✕" onPress={() => on.close?.()} />}
+      </Box>
+      <Text bold>{a.label}</Text>
+      <Text wrap="wrap">{a.detail}</Text>
+      <Box flexDirection="row" columnGap={1}>
+        <Tile
+          ui={ui}
+          tone={tone}
+          title="Status"
+          value={status.label}
+          {...(status.color && { color: status.color })}
+        />
+        <Tile ui={ui} tone={tone} title="Activations" value={String(a.count)} />
+        <Tile ui={ui} tone={tone} title="Last" value={agoLabel(now - a.lastAt)} />
+      </Box>
+      {a.source !== undefined && (
+        <Text dimColor wrap="truncate-middle">
+          {a.source}
+        </Text>
+      )}
+      <Box flexDirection="row" columnGap={2}>
+        {a.source !== undefined && (
+          <Button key="open" hotkey="o" label="Open source" onPress={() => on.copy(a.source!)} />
+        )}
+        <Button
+          key="mute"
+          hotkey="m"
+          label={isMuted ? 'Unmute' : 'Mute'}
+          onPress={() => on.mute(id)}
+        />
       </Box>
     </Box>
   )
 }
 
-export const renderPane = (args: PaneArgs) => {
-  const { Box } = args.ui
+export type BandArgs = Omit<RowArgs, 'fits' | 'on'> & {
+  maxRows: number
+  below: RenderElement
+  on: Actions
+}
+
+export const renderBand = (args: BandArgs) => {
+  const { ui, columns, maxRows, now, tone, chips, settings, selected, below, on } = args
+  const { Box } = ui
+  const fits = (a: Activation) => maxRows >= 1 + cardRows(a, columns)
+  const current = settings.layout === 'row' ? chips.find(a => chipId(a) === selected) : undefined
   return (
     <Box flexDirection="column">
-      <Box marginBottom={1}>
-        <Tabs ui={args.ui} tab={args.tab} on={args.on} />
-      </Box>
-      {args.tab === 'activity' ? <Activity {...args} /> : <SettingsTab {...args} />}
+      {below}
+      <ChipRow {...args} fits={fits} on={on} />
+      {current && fits(current) && (
+        <DetailCard
+          ui={ui}
+          tone={tone}
+          now={now}
+          a={current}
+          isMuted={false}
+          on={{ mute: on.mute, copy: on.copy, close: on.close }}
+        />
+      )}
     </Box>
   )
 }
