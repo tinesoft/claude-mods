@@ -29,7 +29,7 @@ import {
   type Observed,
 } from '../src/model'
 import { renderPane, type PaneFlag } from '../src/pane'
-import { renderBand } from '../src/render'
+import { renderBand, type Ui } from '../src/render'
 import { FRESH_MS, paletteFor, SPIN_MS, TOGGLE_ORDER, type Palette } from '../src/theme'
 
 const PANE = 'session-activity'
@@ -140,6 +140,15 @@ async function openPane($: EngineInterface, view: PaneView, id?: string, rows?: 
     closeOnEscape: true,
     ...(rows !== undefined && { rows }),
   })
+}
+
+/** `Svg` is only handed to Desktop, whatever else the host's element table carries. */
+function uiFor($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']>[0]): Ui {
+  const table = $.ui.resolve(e)
+  const { Box, Text, Button } = table
+  return e.surface === 'desktop' && 'Svg' in table
+    ? { Box, Text, Button, Svg: table.Svg }
+    : { Box, Text, Button }
 }
 
 async function copyPath($: EngineInterface, surface: RenderSurface, text: string) {
@@ -298,7 +307,7 @@ export const register: Register = (on, options) => {
     const chips = bandCandidates(await read($, activations), settings, await read($, muted))
     if (chips.length === 0) return below
     return renderBand({
-      ui: $.ui.resolve(e),
+      ui: uiFor($, e),
       columns: e.props.bodyColumns,
       maxRows: e.props.maxRows,
       now: await $.clock.now(),
@@ -327,7 +336,7 @@ export const register: Register = (on, options) => {
     const settings = await settingsOf($, options)
     const change = (patch: (old: Overrides) => Overrides) => writeOverrides($, options, patch)
     return renderPane({
-      ui: $.ui.resolve(e),
+      ui: uiFor($, e),
       columns: e.props.bodyColumns,
       now: await $.clock.now(),
       tone: await toneOf($, settings),

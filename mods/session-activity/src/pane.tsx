@@ -11,10 +11,25 @@ import type {
   Toggle,
 } from '../types'
 import { chipId, inPane, paneGroups, sampleActivations, startedAgo } from './model'
-import { agoLabel, Badge, ago, ChipRow, clip, DetailCard, lookOf, type Ui } from './render'
+import { hexOr, switchSvg, SWITCH_SIZE } from './icons'
+import {
+  agoLabel,
+  Badge,
+  ago,
+  ChipRow,
+  clip,
+  DetailCard,
+  Icon,
+  isDesktop,
+  kindIcon,
+  lookOf,
+  type Ui,
+} from './render'
 import { isUrgent, KIND_ORDER, type Palette, STATUSES, TOGGLE_ORDER, TOGGLES } from './theme'
 
 const GAP = 3
+
+const ACCENT = '#2F6FED'
 
 export type PaneFlag = 'enabled' | 'hotkeys' | 'toastOnBlock'
 
@@ -64,7 +79,7 @@ const Tabs = ({ ui, view, on }: Pick<PaneArgs, 'ui' | 'view' | 'on'>) => {
   )
 }
 
-const Filters = ({ ui, activations, settings, filter, on }: PaneArgs) => {
+const Filters = ({ ui, tone, activations, settings, filter, on }: PaneArgs) => {
   const { Box, Button, Text } = ui
   const listed = activations.filter(a => inPane(a, settings))
   const kinds = KIND_ORDER.filter(kind => listed.some(a => a.kind === kind))
@@ -80,9 +95,12 @@ const Filters = ({ ui, activations, settings, filter, on }: PaneArgs) => {
   return (
     <Box flexDirection="row" flexWrap="wrap" columnGap={GAP}>
       {choices.map(([id, hotkey, title, n]) => (
-        <Button key={`filter-${id}`} plain hotkey={hotkey} onPress={() => on.filter(id)}>
-          <Text bold={filter === id} dimColor={filter !== id}>{`${title} ${n}`}</Text>
-        </Button>
+        <Box key={`filterbox-${id}`} flexDirection="row" columnGap={1}>
+          {isDesktop(ui) && id !== 'all' && kindIcon(ui, id, lookOf(id, tone))}
+          <Button key={`filter-${id}`} plain hotkey={hotkey} onPress={() => on.filter(id)}>
+            <Text bold={filter === id} dimColor={filter !== id}>{`${title} ${n}`}</Text>
+          </Button>
+        </Box>
       ))}
     </Box>
   )
@@ -94,29 +112,40 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
   const id = chipId(a)
   const isSelected = selected === id
   const isMuted = muted.includes(id)
-  const { color, tint, dim } = lookOf(a.kind, tone)
+  const look = lookOf(a.kind, tone)
+  const { color, tint, dim } = look
   const badgeText = STATUSES[a.status].badge
+  const desktop = isDesktop(ui)
   return (
-    <Box flexDirection="column">
+    <Box
+      key={`rowbox-${id}`}
+      flexDirection="column"
+      {...(desktop && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
+    >
       <Box flexDirection="row" justifyContent="space-between">
-        <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
-          <Text>{isSelected ? '▸' : ' '}</Text>
-          <Text
-            color={color}
-            dimColor={dim || isMuted}
-            {...withTint(tint)}
-          >{` ${TOGGLES[a.kind].glyph} `}</Text>
-          <Text bold dimColor={isMuted}>{` ${clip(a.label, 28)}`}</Text>
-          {a.meta !== undefined && (
-            <Text dimColor>{` ${clip(a.meta, Math.max(8, columns - 52))}`}</Text>
-          )}
-          {badgeText !== undefined && <Badge ui={ui} text={badgeText} tone={tone} />}
-          {isMuted && (
-            <Text bold inverse dimColor>
-              {' Muted '}
-            </Text>
-          )}
-        </Button>
+        <Box flexDirection="row">
+          {desktop && <Box paddingRight={1}>{kindIcon(ui, a.kind, look)}</Box>}
+          <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
+            <Text>{isSelected ? '▸' : ' '}</Text>
+            {!desktop && (
+              <Text
+                color={color}
+                dimColor={dim || isMuted}
+                {...withTint(tint)}
+              >{` ${TOGGLES[a.kind].glyph} `}</Text>
+            )}
+            <Text bold dimColor={isMuted}>{` ${clip(a.label, 28)}`}</Text>
+            {a.meta !== undefined && (
+              <Text dimColor>{` ${clip(a.meta, Math.max(8, columns - 52))}`}</Text>
+            )}
+            {badgeText !== undefined && <Badge ui={ui} text={badgeText} tone={tone} />}
+            {isMuted && (
+              <Text bold inverse dimColor>
+                {' Muted '}
+              </Text>
+            )}
+          </Button>
+        </Box>
         <Text dimColor>{`×${a.count} · ${ago(now - a.lastAt)}`}</Text>
       </Box>
       <Box flexDirection="column" paddingLeft={6}>
@@ -237,6 +266,7 @@ const Switch = ({
   title,
   description,
   glyph,
+  accent,
   onPress,
 }: {
   ui: Ui
@@ -245,20 +275,30 @@ const Switch = ({
   title: string
   description: string
   glyph?: { text: string; color: Color; tint?: Color }
+  accent?: Color
   onPress: () => void
 }) => {
   const { Box, Button, Text } = ui
   return (
     <Box key={`row-${id}`} flexDirection="column">
-      <Button key={id} plain dimColor={!isOn} onPress={onPress}>
-        <Text dimColor={!isOn}>{isOn ? '●' : '○'}</Text>
-        {glyph && (
-          <Text color={glyph.color} dimColor={!isOn} {...withTint(glyph.tint)}>
-            {` ${glyph.text} `}
-          </Text>
-        )}
-        <Text bold dimColor={!isOn}>{` ${title}`}</Text>
-      </Button>
+      <Box flexDirection="row" columnGap={1}>
+        <Icon
+          ui={ui}
+          svg={switchSvg(isOn, hexOr(accent, ACCENT))}
+          alt={isOn ? 'On' : 'Off'}
+          width={SWITCH_SIZE.width}
+          height={SWITCH_SIZE.height}
+        />
+        <Button key={id} plain dimColor={!isOn} onPress={onPress}>
+          <Text dimColor={!isOn}>{isOn ? '●' : '○'}</Text>
+          {glyph && (
+            <Text color={glyph.color} dimColor={!isOn} {...withTint(glyph.tint)}>
+              {` ${glyph.text} `}
+            </Text>
+          )}
+          <Text bold dimColor={!isOn}>{` ${title}`}</Text>
+        </Button>
+      </Box>
       <Box paddingLeft={3}>
         <Text dimColor wrap="wrap">
           {description}
@@ -312,6 +352,7 @@ const SettingsTab = (args: PaneArgs) => {
         title={theme.title}
         description={theme.description}
         glyph={{ text: theme.glyph, color, ...(tint !== undefined && { tint }) }}
+        accent={color}
         onPress={() => on.toggleShown(toggle)}
       />
     )

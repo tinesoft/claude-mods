@@ -1,12 +1,17 @@
 import type { Color, ElementTable, RenderElement } from 'claude-code'
 
 import type { Activation, Kind, Settings } from '../types'
+import { errorSvg, hexOr, iconSvg, spinnerSvg } from './icons'
 import { chipId } from './model'
 import {
+  BORDER_MIX,
   FRESH_MS,
+  HOVER_MIX,
   isStopped,
   KIND_ORDER,
+  mix,
   type Palette,
+  SPIN_MS,
   SPINNER,
   STAT_TILE,
   STATUSES,
@@ -14,7 +19,14 @@ import {
   TOGGLES,
 } from './theme'
 
-export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'>
+/** `Svg` exists only where `$.ui.resolve(e)` is the Desktop table; it is the one Desktop switch. */
+export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'> & {
+  Svg?: ElementTable<'desktop'>['Svg']
+}
+
+export const isDesktop = (ui: Ui) => ui.Svg !== undefined
+
+const ICON_PX = 14
 
 const LABEL_MAX = 24
 const MORE_RESERVE = 2
@@ -32,13 +44,39 @@ export const ago = (ms: number) => {
 
 export const agoLabel = (ms: number) => (ago(ms) === 'now' ? 'now' : `${ago(ms)} ago`)
 
-export type Look = { color: Color; tint: Color | undefined; dim: boolean }
+export type Look = {
+  color: Color
+  tint: Color | undefined
+  dim: boolean
+  border: Color | undefined
+  hover: Color | undefined
+}
 
 export const lookOf = (kind: Kind | 'plugin', tone: Palette): Look => {
   const { palette, dim } = TOGGLES[kind]
-  if (tone === undefined) return { color: palette.key, tint: undefined, dim }
-  return { color: palette[tone].fg, tint: palette[tone].tint, dim: false }
+  if (tone === undefined) {
+    return { color: palette.key, tint: undefined, dim, border: undefined, hover: undefined }
+  }
+  const { fg, tint } = palette[tone]
+  return {
+    color: fg,
+    tint,
+    dim: false,
+    border: mix(tint, fg, BORDER_MIX),
+    hover: mix(tint, fg, HOVER_MIX),
+  }
 }
+
+type IconArgs = { ui: Ui; svg: string; alt: string; width?: number; height?: number }
+
+export const Icon = ({ ui, svg, alt, width = ICON_PX, height = ICON_PX }: IconArgs) => {
+  const { Svg } = ui
+  return Svg && <Svg source={svg} alt={alt} width={width} height={height} />
+}
+
+export const kindIcon = (ui: Ui, kind: Kind | 'plugin', look: Look, extra?: string) => (
+  <Icon ui={ui} svg={iconSvg(kind, hexOr(look.color))} alt={extra ?? TOGGLES[kind].noun} />
+)
 
 const withTint = (tint: Color | undefined) => (tint === undefined ? {} : { backgroundColor: tint })
 
@@ -75,6 +113,7 @@ export const chipWidth = (
   now: number,
   tone: Palette,
   hasHotkey: boolean,
+  desktop = false,
 ) => {
   const p = partsOf(a, settings, now)
   const segments = [
@@ -84,7 +123,13 @@ export const chipWidth = (
     p.via.length,
     p.badge.length > 0 ? p.badge.length + 2 : 0,
   ].filter(n => n > 0)
-  return segments.reduce((sum, n) => sum + n, 0) + segments.length - 1 + (tone ? 2 : 0)
+  return (
+    segments.reduce((sum, n) => sum + n, 0) +
+    segments.length -
+    1 +
+    (tone ? 2 : 0) +
+    (desktop && tone ? 2 : 0)
+  )
 }
 
 const moreLabel = (n: number) => `+${n} more`
@@ -95,6 +140,7 @@ export const fitChips = (
   settings: Settings,
   now: number,
   tone: Palette,
+  desktop = false,
 ) => {
   const gap = gapOf(tone)
   const shown: Activation[] = []
@@ -102,7 +148,7 @@ export const fitChips = (
   for (const [index, chip] of chips.entries()) {
     if (shown.length >= settings.maxChips) break
     const width =
-      chipWidth(chip, settings, now, tone, settings.hotkeys && index < 9) +
+      chipWidth(chip, settings, now, tone, settings.hotkeys && index < 9, desktop) +
       (shown.length > 0 ? gap : 0)
     const rest = chips.length - shown.length - 1
     const reserve = rest > 0 ? gap + moreLabel(rest).length + (settings.hotkeys ? 3 : 0) : 0
@@ -150,13 +196,27 @@ type RowArgs = {
   on: Pick<Actions, 'pick' | 'open'>
 }
 
+const ChipIcon = ({ ui, a, look, now }: { ui: Ui; a: Activation; look: Look; now: number }) => {
+  const noun = TOGGLES[a.kind].noun
+  if (a.status === 'running') {
+    const frame = Math.floor(now / SPIN_MS)
+    const svg = spinnerSvg(frame, hexOr(look.color), hexOr(look.border, '#C4C8D0'))
+    return <Icon ui={ui} svg={svg} alt={noun} />
+  }
+  if (a.status === 'error') return <Icon ui={ui} svg={errorSvg(hexOr(STOPPED.bg))} alt={noun} />
+  return kindIcon(ui, a.kind, look)
+}
+
 const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number }) => {
   const { ui, now, tone, settings, selected, fits, on } = args
   const { Box, Button, Text } = ui
   const p = partsOf(a, settings, now)
-  const { color, tint, dim } = lookOf(a.kind, tone)
+  const look = lookOf(a.kind, tone)
+  const { color, tint, dim } = look
   const paint = { color, dimColor: dim, ...withTint(tint) }
   const id = chipId(a)
+  const desktop = isDesktop(ui)
+  const pill = desktop && tint !== undefined
   return (
     <Box
       key={`box-${id}`}
@@ -164,10 +224,16 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
       columnGap={1}
       paddingX={tone === undefined ? 0 : 1}
       {...withTint(tint)}
+      {...(pill && { borderStyle: 'round', borderColor: look.border })}
+      {...(desktop && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
-      <Text {...paint} {...(a.status === 'error' && { color: 'error', dimColor: false })}>
-        {p.glyph}
-      </Text>
+      {desktop ? (
+        <ChipIcon ui={ui} a={a} look={look} now={now} />
+      ) : (
+        <Text {...paint} {...(a.status === 'error' && { color: 'error', dimColor: false })}>
+          {p.glyph}
+        </Text>
+      )}
       <Button
         key={`chip-${a.kind}-${a.key}`}
         plain
@@ -217,7 +283,14 @@ export const ChipRow = (args: RowArgs) => {
       </Box>
     )
   }
-  const { shown, hidden } = fitChips(chips, columns - MORE_RESERVE, settings, now, tone)
+  const { shown, hidden } = fitChips(
+    chips,
+    columns - MORE_RESERVE,
+    settings,
+    now,
+    tone,
+    isDesktop(ui),
+  )
   return (
     <Box flexDirection="row" columnGap={gap}>
       {shown.map((a, index) => (
@@ -282,7 +355,8 @@ export type CardArgs = {
 
 export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
   const { Box, Button, Text } = ui
-  const { color, dim } = lookOf(a.kind, tone)
+  const look = lookOf(a.kind, tone)
+  const { color, dim } = look
   const theme = TOGGLES[a.kind]
   const status = STATUSES[a.status]
   const id = chipId(a)
@@ -301,7 +375,14 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
         </Text>
         {on.close && <Button key="close" plain label="✕" onPress={() => on.close?.()} />}
       </Box>
-      <Text bold>{a.label}</Text>
+      {isDesktop(ui) ? (
+        <Box flexDirection="row" columnGap={1}>
+          {kindIcon(ui, a.kind, look)}
+          <Text bold>{a.label}</Text>
+        </Box>
+      ) : (
+        <Text bold>{a.label}</Text>
+      )}
       <Text wrap="wrap">{a.detail}</Text>
       <Box flexDirection="row" columnGap={1}>
         <Tile

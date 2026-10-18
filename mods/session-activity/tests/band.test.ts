@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
-import { FRESH, type Finder, mountBand, session, stubEngine, SURFACES } from './harness'
+import { FRESH, type Finder, hoversOf, mountBand, session, stubEngine, SURFACES } from './harness'
 
 const SKILLS = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel']
 
@@ -171,10 +171,64 @@ test('the band draws on the terminal and on desktop', async ($, on) => {
   const clock = session(on)
   stubEngine(on)
   await loadSkills($, clock)
-  for (const surface of SURFACES) {
-    expect((await row($, 100, surface)).boxes[0]!.text).toBe('▤hotel')
-  }
+  expect((await row($, 100, 'terminal')).boxes[0]!.text).toBe('▤hotel')
+  expect((await row($, 100, 'desktop')).boxes[0]!.text).toBe('hotel')
 })
+
+test('Svg icons are drawn on desktop only', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on)
+  await loadSkills($, clock, ['alpha', 'bravo'])
+  for (const surface of SURFACES) {
+    const icons = await (await mountBand($, surface, 100)).findAll({ type: 'Svg' })
+    expect(icons.length).toBe(surface === 'desktop' ? 2 : 0)
+  }
+  const [icon] = await (await mountBand($, 'desktop', 100)).findAll({ type: 'Svg' })
+  expect(icon!.props).toMatchObject({ alt: 'Skill', width: 14, height: 14 })
+  expect(icon!.props.source).toContain('#8FB0FF')
+})
+
+for (const columns of [60, 100, 200]) {
+  test(`on desktop at ${columns} columns the bordered row still fits`, async ($, on) => {
+    const clock = session(on)
+    stubEngine(on)
+    await loadSkills($, clock)
+    const { boxes, more, hidden } = await row($, columns, 'desktop')
+    expect(boxes.length + hidden).toBe(SKILLS.length)
+    const chipCells = boxes.reduce((sum, b) => sum + b.text.length + 1 + 2 + 2, 0)
+    const used = chipCells + (boxes.length - 1) + (more ? 1 + more.text.length : 0)
+    expect(used).toBeLessThanOrEqual(columns - 2)
+  })
+}
+
+test('a tinted chip on desktop is round, bordered and darkens on hover', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on)
+  await loadSkills($, clock, ['alpha'])
+  const { boxes } = await row($, 100, 'desktop')
+  expect(boxes[0]!.props).toMatchObject({
+    borderStyle: 'round',
+    borderColor: expect.stringMatching(/^#[0-9A-F]{6}$/),
+  })
+  const hover = { backgroundColor: expect.stringMatching(/^#[0-9A-F]{6}$/) }
+  expect(await hoversOf(await mountBand($, 'desktop'), 'box-')).toEqual([hover])
+  expect((await row($, 100, 'terminal')).boxes[0]!.props.borderStyle).toBeUndefined()
+  expect(await hoversOf(await mountBand($, 'terminal'), 'box-')).toEqual([undefined])
+})
+
+test(
+  'text chips on desktop have no border, tint or hover',
+  { options: { chip_style: 'text' } },
+  async ($, on) => {
+    const clock = session(on)
+    stubEngine(on)
+    await loadSkills($, clock, ['alpha'])
+    const { boxes } = await row($, 100, 'desktop')
+    expect(boxes[0]!.props.borderStyle).toBeUndefined()
+    expect(boxes[0]!.props.backgroundColor).toBeUndefined()
+    expect(await hoversOf(await mountBand($, 'desktop'), 'box-')).toEqual([undefined])
+  },
+)
 
 test('a chip is bold with a dot for four seconds after it activates, then settles', async ($, on) => {
   const clock = session(on)

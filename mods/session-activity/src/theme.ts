@@ -244,6 +244,23 @@ export const isKind = (toggle: Toggle): toggle is Kind => toggle !== 'plugin'
 
 export const KIND_ORDER = TOGGLE_ORDER.filter(isKind)
 
+const channels = (hex: string) =>
+  [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16)) as [number, number, number]
+
+/** Blends `#RRGGBB` a toward b by t (0 is a, 1 is b). */
+export const mix = (a: string, b: string, t: number) => {
+  const [from, to] = [channels(a), channels(b)]
+  const hex = from.map((c, i) => {
+    const value = Math.round(c + (to[i]! - c) * t)
+    return value.toString(16).padStart(2, '0')
+  })
+  return `#${hex.join('').toUpperCase()}`
+}
+
+export const BORDER_MIX = 0.2
+
+export const HOVER_MIX = 0.1
+
 export const STAT_TILE = { light: '#F5F6F8', dark: '#2A2C31' } as const
 
 export const STOPPED = { fg: '#FFFFFF', bg: '#B42318' } as const

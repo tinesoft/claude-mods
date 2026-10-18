@@ -85,6 +85,21 @@ export const chipTexts = async (band: Finder) =>
     .filter(b => b.key?.startsWith('box-'))
     .map(b => `${b.key!.slice(4)}|${b.text}`)
 
+type Drawn = { props?: { key?: string }; hover?: unknown; children?: unknown[] }
+
+/** `hover` rides beside `props` in the drawn tree, so `find` never returns it. */
+export const hoversOf = async (mounted: { drawn: () => Promise<unknown> }, keyPrefix: string) => {
+  const found: unknown[] = []
+  const walk = (node: unknown) => {
+    if (node === null || typeof node !== 'object') return
+    const { props, hover, children } = node as Drawn
+    if (props?.key?.startsWith(keyPrefix)) found.push(hover)
+    children?.forEach(walk)
+  }
+  walk(await mounted.drawn())
+  return found
+}
+
 export const FRESH = 4001
 
 export const stubEngine = (

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { ElementQuery, Engine, FoundElement } from 'claude-code/testing'
-import { stubEngine, mountBand, mountPane, session } from './harness'
+import { hoversOf, stubEngine, mountBand, mountPane, session } from './harness'
 
 const HOOKS = {
   hooks: {
@@ -277,6 +277,34 @@ test('the pane draws on desktop', async ($, on) => {
   expect(await pane.find({ key: 'row-mcp-github' })).toBeDefined()
   await pane.press({ key: 'tab-settings' })
   expect(await pane.find({ key: 'layout-row' })).toBeDefined()
+})
+
+test('desktop tray rows carry an Svg icon and a hover, the terminal neither', async ($, on) => {
+  session(on, HOOKS)
+  stubEngine(on)
+  await activity($)
+  const desktop = await mountPane($, 'desktop')
+  expect((await desktop.findAll({ type: 'Svg' })).length).toBeGreaterThanOrEqual(3)
+  const hover = { backgroundColor: expect.stringMatching(/^#/) }
+  expect(await hoversOf(desktop, 'rowbox-')).toEqual([hover, hover, hover])
+  const terminal = await mountPane($, 'terminal')
+  expect(await terminal.findAll({ type: 'Svg' })).toEqual([])
+  expect(await hoversOf(terminal, 'rowbox-')).toEqual([undefined, undefined, undefined])
+})
+
+test('desktop settings draw a switch beside each label and keep the buttons', async ($, on) => {
+  session(on, HOOKS)
+  stubEngine(on)
+  const desktop = await mountPane($, 'desktop')
+  await desktop.press({ key: 'tab-settings' })
+  const switches = (await desktop.findAll({ type: 'Svg' })).filter(s =>
+    /^(On|Off)$/.test(String(s.props.alt)),
+  )
+  expect(switches.length).toBeGreaterThan(10)
+  expect(await desktop.find({ key: 'toggle-skill' })).toBeDefined()
+  const terminal = await mountPane($, 'terminal')
+  await terminal.press({ key: 'tab-settings' })
+  expect(await terminal.findAll({ type: 'Svg' })).toEqual([])
 })
 
 test('the filter row lists only the types the settings show', async ($, on) => {
