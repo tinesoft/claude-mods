@@ -24,6 +24,26 @@ claude plugin marketplace add tinesoft/claude-mods@main
 /plugin install session-activity@tinesoft-mods
 ```
 
+## Surfaces
+
+| Surface                                         | What you get                                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Terminal (`claude`, editor terminals)           | The full UI, drawn with glyphs and a palette that approximates the design                                              |
+| Claude Desktop app, Code tab                    | The full UI with `Svg` icons, exact colours, rounded tinted chips, a darker tint on hover, and clicks on every control |
+| claude.ai/code cloud sessions                   | Text only: `/session-activity` replies with a summary, and `text_summary` adds a line after each answer                |
+| claude.ai chat, VS Code chat panel, `claude -p` | Nothing is drawn. Hooks still run, so `/session-activity` replies in text where it is available                        |
+
+Remote Control from claude.ai or a phone shows the chips in the terminal on your machine. Desktop WSL sessions do not load plugins.
+
+Cloud sessions do not install plugins from your settings. If your cloud environment's setup script can run these commands, the mod works there in text form:
+
+```sh
+claude plugin marketplace add tinesoft/claude-mods@main
+claude plugin install session-activity@tinesoft-mods
+```
+
+This is unverified until the cloud spike confirms that a setup script can install a plugin and that the text shows in the transcript.
+
 ## What the chips show
 
 | Chip       | Glyph | Recorded when                                                          | States                      |
@@ -71,6 +91,7 @@ The plugin options (`/config`, or `pluginConfigs` in settings) are the defaults.
 | `chip_style`     | `tinted`              | `tinted` chips, or `text` for coloured text only                                                                                   |
 | `chip_hotkeys`   | `false`               | Digit hotkeys on chips                                                                                                             |
 | `toast_on_block` | `true`                | Toast when an action is blocked or denied                                                                                          |
+| `text_summary`   | `false`               | Where nothing can be drawn, add a one-line `Activity: ▤ docx · ◉ code-reviewer · ↯ block-secrets BLOCKED` beneath each answer      |
 
 Chips belong to one conversation. `/clear` and `/resume` empty them; muting lasts until then too.
 
@@ -93,4 +114,4 @@ pnpm nx run session-activity:dev        # claude --plugin-dir mods/session-activ
 pnpm nx run-many -t lint typecheck validate test
 ```
 
-`hooks/register.tsx` holds every hook and every `$` call. `src/` holds pure helpers that take plain data: `model.ts` (the activation list and its reducer), `classify.ts` (event data to chips), `render.tsx` (band row and detail card), `pane.tsx` (the pane tabs) and `theme.ts` (the registry of types with their glyphs, colours and settings copy). Tests in `tests/` run under `claude plugin test` and drive the mod through the engine's events and drawings.
+`hooks/register.tsx` holds every hook and every `$` call. `src/` holds pure helpers that take plain data: `model.ts` (the activation list and its reducer), `classify.ts` (event data to chips), `render.tsx` (band row and detail card), `pane.tsx` (the pane tabs), `icons.ts` (the Desktop `Svg` icons), `summary.ts` (the text summaries) and `theme.ts` (the registry of types with their glyphs, colours and settings copy). Tests in `tests/` run under `claude plugin test` and drive the mod through the engine's events and drawings.
