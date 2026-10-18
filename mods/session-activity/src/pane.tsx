@@ -31,7 +31,7 @@ const GAP = 3
 
 const ACCENT = '#2F6FED'
 
-export type PaneFlag = 'enabled' | 'hotkeys' | 'toastOnBlock'
+export type PaneFlag = 'enabled' | 'hotkeys' | 'toastOnBlock' | 'textSummary'
 
 export type PaneArgs = {
   ui: Ui
@@ -433,6 +433,14 @@ const SettingsTab = (args: PaneArgs) => {
         title="Toast when blocked or denied"
         description="Show a short notice when an action is blocked or denied."
         onPress={() => on.toggle('toastOnBlock')}
+      />
+      <Switch
+        ui={ui}
+        id="toggle-text-summary"
+        isOn={settings.textSummary}
+        title="Text summary after each answer"
+        description="Where nothing can be drawn (cloud sessions), add a one-line activity summary."
+        onPress={() => on.toggle('textSummary')}
       />
       <Box flexDirection="row" columnGap={2}>
         <Button key="reset" label="Reset to defaults" onPress={() => on.reset()} />

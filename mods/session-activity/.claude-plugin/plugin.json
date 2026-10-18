@@ -130,6 +130,12 @@
       "title": "Toast when blocked or denied",
       "description": "Show a short notice when an action is blocked or denied",
       "default": true
+    },
+    "text_summary": {
+      "type": "boolean",
+      "title": "Text summary after each answer",
+      "description": "Where nothing can be drawn (cloud sessions), add a one-line activity summary",
+      "default": false
     }
   }
 }

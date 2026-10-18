@@ -29,6 +29,7 @@ import {
   type Observed,
 } from '../src/model'
 import { renderPane, type PaneFlag } from '../src/pane'
+import { lineSummary, markdownSummary } from '../src/summary'
 import { renderBand, type Ui } from '../src/render'
 import { FRESH_MS, paletteFor, SPIN_MS, TOGGLE_ORDER, type Palette } from '../src/theme'
 
@@ -142,6 +143,8 @@ async function openPane($: EngineInterface, view: PaneView, id?: string, rows?: 
   })
 }
 
+const drawsAnything = async ($: EngineInterface) => (await $.session.surfaces()).length > 0
+
 /** `Svg` is only handed to Desktop, whatever else the host's element table carries. */
 function uiFor($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']>[0]): Ui {
   const table = $.ui.resolve(e)
@@ -188,6 +191,10 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: 'session-activity' }, async $ => {
+    if (!(await drawsAnything($))) {
+      const settings = await settingsOf($, options)
+      return { text: markdownSummary(await read($, activations), settings, await read($, muted)) }
+    }
     await openPane($, 'activity')
     return { text: 'Opened the session activity pane.' }
   })
@@ -224,8 +231,15 @@ export const register: Register = (on, options) => {
       const status = e.reason === 'answer' ? 'ok' : 'error'
       const at = await $.clock.now()
       await commit($, options, list => finishAgent(list, agentId, status, at))
+      return next(e)
     }
-    return next(e)
+    const answered = await next(e)
+    const settings = await settingsOf($, options)
+    if (!settings.textSummary || !settings.enabled || (await drawsAnything($))) return answered
+    const line = lineSummary(await read($, activations), settings, await read($, muted))
+    if (line === undefined) return answered
+    // A text other than the answer is shown beneath it, so the answer is neither lost nor repeated.
+    return { ...answered, text: answered.text === e.answer ? line : `${answered.text}\n${line}` }
   })
 
   on('tool.check', async ($, e, next) => {

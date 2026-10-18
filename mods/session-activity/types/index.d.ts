@@ -44,6 +44,7 @@ export type Settings = {
   chipStyle: ChipStyle
   hotkeys: boolean
   toastOnBlock: boolean
+  textSummary: boolean
   shown: Record<Toggle, boolean>
 }
 

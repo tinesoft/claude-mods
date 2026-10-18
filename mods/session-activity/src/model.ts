@@ -109,6 +109,7 @@ export const resolveSettings = (
     chipStyle: overrides?.chipStyle ?? (options.chip_style === 'text' ? 'text' : 'tinted'),
     hotkeys: overrides?.hotkeys ?? flag(options.chip_hotkeys, false),
     toastOnBlock: overrides?.toastOnBlock ?? flag(options.toast_on_block, true),
+    textSummary: overrides?.textSummary ?? flag(options.text_summary, false),
     shown,
   }
 }
