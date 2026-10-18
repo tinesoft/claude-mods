@@ -38,6 +38,23 @@ The build can start on the recommended defaults below; items 1 to 4 change scope
 | 11 | Optional types with no clear signal (checkpoints, memory) | No event names them directly. | Ship the five with clear signals first; checkpoints and memory only after a spike. |
 | 12 | License | Needed for a public marketplace. | MIT. |
 
+## M1 findings (Claude Code 2.1.302)
+
+The spikes were answered from the generated declarations and checked in a live `claude --plugin-dir` session.
+
+| Question | Finding | What v1 does |
+| --- | --- | --- |
+| Hooks: command and exit code visible? | No. `classic.<Event>` gives the stdin JSON and, after `next(e)`, the event's merged result (`deny` for `PreToolUse`, `block` or `preventContinuation` for the rest). `$.settings.read()` lists configured commands; plugin-configured hooks are not in it. Each `classic.*` event fires whether or not a hook is configured. | One chip per event, recorded only when a settings hook matches or the event was blocked. Label is the script name for one command, else `<Event> hooks`. |
+| Rules: which fields name instruction files? | `classic.InstructionsLoaded` carries `file_path`, `memory_type` and `load_reason` for every load. `prompt.context` also lists `instructionFiles`, for the same loads, so using both counts each file twice. | `classic.InstructionsLoaded` only; the line count comes from `$.fs.read`. |
+| Permissions: "once" vs "always"? | Not visible. `tool.check` resolves `{ decision, reason, rule, hook }`. | Rule allows, denies and asks get chips; an ask settles to approved or declined from the `tool.call` result. Mode-only allows are skipped, and a hook's allow or deny is left to its hook chip. |
+| `skill.prompt` fields, `agent.spawn` type | `skill.prompt` has `skill`, `source`, `pluginName`, `path`. `agent.spawn` has `subagentType`, `description`, `background`; `next(e)` gives `agentId`, and `turn.complete` with that `agentId` is the finish. | As specified. |
+| Typecheck in CI | Snapshot chosen: `tools/claude-code-types/2.1.302/index.d.ts`, named by the mod's own `tsconfig.json`. | Refresh on each Claude Code bump. |
+| `$.state` on `/clear` | The types do not promise a reset. `session.end` fires with `reason: 'clear'` or `'resume'`, and no `session.start` follows. | The mod empties activations, mute and selection itself in `session.end`. Overrides live in `$.store`, so they survive. |
+| Glyph widths | `⚡` (U+26A1) is East Asian Wide, two cells. `⚷`, `◉`, `⇌` and `↯` are narrow. | Hooks use `↯`. The other glyphs render one cell wide in xterm.js; iTerm2, Terminal.app, Windows Terminal and Ghostty are still unchecked. |
+| Managed installs | `claude plugin validate` reports that `skill.prompt`, `classic.*` and `session.compact` reach only organization-listed plugins where Claude Code is managed. | Documented in the mod README. |
+
+Memory and checkpoints have no event that names them, so they are cut from v1 and their `userConfig` rows removed. The plugins option is dropped too: chips carry their plugin in the pane detail whenever the event names one.
+
 ## Repository
 
 `tinesoft/claude-mods` is one Nx workspace and one plugin marketplace: each mod is an Nx project under `mods/`, and the root `.claude-plugin/marketplace.json` lists them. Claude Code loads `.ts` directly, so there is no build target; Nx runs lint, type-check, validate, test and release.
@@ -173,10 +190,7 @@ The mod is a plugin with three required files plus a types file for `$.state`. S
     "show_hooks":       { "type": "boolean", "title": "Hooks", "description": "Settings hooks that ran", "default": true },
     "show_rules":       { "type": "boolean", "title": "Rules", "description": "CLAUDE.md and .claude/rules files loaded", "default": true },
     "show_commands":    { "type": "boolean", "title": "Slash commands", "description": "Optional", "default": false },
-    "show_memory":      { "type": "boolean", "title": "Memory", "description": "Optional", "default": false },
-    "show_plugins":     { "type": "boolean", "title": "Plugins", "description": "Optional: tag chips with their plugin", "default": false },
     "show_context":     { "type": "boolean", "title": "Context", "description": "Optional: compaction and context use", "default": false },
-    "show_checkpoints": { "type": "boolean", "title": "Checkpoints", "description": "Optional", "default": false },
     "show_model":       { "type": "boolean", "title": "Output style and model", "description": "Optional", "default": false },
     "show_background":  { "type": "boolean", "title": "Background tasks", "description": "Optional", "default": false },
     "max_chips":        { "type": "number",  "title": "Chips before overflow", "description": "Chips shown before +N more", "default": 6, "min": 1, "max": 20 }
@@ -260,7 +274,7 @@ The band shows one line of chips. Pressing a chip, or `+N more`, opens the pane 
 ```text
  Done. The summary is in release-summary.docx, and the settings page now passes lint.
 
- 1 ⚡ block-secrets  BLOCKED   2 ◉ code-reviewer   3 ⇌ github ×3   4 ⚷ git push   5 ⚡ lint-staged ×4   +10 more
+ 1 ↯ block-secrets  BLOCKED   2 ◉ code-reviewer   3 ⇌ github ×3   4 ⚷ git push   5 ↯ lint-staged ×4   +10 more
 ╭────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ > _                                                                                             │
 ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -272,7 +286,7 @@ And the pane, opened on the blocked hook:
 ╭ Session activity ────────────────────────────────────────────────────────────────────────── ✕ ╮
 │ a: All 16   s: Skills 2   g: Agents 2   p: MCP 2   k: Permissions 3   h: Hooks 4   r: Rules 3   │
 │                                                                                                 │
-│ ▸ ⚡ block-secrets   PreToolUse · Bash    ×1 · 3 min   BLOCKED                                    │
+│ ▸ ↯ block-secrets   PreToolUse · Bash    ×1 · 3 min   BLOCKED                                    │
 │     Stopped `cat .env` before it ran. Nothing was exposed.                                      │
 │     .claude/hooks/block-secrets.sh                        [ m: Mute ]  [ c: Copy path ]          │
 │   ◉ code-reviewer   .claude/agents        ×1 · 1 min                                            │
@@ -284,11 +298,11 @@ And the pane, opened on the blocked hook:
 
 ### Band (`AbovePrompt`)
 
-1. One `Box` row, `columnGap: 3`, width `e.props.bodyColumns`, the first row two cells shorter for the close mark.
+1. One `Box` row, `columnGap: 3`, width `e.props.bodyColumns`, which already leaves out the engine's five `[-]` cells. When another mod draws in the band too, its content comes first and the row can wrap.
 2. Each chip is a `Button` with `plain: true`, a digit `hotkey` 1–9 in band order, and `key: 'chip-<kind>-<key>'`. Its label is glyph, label, then `×N` when `count > 1`. A digit typed alone into an empty prompt presses it.
 3. Status badges are `Text` with `inverse` and `bold`: `BLOCKED`, `DENIED`, `ERROR` in red, `RUNNING` dimmed. Text always carries the meaning, so colour is never the only signal.
 4. Visible chips = as many as fit in `bodyColumns`, capped by `max_chips`. Blocked, denied and error chips always fit first. The rest fold into a `+N more` button.
-5. Layout `summary` replaces the row with one button: `16 active · ▤2 ◉2 ⇌2 ⚷3 ⚡4 ▣3`, plus `· 2 stopped` when anything was blocked or denied.
+5. Layout `summary` replaces the row with one button: `16 active · ▤2 ◉2 ⇌2 ⚷3 ↯4 ▣3`, plus `· 2 stopped` when anything was blocked or denied.
 6. With nothing recorded yet, or `enabled` off, return `next(e)` so the band stays empty and other mods' content still shows.
 7. Call `await next(e)` and put its result first in the row, so this mod never hides another mod's band content.
 
@@ -307,11 +321,11 @@ And the pane, opened on the blocked hook:
 | Agent | `◉` | magenta | `#5B3A99` |
 | MCP | `⇌` | magenta, dim | `#9C1F62` |
 | Permission | `⚷` | cyan | `#0E6159` |
-| Hook | `⚡` | yellow | `#9A4A0B` |
+| Hook | `↯` | yellow | `#9A4A0B` |
 | Rule | `▣` | default text | `#2A2D35` |
-| Optional types | `/` `✎` `⬡` `◔` `⚑` `≡` `▶` | dim | `#2A2D35` on `#F0F1F4` |
+| Optional types | `/` `◔` `≡` `▶` | dim | `#2A2D35` on `#F0F1F4` |
 
-Every glyph must be one cell wide. `⚡` and `⚷` render two cells wide in some terminals, so the M3 milestone checks them in iTerm2, Terminal.app, Windows Terminal and Ghostty, and swaps in `↯` and `⌐` if needed. Use theme keys from the generated types instead of named colours where one fits, so the chips follow the user's theme.
+Every glyph must be one cell wide. Hooks use `↯` because `⚡` is two cells wide (see M1 findings). M3 checks the rest in iTerm2, Terminal.app, Windows Terminal and Ghostty, and swaps `⚷` for `⌐` if needed. Use theme keys from the generated types instead of named colours where one fits, so the chips follow the user's theme.
 
 ### Desktop
 
@@ -364,38 +378,38 @@ Six milestones in order; each ends in a PR to `develop`, and M5 ends in the firs
 **M0 · Repo scaffold**
 
 - [ ] `tinesoft/claude-mods` created with `develop` as the default branch and `main` protected
-- [ ] Nx workspace, pnpm workspace, husky, commitlint (config-conventional + nx-scopes), lint-staged and Prettier/ESLint in place
-- [ ] `.claude-plugin/marketplace.json` passes `claude plugin validate . --strict` with the chosen marketplace name
+- [x] Nx workspace, pnpm workspace, husky, commitlint (config-conventional + nx-scopes), lint-staged and Prettier/ESLint in place
+- [x] `.claude-plugin/marketplace.json` passes `claude plugin validate . --strict` with the chosen marketplace name
 - [ ] `ci.yml` green on an empty mod that only registers `/session-activity`
-- [ ] Root `README.md` with install instructions pinned to `@main`, `CLAUDE.md`, `LICENSE`
+- [x] Root `README.md` with install instructions pinned to `@main`, `CLAUDE.md`, `LICENSE`
 
 **M1 · Spikes** (one throwaway branch, findings written into this file)
 
-- [ ] Log every `classic.*` event and the result of `next(e)` for a `PreToolUse` hook that blocks: can a mod see the hook command and its exit code?
-- [ ] Log `prompt.context` and `prompt.attachment` payloads at startup: which fields name CLAUDE.md and rules files?
-- [ ] Log `tool.check` decisions through an asked-and-approved call: is "once" vs "always" visible?
-- [ ] Confirm `skill.prompt` field names and whether `agent.spawn` exposes the subagent type
-- [ ] Decide how `typecheck` gets declarations in CI
+- [x] Log every `classic.*` event and the result of `next(e)` for a `PreToolUse` hook that blocks: can a mod see the hook command and its exit code?
+- [x] Log `prompt.context` and `prompt.attachment` payloads at startup: which fields name CLAUDE.md and rules files?
+- [x] Log `tool.check` decisions through an asked-and-approved call: is "once" vs "always" visible?
+- [x] Confirm `skill.prompt` field names and whether `agent.spawn` exposes the subagent type
+- [x] Decide how `typecheck` gets declarations in CI
 
 **M2 · Core model and band**
 
-- [ ] Skills, agents, MCP, permissions recorded from real events; hooks and rules per M1 findings
-- [ ] Band renders chips with glyph, label, count, status badges, overflow and the summary layout
-- [ ] Blocked and denied always visible and first; digit hotkeys press chips
-- [ ] Hooks never change event results (a test asserts this for each hooked event)
-- [ ] `claude plugin validate --strict` and `claude plugin test` green
+- [x] Skills, agents, MCP, permissions recorded from real events; hooks and rules per M1 findings
+- [x] Band renders chips with glyph, label, count, status badges, overflow and the summary layout
+- [x] Blocked and denied always visible and first; digit hotkeys press chips
+- [x] Hooks never change event results (a test asserts this for each hooked event)
+- [x] `claude plugin validate --strict` and `claude plugin test` green
 
 **M3 · Pane and settings**
 
-- [ ] `/session-activity` and chip presses open the pane on the right item, at any terminal width
-- [ ] Filters, row detail (replaces popover), mute/unmute, copy path
-- [ ] Settings tab toggles each type; `userConfig` defaults apply; overrides persist across sessions and survive `/clear`
+- [x] `/session-activity` and chip presses open the pane on the right item, at any terminal width
+- [x] Filters, row detail (replaces popover), mute/unmute, copy path
+- [x] Settings tab toggles each type; `userConfig` defaults apply; overrides persist across sessions and survive `/clear`
 - [ ] Glyph widths checked in four terminals; Desktop renders without refusal lines
 
 **M4 · Optional types**
 
-- [ ] Slash commands, plugins tag, context, model/style, background tasks, all off by default
-- [ ] Memory and checkpoints only if M1 found a signal; otherwise listed in the README as not yet supported
+- [x] Slash commands, context, model/style, background tasks, all off by default
+- [x] Memory and checkpoints only if M1 found a signal; otherwise listed in the README as not yet supported
 
 **M5 · Release**
 

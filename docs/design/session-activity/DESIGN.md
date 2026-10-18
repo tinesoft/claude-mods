@@ -33,7 +33,7 @@ Default-on types, in band order after status sorting:
 | Agent | robot head | `◉` | magenta | `#5B3A99` / `#F3EEFB` / `#D9CCF0` |
 | MCP server | plug | `⇌` | magenta (dim) | `#9C1F62` / `#FCEEF5` / `#F0C8DC` |
 | Permission | key | `⚷` | cyan | `#0E6159` / `#E8F5F2` / `#BCE0D8` |
-| Hook | bolt | `⚡` | yellow | `#9A4A0B` / `#FDF1E6` / `#F0CFAE` |
+| Hook | bolt | `↯` | yellow | `#9A4A0B` / `#FDF1E6` / `#F0CFAE` |
 | Rule | shield | `▣` | default text | `#2A2D35` / `#FFFFFF` / `#CFD2D8` |
 
 Optional types (off by default, opt-in in settings), all neutral `#2A2D35` on `#F0F1F4`, border `#DADCE1`:
@@ -41,14 +41,15 @@ Optional types (off by default, opt-in in settings), all neutral `#2A2D35` on `#
 | Type | Glyph | Example label |
 | --- | --- | --- |
 | Slash command | `/` | `/release-notes` |
-| Memory | `✎` | `Remembered: prefers pnpm` |
-| Plugin | `⬡` | `via acme-devtools` (a tag on other chips) |
 | Context | `◔` | `Compacted · 62% used` |
-| Checkpoint | `⚑` | `Checkpoint 3 · Rewind` |
 | Output style / model | `≡` | `Style: Explanatory` |
 | Background task | `▶` | `pnpm dev · running` |
 
-Every glyph must be one terminal cell wide; fall back to `↯` (hook) and `⌐` (permission) where `⚡`/`⚷` render wide.
+Every glyph must be one terminal cell wide. `⚡` (U+26A1) is East Asian Wide, so hooks use `↯`. Fall back to `⌐` if `⚷` renders wide.
+
+Memory and checkpoints have no event that names them, so they are not in v1. A chip's plugin, when the event names one, shows in its pane detail instead of as a tag.
+
+Where an organization manages Claude Code, `skill.prompt`, `classic.*` and `session.compact` reach only plugins its managed settings list. A user-installed copy then shows no skill, hook, rule or compaction chips.
 
 ## Chip anatomy
 
@@ -74,17 +75,17 @@ Every glyph must be one terminal cell wide; fall back to `↯` (hook) and `⌐` 
 
 ## Band rules
 
-1. One row only, width `e.props.bodyColumns`, first row 2 cells shorter.
+1. One row, width `e.props.bodyColumns`, which already leaves out the engine's five `[-]` cells. When another mod also draws in the band, its content comes first and the row can wrap.
 2. Order: blocked / denied / error → running → most recent.
 3. Show as many chips as fit, capped by `max_chips` (default 6); the rest fold into `+N more`, which opens the pane.
-4. Layout `summary`: one button `16 active · ▤2 ◉2 ⇌2 ⚷3 ⚡4 ▣3`, plus `· 2 stopped` when anything was blocked or denied.
+4. Layout `summary`: one button `16 active · ▤2 ◉2 ⇌2 ⚷3 ↯4 ▣3`, plus `· 2 stopped` when anything was blocked or denied.
 5. Nothing recorded, or disabled: return `next(e)` (empty band). Always include `await next(e)` so other mods' band content stays.
 
 ## Pane rules
 
 - Opened by a chip press (on that item), `+N more`, or `/session-activity` (`immediate: true`).
 - Tab `1: Activity`: filters `a: All`, `s: Skills`, `g: Agents`, `p: MCP`, `k: Permissions`, `h: Hooks`, `r: Rules` with counts; rows grouped by type showing name, meta, `×count · last`, status badge. The selected row expands to the popover content: why line, source path, `m: Mute`/`Unmute`, `c: Copy path`.
-- Tab `2: Settings`: master toggle, layout `Select` (row / summary), one toggle per type in "Shown by default" and "Optional · off by default (N of 7 on)", `Reset to defaults`, `Turn everything on`.
+- Tab `2: Settings`: master toggle, layout `Select` (row / summary), one toggle per type in "Shown by default" and "Optional · off by default (N of 4 on)", `Reset to defaults`, `Turn everything on`.
 
 ## Copy
 
