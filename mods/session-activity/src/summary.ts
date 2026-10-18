@@ -1,5 +1,5 @@
 import type { Activation, Settings } from '../types'
-import { bandCandidates, paneGroups } from './model'
+import { bandCandidates, chipId, paneGroups } from './model'
 import { clip } from './render'
 import { STATUSES, TOGGLES } from './theme'
 
@@ -22,7 +22,7 @@ export const markdownSummary = (
         a.count > 1 ? `×${a.count}` : '',
         a.meta ?? '',
         badgeOf(a) === undefined ? '' : `**${badgeOf(a)}**`,
-        muted.includes(`${a.kind}:${a.key}`) ? '_muted_' : '',
+        muted.includes(chipId(a)) ? '_muted_' : '',
       ]
       return `- ${parts.filter(Boolean).join(' · ')}`
     })

@@ -1,7 +1,7 @@
 import type { Color, ElementTable, RenderElement } from 'claude-code'
 
 import type { Activation, Kind, Settings } from '../types'
-import { errorSvg, hexOr, iconSvg, spinnerSvg } from './icons'
+import { errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg } from './icons'
 import { chipId } from './model'
 import {
   BORDER_MIX,
@@ -202,7 +202,7 @@ const ChipIcon = ({ ui, a, look, now }: { ui: Ui; a: Activation; look: Look; now
   const noun = TOGGLES[a.kind].noun
   if (a.status === 'running') {
     const frame = Math.floor(now / SPIN_MS)
-    const svg = spinnerSvg(frame, hexOr(look.color), hexOr(look.border, '#C4C8D0'))
+    const svg = spinnerSvg(frame, hexOr(look.color), hexOr(look.border, OFF_TRACK))
     return <Icon ui={ui} svg={svg} alt={noun} />
   }
   if (a.status === 'error') return <Icon ui={ui} svg={errorSvg(hexOr(STOPPED.bg))} alt={noun} />

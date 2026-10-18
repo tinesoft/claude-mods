@@ -24,7 +24,7 @@ const RING_ARC = 'M8 2.5a5.5 5.5 0 0 1 5.5 5.5'
 
 const NEUTRAL = '#8B909A'
 
-const OFF_TRACK = '#C4C8D0'
+export const OFF_TRACK = '#C4C8D0'
 
 const XMLNS = 'xmlns="http://www.w3.org/2000/svg"'
 
