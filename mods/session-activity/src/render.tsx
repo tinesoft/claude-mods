@@ -26,6 +26,8 @@ export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'> & {
 
 export const isDesktop = (ui: Ui) => ui.Svg !== undefined
 
+const isPill = (ui: Ui, tone: Palette) => isDesktop(ui) && tone !== undefined
+
 const ICON_PX = 14
 
 const LABEL_MAX = 24
@@ -216,7 +218,7 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
   const paint = { color, dimColor: dim, ...withTint(tint) }
   const id = chipId(a)
   const desktop = isDesktop(ui)
-  const pill = desktop && tint !== undefined
+  const pill = isPill(ui, tone)
   return (
     <Box
       key={`box-${id}`}
@@ -424,7 +426,8 @@ export type BandArgs = Omit<RowArgs, 'fits' | 'on'> & {
 export const renderBand = (args: BandArgs) => {
   const { ui, columns, maxRows, now, tone, chips, settings, selected, below, on } = args
   const { Box } = ui
-  const fits = (a: Activation) => maxRows >= PROMPT_ROWS + 1 + cardRows(a, columns)
+  const chipRowRows = isPill(ui, tone) ? 3 : 1
+  const fits = (a: Activation) => maxRows >= PROMPT_ROWS + chipRowRows + cardRows(a, columns)
   const current = settings.layout === 'row' ? chips.find(a => chipId(a) === selected) : undefined
   return (
     <Box flexDirection="column">

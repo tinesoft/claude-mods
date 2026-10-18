@@ -460,3 +460,18 @@ test(
     expect(opens[0]!.rows).toBeUndefined()
   },
 )
+
+test('on desktop the bordered chip row counts three rows, so the card gives way to the pane sooner', async ($, on) => {
+  const clock = session(on)
+  const { opens } = stubEngine(on)
+  await withSkill($, clock)
+  const probe = async (surface: (typeof SURFACES)[number], maxRows: number) => {
+    opens.length = 0
+    await (await mountBand($, surface, 100, maxRows)).press({ key: 'chip-skill-docx' })
+    return opens.length === 0 ? 'card' : 'pane'
+  }
+  let edge = 0
+  while ((await probe('terminal', edge)) === 'pane') edge++
+  expect(await probe('desktop', edge)).toBe('pane')
+  expect(await probe('desktop', edge + 2)).toBe('card')
+})
