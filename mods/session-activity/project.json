@@ -5,22 +5,33 @@
   "sourceRoot": "mods/session-activity",
   "targets": {
     "lint": {
+      "metadata": { "description": "Lint the mod with ESLint." },
       "executor": "nx:run-commands",
       "options": { "command": "eslint .", "cwd": "{projectRoot}" }
     },
     "typecheck": {
+      "metadata": {
+        "description": "Type-check the mod with tsc against the claude-code types, without emitting."
+      },
       "executor": "nx:run-commands",
       "options": { "command": "tsc -p . --noEmit", "cwd": "{projectRoot}" }
     },
     "validate": {
+      "metadata": {
+        "description": "Validate the plugin manifest and layout with `claude plugin validate --strict`."
+      },
       "executor": "nx:run-commands",
       "options": { "command": "claude plugin validate . --strict", "cwd": "{projectRoot}" }
     },
     "test": {
+      "metadata": { "description": "Run the mod's tests with `claude plugin test`." },
       "executor": "nx:run-commands",
       "options": { "command": "claude plugin test .", "cwd": "{projectRoot}" }
     },
     "dev": {
+      "metadata": {
+        "description": "Start Claude Code with this mod loaded from its directory, for manual testing."
+      },
       "executor": "nx:run-commands",
       "cache": false,
       "options": { "command": "claude --plugin-dir .", "cwd": "{projectRoot}" }
