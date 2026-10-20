@@ -51,9 +51,9 @@ export const spinnerSvg = (frame: number, color: string, track: string) => {
   )
 }
 
-export const SWITCH_SIZE = { width: 26, height: 14 } as const
+export const SWITCH_SIZE = { width: 40, height: 24 } as const
 
-export const switchSvg = (isOn: boolean, color: string) =>
-  `<svg ${XMLNS} viewBox="0 0 26 14">` +
-  `<rect width="26" height="14" rx="7" fill="${isOn ? color : OFF_TRACK}"/>` +
-  `<circle cx="${isOn ? 19 : 7}" cy="7" r="5" fill="#FFFFFF"/></svg>`
+export const switchSvg = (isOn: boolean, onColor: string, offColor: string) =>
+  `<svg ${XMLNS} viewBox="0 0 40 24">` +
+  `<rect width="40" height="24" rx="12" fill="${isOn ? onColor : offColor}"/>` +
+  `<circle cx="${isOn ? 28 : 12}" cy="12" r="9" fill="#FFFFFF"/></svg>`

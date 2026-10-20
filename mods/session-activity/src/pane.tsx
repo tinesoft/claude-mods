@@ -3,6 +3,7 @@ import type { Color, RenderSurface } from 'claude-code'
 import type {
   Activation,
   ChipStyle,
+  ChipTheme,
   Filter,
   Layout,
   Overrides,
@@ -11,7 +12,7 @@ import type {
   Toggle,
 } from '../types'
 import { chipId, inPane, paneGroups, sampleActivations, startedAgo } from './model'
-import { hexOr, switchSvg, SWITCH_SIZE } from './icons'
+import { OFF_TRACK, switchSvg, SWITCH_SIZE } from './icons'
 import {
   agoLabel,
   Badge,
@@ -20,7 +21,6 @@ import {
   ChipRow,
   clip,
   DetailCard,
-  Icon,
   inkOf,
   isRich,
   kindIcon,
@@ -31,7 +31,7 @@ import { isUrgent, KIND_ORDER, TOGGLE_ORDER, TOGGLES, TOKENS, type Tone } from '
 
 const GAP = 3
 
-const ACCENT = '#2F6FED'
+const UNTINTED_ON = '#2F6FED'
 
 export type PaneFlag = 'enabled' | 'hotkeys' | 'toastOnBlock' | 'textSummary'
 
@@ -82,8 +82,55 @@ const Tabs = ({ ui, view, on }: Pick<PaneArgs, 'ui' | 'view' | 'on'>) => {
   )
 }
 
-const Filters = ({ ui, tone, activations, settings, filter, on }: PaneArgs) => {
+type Segment = {
+  key: string
+  boxKey: string
+  label: string
+  isOn: boolean
+  hotkey?: string
+  onPress: () => void
+}
+
+/** Choices side by side: bold and dim in the terminal, a filled track with a raised pick on rich surfaces. */
+const Segmented = ({
+  ui,
+  tone,
+  segments,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  segments: Segment[]
+}) => {
   const { Box, Button, Text } = ui
+  const segmented = isRich(ui) && tone !== undefined
+  const t = tone === undefined ? undefined : TOKENS[tone]
+  return (
+    <Box
+      flexDirection="row"
+      flexWrap="wrap"
+      columnGap={segmented ? 0 : GAP}
+      {...(segmented && { backgroundColor: t!.fill })}
+    >
+      {segments.map(({ key, boxKey, label, isOn, hotkey, onPress }) => {
+        const bg = segmented ? (isOn ? t!.surface : t!.fill) : undefined
+        return (
+          <Box key={boxKey} paddingX={segmented ? 1 : 0} {...withTint(bg)}>
+            <Button key={key} plain {...(hotkey !== undefined && { hotkey })} onPress={onPress}>
+              <Text
+                bold={isOn}
+                {...(segmented ? inkOf(ui, tone, isOn ? 'ink' : 'text2', bg) : { dimColor: !isOn })}
+              >
+                {label}
+              </Text>
+            </Button>
+          </Box>
+        )
+      })}
+    </Box>
+  )
+}
+
+const Filters = ({ ui, tone, activations, settings, filter, on }: PaneArgs) => {
   const listed = activations.filter(a => inPane(a, settings))
   const kinds = KIND_ORDER.filter(kind => listed.some(a => a.kind === kind))
   const choices: [Filter, string, string, number][] = [
@@ -95,31 +142,15 @@ const Filters = ({ ui, tone, activations, settings, filter, on }: PaneArgs) => {
       listed.filter(a => a.kind === kind).length,
     ]),
   ]
-  const segmented = isRich(ui) && tone !== undefined
-  const t = tone === undefined ? undefined : TOKENS[tone]
-  return (
-    <Box
-      flexDirection="row"
-      flexWrap="wrap"
-      columnGap={segmented ? 0 : GAP}
-      {...(segmented && { backgroundColor: t!.fill })}
-    >
-      {choices.map(([id, hotkey, title, n]) => {
-        const isOn = filter === id
-        const bg = segmented ? (isOn ? t!.surface : t!.fill) : undefined
-        return (
-          <Box key={`filterbox-${id}`} paddingX={segmented ? 1 : 0} {...withTint(bg)}>
-            <Button key={`filter-${id}`} plain hotkey={hotkey} onPress={() => on.filter(id)}>
-              <Text
-                bold={isOn}
-                {...(segmented ? inkOf(ui, tone, isOn ? 'ink' : 'text2', bg) : { dimColor: !isOn })}
-              >{`${title} ${n}`}</Text>
-            </Button>
-          </Box>
-        )
-      })}
-    </Box>
-  )
+  const segments = choices.map(([id, hotkey, title, n]) => ({
+    key: `filter-${id}`,
+    boxKey: `filterbox-${id}`,
+    label: `${title} ${n}`,
+    isOn: filter === id,
+    hotkey,
+    onPress: () => on.filter(id),
+  }))
+  return <Segmented ui={ui} tone={tone} segments={segments} />
 }
 
 /** The row's type mark: a rounded tile holding the icon on rich surfaces, a tinted glyph in the terminal. */
@@ -322,50 +353,78 @@ const Detail = ({ ui, tone, now, activations, selected, muted, on }: PaneArgs) =
   )
 }
 
+/** The mark beside a setting: a rounded tile holding the icon on rich surfaces, a tinted glyph in the terminal. */
+const ToggleMark = ({ ui, tone, toggle }: { ui: Ui; tone: Tone | undefined; toggle: Toggle }) => {
+  const { Box, Text } = ui
+  const look = lookOf(toggle, tone)
+  if (isRich(ui)) {
+    return (
+      <Box
+        paddingX={1}
+        {...withTint(look.tint)}
+        {...(tone !== undefined && { borderStyle: 'round', borderColor: look.border })}
+      >
+        {kindIcon(ui, toggle, look)}
+      </Box>
+    )
+  }
+  return (
+    <Text color={look.color} dimColor={look.dim} {...withTint(look.tint)}>
+      {` ${TOGGLES[toggle].glyph} `}
+    </Text>
+  )
+}
+
 const Switch = ({
   ui,
+  tone,
   id,
   isOn,
   title,
   description,
-  glyph,
-  accent,
+  toggle,
   onPress,
 }: {
   ui: Ui
+  tone: Tone | undefined
   id: string
   isOn: boolean
   title: string
   description: string
-  glyph?: { text: string; color: Color; tint?: Color }
-  accent?: Color
+  toggle?: Toggle
   onPress: () => void
 }) => {
   const { Box, Button, Text } = ui
+  const { Svg } = ui
+  const [on, off] =
+    tone === undefined ? [UNTINTED_ON, OFF_TRACK] : [TOKENS[tone].switchOn, TOKENS[tone].switchOff]
   return (
-    <Box key={`row-${id}`} flexDirection="column">
-      <Box flexDirection="row" columnGap={1}>
-        <Icon
-          ui={ui}
-          svg={switchSvg(isOn, hexOr(accent, ACCENT))}
-          alt={isOn ? 'On' : 'Off'}
-          width={SWITCH_SIZE.width}
-          height={SWITCH_SIZE.height}
-        />
-        <Button key={id} plain dimColor={!isOn} onPress={onPress}>
-          <Text dimColor={!isOn}>{isOn ? '●' : '○'}</Text>
-          {glyph && (
-            <Text color={glyph.color} dimColor={!isOn} {...withTint(glyph.tint)}>
-              {` ${glyph.text} `}
-            </Text>
-          )}
-          <Text bold dimColor={!isOn}>{` ${title}`}</Text>
-        </Button>
+    <Box key={`row-${id}`} flexDirection="row" justifyContent="space-between" columnGap={2}>
+      <Box flexDirection="row" columnGap={1} flexShrink={1}>
+        {toggle !== undefined && <ToggleMark ui={ui} tone={tone} toggle={toggle} />}
+        <Box flexDirection="column" flexShrink={1}>
+          <Text bold dimColor={!isOn && toggle !== undefined}>
+            {title}
+          </Text>
+          <Text wrap="wrap" {...inkOf(ui, tone, 'text2')}>
+            {description}
+          </Text>
+        </Box>
       </Box>
-      <Box paddingLeft={3}>
-        <Text dimColor wrap="wrap">
-          {description}
-        </Text>
+      <Box flexDirection="row" columnGap={1}>
+        {Svg && (
+          <Svg
+            source={switchSvg(isOn, on, off)}
+            alt={isOn ? 'On' : 'Off'}
+            width={SWITCH_SIZE.width}
+            height={SWITCH_SIZE.height}
+          />
+        )}
+        <Button key={id} plain onPress={onPress}>
+          <Text {...(Svg ? inkOf(ui, tone, 'muted') : { dimColor: !isOn })}>
+            {Svg ? (isOn ? 'On' : 'Off') : isOn ? '●' : '○'}
+          </Text>
+        </Button>
       </Box>
     </Box>
   )
@@ -373,57 +432,73 @@ const Switch = ({
 
 const Segments = <T extends string>({
   ui,
+  tone,
   title,
+  note,
   current,
   choices,
   onPick,
 }: {
   ui: Ui
+  tone: Tone | undefined
   title: string
+  note?: string
   current: T
   choices: [T, string, string][]
   onPick: (value: T) => void
 }) => {
-  const { Box, Button, Text } = ui
+  const { Box, Text } = ui
+  const segments = choices.map(([value, key, label]) => ({
+    key,
+    boxKey: `${key}-box`,
+    label,
+    isOn: current === value,
+    onPress: () => onPick(value),
+  }))
   return (
-    <Box flexDirection="row" columnGap={GAP}>
-      <Text bold>{title}</Text>
-      {choices.map(([value, key, label]) => (
-        <Button key={key} plain onPress={() => onPick(value)}>
-          <Text bold={current === value} dimColor={current !== value}>
-            {label}
-          </Text>
-        </Button>
-      ))}
+    <Box flexDirection="column">
+      <Box flexDirection="row" columnGap={GAP}>
+        <Text bold>{title}</Text>
+        <Segmented ui={ui} tone={tone} segments={segments} />
+      </Box>
+      {note !== undefined && (
+        <Text wrap="wrap" {...inkOf(ui, tone, 'text2')}>
+          {note}
+        </Text>
+      )}
     </Box>
   )
 }
+
+const INTRO =
+  'Choose what shows above the prompt bar when it activates during a session. Optional types stay off until you turn them on.'
 
 const SettingsTab = (args: PaneArgs) => {
   const { ui, surface, columns, now, tone, settings, on } = args
   const { Box, Button, Text } = ui
   const optional = TOGGLE_ORDER.filter(t => TOGGLES[t].optional)
   const optionalOn = optional.filter(t => settings.shown[t]).length
-  const toggleRow = (toggle: Toggle) => {
-    const theme = TOGGLES[toggle]
-    const { color, tint } = lookOf(toggle, tone)
-    return (
-      <Switch
-        ui={ui}
-        id={`toggle-${toggle}`}
-        isOn={settings.shown[toggle]}
-        title={theme.title}
-        description={theme.description}
-        glyph={{ text: theme.glyph, color, ...(tint !== undefined && { tint }) }}
-        accent={color}
-        onPress={() => on.toggleShown(toggle)}
-      />
-    )
-  }
+  const toggleRow = (toggle: Toggle) => (
+    <Switch
+      ui={ui}
+      tone={tone}
+      id={`toggle-${toggle}`}
+      isOn={settings.shown[toggle]}
+      title={TOGGLES[toggle].title}
+      description={TOGGLES[toggle].description}
+      toggle={toggle}
+      onPress={() => on.toggleShown(toggle)}
+    />
+  )
   const samples = sampleActivations(settings, now)
   const layouts: [Layout, string, string][] = [
     ['row', 'layout-row', 'Chip row'],
     ['summary', 'layout-summary', 'Collapsed summary'],
+  ]
+  const themes: [ChipTheme, string, string][] = [
+    ['auto', 'theme-auto', 'Auto'],
+    ['light', 'theme-light', 'Light'],
+    ['dark', 'theme-dark', 'Dark'],
   ]
   const styles: [ChipStyle, string, string][] = [
     ['tinted', 'style-tinted', 'Tinted'],
@@ -431,8 +506,15 @@ const SettingsTab = (args: PaneArgs) => {
   ]
   return (
     <Box flexDirection="column" rowGap={1}>
+      <Box flexDirection="column">
+        <Text bold>Session activity chips</Text>
+        <Text wrap="wrap" {...inkOf(ui, tone, 'text2')}>
+          {INTRO}
+        </Text>
+      </Box>
       <Switch
         ui={ui}
+        tone={tone}
         id="toggle-enabled"
         isOn={settings.enabled}
         title="Show chips above the prompt bar"
@@ -440,16 +522,14 @@ const SettingsTab = (args: PaneArgs) => {
         onPress={() => on.toggle('enabled')}
       />
       <Box flexDirection="column">
-        <Box flexDirection="row" columnGap={GAP}>
-          <Text bold>Preview</Text>
-          {layouts.map(([value, key, label]) => (
-            <Button key={key} plain onPress={() => on.set({ layout: value })}>
-              <Text bold={settings.layout === value} dimColor={settings.layout !== value}>
-                {label}
-              </Text>
-            </Button>
-          ))}
-        </Box>
+        <Segments
+          ui={ui}
+          tone={tone}
+          title="Preview"
+          current={settings.layout}
+          choices={layouts}
+          onPick={layout => on.set({ layout })}
+        />
         {settings.enabled ? (
           <ChipRow
             ui={ui}
@@ -464,19 +544,36 @@ const SettingsTab = (args: PaneArgs) => {
             on={{ pick: () => undefined, open: () => undefined }}
           />
         ) : (
-          <Text dimColor>Chips are hidden. Activity is still listed in the session tray.</Text>
+          <Text {...inkOf(ui, tone, 'muted')}>
+            Chips are hidden. Activity is still listed in the session tray.
+          </Text>
         )}
       </Box>
-      <Box flexDirection="column">
+      <Box flexDirection="column" rowGap={1}>
         <Text bold>Shown by default</Text>
         {TOGGLE_ORDER.filter(t => !TOGGLES[t].optional).map(toggleRow)}
       </Box>
-      <Box flexDirection="column">
-        <Text bold>{`Optional · off by default (${optionalOn} of ${optional.length} on)`}</Text>
+      <Box flexDirection="column" rowGap={1}>
+        <Box flexDirection="row" columnGap={GAP}>
+          <Text bold>Optional</Text>
+          <Text {...inkOf(ui, tone, 'muted')}>
+            {`Off by default · ${optionalOn} of ${optional.length} on`}
+          </Text>
+        </Box>
         {optional.map(toggleRow)}
       </Box>
       <Segments
         ui={ui}
+        tone={tone}
+        title="Chip theme"
+        note="Auto follows the Claude Code theme, then the terminal, then the system."
+        current={settings.chipTheme}
+        choices={themes}
+        onPick={chipTheme => on.set({ chipTheme })}
+      />
+      <Segments
+        ui={ui}
+        tone={tone}
         title="Chip style"
         current={settings.chipStyle}
         choices={styles}
@@ -484,6 +581,7 @@ const SettingsTab = (args: PaneArgs) => {
       />
       <Switch
         ui={ui}
+        tone={tone}
         id="toggle-hotkeys"
         isOn={settings.hotkeys}
         title="Digit hotkeys on chips"
@@ -492,6 +590,7 @@ const SettingsTab = (args: PaneArgs) => {
       />
       <Switch
         ui={ui}
+        tone={tone}
         id="toggle-toast"
         isOn={settings.toastOnBlock}
         title="Toast when blocked or denied"
@@ -500,6 +599,7 @@ const SettingsTab = (args: PaneArgs) => {
       />
       <Switch
         ui={ui}
+        tone={tone}
         id="toggle-text-summary"
         isOn={settings.textSummary}
         title="Text summary after each answer"

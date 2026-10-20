@@ -6,7 +6,7 @@ test('every icon builds markup far below the Svg size limit', () => {
   const markup = [
     ...Object.keys(ICONS).map(toggle => iconSvg(toggle as keyof typeof ICONS, '#112233')),
     spinnerSvg(3, '#112233', '#445566'),
-    switchSvg(true, '#112233'),
+    switchSvg(true, '#112233', '#445566'),
   ]
   for (const svg of markup) expect(svg.length).toBeLessThan(2000)
 })
