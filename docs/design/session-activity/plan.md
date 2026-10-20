@@ -6,7 +6,7 @@ Oct 15, 2026 · @Tine Kondo
 
 Build `session-activity`, a Claude Code mod that shows chips in the band above the prompt for each skill, agent, MCP server, permission decision, settings hook and rule that activated during the session. It is the first plugin in a new Nx monorepo, `github.com/tinesoft/claude-mods`, which doubles as a plugin marketplace.
 
-The validated mockups were drawn as a GUI. A mod draws in Claude Code's terminal and Desktop app with a small element set (`Box`, `Text`, `Button`, `Input`, `Select`, `Markdown`), so the design translates as follows:
+The validated mockups were drawn as a GUI. A mod draws in Claude Code's terminal and on its rich surfaces (Desktop, VS Code, mobile) with a small element set (`Box`, `Text`, `Button`, `Input`, `Select`, `Markdown`), so the design translates as follows:
 
 | Mockup board | In the mod | Render site / API |
 | --- | --- | --- |
@@ -15,17 +15,17 @@ The validated mockups were drawn as a GUI. A mod draws in Claude Code's terminal
 | Expanded tray | A pane with type filters, grouped rows, mute/unmute | `$.ui.open` + `Pane`, opened by `/session-activity` or the `+N more` button |
 | Settings board | `2: Settings` tab in the pane, with live preview, saved in `$.store`; `userConfig` holds defaults (U5) | `Pane`, `$.store`, `plugin.json` `userConfig` |
 | Types and states sheet | Glyph + colour + text badge per type and state; never colour alone | `Text` `color`, `bold`, `dimColor`, `inverse` |
-| Mobile board | Out of scope: mods run in the terminal and Desktop only | n/a |
+| Mobile board | The same row on the mobile surface, led by an `N active` chip that opens the pane (see Rich surfaces) | `ui.render` on `AbovePrompt` |
 
 Surfaces, as agreed with the owner:
 
 | Surface | Scope |
 | --- | --- |
 | Terminal (`claude`, including editor terminals and JetBrains) | Full UI |
-| Claude Desktop app, Code tab | Full UI, first-class: clicks, hover, exact colours, `Svg` icons; the closest to the design |
+| Claude Desktop app, Code tab; VS Code; mobile | Full UI on the rich surfaces (any surface whose element table has `Svg`): clicks, hover, exact colours, `Svg` icons; the closest to the design |
 | claude.ai/code cloud sessions | Optional milestone M6: text summaries only, after a spike confirms the plugin can be installed and the text shows |
-| Remote Control from claude.ai or mobile | Nothing to build: the chips appear in the terminal on the user's machine |
-| claude.ai chat, VS Code chat panel, `claude -p` | Out of scope: claude.ai chat has no mod support; the other two run hooks but draw nothing |
+| Remote Control from claude.ai | Nothing to build: the chips appear in the terminal on the user's machine |
+| claude.ai chat, `claude -p` | Out of scope: claude.ai chat has no mod support; `claude -p` runs hooks but draws nothing |
 | Desktop WSL sessions | Out of scope: plugins don't load there |
 
 Target: Claude Code v2.1.287 or later, the first version with mods. Events and methods can change between releases, so the generated `.claude-plugin/types/claude-code/index.d.ts` overrides this document wherever they disagree.
@@ -43,7 +43,7 @@ The build can start on the recommended defaults below; items 1 to 4 change scope
 | 5 | Which branch should users install from? | A marketplace added as `tinesoft/claude-mods` tracks the default branch, `develop`, which is unreleased. | Document `claude plugin marketplace add tinesoft/claude-mods@main`, and pin each entry's `source.ref` to its release tag. |
 | 6 | Release mechanics on `main` | Decides the tooling and tag format. | `nx release` with conventional commits, each mod versioned and released independently (all affected mods on push to main, or one via workflow\_dispatch), tags `session-activity@x.y.z`, GitHub Release + changelog. |
 | 7 | Package manager and Node version for tooling | The mod needs no runtime deps; tooling does (Nx, husky, commitlint, lint-staged). | pnpm, Node 22 LTS. |
-| 8 | Desktop app support in v1? | Desktop draws the same tree, adds clicks, hover, exact hex colours and `Svg`. | Decided: Desktop is a first-class target with its own rendering path (see UI spec, Desktop). claude.ai chat is out of scope; cloud sessions get optional text summaries (M6). |
+| 8 | Desktop app support in v1? | Desktop draws the same tree, adds clicks, hover, exact hex colours and `Svg`. | Decided: Desktop is a first-class target with its own rendering path (see UI spec, Rich surfaces). claude.ai chat is out of scope; cloud sessions get optional text summaries (M6). |
 | 9 | Where settings live | `userConfig` is set at install or in `pluginConfigs`; in-pane toggles need `$.store`. | Decided (U5): pane Settings tab is primary, saved in `$.store`; `userConfig` = defaults. |
 | 10 | History scope | Chips per session, or a history across sessions? | Per session in `$.state`, reset on `/clear`, `/resume`, `/branch`. |
 | 11 | Optional types with no clear signal (checkpoints, memory) | No event names them directly. | Ship the five with clear signals first; checkpoints and memory only after a spike. |
@@ -191,6 +191,7 @@ The mod is a plugin with three required files plus a types file for `$.state`. S
     "show_model":       { "type": "boolean", "title": "Output style and model", "description": "Optional", "default": false },
     "show_background":  { "type": "boolean", "title": "Background tasks", "description": "Optional", "default": false },
     "max_chips":        { "type": "number",  "title": "Chips before overflow", "description": "Chips shown before +N more", "default": 6, "min": 1, "max": 20 },
+    "chip_theme":       { "type": "string",  "title": "Chip theme", "description": "Light or dark chip colours; auto follows the Claude Code theme, then the terminal, then the system", "options": ["auto", "light", "dark"], "default": "auto" },
     "chip_style":       { "type": "string",  "title": "Chip style", "description": "Tinted chips, or coloured text only", "options": ["tinted", "text"], "default": "tinted" },
     "chip_hotkeys":     { "type": "boolean", "title": "Digit hotkeys on chips", "description": "Type 1-9 alone in an empty prompt to open a chip", "default": false },
     "toast_on_block":   { "type": "boolean", "title": "Toast when blocked or denied", "description": "Show a short notice when an action is blocked or denied", "default": true },
@@ -199,7 +200,7 @@ The mod is a plugin with three required files plus a types file for `$.state`. S
 }
 ```
 
-`options` on `layout` and `chip_style` needs Claude Code v2.1.271 or later, which v2.1.287 already covers.
+`options` on `layout`, `chip_theme` and `chip_style` needs Claude Code v2.1.271 or later, which v2.1.287 already covers.
 
 `mods/session-activity/hooks/hooks.json`:
 
@@ -218,7 +219,7 @@ The module is split so that the logic is testable without the mods API:
 | `src/model.ts` | `Activation` type, reducer `record(list, event)`, dedupe by `kind + key`, counters, sort order |
 | `src/classify.ts` | Pure functions from event data to an `Activation`: MCP server from `mcp__<server>__<tool>`, rule file from a path, and so on |
 | `src/render.ts` | Pure functions that build the band and pane trees from the element functions passed in |
-| `src/icons.ts` | `Svg` path strings for the Desktop icons, taken from the artboards |
+| `src/icons.ts` | `Svg` path strings for the icons of the rich surfaces, taken from the artboards |
 | `src/theme.ts` | Glyph, label, light and dark palettes per type and state; theme detection from `$.config.list()` rows |
 | `types/index.d.ts` | `PluginState` for `session-activity`: `activations`, `muted`, `selected`, `paneView`, `filter`, `prefs` (settings loaded from `$.store`) |
 
@@ -277,7 +278,7 @@ The terminal UI follows the design files in `artboards/` as closely as the mods 
 
 | # | Topic | Decision |
 | --- | --- | --- |
-| U1 | Chip look | Tinted chips, as in the design. Light palette for light themes, dark palette for dark themes, picked from Claude Code's theme read through `$.config.list()`. If the theme can't be read (M1 spike), fall back to coloured text with no background. Setting `chip_style: tinted \| text` overrides. |
+| U1 | Chip look | Tinted chips, as in the design, painted from the token table in Palette. The tone (light or dark) comes from the chain under Tone resolution. Setting `chip_style: tinted \| text` turns tints off; `chip_theme: auto \| light \| dark` pins the tone. |
 | U2 | Chip popover | The band grows under the chip row to show the detail card (anchored, like the design). When `e.props.maxRows` is too small for the card, open the pane in its `detail` view instead (`rows: 10`). |
 | U3 | Digit hotkeys on the band | Off by default (a bare `1` typed into the prompt would open a chip). Setting `chip_hotkeys` turns them on. Keyboard path: Ctrl+X then Tab to focus, Up/Down, Enter. Mouse: click, in fullscreen mode and Desktop. |
 | U4 | Footer counter | `$.ui.status` line under the prompt: `16 active · /session-activity`. `PromptHint` is left alone. |
@@ -288,52 +289,62 @@ Input model: keyboard first. Mouse clicks only reach Claude Code in fullscreen r
 
 ### Mapping: chip row (`Main.dc.html`)
 
-| Design | Terminal | Fidelity |
-| --- | --- | --- |
-| Rounded tinted chip: icon, label, `×N` | `Box` with the type's `backgroundColor` and `paddingX: 1`, holding a coloured glyph `Text`, a `Button` (`plain: true`) for the label, and a `×N` `Text` | Close: same tints and order, square ends |
-| Type colours | Palette tokens below (light and dark), with theme keys as fallback | Exact in truecolor terminals, approximate in 256-colour |
-| `Blocked` / `Denied` badge | `Text` with `inverse`, `bold`, red: ` BLOCKED ` | Exact |
-| Selected chip, focus ring | Claude Code's focus highlight plus `underline` on the selected label | Close |
-| `+N more`, dashed outline | Plain `Button`, `dimColor`, label `+10 more` (no dashed borders exist) | Approximate |
-| One row, overflow | One row sized to `e.props.bodyColumns`, first row 2 cells shorter, blocked/denied/error first, rest folded into `+N more` | Exact |
-| Footer "16 active · Customize chips" | `$.ui.status`: `16 active · /session-activity` (U4) | Close |
+| Design | Terminal | Rich surfaces | Fidelity |
+| --- | --- | --- | --- |
+| Chip | One-row `Box` with the kind's `bg`, square ends, a coloured glyph `Text`, a plain `Button` label | `Box` with `borderStyle: 'round'`, kind `bg` and `bd`, an `Svg` icon in the kind `fg` | Close / exact |
+| `×N` count | Own `Text`, `backgroundColor` = `count-bg` blended over the chip | Same | Exact |
+| `Blocked` / `Denied` badge | ` BLOCKED ` / ` DENIED `, white on `#B42318` | ` Blocked ` / ` Denied `, white on `#B42318`; the border turns `danger-bd` | Exact |
+| Error | `Text` `▲` glyph, bold `Error` in `danger` on `surface` | Triangle `Svg`, bold `Error`, dashed `danger` border, `surface` fill | Close / exact |
+| Selected chip, focus ring | `underline` on the label | Border takes the kind `fg` (no ring can be drawn) | Close |
+| `+N more` | `Button`, `dimColor` | `text-2` text in a dashed `line-dashed` border | Approximate / exact |
+| Mobile lead chip | None | `N active` `Button` in a round `line` border, plus a `danger` `●` when anything is blocked, denied or errored; it opens the pane | Exact |
+| One row, overflow | Row sized to `e.props.bodyColumns`, first row 2 cells shorter, blocked/denied/error first, rest folded into `+N more` | Same, with room kept for the mobile lead chip | Exact |
+| Footer "16 active · Customize chips" | `$.ui.status`: `16 active · /session-activity` (U4) | Same | Close |
+
+Untinted chips (`chip_style: text`, or an ansi theme in the terminal) keep the theme-key colours and the inverse ` BLOCKED ` badge.
 
 ### Mapping: chip popover
 
-| Design | Terminal | Fidelity |
+| Design | Terminal and rich surfaces | Fidelity |
 | --- | --- | --- |
-| Card above the chip row | Detail card drawn in the band under the chips (U2); pane `detail` view as fallback | Close (band) / framed (pane) |
-| Eyebrow `TYPE · event`, name | Coloured `Text` small-caps-style eyebrow (`SKILL · Loaded on match`), bold name | Exact |
-| Why line | `Text`, `wrap: 'wrap'` | Exact |
-| Three stat tiles | Three `Box`es in a row, `backgroundColor` = neutral tile token, each a dim label over a bold value | Close |
-| Source path | `Text`, `dimColor`, `wrap: 'truncate-middle'` | Exact |
-| Open source, Mute for this session | `[ o: Open source ]` copies the path (`$.ui.copy`; a mod can't open an editor), `[ m: Mute ]` | Close |
-| Close ✕ | Esc, or pressing the same chip again | Exact behaviour |
+| Card above the chip row | Detail card drawn in the band above the chips (U2), `line` border, `surface` fill on rich surfaces; pane `detail` view as fallback | Close (band) / framed (pane) |
+| Eyebrow `TYPE · event`, name | `Text` in the kind `fg` (`SKILL · Loaded on match`), bold name | Exact |
+| Why line | `Text` in `ink-2`, `wrap: 'wrap'` | Exact |
+| Three stat tiles | Three `Box`es with the `tile` fill, a `muted` title over a bold value; the status value is `danger` when stopped or errored | Close |
+| Source path | `Text`, `muted`, `wrap: 'truncate-middle'` | Exact |
+| Open source, Mute for this session | `[ o: Open source ]` copies the path (`$.ui.copy`; a mod can't open an editor), `[ m: Mute for this session ]` / `[ m: Unmute ]` | Close |
+| Close ✕ | `✕` button, Esc, or pressing the same chip again | Exact |
 
 ### Mapping: expanded tray (`Expanded.dc.html`)
 
-| Design | Terminal | Fidelity |
-| --- | --- | --- |
-| Panel above the composer | Pane id `session-activity`, title `Session activity`; inline above the prompt, or a sidebar in wide fullscreen | Exact / docked |
-| Header line with counts | First row: `16 items · 27 activations · started 18 min ago` | Exact |
-| Segmented filter with counts | Plain buttons `a: All 16  s: Skills 2  g: Agents 2  p: MCP 2  k: Permissions 3  h: Hooks 4  r: Rules 3`; inactive ones `dimColor` | Close |
-| Group headers | Coloured eyebrow `Text` + dim count | Exact |
-| Row: tinted icon tile, name, meta, badge, why, `×N · last` | Glyph `Text` on tint, bold name, dim meta, badge, why line below, right-aligned `×N · last`; the row is a focusable `Button` | Close |
-| Per-row Mute / Unmute | Up/Down to a row, then `m` (one hotkey per drawing, so it acts on the focused row) | Same result, different input |
-| Muted row at 60% opacity | `dimColor` + `Muted` badge | Close |
-| Collapse chevron | Esc, or `+N more` again | Exact behaviour |
-| Customize link | `,: Settings` switches to the Settings tab | Exact |
+| Design | Terminal | Rich surfaces | Fidelity |
+| --- | --- | --- | --- |
+| Panel above the composer | Pane id `session-activity`, title `Session activity`; inline above the prompt, or a sidebar in wide fullscreen | Same | Exact / docked |
+| Header | Bold `Session activity`, then `16 items · 27 activations · started 18 min ago · Customize` | `Customize` in the link colour, `link-hover` on hover | Exact |
+| Segmented filter with counts | Plain buttons `a: All 16  s: Skills 2 …`; the active one bold, the rest `dimColor` | `fill` track, the active segment on a `surface` box | Close / exact |
+| Group headers | Uppercase plural in the kind `fg` + `muted` count | Same | Exact |
+| Row icon tile | Tinted glyph | Round `Box` with kind `bg` and `bd` holding the `Svg` icon | Close / exact |
+| Row text | Bold name, `muted` meta, badges, `text-2` why line on every row, `×N · last` on the right | Same | Exact |
+| Badges | ` BLOCKED ` / ` DENIED ` white on red; ` Muted ` inverse when untinted | ` Blocked ` / ` Denied ` white on red; ` Muted ` in `text-2` on `line-soft` | Exact |
+| Per-row Mute / Unmute | A `Mute` / `Unmute` button on every row; the selected row also takes hotkey `m`. Stopped and errored rows always show, so they carry a note instead | Same | Exact |
+| Selected row | Expands to source path and `c: Copy path` (agreed addition) | Same | Addition |
+| Muted row at 60% opacity | `dimColor` name + `Muted` badge | Same | Close |
+| Collapse chevron | Esc, or `+N more` again | Same | Exact behaviour |
 
 ### Mapping: settings (`Settings.dc.html`)
 
-| Design | Terminal | Fidelity |
+| Design | Terminal and rich surfaces | Fidelity |
 | --- | --- | --- |
 | Settings page with left nav | Tab `2: Settings` in the pane (tabs `1: Activity`, `2: Settings`) | Approximate |
-| Master switch | Plain button `● Show chips above the prompt` / `○ …` | Close |
-| Live preview + layout segmented control | The real band renderer drawn inside the tab, with plain buttons `Chip row` / `Collapsed summary` | Exact |
-| "Shown by default" and "Optional · N of 7 on" | Two titled groups; each row a button toggling `●`/`○`, dimmed when off, description below | Close |
-| Reset to defaults, Turn everything on | Bracketed buttons | Exact |
-| Extra rows (not on the board) | `Chip style` (tinted / text), `Digit hotkeys on chips`, `Toast when blocked or denied` | Additions from U1, U3, U6 |
+| Title and intro | Bold `Session activity chips`, then the board's paragraph | Exact |
+| Master switch | Label and description on the left, switch on the right | Exact |
+| Live preview + layout segmented control | The real band renderer drawn inside the tab, with `Chip row` / `Collapsed summary` segments; when chips are off, `Chips are hidden. Activity is still listed in the session tray.` | Exact |
+| "Shown by default" and "Optional · N of 7 on" | Two groups; each row an icon tile (a tinted glyph in the terminal), label, description and a switch on the right. `Optional` has `Off by default · N of 7 on` beside it | Exact |
+| Switch | Terminal: `●` / `○` button. Rich: an `Svg` switch with the `switch-on` / `switch-off` tokens (neutral, not the kind colour), and an `On` / `Off` button beside it, because a `Button` cannot hold an `Svg` | Close |
+| Reset to defaults, Turn everything on | Buttons | Exact |
+| Extra rows (not on the board) | `Chip theme` (auto / light / dark), `Chip style` (tinted / text), `Digit hotkeys on chips`, `Toast when blocked or denied`, `Text summary after each answer` | Additions from U1, U3, U6, M6 |
+
+Where a board description promises what the mod lacks, the pane keeps the accurate text: Rules ("files Claude loaded", not the lines that shaped an action), Memory (writes only), Checkpoints (no event yet) and Background tasks (no stop action).
 
 ### Mapping: types and states (`States.dc.html`)
 
@@ -342,13 +353,13 @@ Input model: keyboard first. Mouse clicks only reach Claude Code in fullscreen r
 | Just activated: halo + dot, 4 s | `bold` + `●` prefix, cleared by `$.clock.after(4000)` | Close |
 | Running: spinner ring | Glyph cycles `◐◓◑◒` on `$.clock.every(150)`, started only while something runs | Close |
 | Repeated `×N` | Same | Exact |
-| Blocked / Denied | Red ` BLOCKED ` / ` DENIED ` badge, sorted first, plus toast (U6) | Exact + |
-| Hook failed: dashed red outline, triangle | Red `▲` glyph + ` ERROR ` badge | Close |
+| Blocked / Denied | White-on-red ` BLOCKED ` / ` DENIED ` badge (` Blocked ` / ` Denied ` on rich surfaces, with a `danger-bd` border), sorted first, plus toast (U6) | Exact + |
+| Hook failed: dashed red outline, triangle | Rich surfaces: dashed `danger` border, triangle `Svg`, bold `Error`. Terminal: red `▲` glyph + `Error`, no border; untinted ` ERROR ` | Close / exact |
 | Muted: struck through | Hidden from the band; dim + `Muted` in the tray (`Text` has no strikethrough) | Approximate |
 | Pinned | Out of scope for v1 | n/a |
-| Collapsed summary chip | One tinted `Box`: `16 active · ▤2 ◉2 ⇌2 ⚷3 ↯4 ▣3 · ● 2 stopped` | Exact |
+| Collapsed summary chip | One `Box` on `surface` (round `line` border on rich surfaces): a glyph or icon and count per type in that type's `fg`, then `● 2 blocked` in `danger` when anything is stopped. No `N active` prefix; only mobile's lead chip says it | Exact |
 
-`Mobile.dc.html` is out of scope.
+`Mobile.dc.html` is the same row on the mobile surface, led by the `N active` chip.
 
 ### Band (`AbovePrompt`) rules
 
@@ -357,6 +368,7 @@ Input model: keyboard first. Mouse clicks only reach Claude Code in fullscreen r
 3. Always include `await next(e)` first, so other mods' band content stays.
 4. Nothing recorded, or disabled: return `next(e)`.
 5. Chip buttons get a `hotkey` digit only when `chip_hotkeys` is on.
+6. On the mobile surface the row starts with the `N active` lead chip (with a `danger` `●` when anything is blocked, denied or errored); the `summary` layout has no lead chip.
 
 ### Pane (`Pane`, id `session-activity`) rules
 
@@ -366,43 +378,80 @@ Input model: keyboard first. Mouse clicks only reach Claude Code in fullscreen r
 
 ### Palette
 
-Light palette = the design's hex values. Dark palette = same hue, deeper tint, lighter text. Tune both in M3 against real terminals.
+Every artboard defines one token set on `.sa` (light) and `.sa[data-theme="dark"]` (dark). `src/theme.ts` holds it as `TOKENS` and the per-kind paints as `{ light, dark }` of `{ fg, bg, bd }`. The neutral tokens:
 
-| Type | Glyph | Light fg / tint | Dark fg / tint | Theme-key fallback |
+| Token | Light | Dark |
+| --- | --- | --- |
+| `page` | `#F5F6F8` | `#111214` |
+| `surface` | `#FFFFFF` | `#1B1D21` |
+| `surface-2` | `#F9FAFB` | `#1F2125` |
+| `tile` | `#F5F6F8` | `#26282D` |
+| `fill` | `#F0F1F4` | `#2A2C31` |
+| `fill-2` | `#E8EAEE` | `#2E3036` |
+| `line` | `#DADCE1` | `#34373E` |
+| `line-soft` | `#ECEDF0` | `#2A2C31` |
+| `line-strong` | `#CFD2D8` | `#4A4E57` |
+| `line-dashed` | `#B9BCC4` | `#5A5F69` |
+| `ink` | `#17181C` | `#ECEDEF` |
+| `ink-2` | `#2A2D35` | `#D5D8DE` |
+| `text-2` | `#3B3F48` | `#B4B8C1` |
+| `muted` | `#5A5E68` | `#9499A3` |
+| `inverse-bg` | `#17181C` | `#ECEDEF` |
+| `on-ink` | `#FFFFFF` | `#17181C` |
+| `switch-on` | `#17181C` | `#5B7FE0` |
+| `switch-off` | `#B9BCC4` | `#4A4E57` |
+| `count-bg` | `rgba(23,24,28,0.07)` | `rgba(255,255,255,0.10)` |
+| `link-hover` | `#163A8F` | `#B7CBFF` |
+| `danger` | `#B42318` | `#F97066` |
+| `danger-bd` | `#E8A39C` | `#7A2E28` |
+
+`count-bg` is stored as a base colour and an alpha, and blended over the chip's own fill. The Blocked and Denied badge is `#FFFFFF` on `#B42318` in both tones.
+
+| Kind | Glyph | Light fg / bg / bd | Dark fg / bg / bd | Theme-key fallback |
 | --- | --- | --- | --- | --- |
-| Skill | `▤` | `#1F4FC1` / `#EDF2FD` | `#8FB0FF` / `#1B2A4A` | blue |
-| Agent | `◉` | `#5B3A99` / `#F3EEFB` | `#C3A8F5` / `#2C2147` | magenta |
-| MCP | `⇌` | `#9C1F62` / `#FCEEF5` | `#F29BC8` / `#3D1A2D` | magenta |
-| Permission | `⚷` | `#0E6159` / `#E8F5F2` | `#7FD6C8` / `#123A35` | cyan |
-| Hook | `↯` | `#9A4A0B` / `#FDF1E6` | `#F5B47A` / `#3D2614` | yellow |
-| Rule | `▣` | `#2A2D35` / `#FFFFFF` | `#D5D8DE` / `#24262C` | default |
-| Optional | `/ ✎ ⬡ ◔ ⚑ ≡ ▶` | `#2A2D35` / `#F0F1F4` | `#C9CCD3` / `#2A2C31` | dim |
-| Blocked / error | — | `#FFFFFF` on `#B42318` | `#FFFFFF` on `#B42318` | red |
-| Stat tile | — | `#F5F6F8` | `#2A2C31` | — |
+| Skill | `▤` | `#1F4FC1` / `#EDF2FD` / `#C9D7F7` | `#8FB0FF` / `#1B2A4A` / `#2D4373` | blue |
+| Agent | `◉` | `#5B3A99` / `#F3EEFB` / `#D9CCF0` | `#C3A8F5` / `#2C2147` / `#463470` | magenta |
+| MCP | `⇌` | `#9C1F62` / `#FCEEF5` / `#F0C8DC` | `#F29BC8` / `#3D1A2D` / `#63304A` | magenta |
+| Permission | `⚷` | `#0E6159` / `#E8F5F2` / `#BCE0D8` | `#7FD6C8` / `#123A35` / `#22594F` | cyan |
+| Hook | `↯` | `#9A4A0B` / `#FDF1E6` / `#F0CFAE` | `#F5B47A` / `#3D2614` / `#643F20` | yellow |
+| Rule | `▣` | `ink-2` / `surface` / `line-strong` | same tokens | default |
+| Optional | `/ ✎ ⬡ ◔ ⚑ ≡ ▶` | `ink-2` / `fill` / `line` | same tokens | dim |
 
 Every glyph must be one cell wide. `↯` replaces `⚡` for hooks; `⚷` is checked in M3 and swapped for `⌐` if it renders two cells wide.
 
-### Desktop
+### Tone resolution
 
-The Desktop app (Code tab) is a first-class target. The same hooks render both surfaces, branching on `e.surface === 'desktop'` only where Desktop can get closer to the design:
+The tone is `light`, `dark` or none. `resolveTone` in `src/theme.ts` picks it:
 
-| Design element | Terminal (above) | Desktop |
+1. `chip_style: text` gives none: the untinted look with theme-key colours.
+2. `chip_theme: light` or `dark` gives that tone, on every surface.
+3. `chip_theme: auto` on the terminal: a `light*` or `dark*` Claude theme (daltonized included) gives that tone; an `-ansi` theme gives none; otherwise the last field of `COLORFGBG` (0-6 and 8 dark, 7 and 9-15 light), then the system appearance, then dark.
+4. `chip_theme: auto` on desktop, vscode and mobile: the system appearance, then a `light*` or `dark*` Claude theme, then light.
+
+Claude Code's own `auto` theme asks the terminal for its colours (OSC 11), an answer a mod cannot see, hence the chain. The system appearance is read in `hooks/register.tsx`: `defaults read -g AppleInterfaceStyle` on macOS, `gsettings get org.gnome.desktop.interface color-scheme` on Linux, `reg query` of `AppsUseLightTheme` on Windows, each through `$.process.run` with a short timeout and skipped when the binary is missing. It runs on session start and every minute, off the render path, and the result sits in a `$.state` atom that renders read. `COLORFGBG` is read once with `$.env.get`. The parsers are pure functions in `src/appearance.ts`.
+
+### Rich surfaces (desktop, vscode, mobile)
+
+A surface is rich when its element table has `Svg`. The same hooks draw all of them; `uiFor` in `hooks/register.tsx` hands `Svg` over for every surface but the terminal, and `isRich` in `src/render.tsx` switches the look:
+
+| Design element | Terminal (above) | Rich surfaces |
 | --- | --- | --- |
-| Chip icon | One-cell Unicode glyph | `Svg` icon redrawn from the artboards (layers, robot, plug, key, bolt, shield; optional-type icons), 14 px, in the type colour |
-| Chip shape | Tinted `Box`, square ends | Tinted `Box` with `borderStyle: 'round'` and the type's border colour, if the M1 spike shows it reads as a pill; else tinted `Box` without border |
-| Colours | Palette with theme-key fallback | Exact hex values from the light or dark palette, matching the app's theme |
+| Chip icon | One-cell Unicode glyph | `Svg` icon redrawn from the artboards (layers, robot, plug, key, bolt, shield; optional-type icons), 14 px, in the kind `fg` |
+| Chip shape | `Box` with the kind `bg`, square ends | `Box` with `borderStyle: 'round'`, the kind `bg` and `bd` |
+| Colours | Tokens with theme-key fallback | Exact hex values for the resolved tone |
 | Selecting a chip, filters, toggles, Mute | Keyboard first; clicks only in fullscreen mode | Click (and keyboard) |
-| Hover | None | `hover` on chips and tray rows: tint one step darker |
+| Hover | None | `hover` on chips and tray rows: the fill one step darker (`HOVER_MIX`); the design draws no hover |
 | Popover | Detail card grown in the band | Same card, with `Svg` icon and stat tiles; still anchored in the band, not floating |
-| Settings switches | `●` / `○` buttons | Same buttons, plus an `Svg` switch drawing beside each label |
+| Settings switches | `●` / `○` buttons | `Svg` switch with `switch-on` / `switch-off`, plus an `On` / `Off` button |
 | Spinner (running) | Cycling glyphs | `Svg` ring, redrawn on the same timer |
+| Mobile | None | A leading `N active` chip |
 
-Rules for the Desktop path:
+Rules for the rich path:
 
-1. No Desktop-only behaviour: every action stays reachable in the terminal; Desktop only changes how things look and adds clicks.
+1. No rich-only behaviour: every action stays reachable in the terminal; rich surfaces only change how things look and add clicks.
 2. `Svg` icons live in `src/icons.ts` as path strings taken from the artboards' SVG markup; each stays far below the 131,072-character limit.
-3. Never use elements the reference marks terminal-only on the Desktop path, and never `Svg` on the terminal path (it doesn't draw there).
-4. The `Client` element (a region drawn by a second file, with pointer input) is not used in v1. M1 checks what it can render on Desktop; if it can draw the chip row pixel-close to the design, it becomes a later option.
+3. Never `Svg` on the terminal path (it doesn't draw there). A `Button` holds strings and `Text` only, so icons sit beside buttons, not in them.
+4. The `Client` element (a region drawn by a second file, with pointer input) is not used in v1.
 
 ### claude.ai/code cloud sessions (optional, M6)
 

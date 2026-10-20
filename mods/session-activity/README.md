@@ -32,9 +32,9 @@ A Claude Code mod that shows what took part in your session. A row of chips abov
 - 🚨 **Problems first** — blocked, denied and errored chips lead the row, stay visible when their type is hidden, and raise one toast
 - 📋 **A full pane** — `/session-activity` opens every activation grouped by type, with filters, muting and live settings
 - 🎛️ **Optional types** — slash commands, memory writes, context use, the model per request and background Bash tasks
-- 🌓 **Follows your theme** — tinted chips with a light or dark palette chosen from your Claude Code theme
+- 🌓 **Follows your theme** — tinted chips in the design's light or dark colours, picked from your Claude Code theme, your terminal or your system, or pinned with `chip_theme`
 - ♿ **Never colour alone** — every status is also a text badge
-- 🖥️ **Terminal and Desktop** — glyphs in the terminal, `Svg` icons and clickable chips in the Desktop app, a text summary elsewhere
+- 🖥️ **Terminal, Desktop, VS Code and mobile** — glyphs in the terminal, `Svg` icons and clickable chips on the rest, a text summary elsewhere
 
 ---
 
@@ -70,14 +70,16 @@ This is unverified until the cloud spike confirms that a setup script can instal
 
 ### Surfaces
 
-| Surface                                         | What you get                                                                                                           |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Terminal (`claude`, editor terminals)           | The full UI, drawn with glyphs and a palette that approximates the design                                              |
-| Claude Desktop app, Code tab                    | The full UI with `Svg` icons, exact colours, rounded tinted chips, a darker tint on hover, and clicks on every control |
-| claude.ai/code cloud sessions                   | Text only: `/session-activity` replies with a summary, and `text_summary` adds a line after each answer                |
-| claude.ai chat, VS Code chat panel, `claude -p` | Nothing is drawn. Hooks still run, so `/session-activity` replies in text where it is available                        |
+| Surface                               | What you get                                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Terminal (`claude`, editor terminals) | The full UI, drawn with glyphs and one-row tinted chips                                                                  |
+| Claude Desktop app, Code tab          | The full UI with `Svg` icons, exact colours, rounded bordered chips, a darker tint on hover, and clicks on every control |
+| VS Code                               | The same as Desktop, once Claude Code for VS Code attaches a surface                                                     |
+| Mobile                                | The same as Desktop, with a leading `N active` chip (and a red dot when something stopped) that opens the pane           |
+| claude.ai/code cloud sessions         | Text only: `/session-activity` replies with a summary, and `text_summary` adds a line after each answer                  |
+| claude.ai chat, `claude -p`           | Nothing is drawn. Hooks still run, so `/session-activity` replies in text where it is available                          |
 
-Remote Control from claude.ai or a phone shows the chips in the terminal on your machine. Desktop WSL sessions do not load plugins.
+Remote Control from claude.ai shows the chips in the terminal on your machine. Desktop WSL sessions do not load plugins.
 
 ---
 
@@ -98,11 +100,11 @@ Optional types are off by default: slash commands (`/`), memory (`✎`), context
 
 A memory chip appears when Claude writes or edits `CLAUDE.md`, `CLAUDE.local.md` or a markdown file in a `memory/` folder, labelled `Remembered: <file>`.
 
-A chip that was just activated is bold with a `●` for four seconds. A running agent or asked permission cycles `◐◓◑◒`. A failed one shows a red `▲` and an `ERROR` badge (bold red `Error` on a tinted chip). When an action is blocked or denied, one toast names it, such as `↯ block-secrets blocked Bash`; turn it off with `toast_on_block`. The status line under the prompt keeps the count: `16 active · /session-activity`.
+A chip that was just activated is bold with a `●` for four seconds. A running agent or asked permission cycles `◐◓◑◒`. A failed one shows a red `▲` and an `ERROR` badge (bold red `Error` on a tinted chip, with a dashed red border on Desktop, VS Code and mobile). When an action is blocked or denied, one toast names it, such as `↯ block-secrets blocked Bash`; turn it off with `toast_on_block`. The status line under the prompt keeps the count: `16 active · /session-activity`.
 
 Blocked, denied and errored chips sit first in the row and stay visible even when their type is hidden or muted. Each status is also a text badge, so the colour is never the only signal.
 
-Chips are tinted with a light or dark palette chosen from your Claude Code theme (`dark`, `light` and their daltonized variants). Under any other theme, such as `auto` or the ANSI themes, they fall back to coloured text. Set `chip_style` to `text` to always use coloured text.
+Chips are tinted with the design's light or dark colours. With `chip_theme` on `auto`, the terminal follows a `light` or `dark` Claude Code theme (daltonized included). Under the `auto` theme, which asks the terminal for its colours in a way a mod cannot see, it reads `COLORFGBG`, then the system appearance, then settles on dark. Desktop, VS Code and mobile follow the system appearance, then the Claude Code theme, then light. The ANSI themes keep coloured text. Set `chip_theme` to `light` or `dark` to pin the colours, or `chip_style` to `text` to always use coloured text.
 
 ### Key bindings
 
@@ -123,8 +125,8 @@ Digit hotkeys are off by default, because a bare digit typed into an empty promp
 
 Open it with `/session-activity`, `+N more`, or a chip when the band is too short for the card (the pane then opens on that item).
 
-- **Activity** (`1`). A header counts the items and activations. Filter by type with the letter hotkeys (`a` all, `s` skills, `g` agents, `p` MCP, `k` permissions, `h` hooks, `r` rules, with a count each). Rows are grouped by type. Select a row to see why it is there and where it came from. `m` mutes or unmutes it in the band, `c` copies its path, and `Customize` jumps to the settings. A muted row is dim with a `Muted` badge.
-- **Settings** (`2`). The master switch, a live preview drawn by the band renderer with `Chip row` and `Collapsed summary`, one switch per type in "Shown by default" and "Optional", then chip style, digit hotkeys and the toast. `Reset to defaults` returns to your plugin options and `Turn everything on` shows every type.
+- **Activity** (`1`). A header counts the items and activations. Filter by type with the letter hotkeys (`a` all, `s` skills, `g` agents, `p` MCP, `k` permissions, `h` hooks, `r` rules, with a count each). Rows are grouped by type. Every row shows its why line and a `Mute` or `Unmute` button; stopped and errored rows always show, so they carry a note instead. Select a row to see where it came from: `m` mutes or unmutes it in the band, `c` copies its path, and `Customize` jumps to the settings. A muted row is dim with a `Muted` badge.
+- **Settings** (`2`). The master switch, a live preview drawn by the band renderer with `Chip row` and `Collapsed summary`, one switch per type in "Shown by default" and "Optional", then chip theme, chip style, digit hotkeys, the toast and the text summary. `Reset to defaults` returns to your plugin options and `Turn everything on` shows every type.
 
 ---
 
@@ -135,9 +137,10 @@ The plugin options (`/config`, or `pluginConfigs` in settings) are the defaults.
 | Option           | Default               | Effect                                                                                                                             |
 | ---------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `enabled`        | `true`                | Show chips above the prompt                                                                                                        |
-| `layout`         | `row`                 | `row` of chips, or one `summary` chip such as `16 active · ▤2 ◉2 ⇌2 · ● 1 stopped`                                                 |
+| `layout`         | `row`                 | `row` of chips, or one `summary` chip such as `▤2 ◉2 ⇌2 · ● 1 blocked`                                                             |
 | `max_chips`      | `6`                   | Chips shown before `+N more` (1 to 20)                                                                                             |
 | `show_<type>`    | core on, optional off | Show that type: skills, agents, mcp, permissions, hooks, rules, commands, memory, plugins, context, checkpoints, model, background |
+| `chip_theme`     | `auto`                | `light` or `dark` chip colours, or `auto` to follow the Claude Code theme, then the terminal, then the system                      |
 | `chip_style`     | `tinted`              | `tinted` chips, or `text` for coloured text only                                                                                   |
 | `chip_hotkeys`   | `false`               | Digit hotkeys on chips                                                                                                             |
 | `toast_on_block` | `true`                | Toast when an action is blocked or denied                                                                                          |
@@ -154,7 +157,9 @@ Chips belong to one conversation. `/clear` and `/resume` empty them; muting last
 - Rule chips mean a file was loaded, not that a line in it shaped an action.
 - Where an organization manages Claude Code, skill, hook, rule and compaction events reach only plugins the organization lists, so those chips stay empty.
 - Checkpoints are not supported yet: Claude Code 2.1.302 sends no event for them, so the toggle exists and records nothing. Memory chips come only from writes Claude makes with `Write`, `Edit` or `MultiEdit`.
-- `auto` and the ANSI themes cannot be told apart as light or dark, so chips fall back to coloured text there.
+- The ANSI themes cannot be told apart as light or dark, so chips fall back to coloured text there. Under the `auto` theme the tone is a guess from `COLORFGBG` or the system, and dark when neither is known; pin it with `chip_theme`.
+- The system appearance is read with `defaults` (macOS), `gsettings` (Linux) or `reg` (Windows) once a minute. Where none is available the guess stops at the Claude Code theme.
+- Where the design promises more than the mod can do, the pane keeps the accurate text: rules mean a file was loaded, memory covers writes only, checkpoints record nothing yet, and background tasks cannot be stopped from the chip.
 - When another mod also draws in the band, its content comes first in the row and this mod's chips are sized as if they had the row to themselves, so the row can wrap.
 
 ---

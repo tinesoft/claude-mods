@@ -1,7 +1,7 @@
 # session-activity: design spec
 
 Source of truth for the look and behaviour of the `session-activity` mod. How each element is built in the
-terminal, and the decisions U1–U6 (tinted chips with light/dark palettes, band-anchored popover, digit
+terminal and on the rich surfaces, and the decisions U1–U6 (tinted chips with light/dark tokens, band-anchored popover, digit
 hotkeys off by default, status-line counter, settings tab, block toast), are in the UI spec of `plan.md`;
 where this file and that section differ, `plan.md` wins.
 The interactive canvas lives at https://claude.ai/artifact/Vq3u2zZ6whyGNDGdXBFj3m (owner access).
@@ -17,18 +17,18 @@ filters, mute, toggles), which is the most useful part to read.
 
 | Board | File | Becomes in the mod |
 | --- | --- | --- |
-| Default: chips above the prompt | `Main.dc.html` | `AbovePrompt` band: one row of plain `Button`s, digit hotkeys 1–9, `+N more` |
-| Chip popover (inside Main) | `Main.dc.html` | Detail card growing in the band under the selected chip; small pane `detail` view as fallback |
+| Default: chips above the prompt | `Main.dc.html` | `AbovePrompt` band: one row of chips (round, bordered `Box`es on rich surfaces), digit hotkeys 1–9, `+N more` |
+| Chip popover (inside Main) | `Main.dc.html` | Detail card drawn in the band above the chip row; small pane `detail` view as fallback |
 | Expanded tray | `Expanded.dc.html` | `Pane` id `session-activity`, tab `1: Activity`: filter row, grouped rows, mute |
 | Settings | `Settings.dc.html` | `userConfig` defaults + pane tab `2: Settings` overrides stored in `$.store` |
 | Types, states, overflow | `States.dc.html` | Glyph + colour + text badge rules below |
-| Mobile | `Mobile.dc.html` | Out of scope (mods draw only in the terminal and the Desktop app's Code tab) |
+| Mobile | `Mobile.dc.html` | The same row on the mobile surface, led by an `N active` chip that opens the pane |
 
 `canvas.json` is the board index; ignore its layout coordinates.
 
 Every artboard has light and dark themes. Colours are CSS custom properties on the root `.sa` element
 (`--ink`, `--surface`, `--skill-fg`, `--skill-bg`, …), with dark values under `prefers-color-scheme: dark`
-and a `theme` tweak (`auto` / `light` / `dark`). The dark type colours are the dark palette in `plan.md`.
+and a `theme` tweak (`auto` / `light` / `dark`). `TOKENS` in `src/theme.ts` holds the same set for both tones; the table is in the Palette section of `plan.md`. The mod's `chip_theme` setting is the `theme` tweak, and its `auto` follows the tone resolution chain in `plan.md`.
 
 The `<script src="./support.js">` line in each artboard is the canvas editor's runtime (it also needs
 `vendor/react.js` and `vendor/react-dom.js`). It is injected by the editor and is **not part of this
@@ -39,11 +39,12 @@ See `artboards/README.md`.
 
 ## Surfaces
 
-The design is implemented on two surfaces. The **Desktop app (Code tab)** gets closest: exact hex colours,
-the artboards' icons redrawn as `Svg`, rounded tinted chips (if the M1 spike confirms), hover and clicks.
-The **terminal** uses the glyph and palette approximations below. claude.ai chat can't show a mod's UI and is
-out of scope; claude.ai/code cloud sessions get text summaries at most (optional milestone M6).
-See "Desktop" in the UI spec of `plan.md`.
+The design is implemented on the **rich surfaces** (Desktop Code tab, VS Code, mobile: any surface whose
+element table has `Svg`) and on the **terminal**. Rich surfaces get exact hex colours, the artboards' icons
+redrawn as `Svg`, round bordered chips, hover and clicks. The terminal uses glyphs and one-row tinted chips.
+Mobile adds a leading `N active` chip. claude.ai chat can't show a mod's UI and is out of scope;
+claude.ai/code cloud sessions get text summaries at most (optional milestone M6).
+See "Rich surfaces" in the UI spec of `plan.md`.
 
 ## Chip types
 
@@ -58,7 +59,7 @@ Default-on types, in band order after status sorting:
 | Hook | bolt | `↯` | yellow | `#9A4A0B` / `#FDF1E6` / `#F0CFAE` |
 | Rule | shield | `▣` | default text | `#2A2D35` / `#FFFFFF` / `#CFD2D8` |
 
-Optional types (off by default, opt-in in settings), all neutral `#2A2D35` on `#F0F1F4`, border `#DADCE1`:
+Optional types (off by default, opt-in in settings) are neutral: `ink-2` on `fill`, border `line`:
 
 | Type | Glyph | Example label |
 | --- | --- | --- |
@@ -71,7 +72,7 @@ Optional types (off by default, opt-in in settings), all neutral `#2A2D35` on `#
 | Background task | `▶` | `pnpm dev · running` |
 
 Every glyph must be one terminal cell wide; `↯` is used for hooks, and `⚷` falls back to `⌐` where it renders wide.
-Dark-theme palette values are in `plan.md` (Palette).
+The dark values and every neutral token are in `plan.md` (Palette).
 
 ## Chip anatomy
 
@@ -80,7 +81,8 @@ Dark-theme palette values are in `plan.md` (Palette).
 - `hotkey`: digit 1–9 in band order, only when the `chip_hotkeys` setting is on (off by default: a bare digit
   typed into an empty prompt would otherwise open a chip).
 - `×count`: only when count > 1. One chip per source; repeats increment the counter.
-- `STATUS`: `Text` with `inverse` + `bold`. Meaning is always carried by text, never by colour alone.
+- `STATUS`: white on `#B42318` for Blocked and Denied (` BLOCKED ` in the terminal, ` Blocked ` on rich surfaces), `inverse` + `bold` when untinted. Meaning is always carried by text, never by colour alone.
+- `×count`: its own `Text` on `count-bg` blended over the chip when tinted.
 
 ## States
 
@@ -89,30 +91,30 @@ Dark-theme palette values are in `plan.md` (Palette).
 | Just activated | halo + dot, settles after 4 s | `bold` + `●` prefix for 4 s |
 | Running | spinner ring replaces icon | glyph cycles `◐◓◑◒` |
 | Repeated | `×N` counter | `×N` |
-| Blocked an action | red `Blocked` badge, red-tinted border | `BLOCKED` badge, red, always shown first, plus a 4 s toast |
+| Blocked an action | red `Blocked` badge, `danger-bd` border | `BLOCKED` badge (`Blocked` and a `danger-bd` border on rich surfaces), always shown first, plus a 4 s toast |
 | Denied (permission) | red `Denied` badge | `DENIED` badge, red, always shown first |
-| Hook failed | dashed red outline, triangle icon, `Error` | red `▲` glyph + `ERROR` badge |
+| Hook failed | dashed red outline, triangle icon, `Error` | rich: dashed `danger` border, triangle, bold `Error`; terminal: red `▲` + `Error`, no border |
 | Muted | grey, struck through | hidden from band, dimmed `Muted` in pane |
 | Pinned | pin icon, stays first | out of scope for v1 |
-| Selected | 3 px focus ring | focus highlight + `underline`; detail card opens under the row |
+| Selected | 3 px focus ring | border takes the kind colour on rich surfaces; `underline` on the label; detail card opens above the row |
 
 ## Band rules
 
 1. One chip row, width `e.props.bodyColumns`, first row 2 cells shorter. While a chip is selected, its detail
-   card grows below the row (pane fallback when `maxRows` is too small).
+   card is drawn above the row (pane fallback when `maxRows` is too small). On mobile the row starts with the `N active` lead chip.
 2. Order: blocked / denied / error → running → most recent.
 3. Show as many chips as fit, capped by `max_chips` (default 6); the rest fold into `+N more`, which opens the pane.
-4. Layout `summary`: one button `16 active · ▤2 ◉2 ⇌2 ⚷3 ↯4 ▣3`, plus `· 2 stopped` when anything was blocked or denied.
+4. Layout `summary`: one box with a glyph or icon and count per type in that type's colour (`▤2 ◉2 ⇌2 ⚷3 ↯4 ▣3`), then `● 2 blocked` in `danger` when anything was blocked or denied.
 5. Nothing recorded, or disabled: return `next(e)` (empty band). Always include `await next(e)` so other mods' band content stays.
 6. Counter in the status line under the prompt: `16 active · /session-activity`.
 7. Everything reachable by keyboard (Ctrl+X then Tab, Up/Down, Enter); clicks work in fullscreen mode and Desktop.
-8. On Desktop, chips and rows use `hover` (tint one step darker) and `Svg` icons from the artboards.
+8. On rich surfaces, chips and rows use `hover` (fill one step darker) and `Svg` icons from the artboards.
 
 ## Pane rules
 
 - Opened by `+N more`, `/session-activity` (`immediate: true`), or a chip press when the band is too short for the detail card.
-- Tab `1: Activity`: filters `a: All`, `s: Skills`, `g: Agents`, `p: MCP`, `k: Permissions`, `h: Hooks`, `r: Rules` with counts; rows grouped by type showing name, meta, `×count · last`, status badge. The selected row expands to the popover content: why line, source path, `m: Mute`/`Unmute`, `c: Copy path`.
-- Tab `2: Settings`: master toggle, live preview with layout buttons (chip row / collapsed summary), one toggle per type in "Shown by default" and "Optional · off by default (N of 7 on)", chip style (tinted / text), digit hotkeys on chips (off), toast when blocked or denied (on), `Reset to defaults`, `Turn everything on`. Saved per user in `$.store`.
+- Tab `1: Activity`: header `Session activity` and `N items · M activations · started X ago · Customize`; filters `a: All`, `s: Skills`, `g: Agents`, `p: MCP`, `k: Permissions`, `h: Hooks`, `r: Rules` with counts; rows grouped by type showing an icon tile, name, meta, status badge, a why line, `×count · last` and a `Mute` / `Unmute` button (stopped and errored rows always show, so they carry a note instead). The selected row also expands to the source path and `c: Copy path`.
+- Tab `2: Settings`: title and intro, master toggle, live preview with layout buttons (chip row / collapsed summary), one switch per type in "Shown by default" and "Optional · Off by default · N of 7 on", chip theme (auto / light / dark), chip style (tinted / text), digit hotkeys on chips (off), toast when blocked or denied (on), text summary after each answer (off), `Reset to defaults`, `Turn everything on`. Saved per user in `$.store`.
 
 ## Copy
 
