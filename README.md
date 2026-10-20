@@ -13,16 +13,18 @@ claude plugin marketplace add tinesoft/claude-mods@main
 Then install a mod from inside Claude Code:
 
 ```text
-/plugin install session-activity@tinesoft-mods
+/plugin install <mod-name>@tinesoft-mods
 ```
+
+> `<mod-name>` = Name of the Mod to install (see below)
 
 Mods need Claude Code 2.1.287 or later. CI tests against 2.1.302.
 
 ## Mods
 
-| Mod                                         | What it does                                                                                                  |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [`session-activity`](mods/session-activity) | Chips above the prompt for the skills, agents, MCP servers, permissions, hooks and rules active this session. |
+|                                                                                                                                                                                                                                                                      | Mod                                         | What it does                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="assets/images/session-activity-logo-dark.svg"> <img alt="session-activity — see what took part in your Claude Code session" src="assets/images/session-activity-logo-light.svg" width="128"></picture> | [`session-activity`](mods/session-activity) | Chips above the prompt showing the skills, agents, MCP servers, permissions, hooks and rules active in the current session. |
 
 ## Development
 
