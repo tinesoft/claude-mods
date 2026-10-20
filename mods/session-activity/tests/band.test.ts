@@ -276,9 +276,7 @@ test('a running agent cycles its glyph on the clock, and the timer stops when it
   expect(await glyph()).toBe('◉')
 })
 
-test('an interrupted agent shows a red triangle and an ERROR badge', async ($, on) => {
-  const clock = session(on)
-  stubEngine(on)
+const interrupt = async ($: Engine, clock: MockClock) => {
   await $.agent.spawn({
     tool_use_id: 'tu',
     prompt: 'p',
@@ -298,10 +296,70 @@ test('an interrupted agent shows a red triangle and an ERROR badge', async ($, o
     reason: 'aborted',
   })
   await clock.advance(FRESH)
-  const { band, boxes } = await row($, 100)
-  expect(boxes.map(b => b.text)).toEqual(['▲Explore ERROR '])
-  const triangle = (await band.findAll({ type: 'Text' })).find(t => t.text === '▲')
-  expect(triangle?.props.color).toBe('error')
+}
+
+test(
+  'an interrupted agent shows a red triangle and an ERROR badge on untinted chips',
+  { options: { chip_style: 'text' } },
+  async ($, on) => {
+    const clock = session(on)
+    stubEngine(on)
+    await interrupt($, clock)
+    const { band, boxes } = await row($, 100)
+    expect(boxes.map(b => b.text)).toEqual(['▲Explore ERROR '])
+    const triangle = (await band.findAll({ type: 'Text' })).find(t => t.text === '▲')
+    expect(triangle?.props.color).toBe('error')
+  },
+)
+
+test('a tinted error chip is white with bold red text and a red border', async ($, on) => {
+  const clock = session(on, {}, new Map(), 'light')
+  stubEngine(on)
+  await interrupt($, clock)
+  const { band, boxes } = await row($, 100, 'desktop')
+  expect(boxes[0]!.props).toMatchObject({
+    backgroundColor: '#FFFFFF',
+    borderColor: '#B42318',
+  })
+  const badge = (await band.findAll({ type: 'Text' })).find(t => t.text === 'Error')
+  expect(badge?.props).toMatchObject({ bold: true, color: '#B42318' })
+  expect(badge?.props.inverse).toBeUndefined()
+})
+
+test('a selected pill chip takes its type colour as border; others keep the soft border', async ($, on) => {
+  const clock = session(on, {}, new Map(), 'light')
+  stubEngine(on)
+  await loadSkills($, clock, ['alpha', 'bravo'])
+  const before = (await row($, 100, 'desktop')).boxes
+  expect(before[0]!.props.borderColor).not.toBe('#1F4FC1')
+  await (await mountBand($, 'desktop')).press({ key: 'chip-skill-bravo' })
+  const after = (await row($, 100, 'desktop')).boxes
+  const byKey = new Map(after.map(b => [b.key, b.props.borderColor]))
+  expect(byKey.get('box-skill:bravo')).toBe('#1F4FC1')
+  expect(byKey.get('box-skill:alpha')).toBe(
+    before.find(b => b.key === 'box-skill:alpha')!.props.borderColor,
+  )
+})
+
+test('a blocked pill chip has a soft red border unless it is selected', async ($, on) => {
+  const clock = session(on, {}, new Map(), 'light')
+  stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
+  await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
+  await clock.advance(FRESH)
+  const { boxes } = await row($, 100, 'desktop')
+  expect(boxes[0]!.props.borderColor).toBe('#E8A39C')
+  const key = boxes[0]!.key!.slice(4)
+  await (await mountBand($, 'desktop')).press({ key: `chip-${key.replace(':', '-')}` })
+  const selected = (await row($, 100, 'desktop')).boxes[0]!
+  expect(selected.props.borderColor).toBe('#0E6159')
+})
+
+test('the detail card has a neutral border when tinted and the type colour when not', async ($, on) => {
+  const clock = session(on, {}, new Map(), 'light')
+  stubEngine(on)
+  await withSkill($, clock)
+  await (await mountBand($)).press({ key: 'chip-skill-docx' })
+  expect((await (await mountBand($)).find({ key: 'card' }))?.props.borderColor).toBe('#DADCE1')
 })
 
 test('tinted chips take the palette of the theme, light or dark', async ($, on) => {
@@ -383,7 +441,7 @@ const withSkill = async ($: Engine, clock: MockClock) => {
   await clock.advance(FRESH)
 }
 
-test('pressing a chip grows a detail card under the row; pressing it again closes it', async ($, on) => {
+test('pressing a chip opens the detail card above the chip row; pressing it again closes it', async ($, on) => {
   const clock = session(on)
   stubEngine(on)
   await withSkill($, clock)
@@ -402,10 +460,13 @@ test('pressing a chip grows a detail card under the row; pressing it again close
     props: { hotkey: 'o' },
   })
   expect(await open.find({ key: 'mute' })).toMatchObject({
-    text: 'm: Mute',
+    text: 'm: Mute for this session',
     props: { hotkey: 'm' },
   })
   expect(await open.find({ key: 'chip-skill-docx' })).toBeDefined()
+  const keys = (await open.findAll({})).map(el => el.key)
+  expect(keys.indexOf('card')).toBeGreaterThan(-1)
+  expect(keys.indexOf('card')).toBeLessThan(keys.indexOf('chip-skill-docx'))
   await open.press({ key: 'chip-skill-docx' })
   expect(await (await mountBand($)).find({ key: 'card' })).toBeUndefined()
 })
@@ -475,3 +536,15 @@ test('on desktop the bordered chip row counts three rows, so the card gives way 
   expect(await probe('desktop', edge)).toBe('pane')
   expect(await probe('desktop', edge + 2)).toBe('card')
 })
+
+test(
+  'the detail card keeps the type colour border on untinted chips',
+  { options: { chip_style: 'text' } },
+  async ($, on) => {
+    const clock = session(on)
+    stubEngine(on)
+    await withSkill($, clock)
+    await (await mountBand($)).press({ key: 'chip-skill-docx' })
+    expect((await (await mountBand($)).find({ key: 'card' }))?.props.borderColor).toBe('suggestion')
+  },
+)

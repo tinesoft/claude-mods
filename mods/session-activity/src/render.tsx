@@ -1,10 +1,13 @@
 import type { Color, ElementTable, RenderElement } from 'claude-code'
 
-import type { Activation, Kind, Settings } from '../types'
+import type { Activation, Kind, Settings, Status } from '../types'
 import { errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg } from './icons'
 import { chipId } from './model'
 import {
   BORDER_MIX,
+  CARD_BORDER,
+  ERROR_FG,
+  ERROR_TINT,
   FRESH_MS,
   HOVER_MIX,
   isStopped,
@@ -16,6 +19,7 @@ import {
   STAT_TILE,
   STATUSES,
   STOPPED,
+  STOPPED_BORDER,
   TOGGLES,
 } from './theme'
 
@@ -54,10 +58,14 @@ export type Look = {
   hover: Color | undefined
 }
 
-export const lookOf = (kind: Kind | 'plugin', tone: Palette): Look => {
+export const lookOf = (kind: Kind | 'plugin', tone: Palette, status?: Status): Look => {
   const { palette, dim } = TOGGLES[kind]
   if (tone === undefined) {
     return { color: palette.key, tint: undefined, dim, border: undefined, hover: undefined }
+  }
+  if (status === 'error') {
+    const [fg, tint] = [ERROR_FG[tone], ERROR_TINT[tone]]
+    return { color: fg, tint, dim: false, border: fg, hover: mix(tint, fg, HOVER_MIX) }
   }
   const { fg, tint } = palette[tone]
   return {
@@ -93,7 +101,7 @@ type Parts = {
   badge: string
 }
 
-const partsOf = (a: Activation, settings: Settings, now: number): Parts => {
+const partsOf = (a: Activation, settings: Settings, now: number, tone: Palette): Parts => {
   const status = STATUSES[a.status]
   const frame = Math.floor(now / 150)
   return {
@@ -105,7 +113,7 @@ const partsOf = (a: Activation, settings: Settings, now: number): Parts => {
     label: clip(a.label, LABEL_MAX),
     count: a.count > 1 && TOGGLES[a.kind].showsTally ? `×${a.count}` : '',
     via: settings.shown.plugin && a.plugin !== undefined ? `via ${clip(a.plugin, 16)}` : '',
-    badge: status.badge ?? '',
+    badge: a.status === 'error' && tone !== undefined ? 'Error' : (status.badge ?? ''),
   }
 }
 
@@ -117,13 +125,14 @@ export const chipWidth = (
   hasHotkey: boolean,
   desktop = false,
 ) => {
-  const p = partsOf(a, settings, now)
+  const p = partsOf(a, settings, now, tone)
+  const padding = a.status === 'error' && tone !== undefined ? 0 : 2
   const segments = [
     1,
     p.lead.length + p.label.length + (hasHotkey ? 3 : 0),
     p.count.length,
     p.via.length,
-    p.badge.length > 0 ? p.badge.length + 2 : 0,
+    p.badge.length > 0 ? p.badge.length + padding : 0,
   ].filter(n => n > 0)
   return (
     segments.reduce((sum, n) => sum + n, 0) +
@@ -169,13 +178,27 @@ export const summaryLabel = (chips: readonly Activation[]) => {
   return [`${chips.length} active`, perKind.join(' ')].filter(Boolean).join(' · ')
 }
 
-export const Badge = ({ ui, text, tone }: { ui: Ui; text: string; tone: Palette }) => {
+export const Badge = ({
+  ui,
+  text,
+  tone,
+  status,
+}: {
+  ui: Ui
+  text: string
+  tone: Palette
+  status?: Status
+}) => {
   const { Text } = ui
-  return tone === undefined ? (
-    <Text inverse bold color="error">{` ${text} `}</Text>
-  ) : (
-    <Text bold color={STOPPED.fg} backgroundColor={STOPPED.bg}>{` ${text} `}</Text>
-  )
+  if (tone === undefined) return <Text inverse bold color="error">{` ${text} `}</Text>
+  if (status === 'error') {
+    return (
+      <Text bold color={ERROR_FG[tone]} backgroundColor={ERROR_TINT[tone]}>
+        {text}
+      </Text>
+    )
+  }
+  return <Text bold color={STOPPED.fg} backgroundColor={STOPPED.bg}>{` ${text} `}</Text>
 }
 
 export type Actions = {
@@ -212,13 +235,19 @@ const ChipIcon = ({ ui, a, look, now }: { ui: Ui; a: Activation; look: Look; now
 const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number }) => {
   const { ui, now, tone, settings, selected, fits, on } = args
   const { Box, Button, Text } = ui
-  const p = partsOf(a, settings, now)
-  const look = lookOf(a.kind, tone)
+  const p = partsOf(a, settings, now, tone)
+  const look = lookOf(a.kind, tone, a.status)
   const { color, tint, dim } = look
   const paint = { color, dimColor: dim, ...withTint(tint) }
   const id = chipId(a)
   const desktop = isDesktop(ui)
   const pill = isPill(ui, tone)
+  const border =
+    selected === id
+      ? look.color
+      : tone !== undefined && isStopped(a.status)
+        ? STOPPED_BORDER[tone]
+        : look.border
   return (
     <Box
       key={`box-${id}`}
@@ -226,7 +255,7 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
       columnGap={1}
       paddingX={tone === undefined ? 0 : 1}
       {...withTint(tint)}
-      {...(pill && { borderStyle: 'round', borderColor: look.border })}
+      {...(pill && { borderStyle: 'round', borderColor: border })}
       {...(desktop && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
       {desktop ? (
@@ -252,7 +281,7 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
           {p.via}
         </Text>
       )}
-      {p.badge !== '' && <Badge ui={ui} text={p.badge} tone={tone} />}
+      {p.badge !== '' && <Badge ui={ui} text={p.badge} tone={tone} status={a.status} />}
     </Box>
   )
 }
@@ -367,7 +396,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
       key="card"
       flexDirection="column"
       borderStyle="round"
-      borderColor={color}
+      borderColor={tone === undefined ? color : CARD_BORDER[tone]}
       borderDimColor={dim}
       paddingX={1}
     >
@@ -409,7 +438,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
         <Button
           key="mute"
           hotkey="m"
-          label={isMuted ? 'm: Unmute' : 'm: Mute'}
+          label={isMuted ? 'm: Unmute' : 'm: Mute for this session'}
           onPress={() => on.mute(id)}
         />
       </Box>
@@ -432,7 +461,6 @@ export const renderBand = (args: BandArgs) => {
   return (
     <Box flexDirection="column">
       {below}
-      <ChipRow {...args} fits={fits} on={on} />
       {current && fits(current) && (
         <DetailCard
           ui={ui}
@@ -443,6 +471,7 @@ export const renderBand = (args: BandArgs) => {
           on={{ mute: on.mute, copy: on.copy, close: on.close }}
         />
       )}
+      <ChipRow {...args} fits={fits} on={on} />
     </Box>
   )
 }

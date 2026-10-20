@@ -188,5 +188,5 @@ test('an interrupted subagent ends as an error, not a success', async ($, on) =>
     agentId: 'agent-pr',
     reason: 'aborted',
   })
-  expect(await band($, clock)).toEqual(['agent:code-reviewer|▲code-reviewer ERROR '])
+  expect(await band($, clock)).toEqual(['agent:code-reviewer|▲code-reviewerError'])
 })

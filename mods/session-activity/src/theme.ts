@@ -265,6 +265,14 @@ export const STAT_TILE = { light: '#F5F6F8', dark: '#2A2C31' } as const
 
 export const STOPPED = { fg: '#FFFFFF', bg: '#B42318' } as const
 
+export const STOPPED_BORDER = { light: '#E8A39C', dark: '#B5544A' } as const
+
+export const ERROR_FG = { light: '#B42318', dark: '#FF8A80' } as const
+
+export const ERROR_TINT = { light: '#FFFFFF', dark: '#2A1A1A' } as const
+
+export const CARD_BORDER = { light: '#DADCE1', dark: '#3A3D44' } as const
+
 export const SPINNER = ['◐', '◓', '◑', '◒'] as const
 
 export const SPIN_MS = 150
