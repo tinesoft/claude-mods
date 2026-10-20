@@ -12,32 +12,36 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
-a{color:#1F4FC1}a:hover{color:#163a8f}
+.sa { color-scheme: light; --page: #F5F6F8; --surface: #FFFFFF; --surface-2: #F9FAFB; --tile: #F5F6F8; --fill: #F0F1F4; --fill-2: #E8EAEE; --line: #DADCE1; --line-soft: #ECEDF0; --line-strong: #CFD2D8; --line-dashed: #B9BCC4; --ink: #17181C; --ink-2: #2A2D35; --text-2: #3B3F48; --muted: #5A5E68; --inverse-bg: #17181C; --on-ink: #FFFFFF; --switch-on: #17181C; --switch-off: #B9BCC4; --count-bg: rgba(23,24,28,0.07); --link-hover: #163A8F; --skill-fg: #1F4FC1; --skill-bg: #EDF2FD; --skill-bd: #C9D7F7; --agent-fg: #5B3A99; --agent-bg: #F3EEFB; --agent-bd: #D9CCF0; --mcp-fg: #9C1F62; --mcp-bg: #FCEEF5; --mcp-bd: #F0C8DC; --perm-fg: #0E6159; --perm-bg: #E8F5F2; --perm-bd: #BCE0D8; --hook-fg: #9A4A0B; --hook-bg: #FDF1E6; --hook-bd: #F0CFAE; --danger: #B42318; --danger-bd: #E8A39C; }
+@media (prefers-color-scheme: dark) { .sa:not([data-theme="light"]) { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; } }
+.sa[data-theme="dark"] { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; }
+.sa a { color: var(--skill-fg); } .sa a:hover { color: var(--link-hover); }
+.sa textarea::placeholder { color: var(--muted); }
 button{font:inherit}
 </style>
 </helmet>
-<div style="min-height: 1240px; box-sizing: border-box; background: #F5F6F8; color: #17181C; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; padding: 40px 24px">
+<div class="sa" data-theme="{{theme}}" style="min-height: 1240px; box-sizing: border-box; background: var(--page); color: var(--ink); font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; padding: 40px 24px">
   <div style="max-width: 1040px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start">
 
     <nav aria-label="Settings" style="flex: 1 1 200px; max-width: 240px; display: flex; flex-direction: column; gap: 2px">
-      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; color: #3B3F48; text-decoration: none; font-size: 14px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"></path></svg>Back to chat</a>
-      <span style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: #3B3F48">General</span>
-      <span style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: #3B3F48">Appearance</span>
-      <span aria-current="page" style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; font-weight: 600; background: #E8EAEE; border-radius: 8px">Session activity</span>
-      <span style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: #3B3F48">Permissions</span>
-      <span style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: #3B3F48">Connectors</span>
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; color: var(--text-2); text-decoration: none; font-size: 14px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"></path></svg>Back to chat</a>
+      <span style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: var(--text-2)">General</span>
+      <span style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: var(--text-2)">Appearance</span>
+      <span aria-current="page" style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; font-weight: 600; background: var(--fill-2); border-radius: 8px">Session activity</span>
+      <span style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: var(--text-2)">Permissions</span>
+      <span style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: var(--text-2)">Connectors</span>
     </nav>
 
     <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
       <div style="display: flex; flex-direction: column; gap: 6px">
         <h1 style="margin: 0; font-size: 24px; font-weight: 600">Session activity chips</h1>
-        <p style="margin: 0; font-size: 14.5px; line-height: 1.5; color: #3B3F48">Choose what shows above the prompt bar when it activates during a session. Optional types stay off until you turn them on.</p>
+        <p style="margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--text-2)">Choose what shows above the prompt bar when it activates during a session. Optional types stay off until you turn them on.</p>
       </div>
 
-      <div style="background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 14px; padding: 6px 8px 6px 18px; display: flex; align-items: center; gap: 12px">
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 6px 8px 6px 18px; display: flex; align-items: center; gap: 12px">
         <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; padding: 10px 0">
           <span style="font-size: 14.5px; font-weight: 600">Show chips above the prompt bar</span>
-          <span style="font-size: 13px; color: #3B3F48">Blocked and denied actions are always shown while this is on.</span>
+          <span style="font-size: 13px; color: var(--text-2)">Blocked and denied actions are always shown while this is on.</span>
         </div>
         <button role="switch" aria-checked="{{masterAria}}" aria-label="Show chips above the prompt bar" onClick="{{toggleMaster}}" style="width: 56px; height: 44px; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center">
           <span style="width: 40px; height: 24px; border-radius: 12px; background: {{masterTrack}}; display: flex; align-items: center; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; margin-left: {{masterKnob}}; box-shadow: 0 1px 2px rgba(0,0,0,0.25)"></span></span>
@@ -46,13 +50,13 @@ button{font:inherit}
 
       <section aria-label="Preview" style="display: flex; flex-direction: column; gap: 10px">
         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
-          <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500; flex-grow: 1">Preview</h2>
-          <div role="group" aria-label="Layout" style="display: flex; gap: 2px; background: #E8EAEE; padding: 3px; border-radius: 9px">
-            <button onClick="{{setRow}}" aria-pressed="{{rowAria}}" style="height: 32px; padding: 0 12px; border: 0; border-radius: 7px; background: {{rowBg}}; color: #17181C; font-size: 13px; cursor: pointer">Chip row</button>
-            <button onClick="{{setSummary}}" aria-pressed="{{sumAria}}" style="height: 32px; padding: 0 12px; border: 0; border-radius: 7px; background: {{sumBg}}; color: #17181C; font-size: 13px; cursor: pointer">Collapsed summary</button>
+          <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; flex-grow: 1">Preview</h2>
+          <div role="group" aria-label="Layout" style="display: flex; gap: 2px; background: var(--fill-2); padding: 3px; border-radius: 9px">
+            <button onClick="{{setRow}}" aria-pressed="{{rowAria}}" style="height: 32px; padding: 0 12px; border: 0; border-radius: 7px; background: {{rowBg}}; color: var(--ink); font-size: 13px; cursor: pointer">Chip row</button>
+            <button onClick="{{setSummary}}" aria-pressed="{{sumAria}}" style="height: 32px; padding: 0 12px; border: 0; border-radius: 7px; background: {{sumBg}}; color: var(--ink); font-size: 13px; cursor: pointer">Collapsed summary</button>
           </div>
         </div>
-        <div style="background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
           <sc-if value="{{showRow}}" hint-placeholder-val="{{ true }}">
             <div style="display: flex; flex-wrap: wrap; gap: 6px">
               <sc-for list="{{previewChips}}" as="c" hint-placeholder-count="6">
@@ -62,25 +66,25 @@ button{font:inherit}
           </sc-if>
           <sc-if value="{{showSummary}}" hint-placeholder-val="{{ false }}">
             <div style="display: flex">
-              <span style="height: 32px; display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; font-size: 13px; font-weight: 500">{{summaryText}}<span style="width: 7px; height: 7px; border-radius: 50%; background: #B42318"></span><span style="color: #B42318">2 stopped</span></span>
+              <span style="height: 32px; display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-size: 13px; font-weight: 500">{{summaryText}}<span style="width: 7px; height: 7px; border-radius: 50%; background: #B42318"></span><span style="color: var(--danger)">2 stopped</span></span>
             </div>
           </sc-if>
           <sc-if value="{{showOff}}" hint-placeholder-val="{{ false }}">
-            <div style="font-size: 13px; color: #3B3F48; padding: 6px 0">Chips are hidden. Activity is still listed in the session tray.</div>
+            <div style="font-size: 13px; color: var(--text-2); padding: 6px 0">Chips are hidden. Activity is still listed in the session tray.</div>
           </sc-if>
-          <div style="height: 44px; border: 1px solid #DADCE1; border-radius: 12px; display: flex; align-items: center; padding: 0 14px; color: #5A5E68; font-size: 14px">Reply to Claude…</div>
+          <div style="height: 44px; border: 1px solid var(--line); border-radius: 12px; display: flex; align-items: center; padding: 0 14px; color: var(--muted); font-size: 14px">Reply to Claude…</div>
         </div>
       </section>
 
       <section style="display: flex; flex-direction: column; gap: 10px">
-        <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">Shown by default</h2>
-        <ul style="list-style: none; margin: 0; padding: 0; background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 14px; overflow: hidden">
+        <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500">Shown by default</h2>
+        <ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
           <sc-for list="{{core}}" as="t" hint-placeholder-count="6">
             <li style="display: flex; align-items: center; gap: 14px; padding: 8px 8px 8px 18px; border-top: {{t.divider}}">
               <span style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; display: inline-flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
               <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 6px 0">
                 <span style="font-size: 14.5px; font-weight: 600">{{t.label}}</span>
-                <span style="font-size: 13px; line-height: 1.45; color: #3B3F48">{{t.desc}}</span>
+                <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">{{t.desc}}</span>
               </div>
               <button role="switch" aria-checked="{{t.aria}}" aria-label="{{t.switchLabel}}" onClick="{{t.toggle}}" style="flex-shrink: 0; width: 56px; height: 44px; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center">
                 <span style="width: 40px; height: 24px; border-radius: 12px; background: {{t.track}}; display: flex; align-items: center; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; margin-left: {{t.knob}}; box-shadow: 0 1px 2px rgba(0,0,0,0.25)"></span></span>
@@ -92,16 +96,16 @@ button{font:inherit}
 
       <section style="display: flex; flex-direction: column; gap: 10px">
         <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
-          <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">Optional</h2>
-          <span style="font-size: 13px; color: #3B3F48">Off by default · {{optOnCount}} of 7 on</span>
+          <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500">Optional</h2>
+          <span style="font-size: 13px; color: var(--text-2)">Off by default · {{optOnCount}} of 7 on</span>
         </div>
-        <ul style="list-style: none; margin: 0; padding: 0; background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 14px; overflow: hidden">
+        <ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
           <sc-for list="{{optional}}" as="t" hint-placeholder-count="7">
             <li style="display: flex; align-items: center; gap: 14px; padding: 8px 8px 8px 18px; border-top: {{t.divider}}">
-              <span style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: 1px solid #DADCE1; background: #F0F1F4; color: #2A2D35; display: inline-flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
+              <span style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--fill); color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
               <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 6px 0">
                 <span style="font-size: 14.5px; font-weight: 600">{{t.label}}</span>
-                <span style="font-size: 13px; line-height: 1.45; color: #3B3F48">{{t.desc}}</span>
+                <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">{{t.desc}}</span>
               </div>
               <button role="switch" aria-checked="{{t.aria}}" aria-label="{{t.switchLabel}}" onClick="{{t.toggle}}" style="flex-shrink: 0; width: 56px; height: 44px; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center">
                 <span style="width: 40px; height: 24px; border-radius: 12px; background: {{t.track}}; display: flex; align-items: center; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; margin-left: {{t.knob}}; box-shadow: 0 1px 2px rgba(0,0,0,0.25)"></span></span>
@@ -112,24 +116,24 @@ button{font:inherit}
       </section>
 
       <div style="display: flex; gap: 8px; flex-wrap: wrap">
-        <button onClick="{{reset}}" style="height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #17181C; font-size: 14px; font-weight: 500; cursor: pointer">Reset to defaults</button>
-        <button onClick="{{enableAll}}" style="height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #17181C; font-size: 14px; font-weight: 500; cursor: pointer">Turn everything on</button>
+        <button onClick="{{reset}}" style="height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer">Reset to defaults</button>
+        <button onClick="{{enableAll}}" style="height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer">Turn everything on</button>
       </div>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1240}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":1240}}'>
 class Component extends DCLogic {
   renderVals() {
     var self = this;
     var CORE = [
-      { id: 'skill', label: 'Skills', desc: 'SKILL.md files Claude loaded because your request matched them.', example: 'docx', fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7', icon: 'M8 2L14 5 8 8 2 5zM2 8l6 3 6-3M2 11l6 3 6-3' },
-      { id: 'agent', label: 'Agents', desc: 'Subagents Claude handed work to, built-in or from .claude/agents.', example: 'code-reviewer', fg: '#5B3A99', bg: '#F3EEFB', bd: '#D9CCF0', icon: 'M4.5 5h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 2.5V5M6 8.5v1M10 8.5v1' },
-      { id: 'mcp', label: 'MCP servers', desc: 'Servers whose tools were called, with a count and any auth failures.', example: 'github ×3', fg: '#9C1F62', bg: '#FCEEF5', bd: '#F0C8DC', icon: 'M6 1.5v3M10 1.5v3M4 4.5h8v3a4 4 0 0 1-8 0zM8 11.5v3' },
-      { id: 'perm', label: 'Permissions', desc: 'Actions you approved, auto-allowed by a rule, or denied.', example: 'Allowed: git push', fg: '#0E6159', bg: '#E8F5F2', bd: '#BCE0D8', icon: 'M8.5 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM7.6 8.4l5.9-5.9M11 5l1.5 1.5M12.5 3.5L14 5' },
-      { id: 'hook', label: 'Hooks', desc: 'Commands from settings that ran on events like PreToolUse or Stop.', example: 'lint-staged ×4', fg: '#9A4A0B', bg: '#FDF1E6', bd: '#F0CFAE', icon: 'M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z' },
-      { id: 'rule', label: 'Rules', desc: 'Lines from CLAUDE.md or .claude/rules that shaped an action.', example: 'Use pnpm, not npm', fg: '#2A2D35', bg: '#FFFFFF', bd: '#CFD2D8', icon: 'M8 1.8l5 2v4c0 3-2.2 5.2-5 6.4-2.8-1.2-5-3.4-5-6.4v-4z' }
+      { id: 'skill', label: 'Skills', desc: 'SKILL.md files Claude loaded because your request matched them.', example: 'docx', fg: 'var(--skill-fg)', bg: 'var(--skill-bg)', bd: 'var(--skill-bd)', icon: 'M8 2L14 5 8 8 2 5zM2 8l6 3 6-3M2 11l6 3 6-3' },
+      { id: 'agent', label: 'Agents', desc: 'Subagents Claude handed work to, built-in or from .claude/agents.', example: 'code-reviewer', fg: 'var(--agent-fg)', bg: 'var(--agent-bg)', bd: 'var(--agent-bd)', icon: 'M4.5 5h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 2.5V5M6 8.5v1M10 8.5v1' },
+      { id: 'mcp', label: 'MCP servers', desc: 'Servers whose tools were called, with a count and any auth failures.', example: 'github ×3', fg: 'var(--mcp-fg)', bg: 'var(--mcp-bg)', bd: 'var(--mcp-bd)', icon: 'M6 1.5v3M10 1.5v3M4 4.5h8v3a4 4 0 0 1-8 0zM8 11.5v3' },
+      { id: 'perm', label: 'Permissions', desc: 'Actions you approved, auto-allowed by a rule, or denied.', example: 'Allowed: git push', fg: 'var(--perm-fg)', bg: 'var(--perm-bg)', bd: 'var(--perm-bd)', icon: 'M8.5 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM7.6 8.4l5.9-5.9M11 5l1.5 1.5M12.5 3.5L14 5' },
+      { id: 'hook', label: 'Hooks', desc: 'Commands from settings that ran on events like PreToolUse or Stop.', example: 'lint-staged ×4', fg: 'var(--hook-fg)', bg: 'var(--hook-bg)', bd: 'var(--hook-bd)', icon: 'M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z' },
+      { id: 'rule', label: 'Rules', desc: 'Lines from CLAUDE.md or .claude/rules that shaped an action.', example: 'Use pnpm, not npm', fg: 'var(--ink-2)', bg: 'var(--surface)', bd: 'var(--line-strong)', icon: 'M8 1.8l5 2v4c0 3-2.2 5.2-5 6.4-2.8-1.2-5-3.4-5-6.4v-4z' }
     ];
     var OPT = [
       { id: 'cmd', label: 'Slash commands', desc: 'Custom commands from .claude/commands that ran.', example: '/release-notes', icon: 'M5.5 13.5l5-11' },
@@ -145,23 +149,23 @@ class Component extends DCLogic {
     var on = st.on || DEFAULTS;
     var master = st.master !== undefined ? st.master : true;
     var layout = st.layout || 'row';
-    function sw(isOn) { return { aria: isOn ? 'true' : 'false', track: isOn ? '#17181C' : '#B9BCC4', knob: isOn ? '16px' : '0px' }; }
+    function sw(isOn) { return { aria: isOn ? 'true' : 'false', track: isOn ? 'var(--switch-on)' : 'var(--switch-off)', knob: isOn ? '16px' : '0px' }; }
     function mk(list, neutral) {
       return list.map(function (t, i) {
         var isOn = !!on[t.id];
         var s = sw(isOn);
         return { label: t.label, desc: t.desc, icon: t.icon, fg: t.fg, bg: t.bg, bd: t.bd,
-          divider: i === 0 ? '0' : '1px solid #ECEDF0', aria: s.aria, track: s.track, knob: s.knob,
+          divider: i === 0 ? '0' : '1px solid var(--line-soft)', aria: s.aria, track: s.track, knob: s.knob,
           switchLabel: 'Show ' + t.label + ' chips',
           toggle: function () { var n = Object.assign({}, on); n[t.id] = !isOn; self.setState({ on: n }); } };
       });
     }
     var preview = [];
     CORE.forEach(function (t) { if (on[t.id]) preview.push({ example: t.example, icon: t.icon, fg: t.fg, bg: t.bg, bd: t.bd }); });
-    OPT.forEach(function (t) { if (on[t.id]) preview.push({ example: t.example, icon: t.icon, fg: '#2A2D35', bg: '#F0F1F4', bd: '#DADCE1' }); });
+    OPT.forEach(function (t) { if (on[t.id]) preview.push({ example: t.example, icon: t.icon, fg: 'var(--ink-2)', bg: 'var(--fill)', bd: 'var(--line)' }); });
     var optOn = OPT.filter(function (t) { return on[t.id]; }).length;
     var m = sw(master);
-    return {
+    return { theme: this.props.theme ?? 'auto',
       core: mk(CORE), optional: mk(OPT),
       optOnCount: optOn,
       previewChips: preview,
@@ -170,7 +174,7 @@ class Component extends DCLogic {
       masterAria: m.aria, masterTrack: m.track, masterKnob: m.knob,
       toggleMaster: function () { self.setState({ master: !master }); },
       rowAria: layout === 'row' ? 'true' : 'false', sumAria: layout === 'summary' ? 'true' : 'false',
-      rowBg: layout === 'row' ? '#FFFFFF' : 'transparent', sumBg: layout === 'summary' ? '#FFFFFF' : 'transparent',
+      rowBg: layout === 'row' ? 'var(--surface)' : 'transparent', sumBg: layout === 'summary' ? 'var(--surface)' : 'transparent',
       setRow: function () { self.setState({ layout: 'row' }); },
       setSummary: function () { self.setState({ layout: 'summary' }); },
       reset: function () { self.setState({ on: DEFAULTS, master: true, layout: 'row' }); },

@@ -12,17 +12,21 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
-a{color:#1F4FC1}a:hover{color:#163a8f}
+.sa { color-scheme: light; --page: #F5F6F8; --surface: #FFFFFF; --surface-2: #F9FAFB; --tile: #F5F6F8; --fill: #F0F1F4; --fill-2: #E8EAEE; --line: #DADCE1; --line-soft: #ECEDF0; --line-strong: #CFD2D8; --line-dashed: #B9BCC4; --ink: #17181C; --ink-2: #2A2D35; --text-2: #3B3F48; --muted: #5A5E68; --inverse-bg: #17181C; --on-ink: #FFFFFF; --switch-on: #17181C; --switch-off: #B9BCC4; --count-bg: rgba(23,24,28,0.07); --link-hover: #163A8F; --skill-fg: #1F4FC1; --skill-bg: #EDF2FD; --skill-bd: #C9D7F7; --agent-fg: #5B3A99; --agent-bg: #F3EEFB; --agent-bd: #D9CCF0; --mcp-fg: #9C1F62; --mcp-bg: #FCEEF5; --mcp-bd: #F0C8DC; --perm-fg: #0E6159; --perm-bg: #E8F5F2; --perm-bd: #BCE0D8; --hook-fg: #9A4A0B; --hook-bg: #FDF1E6; --hook-bd: #F0CFAE; --danger: #B42318; --danger-bd: #E8A39C; }
+@media (prefers-color-scheme: dark) { .sa:not([data-theme="light"]) { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; } }
+.sa[data-theme="dark"] { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; }
+.sa a { color: var(--skill-fg); } .sa a:hover { color: var(--link-hover); }
+.sa textarea::placeholder { color: var(--muted); }
 button{font:inherit}
 </style>
 </helmet>
-<div style="width: 1280px; height: 1500px; box-sizing: border-box; background: #FFFFFF; color: #17181C; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; padding: 56px 64px; display: flex; flex-direction: column; gap: 44px">
+<div class="sa" data-theme="{{theme}}" style="width: 1280px; height: 1500px; box-sizing: border-box; background: var(--surface); color: var(--ink); font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; padding: 56px 64px; display: flex; flex-direction: column; gap: 44px">
 
   <section style="display: flex; flex-direction: column; gap: 16px">
-    <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">Types</h2>
+    <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500">Types</h2>
     <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
       <sc-for list="{{types}}" as="t" hint-placeholder-count="3">
-        <div style="display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid #ECEDF0; border-radius: 12px; background: #F9FAFB">
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface-2)">
           <div style="display: flex">
             <span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; font-size: 13px; font-weight: 500">
               <sc-if value="{{t.isSkill}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg></sc-if>
@@ -35,7 +39,7 @@ button{font:inherit}
             </span>
           </div>
           <div style="font-size: 15px; font-weight: 600">{{t.label}}</div>
-          <div style="font-size: 13.5px; line-height: 1.5; color: #3B3F48">{{t.desc}}</div>
+          <div style="font-size: 13.5px; line-height: 1.5; color: var(--text-2)">{{t.desc}}</div>
         </div>
       </sc-for>
     </div>
@@ -43,123 +47,123 @@ button{font:inherit}
 
   <section style="display: flex; flex-direction: column; gap: 16px">
     <div style="display: flex; align-items: baseline; gap: 12px">
-      <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">Optional types</h2>
-      <span style="font-size: 12.5px; color: #3B3F48">Off by default. Turned on per type in Settings › Session activity.</span>
+      <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500">Optional types</h2>
+      <span style="font-size: 12.5px; color: var(--text-2)">Off by default. Turned on per type in Settings › Session activity.</span>
     </div>
     <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px">
       <sc-for list="{{optional}}" as="o" hint-placeholder-count="7">
-        <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px dashed #CFD2D8; border-radius: 12px">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px dashed var(--line-strong); border-radius: 12px">
           <div style="display: flex">
-            <span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #DADCE1; background: #F0F1F4; color: #2A2D35; font-size: 13px; font-weight: 500; white-space: nowrap"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{o.icon}}"></path></svg>{{o.example}}</span>
+            <span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--fill); color: var(--ink-2); font-size: 13px; font-weight: 500; white-space: nowrap"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{o.icon}}"></path></svg>{{o.example}}</span>
           </div>
           <div style="font-size: 14px; font-weight: 600">{{o.label}}</div>
-          <div style="font-size: 12.5px; line-height: 1.45; color: #3B3F48">{{o.desc}}</div>
+          <div style="font-size: 12.5px; line-height: 1.45; color: var(--text-2)">{{o.desc}}</div>
         </div>
       </sc-for>
     </div>
   </section>
 
   <section style="display: flex; flex-direction: column; gap: 16px">
-    <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">States</h2>
+    <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500">States</h2>
     <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 24px">
 
       <div style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #1F4FC1; background: #EDF2FD; color: #1F4FC1; font-size: 13px; font-weight: 500; box-shadow: 0 0 0 4px rgba(31,79,193,0.14)"><span style="width: 7px; height: 7px; border-radius: 50%; background: #1F4FC1"></span>docx</span></div>
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid var(--skill-fg); background: var(--skill-bg); color: var(--skill-fg); font-size: 13px; font-weight: 500; box-shadow: 0 0 0 4px rgba(31,79,193,0.14)"><span style="width: 7px; height: 7px; border-radius: 50%; background: #1F4FC1"></span>docx</span></div>
         <div style="font-size: 13.5px; font-weight: 600">Just activated</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Slides in from the left with a halo; settles after 4 s.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">Slides in from the left with a halo; settles after 4 s.</div>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #F0CFAE; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.5" stroke="#F0CFAE" stroke-width="2"></circle><path d="M8 2.5a5.5 5.5 0 0 1 5.5 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>lint-staged</span></div>
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid var(--hook-bd); background: var(--hook-bg); color: var(--hook-fg); font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.5" style="stroke: var(--hook-bd)" stroke-width="2"></circle><path d="M8 2.5a5.5 5.5 0 0 1 5.5 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>lint-staged</span></div>
         <div style="font-size: 13.5px; font-weight: 600">Running</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Hook in progress; the icon becomes a spinner.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">Hook in progress; the icon becomes a spinner.</div>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #F0CFAE; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>lint-staged<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: rgba(23,24,28,0.07)">×4</span></span></div>
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid var(--hook-bd); background: var(--hook-bg); color: var(--hook-fg); font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>lint-staged<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: var(--count-bg)">×4</span></span></div>
         <div style="font-size: 13.5px; font-weight: 600">Repeated</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">One chip per source; a counter instead of duplicates.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">One chip per source; a counter instead of duplicates.</div>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #E8A39C; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>block-secrets<span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: #FFFFFF; background: #B42318; padding: 1px 6px; border-radius: 5px"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M3.8 12.2l8.4-8.4"></path></svg>Blocked</span></span></div>
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid var(--danger-bd); background: var(--hook-bg); color: var(--hook-fg); font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>block-secrets<span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: #FFFFFF; background: #B42318; padding: 1px 6px; border-radius: 5px"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M3.8 12.2l8.4-8.4"></path></svg>Blocked</span></span></div>
         <div style="font-size: 13.5px; font-weight: 600">Blocked an action</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Hook exited 2 and stopped a tool call. Always shown first.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">Hook exited 2 and stopped a tool call. Always shown first.</div>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px dashed #B42318; background: #FFFFFF; color: #B42318; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M8 2L14.5 13.5h-13z"></path><path d="M8 6.5v3M8 11.6v.1"></path></svg>prettier-write<span style="font-size: 11.5px; font-weight: 600">Error</span></span></div>
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px dashed var(--danger); background: var(--surface); color: var(--danger); font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M8 2L14.5 13.5h-13z"></path><path d="M8 6.5v3M8 11.6v.1"></path></svg>prettier-write<span style="font-size: 11.5px; font-weight: 600">Error</span></span></div>
         <div style="font-size: 13.5px; font-weight: 600">Hook failed</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Non-blocking error. Popover shows stderr and exit code.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">Non-blocking error. Popover shows stderr and exit code.</div>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #DADCE1; background: #F5F6F8; color: #5A5E68; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6h2.5l3-2.5v9L5 10H2.5z"></path><path d="M11 6l3 4M14 6l-3 4"></path></svg><span style="text-decoration: line-through">desktop-notify</span></span></div>
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--tile); color: var(--muted); font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6h2.5l3-2.5v9L5 10H2.5z"></path><path d="M11 6l3 4M14 6l-3 4"></path></svg><span style="text-decoration: line-through">desktop-notify</span></span></div>
         <div style="font-size: 13.5px; font-weight: 600">Muted</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Hidden from the rail for this session; still runs.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">Hidden from the rail for this session; still runs.</div>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #CFD2D8; background: #FFFFFF; color: #2A2D35; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h4l-.5 4 2.5 2.5H4L6.5 6z"></path><path d="M8 8.5V14"></path></svg>Use pnpm, not npm</span></div>
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h4l-.5 4 2.5 2.5H4L6.5 6z"></path><path d="M8 8.5V14"></path></svg>Use pnpm, not npm</span></div>
         <div style="font-size: 13.5px; font-weight: 600">Pinned</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Stays at the front of the rail in every session.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">Stays at the front of the rail in every session.</div>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid #1F4FC1; background: #EDF2FD; color: #1F4FC1; font-size: 13px; font-weight: 500; box-shadow: 0 0 0 3px rgba(31,79,193,0.18)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg>frontend-design</span></div>
+        <div style="display: flex"><span style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid var(--skill-fg); background: var(--skill-bg); color: var(--skill-fg); font-size: 13px; font-weight: 500; box-shadow: 0 0 0 3px rgba(31,79,193,0.18)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg>frontend-design</span></div>
         <div style="font-size: 13.5px; font-weight: 600">Selected</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Opens the detail popover above the rail.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">Opens the detail popover above the rail.</div>
       </div>
     </div>
   </section>
 
   <section style="display: flex; flex-direction: column; gap: 16px">
-    <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #5A5E68; font-weight: 500">Overflow and collapsed</h2>
+    <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500">Overflow and collapsed</h2>
     <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
-      <div style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 1px solid #ECEDF0; border-radius: 12px; background: #F9FAFB">
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface-2)">
         <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap">
-          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px solid #E8A39C; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500">block-secrets</span>
-          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px solid #C9D7F7; background: #EDF2FD; color: #1F4FC1; font-size: 13px; font-weight: 500">docx</span>
-          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px solid #F0CFAE; background: #FDF1E6; color: #9A4A0B; font-size: 13px; font-weight: 500">lint-staged ×4</span>
-          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px dashed #B9BCC4; color: #3B3F48; font-size: 13px; font-weight: 500">+8 more</span>
+          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px solid var(--danger-bd); background: var(--hook-bg); color: var(--hook-fg); font-size: 13px; font-weight: 500">block-secrets</span>
+          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px solid var(--skill-bd); background: var(--skill-bg); color: var(--skill-fg); font-size: 13px; font-weight: 500">docx</span>
+          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px solid var(--hook-bd); background: var(--hook-bg); color: var(--hook-fg); font-size: 13px; font-weight: 500">lint-staged ×4</span>
+          <span style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px dashed var(--line-dashed); color: var(--text-2); font-size: 13px; font-weight: 500">+8 more</span>
         </div>
         <div style="font-size: 13.5px; font-weight: 600">One row, then overflow</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">Order: blocked or failed, pinned, most recent. The rest fold into “+N more”, which opens the tray.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">Order: blocked or failed, pinned, most recent. The rest fold into “+N more”, which opens the tray.</div>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 1px solid #ECEDF0; border-radius: 12px; background: #F9FAFB">
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface-2)">
         <div style="display: flex">
-          <span style="height: 32px; display: inline-flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #17181C; font-size: 13px; font-weight: 500">
-            <span style="display: inline-flex; align-items: center; gap: 4px; color: #1F4FC1"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg>2</span>
-            <span style="display: inline-flex; align-items: center; gap: 4px; color: #5B3A99"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8" rx="2"></rect><path d="M8 2.5V5"></path><path d="M6 8.5v1M10 8.5v1"></path></svg>2</span>
-            <span style="display: inline-flex; align-items: center; gap: 4px; color: #9A4A0B"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>4</span>
-            <span style="display: inline-flex; align-items: center; gap: 4px; color: #2A2D35"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8l5 2v4c0 3-2.2 5.2-5 6.4-2.8-1.2-5-3.4-5-6.4v-4z"></path></svg>3</span>
-            <span style="width: 1px; height: 14px; background: #DADCE1"></span>
-            <span style="width: 7px; height: 7px; border-radius: 50%; background: #B42318"></span><span style="color: #B42318">1 blocked</span>
+          <span style="height: 32px; display: inline-flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 500">
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: var(--skill-fg)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5z"></path><path d="M2 8l6 3 6-3"></path><path d="M2 11l6 3 6-3"></path></svg>2</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: var(--agent-fg)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8" rx="2"></rect><path d="M8 2.5V5"></path><path d="M6 8.5v1M10 8.5v1"></path></svg>2</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: var(--hook-fg)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>4</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8l5 2v4c0 3-2.2 5.2-5 6.4-2.8-1.2-5-3.4-5-6.4v-4z"></path></svg>3</span>
+            <span style="width: 1px; height: 14px; background: var(--line)"></span>
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #B42318"></span><span style="color: var(--danger)">1 blocked</span>
           </span>
         </div>
         <div style="font-size: 13.5px; font-weight: 600">Collapsed summary</div>
-        <div style="font-size: 12.5px; color: #3B3F48; line-height: 1.45">For a quiet composer: one chip with counts per type. Anything blocked stays visible.</div>
+        <div style="font-size: 12.5px; color: var(--text-2); line-height: 1.45">For a quiet composer: one chip with counts per type. Anything blocked stays visible.</div>
       </div>
     </div>
   </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1500}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":1500}}'>
 class Component extends DCLogic {
   renderVals() {
-    return {
+    return { theme: this.props.theme ?? 'auto',
       types: [
-        { isSkill: true, isHook: false, isRule: false, label: 'Skill', example: 'docx', fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7',
+        { isSkill: true, isHook: false, isRule: false, label: 'Skill', example: 'docx', fg: 'var(--skill-fg)', bg: 'var(--skill-bg)', bd: 'var(--skill-bd)',
           desc: 'A SKILL.md that Claude loaded because the request matched it. Layered icon, blue tint.' },
-        { isSkill: false, isHook: true, isRule: false, label: 'Hook', example: 'lint-staged', fg: '#9A4A0B', bg: '#FDF1E6', bd: '#F0CFAE',
+        { isSkill: false, isHook: true, isRule: false, label: 'Hook', example: 'lint-staged', fg: 'var(--hook-fg)', bg: 'var(--hook-bg)', bd: 'var(--hook-bd)',
           desc: 'A command from settings that ran on an event such as PreToolUse or Stop. Bolt icon, orange tint.' },
-        { isSkill: false, isHook: false, isRule: true, label: 'Rule', example: 'Use pnpm, not npm', fg: '#2A2D35', bg: '#FFFFFF', bd: '#CFD2D8',
+        { isSkill: false, isHook: false, isRule: true, label: 'Rule', example: 'Use pnpm, not npm', fg: 'var(--ink-2)', bg: 'var(--surface)', bd: 'var(--line-strong)',
           desc: 'A line from CLAUDE.md or .claude/rules that shaped an action. Shield icon, neutral outline.' },
-        { isSkill: false, isHook: false, isRule: false, isAgent: true, label: 'Agent', example: 'code-reviewer', fg: '#5B3A99', bg: '#F3EEFB', bd: '#D9CCF0',
+        { isSkill: false, isHook: false, isRule: false, isAgent: true, label: 'Agent', example: 'code-reviewer', fg: 'var(--agent-fg)', bg: 'var(--agent-bg)', bd: 'var(--agent-bd)',
           desc: 'A subagent Claude handed work to, built-in or from .claude/agents. Robot icon, violet tint; shows running while it works.' },
-        { isMcp: true, label: 'MCP server', example: 'github ×3', fg: '#9C1F62', bg: '#FCEEF5', bd: '#F0C8DC',
+        { isMcp: true, label: 'MCP server', example: 'github ×3', fg: 'var(--mcp-fg)', bg: 'var(--mcp-bg)', bd: 'var(--mcp-bd)',
           desc: 'One chip per server, counting its tool calls. Plug icon, magenta tint; turns red when auth fails.' },
-        { isPerm: true, label: 'Permission', example: 'Allowed: git push', fg: '#0E6159', bg: '#E8F5F2', bd: '#BCE0D8',
+        { isPerm: true, label: 'Permission', example: 'Allowed: git push', fg: 'var(--perm-fg)', bg: 'var(--perm-bg)', bd: 'var(--perm-bd)',
           desc: 'A permission decision: asked and approved, auto-allowed by a rule, or denied. Key icon, teal tint.' }
       ],
       optional: [

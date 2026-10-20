@@ -26,6 +26,10 @@ filters, mute, toggles), which is the most useful part to read.
 
 `canvas.json` is the board index; ignore its layout coordinates.
 
+Every artboard has light and dark themes. Colours are CSS custom properties on the root `.sa` element
+(`--ink`, `--surface`, `--skill-fg`, `--skill-bg`, …), with dark values under `prefers-color-scheme: dark`
+and a `theme` tweak (`auto` / `light` / `dark`). The dark type colours are the dark palette in `plan.md`.
+
 The `<script src="./support.js">` line in each artboard is the canvas editor's runtime (it also needs
 `vendor/react.js` and `vendor/react-dom.js`). It is injected by the editor and is **not part of this
 handoff**, so the `.dc.html` files don't open on their own in a browser. Read them as source. To view

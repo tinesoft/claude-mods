@@ -12,43 +12,47 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
-a{color:#1F4FC1}a:hover{color:#163a8f}
+.sa { color-scheme: light; --page: #F5F6F8; --surface: #FFFFFF; --surface-2: #F9FAFB; --tile: #F5F6F8; --fill: #F0F1F4; --fill-2: #E8EAEE; --line: #DADCE1; --line-soft: #ECEDF0; --line-strong: #CFD2D8; --line-dashed: #B9BCC4; --ink: #17181C; --ink-2: #2A2D35; --text-2: #3B3F48; --muted: #5A5E68; --inverse-bg: #17181C; --on-ink: #FFFFFF; --switch-on: #17181C; --switch-off: #B9BCC4; --count-bg: rgba(23,24,28,0.07); --link-hover: #163A8F; --skill-fg: #1F4FC1; --skill-bg: #EDF2FD; --skill-bd: #C9D7F7; --agent-fg: #5B3A99; --agent-bg: #F3EEFB; --agent-bd: #D9CCF0; --mcp-fg: #9C1F62; --mcp-bg: #FCEEF5; --mcp-bd: #F0C8DC; --perm-fg: #0E6159; --perm-bg: #E8F5F2; --perm-bd: #BCE0D8; --hook-fg: #9A4A0B; --hook-bg: #FDF1E6; --hook-bd: #F0CFAE; --danger: #B42318; --danger-bd: #E8A39C; }
+@media (prefers-color-scheme: dark) { .sa:not([data-theme="light"]) { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; } }
+.sa[data-theme="dark"] { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; }
+.sa a { color: var(--skill-fg); } .sa a:hover { color: var(--link-hover); }
+.sa textarea::placeholder { color: var(--muted); }
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 button{font:inherit}
 </style>
 </helmet>
-<div style="min-height: 760px; box-sizing: border-box; background: #F5F6F8; color: #17181C; font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; justify-content: flex-end; padding: 40px 24px 32px">
+<div class="sa" data-theme="{{theme}}" style="min-height: 760px; box-sizing: border-box; background: var(--page); color: var(--ink); font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; justify-content: flex-end; padding: 40px 24px 32px">
   <div style="width: 100%; max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
 
     <div style="display: flex; flex-direction: column; gap: 14px">
-      <div style="align-self: flex-end; max-width: 80%; background: #E8EAEE; border-radius: 14px; padding: 12px 16px; font-size: 15px; line-height: 1.5">Export the release summary as a Word file, then fix the lint errors in the settings page.</div>
-      <div style="font-size: 15px; line-height: 1.6; color: #17181C">
-        <p style="margin: 0 0 10px">Done. The summary is in <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; background: #E8EAEE; padding: 1px 6px; border-radius: 4px">release-summary.docx</span>, and the settings page now passes lint across all four edited files.</p>
-        <p style="margin: 0">One command was stopped by a hook before it ran, because it would have printed your <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; background: #E8EAEE; padding: 1px 6px; border-radius: 4px">.env</span> file. Nothing was exposed.</p>
+      <div style="align-self: flex-end; max-width: 80%; background: var(--fill-2); border-radius: 14px; padding: 12px 16px; font-size: 15px; line-height: 1.5">Export the release summary as a Word file, then fix the lint errors in the settings page.</div>
+      <div style="font-size: 15px; line-height: 1.6; color: var(--ink)">
+        <p style="margin: 0 0 10px">Done. The summary is in <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; background: var(--fill-2); padding: 1px 6px; border-radius: 4px">release-summary.docx</span>, and the settings page now passes lint across all four edited files.</p>
+        <p style="margin: 0">One command was stopped by a hook before it ran, because it would have printed your <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; background: var(--fill-2); padding: 1px 6px; border-radius: 4px">.env</span> file. Nothing was exposed.</p>
       </div>
     </div>
 
     <div style="position: relative; display: flex; flex-direction: column; gap: 8px">
 
       <sc-if value="{{hasOpen}}" hint-placeholder-val="{{ true }}">
-        <div role="dialog" aria-label="Activation details" style="position: absolute; left: 0; bottom: calc(100% + 8px); width: 420px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 12px; box-shadow: 0 12px 32px rgba(23,24,28,0.12), 0 2px 6px rgba(23,24,28,0.06); padding: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 5">
+        <div role="dialog" aria-label="Activation details" style="position: absolute; left: 0; bottom: calc(100% + 8px); width: 420px; max-width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(23,24,28,0.12), 0 2px 6px rgba(23,24,28,0.06); padding: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 5">
           <div style="display: flex; align-items: flex-start; gap: 10px">
             <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0">
               <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: {{cur.fg}}">{{cur.typeLabel}} · {{cur.event}}</div>
               <div style="font-size: 17px; font-weight: 600">{{cur.name}}</div>
             </div>
-            <button onClick="{{close}}" aria-label="Close details" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: #5A5E68; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+            <button onClick="{{close}}" aria-label="Close details" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
           </div>
-          <div style="font-size: 14px; line-height: 1.5; color: #2A2D35">{{cur.why}}</div>
+          <div style="font-size: 14px; line-height: 1.5; color: var(--ink-2)">{{cur.why}}</div>
           <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 12.5px">
-            <div style="background: #F5F6F8; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px"><span style="color: #5A5E68">Status</span><span style="font-weight: 600; color: {{cur.statusFg}}">{{cur.status}}</span></div>
-            <div style="background: #F5F6F8; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px"><span style="color: #5A5E68">Activations</span><span style="font-weight: 600">{{cur.count}}</span></div>
-            <div style="background: #F5F6F8; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px"><span style="color: #5A5E68">Last</span><span style="font-weight: 600">{{cur.last}}</span></div>
+            <div style="background: var(--tile); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px"><span style="color: var(--muted)">Status</span><span style="font-weight: 600; color: {{cur.statusFg}}">{{cur.status}}</span></div>
+            <div style="background: var(--tile); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px"><span style="color: var(--muted)">Activations</span><span style="font-weight: 600">{{cur.count}}</span></div>
+            <div style="background: var(--tile); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px"><span style="color: var(--muted)">Last</span><span style="font-weight: 600">{{cur.last}}</span></div>
           </div>
-          <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: #5A5E68; overflow-wrap: anywhere">{{cur.source}}</div>
+          <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted); overflow-wrap: anywhere">{{cur.source}}</div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap">
-            <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #17181C; font-size: 13.5px; font-weight: 500; cursor: pointer">Open source</button>
-            <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #17181C; font-size: 13.5px; font-weight: 500; cursor: pointer">Mute for this session</button>
+            <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13.5px; font-weight: 500; cursor: pointer">Open source</button>
+            <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13.5px; font-weight: 500; cursor: pointer">Mute for this session</button>
           </div>
         </div>
       </sc-if>
@@ -64,40 +68,40 @@ button{font:inherit}
               <sc-if value="{{c.isMcp}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 1.5v3M10 1.5v3"></path><path d="M4 4.5h8v3a4 4 0 0 1-8 0z"></path><path d="M8 11.5v3"></path></svg></sc-if>
               <sc-if value="{{c.isPerm}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="10.5" r="3"></circle><path d="M7.6 8.4l5.9-5.9"></path><path d="M11 5l1.5 1.5M12.5 3.5L14 5"></path></svg></sc-if>
               <span style="white-space: nowrap">{{c.label}}</span>
-              <sc-if value="{{c.hasCount}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: rgba(23,24,28,0.07)">×{{c.count}}</span></sc-if>
+              <sc-if value="{{c.hasCount}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: var(--count-bg)">×{{c.count}}</span></sc-if>
               <sc-if value="{{c.isBlocked}}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: #FFFFFF; background: #B42318; padding: 1px 6px; border-radius: 5px"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M3.8 12.2l8.4-8.4"></path></svg>Blocked</span></sc-if>
             </button>
           </div>
         </sc-for>
-        <a href="Expanded.dc.html" style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px dashed #B9BCC4; color: #3B3F48; font-size: 13px; font-weight: 500; text-decoration: none">+10 more</a>
+        <a href="Expanded.dc.html" style="height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 8px; border: 1px dashed var(--line-dashed); color: var(--text-2); font-size: 13px; font-weight: 500; text-decoration: none">+10 more</a>
       </div>
 
-      <div style="background: #FFFFFF; border: 1px solid #DADCE1; border-radius: 16px; box-shadow: 0 1px 2px rgba(23,24,28,0.05); padding: 14px 14px 10px 16px; display: flex; flex-direction: column; gap: 10px">
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 1px 2px rgba(23,24,28,0.05); padding: 14px 14px 10px 16px; display: flex; flex-direction: column; gap: 10px">
         <label for="prompt" class="sr">Message Claude</label>
-        <textarea id="prompt" rows="2" placeholder="Reply to Claude…" style="border: 0; outline: none; resize: none; font: inherit; font-size: 15px; line-height: 1.5; color: #17181C; background: transparent"></textarea>
+        <textarea id="prompt" rows="2" placeholder="Reply to Claude…" style="border: 0; outline: none; resize: none; font: inherit; font-size: 15px; line-height: 1.5; color: var(--ink); background: transparent"></textarea>
         <div style="display: flex; align-items: center; gap: 8px">
-          <button aria-label="Add attachment" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #DADCE1; background: #FFFFFF; color: #3B3F48; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg></button>
-          <span style="font-size: 12.5px; color: #5A5E68; flex-grow: 1">16 active this session · <a href="Settings.dc.html" style="color: #3B3F48">Customize chips</a></span>
-          <button style="height: 36px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: #3B3F48; font-size: 13px; cursor: pointer">Opus 5.5</button>
-          <button aria-label="Send message" style="width: 36px; height: 36px; border-radius: 10px; border: 0; background: #17181C; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg></button>
+          <button aria-label="Add attachment" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg></button>
+          <span style="font-size: 12.5px; color: var(--muted); flex-grow: 1">16 active this session · <a href="Settings.dc.html" style="color: var(--text-2)">Customize chips</a></span>
+          <button style="height: 36px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: var(--text-2); font-size: 13px; cursor: pointer">Opus 5.5</button>
+          <button aria-label="Send message" style="width: 36px; height: 36px; border-radius: 10px; border: 0; background: var(--inverse-bg); color: var(--on-ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg></button>
         </div>
       </div>
     </div>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":760}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":760}}'>
 class Component extends DCLogic {
   renderVals() {
     var open = (this.state && this.state.open !== undefined) ? this.state.open : 'secrets';
     var self = this;
     var T = {
-      skill: { fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7', label: 'Skill' },
-      hook:  { fg: '#9A4A0B', bg: '#FDF1E6', bd: '#F0CFAE', label: 'Hook' },
-      rule:  { fg: '#2A2D35', bg: '#FFFFFF', bd: '#CFD2D8', label: 'Rule' },
-      agent: { fg: '#5B3A99', bg: '#F3EEFB', bd: '#D9CCF0', label: 'Agent' },
-      mcp:   { fg: '#9C1F62', bg: '#FCEEF5', bd: '#F0C8DC', label: 'MCP' },
-      perm:  { fg: '#0E6159', bg: '#E8F5F2', bd: '#BCE0D8', label: 'Permission' }
+      skill: { fg: 'var(--skill-fg)', bg: 'var(--skill-bg)', bd: 'var(--skill-bd)', label: 'Skill' },
+      hook:  { fg: 'var(--hook-fg)', bg: 'var(--hook-bg)', bd: 'var(--hook-bd)', label: 'Hook' },
+      rule:  { fg: 'var(--ink-2)', bg: 'var(--surface)', bd: 'var(--line-strong)', label: 'Rule' },
+      agent: { fg: 'var(--agent-fg)', bg: 'var(--agent-bg)', bd: 'var(--agent-bd)', label: 'Agent' },
+      mcp:   { fg: 'var(--mcp-fg)', bg: 'var(--mcp-bg)', bd: 'var(--mcp-bd)', label: 'MCP' },
+      perm:  { fg: 'var(--perm-fg)', bg: 'var(--perm-bg)', bd: 'var(--perm-bd)', label: 'Permission' }
     };
     var raw = [
       { id: 'reviewer', kind: 'agent', label: 'code-reviewer', name: 'code-reviewer', event: 'Subagent · Task', why: 'Reviewed the four edited files in its own context and flagged one unused import, which was then removed.', status: 'Finished', count: 1, last: '1 min ago', source: '.claude/agents/code-reviewer.md' },
@@ -115,7 +119,7 @@ class Component extends DCLogic {
         label: r.label, count: r.count, hasCount: r.count > 1,
         isSkill: r.kind === 'skill', isHook: r.kind === 'hook', isRule: r.kind === 'rule', isAgent: r.kind === 'agent', isMcp: r.kind === 'mcp', isPerm: r.kind === 'perm',
         isBlocked: !!r.blocked,
-        fg: t.fg, bg: t.bg, bd: sel ? t.fg : (r.blocked ? '#E8A39C' : t.bd),
+        fg: t.fg, bg: t.bg, bd: sel ? t.fg : (r.blocked ? 'var(--danger-bd)' : t.bd),
         ring: sel ? '0 0 0 3px rgba(31,79,193,0.18)' : 'none',
         pressed: sel ? 'true' : 'false',
         aria: t.label + ': ' + r.name + (r.blocked ? ', blocked a call' : '') + (r.count > 1 ? ', ' + r.count + ' times' : ''),
@@ -123,14 +127,14 @@ class Component extends DCLogic {
       };
       if (sel) {
         cur = { typeLabel: t.label, fg: t.fg, name: r.name, event: r.event, why: r.why, status: r.status,
-          statusFg: r.blocked ? '#B42318' : '#17181C', count: r.count, last: r.last, source: r.source };
+          statusFg: r.blocked ? 'var(--danger)' : 'var(--ink)', count: r.count, last: r.last, source: r.source };
       }
       return item;
     });
-    return {
+    return { theme: this.props.theme ?? 'auto',
       chips: chips,
       hasOpen: !!cur,
-      cur: cur || { typeLabel: '', fg: '#17181C', name: '', event: '', why: '', status: '', statusFg: '#17181C', count: '', last: '', source: '' },
+      cur: cur || { typeLabel: '', fg: 'var(--ink)', name: '', event: '', why: '', status: '', statusFg: 'var(--ink)', count: '', last: '', source: '' },
       close: function () { self.setState({ open: null }); }
     };
   }
