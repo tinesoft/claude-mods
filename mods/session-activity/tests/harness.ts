@@ -142,3 +142,23 @@ export const stubEngine = (
     status: () => status.at(-1)?.text,
   }
 }
+
+/** Answers the appearance probes: `COLORFGBG`, and each system command by its executable. */
+export const probes = (
+  on: On,
+  answers: {
+    colorFgBg?: string
+    system?: Record<string, { exitCode: number; stdout: string }>
+  } = {},
+) => {
+  on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('session.start', (_$, e) => ({ cwd: e.cwd }))
+  on('env.get', (_$, e) => ({ value: e.name === 'COLORFGBG' ? answers.colorFgBg : undefined }))
+  on('process.run', (_$, e) => {
+    const answer = answers.system?.[e.argv[0]!]
+    return answer === undefined
+      ? { deny: `${e.argv[0]}: not found` }
+      : { value: { ...answer, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  return answers
+}

@@ -28,6 +28,7 @@ import {
   settleAsked,
   type Observed,
 } from '../src/model'
+import { parseColorFgBg, SYSTEM_PROBES } from '../src/appearance'
 import { renderPane, type PaneFlag } from '../src/pane'
 import { lineSummary, markdownSummary } from '../src/summary'
 import { renderBand, type Ui } from '../src/render'
@@ -37,6 +38,8 @@ const PANE = 'session-activity'
 const COMMAND = 'session-activity'
 const STORE_OVERRIDES = 'overrides'
 const TOAST_MS = 4000
+const APPEARANCE_MS = 60_000
+const PROBE_TIMEOUT_MS = 1500
 const DETAIL_PANE_ROWS = 10
 
 type Options = Readonly<Record<string, unknown>>
@@ -47,8 +50,43 @@ const selected = atom({ plugin: 'session-activity', key: 'selected' } as const, 
 const paneView = atom({ plugin: 'session-activity', key: 'paneView' } as const, 'activity')
 const filter = atom({ plugin: 'session-activity', key: 'filter' } as const, 'all')
 const overrides = atom({ plugin: 'session-activity', key: 'overrides' } as const, null)
+const appearance = atom({ plugin: 'session-activity', key: 'appearance' } as const, {
+  system: null,
+  colorFgBg: null,
+})
 
 let spinner: Timer | undefined
+let appearanceTimer: Timer | undefined
+
+async function probeSystem($: EngineInterface): Promise<Tone | null> {
+  for (const probe of SYSTEM_PROBES) {
+    try {
+      const result = await $.process.run(probe.argv, { timeoutMs: PROBE_TIMEOUT_MS })
+      const tone = probe.read(result)
+      if (tone !== undefined) return tone
+    } catch {
+      // The command is not installed here, or this surface cannot run commands.
+    }
+  }
+  return null
+}
+
+async function refreshAppearance($: EngineInterface) {
+  const next = {
+    system: await probeSystem($),
+    colorFgBg: parseColorFgBg(await $.env.get('COLORFGBG')) ?? null,
+  }
+  await update($, appearance, old =>
+    old.system === next.system && old.colorFgBg === next.colorFgBg ? old : next,
+  )
+}
+
+/** Reads the system appearance off the render path, now and every minute. */
+function watchAppearance($: EngineInterface) {
+  appearanceTimer?.cancel()
+  appearanceTimer = $.clock.every(APPEARANCE_MS, () => refreshAppearance($))
+  $.clock.after(0, () => refreshAppearance($))
+}
 
 async function readOverrides($: EngineInterface): Promise<Overrides> {
   const held = await read($, overrides)
@@ -128,13 +166,14 @@ async function toneOf(
   surface: RenderSurface,
 ): Promise<Tone | undefined> {
   const theme = (await $.config.list()).find(row => row.key === 'theme')
+  const { system, colorFgBg } = await read($, appearance)
   return resolveTone({
     chipStyle: settings.chipStyle,
     chipTheme: settings.chipTheme,
     claudeTheme: theme?.value,
     surface,
-    colorFgBg: undefined,
-    system: undefined,
+    colorFgBg: colorFgBg ?? undefined,
+    system: system ?? undefined,
   })
 }
 
@@ -192,6 +231,7 @@ export const register: Register = (on, options) => {
       immediate: true,
     })
     await loadOverrides($, options)
+    watchAppearance($)
     return next(e)
   })
 

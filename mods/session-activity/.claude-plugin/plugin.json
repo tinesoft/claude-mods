@@ -119,6 +119,13 @@
       "options": ["tinted", "text"],
       "default": "tinted"
     },
+    "chip_theme": {
+      "type": "string",
+      "title": "Chip theme",
+      "description": "Light or dark chip colours; auto follows the Claude Code theme, then the terminal, then the system",
+      "options": ["auto", "light", "dark"],
+      "default": "auto"
+    },
     "chip_hotkeys": {
       "type": "boolean",
       "title": "Digit hotkeys on chips",
