@@ -211,7 +211,7 @@ test('on desktop the overflow count sits in a dashed box; elsewhere it stays pla
   )
   expect(dashed).toHaveLength(1)
   expect(dashed[0]!.text).toMatch(/\+\d+ more/)
-  expect(dashed[0]!.props).toMatchObject({ borderColor: '#50545C', paddingX: 1 })
+  expect(dashed[0]!.props).toMatchObject({ borderColor: '#5A5F69', paddingX: 1 })
   const terminal = await mountBand($, 'terminal', 60)
   expect((await terminal.findAll({ type: 'Box' })).some(b => b.props.borderStyle)).toBe(false)
 })
@@ -392,8 +392,8 @@ test('dark themes get the dark tint', async ($, on) => {
   expect((await row($, 100)).boxes[0]!.props.backgroundColor).toBe('#1B2A4A')
 })
 
-test('a theme the mod cannot place falls back to coloured text with no background', async ($, on) => {
-  const clock = session(on, {}, new Map(), 'auto')
+test('an ansi theme falls back to coloured text with no background', async ($, on) => {
+  const clock = session(on, {}, new Map(), 'dark-ansi')
   stubEngine(on)
   await loadSkills($, clock, ['alpha'])
   const { band, boxes } = await row($, 100)

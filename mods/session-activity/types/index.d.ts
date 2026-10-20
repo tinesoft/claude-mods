@@ -37,11 +37,16 @@ export type Layout = 'row' | 'summary'
 
 export type ChipStyle = 'tinted' | 'text'
 
+export type ChipTheme = 'auto' | 'light' | 'dark'
+
+export type Tone = 'light' | 'dark'
+
 export type Settings = {
   enabled: boolean
   layout: Layout
   maxChips: number
   chipStyle: ChipStyle
+  chipTheme: ChipTheme
   hotkeys: boolean
   toastOnBlock: boolean
   textSummary: boolean
@@ -65,6 +70,7 @@ declare module 'claude-code' {
       paneView: PaneView
       filter: Filter
       overrides: Overrides | null
+      appearance: { system: Tone | null; colorFgBg: Tone | null }
     }
   }
 }

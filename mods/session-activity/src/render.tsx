@@ -4,24 +4,18 @@ import type { Activation, Kind, Settings, Status } from '../types'
 import { errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg } from './icons'
 import { chipId } from './model'
 import {
-  BORDER_MIX,
-  CARD_BORDER,
-  MORE_BORDER,
-  ERROR_FG,
-  ERROR_TINT,
   FRESH_MS,
   HOVER_MIX,
   isStopped,
   KIND_ORDER,
   mix,
-  type Palette,
   SPIN_MS,
   SPINNER,
-  STAT_TILE,
   STATUSES,
   STOPPED,
-  STOPPED_BORDER,
+  type Tone,
   TOGGLES,
+  TOKENS,
 } from './theme'
 
 /** `Svg` exists only where `$.ui.resolve(e)` is the Desktop table; it is the one Desktop switch. */
@@ -31,7 +25,7 @@ export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'> & {
 
 export const isDesktop = (ui: Ui) => ui.Svg !== undefined
 
-const isPill = (ui: Ui, tone: Palette) => isDesktop(ui) && tone !== undefined
+const isPill = (ui: Ui, tone: Tone | undefined) => isDesktop(ui) && tone !== undefined
 
 const ICON_PX = 14
 
@@ -59,23 +53,17 @@ export type Look = {
   hover: Color | undefined
 }
 
-export const lookOf = (kind: Kind | 'plugin', tone: Palette, status?: Status): Look => {
+export const lookOf = (kind: Kind | 'plugin', tone: Tone | undefined, status?: Status): Look => {
   const { palette, dim } = TOGGLES[kind]
   if (tone === undefined) {
     return { color: palette.key, tint: undefined, dim, border: undefined, hover: undefined }
   }
   if (status === 'error') {
-    const [fg, tint] = [ERROR_FG[tone], ERROR_TINT[tone]]
+    const { danger: fg, surface: tint } = TOKENS[tone]
     return { color: fg, tint, dim: false, border: fg, hover: mix(tint, fg, HOVER_MIX) }
   }
-  const { fg, tint } = palette[tone]
-  return {
-    color: fg,
-    tint,
-    dim: false,
-    border: mix(tint, fg, BORDER_MIX),
-    hover: mix(tint, fg, HOVER_MIX),
-  }
+  const { fg, bg: tint, bd: border } = palette[tone]
+  return { color: fg, tint, dim: false, border, hover: mix(tint, fg, HOVER_MIX) }
 }
 
 type IconArgs = { ui: Ui; svg: string; alt: string; width?: number; height?: number }
@@ -91,7 +79,7 @@ export const kindIcon = (ui: Ui, kind: Kind | 'plugin', look: Look, extra?: stri
 
 const withTint = (tint: Color | undefined) => (tint === undefined ? {} : { backgroundColor: tint })
 
-export const gapOf = (tone: Palette) => (tone === undefined ? 2 : 1)
+export const gapOf = (tone: Tone | undefined) => (tone === undefined ? 2 : 1)
 
 type Parts = {
   glyph: string
@@ -102,7 +90,7 @@ type Parts = {
   badge: string
 }
 
-const partsOf = (a: Activation, settings: Settings, now: number, tone: Palette): Parts => {
+const partsOf = (a: Activation, settings: Settings, now: number, tone: Tone | undefined): Parts => {
   const status = STATUSES[a.status]
   const frame = Math.floor(now / 150)
   return {
@@ -122,7 +110,7 @@ export const chipWidth = (
   a: Activation,
   settings: Settings,
   now: number,
-  tone: Palette,
+  tone: Tone | undefined,
   hasHotkey: boolean,
   desktop = false,
 ) => {
@@ -153,7 +141,7 @@ export const fitChips = (
   columns: number,
   settings: Settings,
   now: number,
-  tone: Palette,
+  tone: Tone | undefined,
   desktop = false,
 ) => {
   const gap = gapOf(tone)
@@ -195,14 +183,14 @@ export const Badge = ({
 }: {
   ui: Ui
   text: string
-  tone: Palette
+  tone: Tone | undefined
   status?: Status
 }) => {
   const { Text } = ui
   if (tone === undefined) return <Text inverse bold color="error">{` ${text} `}</Text>
   if (status === 'error') {
     return (
-      <Text bold color={ERROR_FG[tone]} backgroundColor={ERROR_TINT[tone]}>
+      <Text bold color={TOKENS[tone].danger} backgroundColor={TOKENS[tone].surface}>
         {text}
       </Text>
     )
@@ -222,7 +210,7 @@ type RowArgs = {
   ui: Ui
   columns: number
   now: number
-  tone: Palette
+  tone: Tone | undefined
   chips: readonly Activation[]
   settings: Settings
   selected: string | null
@@ -255,7 +243,7 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
     selected === id
       ? look.color
       : tone !== undefined && isStopped(a.status)
-        ? STOPPED_BORDER[tone]
+        ? TOKENS[tone].dangerBd
         : look.border
   return (
     <Box
@@ -298,9 +286,17 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
   )
 }
 
-const MoreBox = ({ ui, tone, children }: { ui: Ui; tone: Palette; children: RenderElement }) =>
+const MoreBox = ({
+  ui,
+  tone,
+  children,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  children: RenderElement
+}) =>
   isPill(ui, tone) ? (
-    <ui.Box borderStyle="dashed" borderColor={MORE_BORDER[tone!]} paddingX={1}>
+    <ui.Box borderStyle="dashed" borderColor={TOKENS[tone!].lineDashed} paddingX={1}>
       {[children]}
     </ui.Box>
   ) : (
@@ -373,13 +369,13 @@ const Tile = ({
   color,
 }: {
   ui: Ui
-  tone: Palette
+  tone: Tone | undefined
   title: string
   value: string
   color?: Color
 }) => {
   const { Box, Text } = ui
-  const tint = tone === undefined ? undefined : STAT_TILE[tone]
+  const tint = tone === undefined ? undefined : TOKENS[tone].tile
   return (
     <Box key={`tile-${title}`} flexDirection="column" flexGrow={1} paddingX={1} {...withTint(tint)}>
       <Text dimColor {...withTint(tint)}>
@@ -400,7 +396,7 @@ export const cardRows = (a: Activation, columns: number) => {
 
 export type CardArgs = {
   ui: Ui
-  tone: Palette
+  tone: Tone | undefined
   now: number
   a: Activation
   isMuted: boolean
@@ -419,7 +415,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
       key="card"
       flexDirection="column"
       borderStyle="round"
-      borderColor={tone === undefined ? color : CARD_BORDER[tone]}
+      borderColor={tone === undefined ? color : TOKENS[tone].line}
       borderDimColor={dim}
       paddingX={1}
     >

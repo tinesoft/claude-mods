@@ -1,12 +1,103 @@
-import type { Color } from 'claude-code'
+import type { Color, RenderSurface } from 'claude-code'
 
-import type { Kind, Status, Toggle } from '../types'
+import type { ChipStyle, ChipTheme, Kind, Status, Toggle, Tone } from '../types'
 
-export type Palette = 'light' | 'dark' | undefined
+export type { Tone }
 
-type Tone = { fg: string; tint: string }
+export type KindPaint = { fg: string; bg: string; bd: string }
 
-export type TogglePalette = { light: Tone; dark: Tone; key: Color }
+export type TogglePalette = Record<Tone, KindPaint> & { key: Color }
+
+/** The design's neutral tokens, one set per tone. `countBg` is a translucent wash over the chip. */
+export type Tokens = {
+  page: string
+  surface: string
+  surface2: string
+  tile: string
+  fill: string
+  fill2: string
+  line: string
+  lineSoft: string
+  lineStrong: string
+  lineDashed: string
+  ink: string
+  ink2: string
+  text2: string
+  muted: string
+  inverseBg: string
+  onInk: string
+  switchOn: string
+  switchOff: string
+  countBg: { base: string; alpha: number }
+  linkHover: string
+  danger: string
+  dangerBd: string
+}
+
+export const TOKENS: Record<Tone, Tokens> = {
+  light: {
+    page: '#F5F6F8',
+    surface: '#FFFFFF',
+    surface2: '#F9FAFB',
+    tile: '#F5F6F8',
+    fill: '#F0F1F4',
+    fill2: '#E8EAEE',
+    line: '#DADCE1',
+    lineSoft: '#ECEDF0',
+    lineStrong: '#CFD2D8',
+    lineDashed: '#B9BCC4',
+    ink: '#17181C',
+    ink2: '#2A2D35',
+    text2: '#3B3F48',
+    muted: '#5A5E68',
+    inverseBg: '#17181C',
+    onInk: '#FFFFFF',
+    switchOn: '#17181C',
+    switchOff: '#B9BCC4',
+    countBg: { base: '#17181C', alpha: 0.07 },
+    linkHover: '#163A8F',
+    danger: '#B42318',
+    dangerBd: '#E8A39C',
+  },
+  dark: {
+    page: '#111214',
+    surface: '#1B1D21',
+    surface2: '#1F2125',
+    tile: '#26282D',
+    fill: '#2A2C31',
+    fill2: '#2E3036',
+    line: '#34373E',
+    lineSoft: '#2A2C31',
+    lineStrong: '#4A4E57',
+    lineDashed: '#5A5F69',
+    ink: '#ECEDEF',
+    ink2: '#D5D8DE',
+    text2: '#B4B8C1',
+    muted: '#9499A3',
+    inverseBg: '#ECEDEF',
+    onInk: '#17181C',
+    switchOn: '#5B7FE0',
+    switchOff: '#4A4E57',
+    countBg: { base: '#FFFFFF', alpha: 0.1 },
+    linkHover: '#B7CBFF',
+    danger: '#F97066',
+    dangerBd: '#7A2E28',
+  },
+}
+
+type Neutral = Exclude<keyof Tokens, 'countBg'>
+
+const neutral = (bg: Neutral, bd: Neutral, key: Color): TogglePalette => {
+  const paint = (tone: Tone): KindPaint => {
+    const t = TOKENS[tone]
+    return { fg: t.ink2, bg: t[bg], bd: t[bd] }
+  }
+  return { light: paint('light'), dark: paint('dark'), key }
+}
+
+const RULE = neutral('surface', 'lineStrong', 'text')
+
+const OPTIONAL = neutral('fill', 'line', 'subtle')
 
 export type ToggleTheme = {
   option: string
@@ -23,12 +114,6 @@ export type ToggleTheme = {
   palette: TogglePalette
 }
 
-const NEUTRAL: TogglePalette = {
-  light: { fg: '#2A2D35', tint: '#F0F1F4' },
-  dark: { fg: '#C9CCD3', tint: '#2A2C31' },
-  key: 'subtle',
-}
-
 export const TOGGLES: Record<Toggle, ToggleTheme> = {
   skill: {
     option: 'show_skills',
@@ -43,8 +128,8 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     showsTally: true,
     dim: false,
     palette: {
-      light: { fg: '#1F4FC1', tint: '#EDF2FD' },
-      dark: { fg: '#8FB0FF', tint: '#1B2A4A' },
+      light: { fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7' },
+      dark: { fg: '#8FB0FF', bg: '#1B2A4A', bd: '#2D4373' },
       key: 'suggestion',
     },
   },
@@ -61,8 +146,8 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     showsTally: true,
     dim: false,
     palette: {
-      light: { fg: '#5B3A99', tint: '#F3EEFB' },
-      dark: { fg: '#C3A8F5', tint: '#2C2147' },
+      light: { fg: '#5B3A99', bg: '#F3EEFB', bd: '#D9CCF0' },
+      dark: { fg: '#C3A8F5', bg: '#2C2147', bd: '#463470' },
       key: 'merged',
     },
   },
@@ -79,8 +164,8 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     showsTally: true,
     dim: true,
     palette: {
-      light: { fg: '#9C1F62', tint: '#FCEEF5' },
-      dark: { fg: '#F29BC8', tint: '#3D1A2D' },
+      light: { fg: '#9C1F62', bg: '#FCEEF5', bd: '#F0C8DC' },
+      dark: { fg: '#F29BC8', bg: '#3D1A2D', bd: '#63304A' },
       key: 'merged',
     },
   },
@@ -97,8 +182,8 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     showsTally: true,
     dim: false,
     palette: {
-      light: { fg: '#0E6159', tint: '#E8F5F2' },
-      dark: { fg: '#7FD6C8', tint: '#123A35' },
+      light: { fg: '#0E6159', bg: '#E8F5F2', bd: '#BCE0D8' },
+      dark: { fg: '#7FD6C8', bg: '#123A35', bd: '#22594F' },
       key: 'permission',
     },
   },
@@ -115,8 +200,8 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     showsTally: true,
     dim: false,
     palette: {
-      light: { fg: '#9A4A0B', tint: '#FDF1E6' },
-      dark: { fg: '#F5B47A', tint: '#3D2614' },
+      light: { fg: '#9A4A0B', bg: '#FDF1E6', bd: '#F0CFAE' },
+      dark: { fg: '#F5B47A', bg: '#3D2614', bd: '#643F20' },
       key: 'warning',
     },
   },
@@ -132,11 +217,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     optional: false,
     showsTally: true,
     dim: false,
-    palette: {
-      light: { fg: '#2A2D35', tint: '#FFFFFF' },
-      dark: { fg: '#D5D8DE', tint: '#24262C' },
-      key: 'text',
-    },
+    palette: RULE,
   },
   command: {
     option: 'show_commands',
@@ -150,7 +231,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     optional: true,
     showsTally: true,
     dim: true,
-    palette: NEUTRAL,
+    palette: OPTIONAL,
   },
   memory: {
     option: 'show_memory',
@@ -164,7 +245,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     optional: true,
     showsTally: true,
     dim: true,
-    palette: NEUTRAL,
+    palette: OPTIONAL,
   },
   plugin: {
     option: 'show_plugins',
@@ -178,7 +259,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     optional: true,
     showsTally: false,
     dim: true,
-    palette: NEUTRAL,
+    palette: OPTIONAL,
   },
   context: {
     option: 'show_context',
@@ -192,7 +273,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     optional: true,
     showsTally: false,
     dim: true,
-    palette: NEUTRAL,
+    palette: OPTIONAL,
   },
   checkpoint: {
     option: 'show_checkpoints',
@@ -206,7 +287,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     optional: true,
     showsTally: true,
     dim: true,
-    palette: NEUTRAL,
+    palette: OPTIONAL,
   },
   model: {
     option: 'show_model',
@@ -220,7 +301,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     optional: true,
     showsTally: true,
     dim: true,
-    palette: NEUTRAL,
+    palette: OPTIONAL,
   },
   background: {
     option: 'show_background',
@@ -234,7 +315,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     optional: true,
     showsTally: true,
     dim: true,
-    palette: NEUTRAL,
+    palette: OPTIONAL,
   },
 }
 
@@ -257,23 +338,10 @@ export const mix = (a: string, b: string, t: number) => {
   return `#${hex.join('').toUpperCase()}`
 }
 
-export const BORDER_MIX = 0.2
-
 export const HOVER_MIX = 0.1
 
-export const STAT_TILE = { light: '#F5F6F8', dark: '#2A2C31' } as const
-
+/** The Blocked and Denied badge: white on red in both tones. */
 export const STOPPED = { fg: '#FFFFFF', bg: '#B42318' } as const
-
-export const STOPPED_BORDER = { light: '#E8A39C', dark: '#B5544A' } as const
-
-export const ERROR_FG = { light: '#B42318', dark: '#FF8A80' } as const
-
-export const ERROR_TINT = { light: '#FFFFFF', dark: '#2A1A1A' } as const
-
-export const CARD_BORDER = { light: '#DADCE1', dark: '#3A3D44' } as const
-
-export const MORE_BORDER = { light: '#B9BCC4', dark: '#50545C' } as const
 
 export const SPINNER = ['◐', '◓', '◑', '◒'] as const
 
@@ -281,9 +349,34 @@ export const SPIN_MS = 150
 
 export const FRESH_MS = 4000
 
-export const paletteFor = (theme: unknown): Palette => {
-  const match = typeof theme === 'string' ? /^(light|dark)(-daltonized)?$/.exec(theme) : null
-  return match ? (match[1] === 'light' ? 'light' : 'dark') : undefined
+const CLAUDE_THEME = /^(light|dark)(-daltonized|-ansi)?$/
+
+export type ToneInput = {
+  chipStyle: ChipStyle
+  chipTheme: ChipTheme
+  /** The Claude Code `theme` setting. */
+  claudeTheme: unknown
+  surface: RenderSurface
+  /** The tone `COLORFGBG` names, when the terminal sets it. */
+  colorFgBg: Tone | undefined
+  /** The tone the operating system appearance names. */
+  system: Tone | undefined
+}
+
+/**
+ * The tone chips are drawn in, or undefined for the untinted look. Claude Code's own
+ * `auto` theme answers an OSC 11 query mods cannot see, so the terminal falls back to
+ * `COLORFGBG`, then the OS appearance. Other surfaces follow the OS or app first.
+ */
+export const resolveTone = (input: ToneInput): Tone | undefined => {
+  const { chipStyle, chipTheme, claudeTheme, surface, colorFgBg, system } = input
+  if (chipStyle === 'text') return undefined
+  if (chipTheme !== 'auto') return chipTheme
+  const match = typeof claudeTheme === 'string' ? CLAUDE_THEME.exec(claudeTheme) : null
+  const isAnsi = match?.[2] === '-ansi'
+  const claude = match && !isAnsi ? (match[1] as Tone) : undefined
+  if (surface !== 'terminal') return system ?? claude ?? 'light'
+  return isAnsi ? undefined : (claude ?? colorFgBg ?? system ?? 'dark')
 }
 
 export type StatusTheme = { label: string; badge?: string; glyph?: string; color?: Color }

@@ -31,7 +31,7 @@ import {
 import { renderPane, type PaneFlag } from '../src/pane'
 import { lineSummary, markdownSummary } from '../src/summary'
 import { renderBand, type Ui } from '../src/render'
-import { FRESH_MS, paletteFor, SPIN_MS, TOGGLE_ORDER, type Palette } from '../src/theme'
+import { FRESH_MS, resolveTone, SPIN_MS, TOGGLE_ORDER, type Tone } from '../src/theme'
 
 const PANE = 'session-activity'
 const COMMAND = 'session-activity'
@@ -122,10 +122,20 @@ async function writeOverrides(
   await refresh($, options)
 }
 
-async function toneOf($: EngineInterface, settings: Settings): Promise<Palette> {
-  if (settings.chipStyle === 'text') return undefined
+async function toneOf(
+  $: EngineInterface,
+  settings: Settings,
+  surface: RenderSurface,
+): Promise<Tone | undefined> {
   const theme = (await $.config.list()).find(row => row.key === 'theme')
-  return paletteFor(theme?.value)
+  return resolveTone({
+    chipStyle: settings.chipStyle,
+    chipTheme: settings.chipTheme,
+    claudeTheme: theme?.value,
+    surface,
+    colorFgBg: undefined,
+    system: undefined,
+  })
 }
 
 async function openPane($: EngineInterface, view: PaneView, id?: string, rows?: number) {
@@ -325,7 +335,7 @@ export const register: Register = (on, options) => {
       columns: e.props.bodyColumns,
       maxRows: e.props.maxRows,
       now: await $.clock.now(),
-      tone: await toneOf($, settings),
+      tone: await toneOf($, settings, e.surface),
       chips,
       settings,
       selected: await read($, selected),
@@ -353,7 +363,7 @@ export const register: Register = (on, options) => {
       ui: uiFor($, e),
       columns: e.props.bodyColumns,
       now: await $.clock.now(),
-      tone: await toneOf($, settings),
+      tone: await toneOf($, settings, e.surface),
       activations: await read($, activations),
       settings,
       muted: await read($, muted),

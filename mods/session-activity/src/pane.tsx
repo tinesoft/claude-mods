@@ -25,7 +25,7 @@ import {
   lookOf,
   type Ui,
 } from './render'
-import { isUrgent, KIND_ORDER, type Palette, STATUSES, TOGGLE_ORDER, TOGGLES } from './theme'
+import { isUrgent, KIND_ORDER, type Tone, STATUSES, TOGGLE_ORDER, TOGGLES } from './theme'
 
 const GAP = 3
 
@@ -37,7 +37,7 @@ export type PaneArgs = {
   ui: Ui
   columns: number
   now: number
-  tone: Palette
+  tone: Tone | undefined
   activations: readonly Activation[]
   settings: Settings
   muted: readonly string[]

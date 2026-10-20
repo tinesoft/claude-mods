@@ -1,4 +1,4 @@
-import type { Activation, Kind, Overrides, Settings, Status, Toggle } from '../types'
+import type { Activation, ChipTheme, Kind, Overrides, Settings, Status, Toggle } from '../types'
 import { isUrgent, KIND_ORDER, TOGGLE_ORDER, TOGGLES } from './theme'
 
 export type Observed = Omit<Activation, 'count' | 'firstAt' | 'lastAt' | 'runningAgentIds'> & {
@@ -92,6 +92,9 @@ export const bandOrder = (list: readonly Activation[]): Activation[] =>
 
 const flag = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback)
 
+const chipTheme = (value: unknown): ChipTheme =>
+  value === 'light' || value === 'dark' ? value : 'auto'
+
 export const resolveSettings = (
   options: Readonly<Record<string, unknown>>,
   overrides: Overrides | undefined,
@@ -107,6 +110,7 @@ export const resolveSettings = (
     layout: overrides?.layout ?? (options.layout === 'summary' ? 'summary' : 'row'),
     maxChips: Number.isFinite(max) ? Math.min(20, Math.max(1, Math.round(max))) : 6,
     chipStyle: overrides?.chipStyle ?? (options.chip_style === 'text' ? 'text' : 'tinted'),
+    chipTheme: overrides?.chipTheme ?? chipTheme(options.chip_theme),
     hotkeys: overrides?.hotkeys ?? flag(options.chip_hotkeys, false),
     toastOnBlock: overrides?.toastOnBlock ?? flag(options.toast_on_block, true),
     textSummary: overrides?.textSummary ?? flag(options.text_summary, false),
