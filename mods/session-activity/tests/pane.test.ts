@@ -110,8 +110,12 @@ test('selecting a row expands it with its source, and the band shows the same se
   const pane = await mountPane($)
   await pane.press({ key: 'row-skill-docx' })
   expect(await texts(pane)).toContain('/skills/docx/SKILL.md')
-  expect((await pane.find({ key: 'mute' }))?.props.hotkey).toBe('m')
-  expect((await pane.find({ key: 'copy' }))?.props.hotkey).toBe('c')
+  expect((await pane.find({ key: 'mute-skill-docx' }))?.props.hotkey).toBe('m')
+  expect((await pane.find({ key: 'mute-mcp-github' }))?.props.hotkey).toBeUndefined()
+  expect(await pane.find({ key: 'copy' })).toMatchObject({
+    text: 'c: Copy path',
+    props: { hotkey: 'c' },
+  })
   expect(await (await mountBand($)).find({ key: 'card' })).toBeDefined()
 })
 
@@ -141,12 +145,12 @@ test('muting hides a chip from the band, keeps it dim with a Muted badge in the 
   const { status } = stubEngine(on)
   await activity($)
   const pane = await mountPane($)
-  await pane.press({ key: 'row-skill-docx' })
-  await pane.press({ key: 'mute' })
+  await pane.press({ key: 'mute-skill-docx' })
   expect(await (await mountBand($)).find({ key: 'chip-skill-docx' })).toBeUndefined()
   expect((await pane.find({ key: 'row-skill-docx' }))?.text).toContain('Muted')
   expect(status()).toBe('2 active · /session-activity')
-  await pane.press({ key: 'mute' })
+  expect((await pane.find({ key: 'mute-skill-docx' }))?.text).toBe('Unmute')
+  await pane.press({ key: 'mute-skill-docx' })
   expect(await (await mountBand($)).find({ key: 'chip-skill-docx' })).toBeDefined()
   expect(status()).toBe('3 active · /session-activity')
 })
@@ -324,8 +328,8 @@ test('a blocked chip of a hidden type is still listed in the pane, without a mut
   await activity($)
   const pane = await mountPane($)
   expect(await pane.find({ key: 'filter-hook' })).toBeDefined()
-  await pane.press({ key: 'row-hook-PreToolUse' })
-  expect(await pane.find({ key: 'mute' })).toBeUndefined()
+  expect(await pane.find({ key: 'mute-hook-PreToolUse' })).toBeUndefined()
+  expect(await texts(pane)).toContain('Stopped and errored chips always show.')
 })
 
 test('toggling a type twice turns it back on', async ($, on) => {

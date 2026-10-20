@@ -15,17 +15,19 @@ import { hexOr, switchSvg, SWITCH_SIZE } from './icons'
 import {
   agoLabel,
   Badge,
+  badgeOf,
   ago,
   ChipRow,
   clip,
   DetailCard,
   Icon,
+  inkOf,
   isRich,
   kindIcon,
   lookOf,
   type Ui,
 } from './render'
-import { isUrgent, KIND_ORDER, type Tone, STATUSES, TOGGLE_ORDER, TOGGLES } from './theme'
+import { isUrgent, KIND_ORDER, TOGGLE_ORDER, TOGGLES, TOKENS, type Tone } from './theme'
 
 const GAP = 3
 
@@ -93,17 +95,70 @@ const Filters = ({ ui, tone, activations, settings, filter, on }: PaneArgs) => {
       listed.filter(a => a.kind === kind).length,
     ]),
   ]
+  const segmented = isRich(ui) && tone !== undefined
+  const t = tone === undefined ? undefined : TOKENS[tone]
   return (
-    <Box flexDirection="row" flexWrap="wrap" columnGap={GAP}>
-      {choices.map(([id, hotkey, title, n]) => (
-        <Box key={`filterbox-${id}`} flexDirection="row" columnGap={1}>
-          {isRich(ui) && id !== 'all' && kindIcon(ui, id, lookOf(id, tone))}
-          <Button key={`filter-${id}`} plain hotkey={hotkey} onPress={() => on.filter(id)}>
-            <Text bold={filter === id} dimColor={filter !== id}>{`${title} ${n}`}</Text>
-          </Button>
-        </Box>
-      ))}
+    <Box
+      flexDirection="row"
+      flexWrap="wrap"
+      columnGap={segmented ? 0 : GAP}
+      {...(segmented && { backgroundColor: t!.fill })}
+    >
+      {choices.map(([id, hotkey, title, n]) => {
+        const isOn = filter === id
+        const bg = segmented ? (isOn ? t!.surface : t!.fill) : undefined
+        return (
+          <Box key={`filterbox-${id}`} paddingX={segmented ? 1 : 0} {...withTint(bg)}>
+            <Button key={`filter-${id}`} plain hotkey={hotkey} onPress={() => on.filter(id)}>
+              <Text
+                bold={isOn}
+                {...(segmented ? inkOf(ui, tone, isOn ? 'ink' : 'text2', bg) : { dimColor: !isOn })}
+              >{`${title} ${n}`}</Text>
+            </Button>
+          </Box>
+        )
+      })}
     </Box>
+  )
+}
+
+/** The row's type mark: a rounded tile holding the icon on rich surfaces, a tinted glyph in the terminal. */
+const RowIcon = ({ args, a, muted }: { args: PaneArgs; a: Activation; muted: boolean }) => {
+  const { ui, tone } = args
+  const { Box, Text } = ui
+  const look = lookOf(a.kind, tone)
+  if (isRich(ui)) {
+    return (
+      <Box
+        paddingX={1}
+        {...withTint(look.tint)}
+        {...(tone !== undefined && { borderStyle: 'round', borderColor: look.border })}
+      >
+        {kindIcon(ui, a.kind, look)}
+      </Box>
+    )
+  }
+  return (
+    <Text color={look.color} dimColor={look.dim || muted} {...withTint(look.tint)}>
+      {` ${TOGGLES[a.kind].glyph} `}
+    </Text>
+  )
+}
+
+const MutedBadge = ({ ui, tone }: { ui: Ui; tone: Tone | undefined }) => {
+  const { Text } = ui
+  if (tone === undefined) {
+    return (
+      <Text bold inverse dimColor>
+        {' Muted '}
+      </Text>
+    )
+  }
+  const { text2, lineSoft } = TOKENS[tone]
+  return (
+    <Text color={text2} backgroundColor={lineSoft}>
+      {' Muted '}
+    </Text>
   )
 }
 
@@ -114,78 +169,71 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
   const isSelected = selected === id
   const isMuted = muted.includes(id)
   const look = lookOf(a.kind, tone)
-  const { color, tint, dim } = look
-  const badgeText = STATUSES[a.status].badge
-  const desktop = isRich(ui)
+  const badgeText = badgeOf(a.status, tone, isRich(ui))
+  const urgent = isUrgent(a.status)
   return (
     <Box
       key={`rowbox-${id}`}
       flexDirection="column"
-      {...(desktop && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
+      {...(isRich(ui) && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
       <Box flexDirection="row" justifyContent="space-between">
-        <Box flexDirection="row">
-          {desktop && <Box paddingRight={1}>{kindIcon(ui, a.kind, look)}</Box>}
+        <Box flexDirection="row" columnGap={1}>
+          <RowIcon args={args} a={a} muted={isMuted} />
           <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
             <Text>{isSelected ? '▸' : ' '}</Text>
-            {!desktop && (
-              <Text
-                color={color}
-                dimColor={dim || isMuted}
-                {...withTint(tint)}
-              >{` ${TOGGLES[a.kind].glyph} `}</Text>
-            )}
             <Text bold dimColor={isMuted}>{` ${clip(a.label, 28)}`}</Text>
             {a.meta !== undefined && (
-              <Text dimColor>{` ${clip(a.meta, Math.max(8, columns - 52))}`}</Text>
-            )}
-            {badgeText !== undefined && <Badge ui={ui} text={badgeText} tone={tone} />}
-            {isMuted && (
-              <Text bold inverse dimColor>
-                {' Muted '}
+              <Text {...inkOf(ui, tone, 'muted')}>
+                {` ${clip(a.meta, Math.max(8, columns - 52))}`}
               </Text>
             )}
+            {badgeText !== '' && <Badge ui={ui} text={badgeText} tone={tone} status={a.status} />}
+            {isMuted && <MutedBadge ui={ui} tone={tone} />}
           </Button>
         </Box>
-        <Text dimColor>{`×${a.count} · ${ago(now - a.lastAt)}`}</Text>
+        <Box flexDirection="row" columnGap={2}>
+          <Text {...inkOf(ui, tone, 'text2')}>{`×${a.count} · ${ago(now - a.lastAt)}`}</Text>
+          {!urgent && (
+            <Button
+              key={`mute-${a.kind}-${a.key}`}
+              plain
+              {...(isSelected && { hotkey: 'm' })}
+              label={isMuted ? 'Unmute' : 'Mute'}
+              onPress={() => on.mute(id)}
+            />
+          )}
+        </Box>
       </Box>
       <Box flexDirection="column" paddingLeft={6}>
-        {!isSelected && (
-          <Text dimColor wrap="truncate-end">
-            {a.detail}
-          </Text>
+        <Text
+          wrap={isSelected ? 'wrap' : 'truncate-end'}
+          {...inkOf(ui, tone, isSelected ? 'ink2' : 'text2')}
+        >
+          {a.detail}
+        </Text>
+        {urgent && (
+          <Text {...inkOf(ui, tone, 'muted')}>Stopped and errored chips always show.</Text>
         )}
         {isSelected && (
           <Box flexDirection="column">
-            <Text wrap="wrap">{a.detail}</Text>
-            {a.plugin !== undefined && <Text dimColor>{`from plugin ${a.plugin}`}</Text>}
-            {a.source !== undefined && (
-              <Text dimColor wrap="truncate-middle">
-                {a.source}
-              </Text>
+            {a.plugin !== undefined && (
+              <Text {...inkOf(ui, tone, 'muted')}>{`from plugin ${a.plugin}`}</Text>
             )}
-            <Box flexDirection="row" columnGap={GAP}>
-              {isUrgent(a.status) ? (
-                <Text dimColor>Stopped and errored chips always show.</Text>
-              ) : (
-                <Button
-                  key="mute"
-                  plain
-                  hotkey="m"
-                  label={isMuted ? 'Unmute' : 'Mute'}
-                  onPress={() => on.mute(id)}
-                />
-              )}
-              {a.source !== undefined && (
+            {a.source !== undefined && (
+              <>
+                <Text wrap="truncate-middle" {...inkOf(ui, tone, 'muted')}>
+                  {a.source}
+                </Text>
                 <Button
                   key="copy"
                   plain
                   hotkey="c"
-                  label="Copy path"
+                  label="c: Copy path"
                   onPress={() => on.copy(a.source!)}
                 />
-              )}
-            </Box>
+              </>
+            )}
           </Box>
         )}
       </Box>
@@ -200,18 +248,32 @@ const Activity = (args: PaneArgs) => {
   const listed = activations.filter(a => inPane(a, settings))
   const total = listed.reduce((sum, a) => sum + a.count, 0)
   const started = startedAgo(listed, now)
+  const link = isRich(ui) && tone !== undefined
   return (
     <Box flexDirection="column">
-      <Box flexDirection="row" columnGap={GAP}>
-        <Text dimColor>
+      <Text bold>Session activity</Text>
+      <Box flexDirection="row" columnGap={1}>
+        <Text {...inkOf(ui, tone, 'muted')}>
           {`${listed.length} items · ${total} activations · started ${started < 60_000 ? 'just now' : agoLabel(started)}`}
         </Text>
-        <Button key="customize" plain dimColor onPress={() => on.view('settings')}>
-          <Text dimColor>Customize</Text>
-        </Button>
+        <Text {...inkOf(ui, tone, 'muted')}>·</Text>
+        <Box key="customize-link">
+          <Button
+            key="customize"
+            plain
+            {...(link && { hover: { color: TOKENS[tone].linkHover } })}
+            onPress={() => on.view('settings')}
+          >
+            <Text {...(link ? { color: TOGGLES.skill.palette[tone].fg } : { dimColor: true })}>
+              Customize
+            </Text>
+          </Button>
+        </Box>
       </Box>
       <Filters {...args} />
-      {groups.length === 0 && <Text dimColor>Nothing has activated yet in this session.</Text>}
+      {groups.length === 0 && (
+        <Text {...inkOf(ui, tone, 'muted')}>Nothing has activated yet in this session.</Text>
+      )}
       {groups.map(group => {
         const { color, dim } = lookOf(group.kind, tone)
         return (
@@ -220,7 +282,7 @@ const Activity = (args: PaneArgs) => {
               <Text color={color} dimColor={dim}>
                 {TOGGLES[group.kind].plural.toUpperCase()}
               </Text>
-              <Text dimColor>{String(group.rows.length)}</Text>
+              <Text {...inkOf(ui, tone, 'muted')}>{String(group.rows.length)}</Text>
             </Box>
             {group.rows.map(a => (
               <Row args={args} a={a} />

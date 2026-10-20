@@ -135,6 +135,13 @@ type Parts = {
   badge: string
 }
 
+/** The badge a status wears: the design's mixed-case word on rich tinted chips, else the upper-case one. */
+export const badgeOf = (status: Status, tone: Tone | undefined, rich: boolean) => {
+  if (status === 'error' && tone !== undefined) return 'Error'
+  const theme = STATUSES[status]
+  return rich && tone !== undefined && isStopped(status) ? theme.label : (theme.badge ?? '')
+}
+
 const partsOf = (
   a: Activation,
   settings: Settings,
@@ -145,7 +152,6 @@ const partsOf = (
   const status = STATUSES[a.status]
   const frame = Math.floor(now / SPIN_MS)
   const tally = a.count > 1 && TOGGLES[a.kind].showsTally ? `×${a.count}` : ''
-  const named = rich && tone !== undefined
   return {
     glyph:
       a.status === 'running'
@@ -155,12 +161,7 @@ const partsOf = (
     label: clip(a.label, LABEL_MAX),
     count: tone !== undefined && tally !== '' ? ` ${tally} ` : tally,
     via: settings.shown.plugin && a.plugin !== undefined ? `via ${clip(a.plugin, 16)}` : '',
-    badge:
-      a.status === 'error' && tone !== undefined
-        ? 'Error'
-        : named && isStopped(a.status)
-          ? status.label
-          : (status.badge ?? ''),
+    badge: badgeOf(a.status, tone, rich),
   }
 }
 
