@@ -1,4 +1,4 @@
-import type { Color } from 'claude-code'
+import type { Color, RenderSurface } from 'claude-code'
 
 import type {
   Activation,
@@ -20,7 +20,7 @@ import {
   clip,
   DetailCard,
   Icon,
-  isDesktop,
+  isRich,
   kindIcon,
   lookOf,
   type Ui,
@@ -35,6 +35,7 @@ export type PaneFlag = 'enabled' | 'hotkeys' | 'toastOnBlock' | 'textSummary'
 
 export type PaneArgs = {
   ui: Ui
+  surface: RenderSurface
   columns: number
   now: number
   tone: Tone | undefined
@@ -96,7 +97,7 @@ const Filters = ({ ui, tone, activations, settings, filter, on }: PaneArgs) => {
     <Box flexDirection="row" flexWrap="wrap" columnGap={GAP}>
       {choices.map(([id, hotkey, title, n]) => (
         <Box key={`filterbox-${id}`} flexDirection="row" columnGap={1}>
-          {isDesktop(ui) && id !== 'all' && kindIcon(ui, id, lookOf(id, tone))}
+          {isRich(ui) && id !== 'all' && kindIcon(ui, id, lookOf(id, tone))}
           <Button key={`filter-${id}`} plain hotkey={hotkey} onPress={() => on.filter(id)}>
             <Text bold={filter === id} dimColor={filter !== id}>{`${title} ${n}`}</Text>
           </Button>
@@ -115,7 +116,7 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
   const look = lookOf(a.kind, tone)
   const { color, tint, dim } = look
   const badgeText = STATUSES[a.status].badge
-  const desktop = isDesktop(ui)
+  const desktop = isRich(ui)
   return (
     <Box
       key={`rowbox-${id}`}
@@ -337,7 +338,7 @@ const Segments = <T extends string>({
 }
 
 const SettingsTab = (args: PaneArgs) => {
-  const { ui, columns, now, tone, settings, on } = args
+  const { ui, surface, columns, now, tone, settings, on } = args
   const { Box, Button, Text } = ui
   const optional = TOGGLE_ORDER.filter(t => TOGGLES[t].optional)
   const optionalOn = optional.filter(t => settings.shown[t]).length
@@ -390,6 +391,7 @@ const SettingsTab = (args: PaneArgs) => {
         {settings.enabled ? (
           <ChipRow
             ui={ui}
+            surface={surface}
             columns={columns}
             now={now}
             tone={tone}

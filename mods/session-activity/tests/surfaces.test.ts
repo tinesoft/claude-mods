@@ -39,11 +39,12 @@ for (const surface of SURFACES) {
     })
     await clock.advance(FRESH)
 
-    const band = await mountBand($, surface, 70)
+    const band = await mountBand($, surface, surface === 'mobile' ? 85 : 70)
     const boxes = (await band.findAll({ type: 'Box' })).filter(b => b.key?.startsWith('box-'))
     expect(boxes.length).toBeGreaterThanOrEqual(2)
     expect(boxes.some(b => b.text.includes('Explore'))).toBe(true)
-    expect(boxes.some(b => b.text.includes('BLOCKED'))).toBe(true)
+    const badge = surface === 'terminal' ? 'BLOCKED' : 'Blocked'
+    expect(boxes.some(b => b.text.includes(badge))).toBe(true)
     expect(await band.find({ key: 'more' })).toBeDefined()
 
     const wide = await mountBand($, surface, 100, 40)

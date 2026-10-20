@@ -1,0 +1,190 @@
+import { expect, test } from 'claude-code/testing'
+import type { Engine, MockClock } from 'claude-code/testing'
+import { FRESH, type Finder, mountBand, session, stubEngine, SURFACES } from './harness'
+
+const TONES = {
+  light: {
+    skill: { fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7' },
+    count: '#DEE3ED',
+    surface: '#FFFFFF',
+    line: '#DADCE1',
+    dashed: '#B9BCC4',
+    text2: '#3B3F48',
+    danger: '#B42318',
+    dangerBd: '#E8A39C',
+  },
+  dark: {
+    skill: { fg: '#8FB0FF', bg: '#1B2A4A', bd: '#2D4373' },
+    count: '#323F5C',
+    surface: '#1B1D21',
+    line: '#34373E',
+    dashed: '#5A5F69',
+    text2: '#B4B8C1',
+    danger: '#F97066',
+    dangerBd: '#7A2E28',
+  },
+} as const
+
+const skill = ($: Engine, name = 'docx') =>
+  $.skill.prompt({ skill: name, text: '', frontmatter: {}, source: 'plugin' } as never)
+
+const agentInterrupted = async ($: Engine, clock: MockClock) => {
+  await $.agent.spawn({
+    tool_use_id: 'tu',
+    prompt: 'p',
+    description: 'pr',
+    subagentType: 'Explore',
+    provider: { plugin: 'engine', tier: 'core' },
+    parentModel: 'opus',
+    background: false,
+    fork: false,
+  } as never)
+  await $.turn.complete({
+    answer: '',
+    durationMs: 1,
+    isAborted: true,
+    turnId: 't',
+    agentId: 'agent-pr',
+    reason: 'aborted',
+  })
+  await clock.advance(FRESH)
+}
+
+const chipBox = async (band: Finder, key: string) =>
+  (await band.findAll({ type: 'Box' })).find(b => b.key === `box-${key}`)!
+
+const textOf = async (band: Finder, text: string) =>
+  (await band.findAll({ type: 'Text' })).find(t => t.text === text)
+
+for (const surface of SURFACES) {
+  const rich = surface !== 'terminal'
+  for (const tone of ['light', 'dark'] as const) {
+    const t = TONES[tone]
+
+    test(`${tone} on ${surface}: a chip takes the kind paint, and a count its wash`, async ($, on) => {
+      const clock = session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      await skill($)
+      await skill($)
+      await clock.advance(FRESH)
+      const band = await mountBand($, surface, 120)
+      const box = await chipBox(band, 'skill:docx')
+      expect(box.props.backgroundColor).toBe(t.skill.bg)
+      if (rich) expect(box.props).toMatchObject({ borderStyle: 'round', borderColor: t.skill.bd })
+      else expect(box.props.borderStyle).toBeUndefined()
+      expect((await textOf(band, 'docx'))?.props.color).toBe(t.skill.fg)
+      expect((await textOf(band, ' ×2 '))?.props).toMatchObject({
+        color: t.skill.fg,
+        backgroundColor: t.count,
+      })
+    })
+
+    test(`${tone} on ${surface}: blocked and denied show a white-on-red badge`, async ($, on) => {
+      const clock = session(on, {}, new Map(), tone, [surface])
+      stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
+      await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
+      await clock.advance(FRESH)
+      const band = await mountBand($, surface, 120)
+      const badge = await textOf(band, rich ? ' Denied ' : ' DENIED ')
+      expect(badge?.props).toMatchObject({ color: '#FFFFFF', backgroundColor: '#B42318' })
+      const [key] = [
+        (await band.findAll({ type: 'Box' })).find(b => b.key?.startsWith('box-perm'))!.key!,
+      ]
+      const box = await chipBox(band, key.slice(4))
+      if (rich) expect(box.props.borderColor).toBe(t.dangerBd)
+    })
+
+    test(`${tone} on ${surface}: an error is plain bold red on the surface colour`, async ($, on) => {
+      const clock = session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      await agentInterrupted($, clock)
+      const band = await mountBand($, surface, 120)
+      const box = await chipBox(band, 'agent:Explore')
+      expect(box.props.backgroundColor).toBe(t.surface)
+      if (rich) expect(box.props).toMatchObject({ borderStyle: 'dashed', borderColor: t.danger })
+      else expect(box.props.borderStyle).toBeUndefined()
+      const badge = await textOf(band, 'Error')
+      expect(badge?.props).toMatchObject({
+        bold: true,
+        color: t.danger,
+        backgroundColor: t.surface,
+      })
+      expect(badge?.props.inverse).toBeUndefined()
+      if (rich) {
+        const [icon] = (await band.findAll({ type: 'Svg' })).filter(i => i.props.alt === 'Agent')
+        expect(icon!.props.source).toContain(t.danger)
+        expect(icon!.props.source).toContain('M8 2L14.5 13.5h-13z')
+      }
+    })
+
+    test(`${tone} on ${surface}: the selected chip draws its border in the kind colour`, async ($, on) => {
+      const clock = session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      await skill($)
+      await clock.advance(FRESH)
+      await (await mountBand($, surface, 120, 40)).press({ key: 'chip-skill-docx' })
+      const box = await chipBox(await mountBand($, surface, 120, 40), 'skill:docx')
+      if (rich) expect(box.props.borderColor).toBe(t.skill.fg)
+      else expect(box.props.borderColor).toBeUndefined()
+    })
+
+    test(`${tone} on ${surface}: +N more is text-2, dashed on rich surfaces`, async ($, on) => {
+      const clock = session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      for (const name of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) await skill($, name)
+      await clock.advance(FRESH)
+      const band = await mountBand($, surface, 60)
+      const more = (await band.findAll({ type: 'Text' })).find(x => /^\+\d+ more$/.test(x.text))
+      expect(more).toBeDefined()
+      if (rich) expect(more!.props.color).toBe(t.text2)
+      const dashed = (await band.findAll({ type: 'Box' })).filter(
+        b => b.props.borderStyle === 'dashed',
+      )
+      if (rich) expect(dashed.map(b => b.props.borderColor)).toEqual([t.dashed])
+      else expect(dashed).toEqual([])
+    })
+  }
+}
+
+test('mobile leads with an N active chip that opens the pane; the others have none', async ($, on) => {
+  const clock = session(on, {}, new Map(), 'light', ['mobile'])
+  const { opens } = stubEngine(on)
+  for (const name of ['a', 'b', 'c']) await skill($, name)
+  await clock.advance(FRESH)
+  const band = await mountBand($, 'mobile', 120)
+  expect((await band.find({ key: 'lead' }))?.text).toBe('3 active')
+  expect(await textOf(band, ' ●')).toBeUndefined()
+  await band.press({ key: 'lead' })
+  expect(opens).toEqual([expect.objectContaining({ id: 'session-activity' })])
+  for (const surface of ['terminal', 'desktop', 'vscode'] as const) {
+    expect(await (await mountBand($, surface, 120)).find({ key: 'lead' })).toBeUndefined()
+  }
+})
+
+test('the mobile lead chip carries a red dot when something is blocked', async ($, on) => {
+  const clock = session(on, {}, new Map(), 'dark', ['mobile'])
+  stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
+  await skill($)
+  await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
+  await clock.advance(FRESH)
+  const band = await mountBand($, 'mobile', 120)
+  expect((await band.find({ key: 'lead' }))?.text).toBe('2 active ●')
+  expect((await textOf(band, ' ●'))?.props.color).toBe('#F97066')
+})
+
+test(
+  'untinted chips keep the theme-key look on every surface',
+  { options: { chip_style: 'text' } },
+  async ($, on) => {
+    const clock = session(on, {}, new Map(), 'dark', ['desktop'])
+    stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
+    await skill($)
+    await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
+    await clock.advance(FRESH)
+    const band = await mountBand($, 'desktop', 120)
+    expect((await textOf(band, 'docx'))?.props.color).toBe('suggestion')
+    expect((await textOf(band, ' DENIED '))?.props).toMatchObject({ inverse: true, color: 'error' })
+    const boxes = (await band.findAll({ type: 'Box' })).filter(b => b.key?.startsWith('box-'))
+    expect(boxes.map(b => b.props.borderStyle)).toEqual([undefined, undefined])
+  },
+)

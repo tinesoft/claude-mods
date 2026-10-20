@@ -11,9 +11,9 @@ for (const reason of ['clear', 'resume'] as const) {
     await pane.press({ key: 'tab-settings' })
     await pane.press({ key: 'layout-summary' })
     await $.session.end({ reason, sessionId: 's1', resume: {} } as never)
-    expect(await (await mountBand($)).find({ key: 'summary' })).toBeUndefined()
+    expect(await (await mountBand($)).find({ key: 'summary-mcp' })).toBeUndefined()
     await $.tool.call({ tool: 'mcp__github__get_issue' } as never)
-    expect((await (await mountBand($)).find({ key: 'summary' }))?.text).toBe('1 active · ⇌1')
+    expect((await (await mountBand($)).find({ key: 'summary-mcp' }))?.text).toBe('⇌1')
     expect(store.get('overrides')).toEqual({ layout: 'summary' })
   })
 }

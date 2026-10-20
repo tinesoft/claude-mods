@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import type { SURFACES } from './harness';
+import type { SURFACES } from './harness'
 import { mountBand, probes, session, stubEngine } from './harness'
 
 const LIGHT_SKILL = '#EDF2FD'

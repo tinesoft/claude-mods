@@ -99,7 +99,7 @@ test('a blocked hook takes the first seat even when everything else is newer', a
 })
 
 test(
-  'the summary layout is one tinted box with counts per type and a stopped tally',
+  'the summary layout is one tinted box with a count per type and a blocked tally',
   { options: { layout: 'summary' } },
   async ($, on) => {
     const clock = session(on)
@@ -107,16 +107,44 @@ test(
     await loadSkills($, clock)
     await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
     const band = await mountBand($, 'terminal', 100)
-    const summary = await band.find({ key: 'summary' })
-    expect(summary?.text).toBe('9 active · ▤8 ⚷1')
-    expect(await texts(band)).toContain('· ● 1 stopped')
+    expect((await band.find({ key: 'summary-skill' }))?.text).toBe('▤8')
+    expect((await band.find({ key: 'summary-perm' }))?.text).toBe('⚷1')
+    expect((await band.find({ key: 'summary-stopped' }))?.text).toBe('● 1 blocked')
+    expect(await texts(band)).not.toContain('9 active')
+    const counts = (await band.findAll({ type: 'Text' })).filter(
+      t => t.text === '▤8' || t.text === '⚷1',
+    )
+    expect(counts.map(t => t.props.color)).toEqual(['#8FB0FF', '#7FD6C8'])
+    const blocked = (await band.findAll({ type: 'Text' })).find(t => t.text === '● 1 blocked')
+    expect(blocked?.props).toMatchObject({ color: '#F97066', backgroundColor: '#1B1D21' })
     const boxes = await band.findAll({ type: 'Box' })
     expect(
-      boxes.some(b => b.text === '9 active · ▤8 ⚷1· ● 1 stopped' && b.props.backgroundColor),
+      boxes.some(b => b.text === '▤8⚷1● 1 blocked' && b.props.backgroundColor === '#1B1D21'),
     ).toBe(true)
-    expect(summary?.props.hotkey).toBeUndefined()
   },
 )
+
+for (const surface of ['desktop', 'vscode', 'mobile'] as const) {
+  test(
+    `on ${surface} the summary layout draws type icons in the type colour inside a round box`,
+    { options: { layout: 'summary' } },
+    async ($, on) => {
+      const clock = session(on, {}, new Map(), 'light', [surface])
+      stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
+      await loadSkills($, clock, ['alpha', 'bravo'])
+      await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
+      const band = await mountBand($, surface, 100)
+      expect((await band.find({ key: 'summary-skill' }))?.text).toBe('2')
+      expect((await band.findAll({ type: 'Svg' })).map(i => i.props.alt)).toEqual([
+        'Skill',
+        'Permission',
+      ])
+      const box = (await band.findAll({ type: 'Box' })).find(b => b.props.borderStyle === 'round')
+      expect(box?.props).toMatchObject({ borderColor: '#DADCE1', backgroundColor: '#FFFFFF' })
+      expect((await band.find({ key: 'summary-stopped' }))?.text).toBe('● 1 blocked')
+    },
+  )
+}
 
 test('with nothing recorded the band is what the engine drew', async ($, on) => {
   session(on)
@@ -175,13 +203,13 @@ test('the band draws on the terminal and on desktop', async ($, on) => {
   expect((await row($, 100, 'desktop')).boxes[0]!.text).toBe('hotel')
 })
 
-test('Svg icons are drawn on desktop only', async ($, on) => {
+test('Svg icons are drawn on every surface but the terminal', async ($, on) => {
   const clock = session(on)
   stubEngine(on)
   await loadSkills($, clock, ['alpha', 'bravo'])
   for (const surface of SURFACES) {
     const icons = await (await mountBand($, surface, 100)).findAll({ type: 'Svg' })
-    expect(icons.length).toBe(surface === 'desktop' ? 2 : 0)
+    expect(icons.length).toBe(surface === 'terminal' ? 0 : 2)
   }
   const [icon] = await (await mountBand($, 'desktop', 100)).findAll({ type: 'Svg' })
   expect(icon!.props).toMatchObject({ alt: 'Skill', width: 14, height: 14 })

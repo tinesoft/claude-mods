@@ -192,7 +192,7 @@ test('the layout buttons switch the band to one summary chip', async ($, on) => 
   await pane.press({ key: 'tab-settings' })
   await pane.press({ key: 'layout-summary' })
   const buttons = await (await mountBand($)).findAll({ type: 'Button' })
-  expect(buttons.map(b => b.key)).toEqual(['summary'])
+  expect(buttons.map(b => b.key)).toEqual(['summary-skill', 'summary-mcp', 'summary-hook'])
   expect(store.get('overrides')).toEqual({ layout: 'summary' })
   await pane.press({ key: 'layout-row' })
   expect(store.get('overrides')).toEqual({ layout: 'row' })
@@ -232,7 +232,7 @@ test('the settings preview is drawn by the band renderer and follows the toggles
   await pane.press({ key: 'toggle-skill' })
   expect(await preview()).not.toContain('▤docx')
   await pane.press({ key: 'layout-summary' })
-  expect((await pane.find({ key: 'summary' }))?.text).toStartWith('6 active')
+  expect((await pane.find({ key: 'summary-memory' }))?.text).toBe('✎1')
   await pane.press({ key: 'toggle-enabled' })
   expect(await texts(pane)).toContain(
     'Chips are hidden. Activity is still listed in the session tray.',

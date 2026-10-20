@@ -1,4 +1,4 @@
-import type { Color, ElementTable, RenderElement } from 'claude-code'
+import type { Color, ElementTable, RenderElement, RenderSurface } from 'claude-code'
 
 import type { Activation, Kind, Settings, Status } from '../types'
 import { errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg } from './icons'
@@ -7,6 +7,7 @@ import {
   FRESH_MS,
   HOVER_MIX,
   isStopped,
+  isUrgent,
   KIND_ORDER,
   mix,
   SPIN_MS,
@@ -18,14 +19,14 @@ import {
   TOKENS,
 } from './theme'
 
-/** `Svg` exists only where `$.ui.resolve(e)` is the Desktop table; it is the one Desktop switch. */
+/** `Svg` exists on every surface that draws rich (remote) elements, never on the terminal. */
 export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'> & {
   Svg?: ElementTable<'desktop'>['Svg']
 }
 
-export const isDesktop = (ui: Ui) => ui.Svg !== undefined
+export const isRich = (ui: Ui) => ui.Svg !== undefined
 
-const isPill = (ui: Ui, tone: Tone | undefined) => isDesktop(ui) && tone !== undefined
+const isPill = (ui: Ui, tone: Tone | undefined) => isRich(ui) && tone !== undefined
 
 const ICON_PX = 14
 
@@ -51,19 +52,63 @@ export type Look = {
   dim: boolean
   border: Color | undefined
   hover: Color | undefined
+  /** The wash behind a `×N` count, blended over the chip. */
+  count: Color | undefined
+}
+
+const countWash = (tint: string, tone: Tone) => {
+  const { base, alpha } = TOKENS[tone].countBg
+  return mix(tint, base, alpha)
 }
 
 export const lookOf = (kind: Kind | 'plugin', tone: Tone | undefined, status?: Status): Look => {
   const { palette, dim } = TOGGLES[kind]
   if (tone === undefined) {
-    return { color: palette.key, tint: undefined, dim, border: undefined, hover: undefined }
+    return {
+      color: palette.key,
+      tint: undefined,
+      dim,
+      border: undefined,
+      hover: undefined,
+      count: undefined,
+    }
   }
   if (status === 'error') {
     const { danger: fg, surface: tint } = TOKENS[tone]
-    return { color: fg, tint, dim: false, border: fg, hover: mix(tint, fg, HOVER_MIX) }
+    return {
+      color: fg,
+      tint,
+      dim: false,
+      border: fg,
+      hover: mix(tint, fg, HOVER_MIX),
+      count: countWash(tint, tone),
+    }
   }
   const { fg, bg: tint, bd: border } = palette[tone]
-  return { color: fg, tint, dim: false, border, hover: mix(tint, fg, HOVER_MIX) }
+  return {
+    color: fg,
+    tint,
+    dim: false,
+    border,
+    hover: mix(tint, fg, HOVER_MIX),
+    count: countWash(tint, tone),
+  }
+}
+
+type Role = 'ink' | 'ink2' | 'text2' | 'muted' | 'danger'
+
+/**
+ * Paint for text in a neutral role. A token colour needs a known background: rich surfaces
+ * draw their own, and a `bg` pins one in the terminal. Elsewhere the terminal keeps its
+ * own colours, dimmed for quiet text, and `error` stands for danger.
+ */
+export const inkOf = (ui: Ui, tone: Tone | undefined, role: Role, bg?: Color) => {
+  const back = bg === undefined ? {} : { backgroundColor: bg }
+  if (tone !== undefined && (isRich(ui) || bg !== undefined)) {
+    return { color: TOKENS[tone][role], ...back }
+  }
+  if (role === 'danger') return { color: 'error' as Color, ...back }
+  return role === 'text2' || role === 'muted' ? { dimColor: true, ...back } : back
 }
 
 type IconArgs = { ui: Ui; svg: string; alt: string; width?: number; height?: number }
@@ -90,9 +135,17 @@ type Parts = {
   badge: string
 }
 
-const partsOf = (a: Activation, settings: Settings, now: number, tone: Tone | undefined): Parts => {
+const partsOf = (
+  a: Activation,
+  settings: Settings,
+  now: number,
+  tone: Tone | undefined,
+  rich: boolean,
+): Parts => {
   const status = STATUSES[a.status]
-  const frame = Math.floor(now / 150)
+  const frame = Math.floor(now / SPIN_MS)
+  const tally = a.count > 1 && TOGGLES[a.kind].showsTally ? `×${a.count}` : ''
+  const named = rich && tone !== undefined
   return {
     glyph:
       a.status === 'running'
@@ -100,9 +153,14 @@ const partsOf = (a: Activation, settings: Settings, now: number, tone: Tone | un
         : (status.glyph ?? TOGGLES[a.kind].glyph),
     lead: a.lastAt > now - FRESH_MS ? '● ' : '',
     label: clip(a.label, LABEL_MAX),
-    count: a.count > 1 && TOGGLES[a.kind].showsTally ? `×${a.count}` : '',
+    count: tone !== undefined && tally !== '' ? ` ${tally} ` : tally,
     via: settings.shown.plugin && a.plugin !== undefined ? `via ${clip(a.plugin, 16)}` : '',
-    badge: a.status === 'error' && tone !== undefined ? 'Error' : (status.badge ?? ''),
+    badge:
+      a.status === 'error' && tone !== undefined
+        ? 'Error'
+        : named && isStopped(a.status)
+          ? status.label
+          : (status.badge ?? ''),
   }
 }
 
@@ -112,9 +170,9 @@ export const chipWidth = (
   now: number,
   tone: Tone | undefined,
   hasHotkey: boolean,
-  desktop = false,
+  rich = false,
 ) => {
-  const p = partsOf(a, settings, now, tone)
+  const p = partsOf(a, settings, now, tone, rich)
   const padding = a.status === 'error' && tone !== undefined ? 0 : 2
   const segments = [
     1,
@@ -128,7 +186,7 @@ export const chipWidth = (
     segments.length -
     1 +
     (tone ? 2 : 0) +
-    (desktop && tone ? 2 : 0)
+    (rich && tone ? 2 : 0)
   )
 }
 
@@ -142,7 +200,7 @@ export const fitChips = (
   settings: Settings,
   now: number,
   tone: Tone | undefined,
-  desktop = false,
+  rich = false,
 ) => {
   const gap = gapOf(tone)
   const shown: Activation[] = []
@@ -150,15 +208,12 @@ export const fitChips = (
   for (const [index, chip] of chips.entries()) {
     if (shown.length >= settings.maxChips) break
     const width =
-      chipWidth(chip, settings, now, tone, settings.hotkeys && index < 9, desktop) +
+      chipWidth(chip, settings, now, tone, settings.hotkeys && index < 9, rich) +
       (shown.length > 0 ? gap : 0)
     const rest = chips.length - shown.length - 1
     const reserve =
       rest > 0
-        ? gap +
-          moreLabel(rest).length +
-          (settings.hotkeys ? 3 : 0) +
-          (desktop && tone ? MORE_BOX : 0)
+        ? gap + moreLabel(rest).length + (settings.hotkeys ? 3 : 0) + (rich && tone ? MORE_BOX : 0)
         : 0
     if (shown.length > 0 && used + width + reserve > columns) break
     shown.push(chip)
@@ -167,30 +222,26 @@ export const fitChips = (
   return { shown, hidden: chips.length - shown.length }
 }
 
-export const summaryLabel = (chips: readonly Activation[]) => {
-  const perKind = KIND_ORDER.flatMap(kind => {
-    const n = chips.filter(a => a.kind === kind).length
-    return n > 0 ? [`${TOGGLES[kind].glyph}${n}`] : []
-  })
-  return [`${chips.length} active`, perKind.join(' ')].filter(Boolean).join(' · ')
-}
+const stoppedCount = (chips: readonly Activation[]) => chips.filter(a => isStopped(a.status)).length
 
 export const Badge = ({
   ui,
   text,
   tone,
   status,
+  bg,
 }: {
   ui: Ui
   text: string
   tone: Tone | undefined
   status?: Status
+  bg?: Color
 }) => {
   const { Text } = ui
   if (tone === undefined) return <Text inverse bold color="error">{` ${text} `}</Text>
   if (status === 'error') {
     return (
-      <Text bold color={TOKENS[tone].danger} backgroundColor={TOKENS[tone].surface}>
+      <Text bold {...inkOf(ui, tone, 'danger', bg)}>
         {text}
       </Text>
     )
@@ -208,6 +259,7 @@ export type Actions = {
 
 type RowArgs = {
   ui: Ui
+  surface: RenderSurface
   columns: number
   now: number
   tone: Tone | undefined
@@ -225,26 +277,25 @@ const ChipIcon = ({ ui, a, look, now }: { ui: Ui; a: Activation; look: Look; now
     const svg = spinnerSvg(frame, hexOr(look.color), hexOr(look.border, OFF_TRACK))
     return <Icon ui={ui} svg={svg} alt={noun} />
   }
-  if (a.status === 'error') return <Icon ui={ui} svg={errorSvg(hexOr(STOPPED.bg))} alt={noun} />
+  if (a.status === 'error') return <Icon ui={ui} svg={errorSvg(hexOr(look.color))} alt={noun} />
   return kindIcon(ui, a.kind, look)
+}
+
+const chipBorder = (look: Look, a: Activation, tone: Tone | undefined, isSelected: boolean) => {
+  if (isSelected) return look.color
+  return tone !== undefined && isStopped(a.status) ? TOKENS[tone].dangerBd : look.border
 }
 
 const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number }) => {
   const { ui, now, tone, settings, selected, fits, on } = args
   const { Box, Button, Text } = ui
-  const p = partsOf(a, settings, now, tone)
+  const rich = isRich(ui)
+  const p = partsOf(a, settings, now, tone, rich)
   const look = lookOf(a.kind, tone, a.status)
   const { color, tint, dim } = look
   const paint = { color, dimColor: dim, ...withTint(tint) }
   const id = chipId(a)
-  const desktop = isDesktop(ui)
   const pill = isPill(ui, tone)
-  const border =
-    selected === id
-      ? look.color
-      : tone !== undefined && isStopped(a.status)
-        ? TOKENS[tone].dangerBd
-        : look.border
   return (
     <Box
       key={`box-${id}`}
@@ -254,11 +305,11 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
       {...withTint(tint)}
       {...(pill && {
         borderStyle: a.status === 'error' ? 'dashed' : 'round',
-        borderColor: border,
+        borderColor: chipBorder(look, a, tone, selected === id),
       })}
-      {...(desktop && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
+      {...(rich && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
-      {desktop ? (
+      {rich ? (
         <ChipIcon ui={ui} a={a} look={look} now={now} />
       ) : (
         <Text {...paint} {...(a.status === 'error' && { color: 'error', dimColor: false })}>
@@ -275,13 +326,17 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
           {p.lead + p.label}
         </Text>
       </Button>
-      {p.count !== '' && <Text {...paint}>{p.count}</Text>}
+      {p.count !== '' && (
+        <Text {...paint} {...(look.count !== undefined && { backgroundColor: look.count })}>
+          {p.count}
+        </Text>
+      )}
       {p.via && (
         <Text dimColor {...withTint(tint)}>
           {p.via}
         </Text>
       )}
-      {p.badge !== '' && <Badge ui={ui} text={p.badge} tone={tone} status={a.status} />}
+      {p.badge !== '' && <Badge ui={ui} text={p.badge} tone={tone} status={a.status} bg={tint} />}
     </Box>
   )
 }
@@ -303,44 +358,102 @@ const MoreBox = ({
     <>{[children]}</>
   )
 
+const urgentCount = (chips: readonly Activation[]) => chips.filter(a => isUrgent(a.status)).length
+
+const LEAD_BOX = 4
+
+const leadText = (chips: readonly Activation[]) => `${chips.length} active`
+
+/** Mobile's first chip: how many are active, a red dot when something stopped or failed. */
+const Lead = ({ args }: { args: RowArgs }) => {
+  const { ui, tone, chips, on } = args
+  const { Box, Button, Text } = ui
+  const surface = tone === undefined ? undefined : TOKENS[tone].surface
+  return (
+    <Box
+      key="lead-box"
+      flexDirection="row"
+      columnGap={1}
+      paddingX={tone === undefined ? 0 : 1}
+      {...withTint(surface)}
+      {...(tone !== undefined && { borderStyle: 'round', borderColor: TOKENS[tone].line })}
+    >
+      <Button key="lead" plain onPress={() => on.open()}>
+        <Text bold {...inkOf(ui, tone, 'ink', surface)}>
+          {leadText(chips)}
+        </Text>
+        {urgentCount(chips) > 0 && <Text {...inkOf(ui, tone, 'danger', surface)}>{' ●'}</Text>}
+      </Button>
+    </Box>
+  )
+}
+
+const leadWidth = (chips: readonly Activation[], tone: Tone | undefined) =>
+  leadText(chips).length +
+  (urgentCount(chips) > 0 ? 2 : 0) +
+  (tone === undefined ? 0 : LEAD_BOX) +
+  1
+
+const Summary = ({ args }: { args: RowArgs }) => {
+  const { ui, tone, chips, settings, on } = args
+  const { Box, Button, Text } = ui
+  const rich = isRich(ui)
+  const neutral = tone === undefined ? undefined : TOKENS[tone].surface
+  const stopped = stoppedCount(chips)
+  const first = KIND_ORDER.findIndex(kind => chips.some(a => a.kind === kind))
+  return (
+    <Box
+      flexDirection="row"
+      columnGap={1}
+      paddingX={tone === undefined ? 0 : 1}
+      {...withTint(neutral)}
+      {...(isPill(ui, tone) && { borderStyle: 'round', borderColor: TOKENS[tone!].line })}
+    >
+      {KIND_ORDER.flatMap((kind, index) => {
+        const n = chips.filter(a => a.kind === kind).length
+        if (n === 0) return []
+        const look = lookOf(kind, tone)
+        const paint = { color: look.color, dimColor: look.dim, ...withTint(neutral) }
+        return [
+          <Box key={`sum-${kind}`} flexDirection="row" columnGap={1}>
+            {rich && kindIcon(ui, kind, look)}
+            <Button
+              key={`summary-${kind}`}
+              plain
+              {...(settings.hotkeys && index === first && { hotkey: '1' })}
+              onPress={() => on.open()}
+            >
+              <Text {...paint}>{rich ? String(n) : `${TOGGLES[kind].glyph}${n}`}</Text>
+            </Button>
+          </Box>,
+        ]
+      })}
+      {stopped > 0 && (
+        <Button key="summary-stopped" plain onPress={() => on.open()}>
+          <Text {...inkOf(ui, tone, 'danger', neutral)}>{`● ${stopped} blocked`}</Text>
+        </Button>
+      )}
+    </Box>
+  )
+}
+
 export const ChipRow = (args: RowArgs) => {
-  const { ui, columns, now, tone, chips, settings, on } = args
+  const { ui, surface, columns, now, tone, chips, settings, on } = args
   const { Box, Button, Text } = ui
   const gap = gapOf(tone)
-  if (settings.layout === 'summary') {
-    const stopped = chips.filter(a => isStopped(a.status)).length
-    const neutral = lookOf('rule', tone)
-    return (
-      <Box
-        flexDirection="row"
-        columnGap={1}
-        paddingX={tone === undefined ? 0 : 1}
-        {...withTint(neutral.tint)}
-      >
-        <Button
-          key="summary"
-          plain
-          {...(settings.hotkeys && { hotkey: '1' })}
-          onPress={() => on.open()}
-        >
-          <Text {...withTint(neutral.tint)}>{summaryLabel(chips)}</Text>
-        </Button>
-        {stopped > 0 && (
-          <Text color="error" {...withTint(neutral.tint)}>{`· ● ${stopped} stopped`}</Text>
-        )}
-      </Box>
-    )
-  }
+  if (settings.layout === 'summary') return <Summary args={args} />
+  const leads = surface === 'mobile'
   const { shown, hidden } = fitChips(
     chips,
-    columns - MORE_RESERVE,
+    columns - MORE_RESERVE - (leads ? leadWidth(chips, tone) : 0),
     settings,
     now,
     tone,
-    isDesktop(ui),
+    isRich(ui),
   )
   return (
     <Box flexDirection="row" columnGap={gap}>
+      {leads && <Lead args={args} />}
       {shown.map((a, index) => (
         <Chip args={args} a={a} index={index} />
       ))}
@@ -353,7 +466,7 @@ export const ChipRow = (args: RowArgs) => {
             {...(settings.hotkeys && { hotkey: '0' })}
             onPress={() => on.open()}
           >
-            <Text dimColor>{moreLabel(hidden)}</Text>
+            <Text {...inkOf(ui, tone, 'text2')}>{moreLabel(hidden)}</Text>
           </Button>
         </MoreBox>
       )}
@@ -366,22 +479,20 @@ const Tile = ({
   tone,
   title,
   value,
-  color,
+  danger = false,
 }: {
   ui: Ui
   tone: Tone | undefined
   title: string
   value: string
-  color?: Color
+  danger?: boolean
 }) => {
   const { Box, Text } = ui
   const tint = tone === undefined ? undefined : TOKENS[tone].tile
   return (
     <Box key={`tile-${title}`} flexDirection="column" flexGrow={1} paddingX={1} {...withTint(tint)}>
-      <Text dimColor {...withTint(tint)}>
-        {title}
-      </Text>
-      <Text bold {...(color !== undefined && { color })} {...withTint(tint)}>
+      <Text {...inkOf(ui, tone, 'muted', tint)}>{title}</Text>
+      <Text bold {...inkOf(ui, tone, danger ? 'danger' : 'ink', tint)}>
         {value}
       </Text>
     </Box>
@@ -410,6 +521,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
   const theme = TOGGLES[a.kind]
   const status = STATUSES[a.status]
   const id = chipId(a)
+  const surface = tone !== undefined && isRich(ui) ? TOKENS[tone].surface : undefined
   return (
     <Box
       key="card"
@@ -418,35 +530,34 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
       borderColor={tone === undefined ? color : TOKENS[tone].line}
       borderDimColor={dim}
       paddingX={1}
+      {...withTint(surface)}
     >
       <Box flexDirection="row" justifyContent="space-between">
-        <Text color={color} dimColor={dim}>
+        <Text color={color} dimColor={dim} {...withTint(surface)}>
           {[theme.noun.toUpperCase(), a.meta].filter(Boolean).join(' · ')}
         </Text>
         {on.close && <Button key="close" plain label="✕" onPress={() => on.close?.()} />}
       </Box>
-      {isDesktop(ui) ? (
+      {isRich(ui) ? (
         <Box flexDirection="row" columnGap={1}>
           {kindIcon(ui, a.kind, look)}
-          <Text bold>{a.label}</Text>
+          <Text bold {...inkOf(ui, tone, 'ink', surface)}>
+            {a.label}
+          </Text>
         </Box>
       ) : (
         <Text bold>{a.label}</Text>
       )}
-      <Text wrap="wrap">{a.detail}</Text>
+      <Text wrap="wrap" {...inkOf(ui, tone, 'ink2', surface)}>
+        {a.detail}
+      </Text>
       <Box flexDirection="row" columnGap={1}>
-        <Tile
-          ui={ui}
-          tone={tone}
-          title="Status"
-          value={status.label}
-          {...(status.color && { color: status.color })}
-        />
+        <Tile ui={ui} tone={tone} title="Status" value={status.label} danger={isUrgent(a.status)} />
         <Tile ui={ui} tone={tone} title="Activations" value={String(a.count)} />
         <Tile ui={ui} tone={tone} title="Last" value={agoLabel(now - a.lastAt)} />
       </Box>
       {a.source !== undefined && (
-        <Text dimColor wrap="truncate-middle">
+        <Text wrap="truncate-middle" {...inkOf(ui, tone, 'muted', surface)}>
           {a.source}
         </Text>
       )}

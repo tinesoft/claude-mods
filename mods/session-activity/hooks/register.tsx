@@ -194,11 +194,11 @@ async function openPane($: EngineInterface, view: PaneView, id?: string, rows?: 
 
 const drawsAnything = async ($: EngineInterface) => (await $.session.surfaces()).length > 0
 
-/** `Svg` is only handed to Desktop, whatever else the host's element table carries. */
+/** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */
 function uiFor($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']>[0]): Ui {
   const table = $.ui.resolve(e)
   const { Box, Text, Button } = table
-  return e.surface === 'desktop' && 'Svg' in table
+  return e.surface !== 'terminal' && 'Svg' in table
     ? { Box, Text, Button, Svg: table.Svg }
     : { Box, Text, Button }
 }
@@ -372,6 +372,7 @@ export const register: Register = (on, options) => {
     if (chips.length === 0) return below
     return renderBand({
       ui: uiFor($, e),
+      surface: e.surface,
       columns: e.props.bodyColumns,
       maxRows: e.props.maxRows,
       now: await $.clock.now(),
@@ -401,6 +402,7 @@ export const register: Register = (on, options) => {
     const change = (patch: (old: Overrides) => Overrides) => writeOverrides($, options, patch)
     return renderPane({
       ui: uiFor($, e),
+      surface: e.surface,
       columns: e.props.bodyColumns,
       now: await $.clock.now(),
       tone: await toneOf($, settings, e.surface),

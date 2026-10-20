@@ -379,15 +379,15 @@ export const resolveTone = (input: ToneInput): Tone | undefined => {
   return isAnsi ? undefined : (claude ?? colorFgBg ?? system ?? 'dark')
 }
 
-export type StatusTheme = { label: string; badge?: string; glyph?: string; color?: Color }
+export type StatusTheme = { label: string; badge?: string; glyph?: string }
 
 export const STATUSES: Record<Status, StatusTheme> = {
   active: { label: 'Active' },
   ok: { label: 'OK' },
   running: { label: 'Running' },
-  blocked: { label: 'Blocked', badge: 'BLOCKED', color: 'error' },
-  denied: { label: 'Denied', badge: 'DENIED', color: 'error' },
-  error: { label: 'Error', badge: 'ERROR', glyph: '▲', color: 'error' },
+  blocked: { label: 'Blocked', badge: 'BLOCKED' },
+  denied: { label: 'Denied', badge: 'DENIED' },
+  error: { label: 'Error', badge: 'ERROR', glyph: '▲' },
 }
 
 export const isStopped = (status: Status) => status === 'blocked' || status === 'denied'

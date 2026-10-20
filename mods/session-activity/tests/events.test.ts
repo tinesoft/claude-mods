@@ -23,7 +23,7 @@ test('two calls to one MCP server record one github chip counted twice', async (
   stubEngine(on)
   await $.tool.call({ tool: 'mcp__github__get_pull_request', number: 418 } as never)
   await $.tool.call({ tool: 'mcp__github__create_review', number: 418 } as never)
-  expect(await band($, clock)).toEqual(['mcp:github|⇌github×2'])
+  expect(await band($, clock)).toEqual(['mcp:github|⇌github ×2 '])
 })
 
 test('a skill Claude loads becomes a skill chip', async ($, on) => {
@@ -96,7 +96,7 @@ test('a PreToolUse hook that blocks shows its script name and BLOCKED', async ($
   )
   await $.tool.call({ tool: 'Bash', command: 'ls' } as never)
   await $.tool.call({ tool: 'Bash', command: 'cat .env' } as never)
-  expect(await band($, clock)).toEqual(['hook:PreToolUse|↯block-secrets×2 BLOCKED '])
+  expect(await band($, clock)).toEqual(['hook:PreToolUse|↯block-secrets ×2  BLOCKED '])
 })
 
 test('settings hooks that are not configured record nothing', async ($, on) => {
