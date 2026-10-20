@@ -208,8 +208,8 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
       flexDirection="column"
       {...(isRich(ui) && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
-      <Box flexDirection="row" justifyContent="space-between">
-        <Box flexDirection="row" columnGap={1}>
+      <Box flexDirection="row" justifyContent="space-between" columnGap={1}>
+        <Box flexDirection="row" columnGap={1} flexShrink={1} minWidth={0} overflow="hidden">
           <RowIcon args={args} a={a} muted={isMuted} />
           <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
             <Text>{isSelected ? '▸' : ' '}</Text>
@@ -223,7 +223,7 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
             {isMuted && <MutedBadge ui={ui} tone={tone} />}
           </Button>
         </Box>
-        <Box flexDirection="row" columnGap={2}>
+        <Box flexDirection="row" columnGap={2} flexShrink={0}>
           <Text {...inkOf(ui, tone, 'text2')}>{`×${a.count} · ${ago(now - a.lastAt)}`}</Text>
           {!urgent && (
             <Button
@@ -283,12 +283,12 @@ const Activity = (args: PaneArgs) => {
   return (
     <Box flexDirection="column">
       <Text bold>Session activity</Text>
-      <Box flexDirection="row" columnGap={1}>
-        <Text {...inkOf(ui, tone, 'muted')}>
+      <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
+        <Text key="stats" {...inkOf(ui, tone, 'muted')}>
           {`${listed.length} items · ${total} activations · started ${started < 60_000 ? 'just now' : agoLabel(started)}`}
         </Text>
-        <Text {...inkOf(ui, tone, 'muted')}>·</Text>
-        <Box key="customize-link">
+        <Box key="customize-link" flexDirection="row" columnGap={1} flexShrink={0}>
+          <Text {...inkOf(ui, tone, 'muted')}>·</Text>
           <Button
             key="customize"
             plain

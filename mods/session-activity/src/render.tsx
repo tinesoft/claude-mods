@@ -463,11 +463,13 @@ export const ChipRow = (args: RowArgs) => {
           <Button
             key="more"
             plain
-            dimColor
+            {...(tone === undefined && { dimColor: true })}
             {...(settings.hotkeys && { hotkey: '0' })}
             onPress={() => on.open()}
           >
-            <Text {...inkOf(ui, tone, 'text2')}>{moreLabel(hidden)}</Text>
+            <Text {...(tone ? { color: TOKENS[tone].text2 } : { dimColor: true })}>
+              {moreLabel(hidden)}
+            </Text>
           </Button>
         </MoreBox>
       )}
