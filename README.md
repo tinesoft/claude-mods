@@ -42,7 +42,7 @@ Targets per mod: `lint`, `typecheck`, `validate` (`claude plugin validate . --st
 
 - Branch from `develop` as `feat/...`, `fix/...` or `chore/...`, and open a PR to `develop`.
 - Commits follow Conventional Commits. The scope is a project name (`session-activity`) or one of `repo`, `ci`, `deps`, `release`.
-- Releases come from `main`. Open a PR from `develop` to `main` and merge it with a merge commit, so the history `nx release` reads stays intact.
+- Releases come from `main`. Fast-forward `main` to `develop` with `git push origin develop:main`, never a merge commit, so `main` keeps the same commits `nx release` reads.
 
 ### Releases
 
