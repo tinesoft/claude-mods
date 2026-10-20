@@ -6,7 +6,7 @@ export const CWD = '/repo'
 
 const FILES: Record<string, string> = { '/repo/CLAUDE.md': 'a\nb\nc' }
 
-export const SURFACES = ['terminal', 'desktop'] as const
+export const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
 
 export const session = (
   on: On,
