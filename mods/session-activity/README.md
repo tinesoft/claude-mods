@@ -13,7 +13,7 @@
 
 </div>
 
-A Claude Code mod that shows what took part in your session. A row of chips above the prompt names each skill, subagent, MCP server, permission decision, settings hook and rule file that activated. Press a chip to see why it is there. The detail card grows under the row, or the pane opens when the band is too short for it.
+A Claude Code mod that shows what took part in your session. A row of chips above the prompt names each skill, subagent, MCP server, permission decision, settings hook and rule file that activated. Press a chip to see why it is there. The detail card opens above the row, next to the prompt, or the pane opens when the band is too short for it.
 
 ```text
  ↯ block-secrets  BLOCKED    ◉ code-reviewer    ⇌ github ×3    ⚷ git push    +10 more
@@ -98,7 +98,7 @@ Optional types are off by default: slash commands (`/`), memory (`✎`), context
 
 A memory chip appears when Claude writes or edits `CLAUDE.md`, `CLAUDE.local.md` or a markdown file in a `memory/` folder, labelled `Remembered: <file>`.
 
-A chip that was just activated is bold with a `●` for four seconds. A running agent or asked permission cycles `◐◓◑◒`. A failed one shows a red `▲` and an `ERROR` badge. When an action is blocked or denied, one toast names it, such as `↯ block-secrets blocked Bash`; turn it off with `toast_on_block`. The status line under the prompt keeps the count: `16 active · /session-activity`.
+A chip that was just activated is bold with a `●` for four seconds. A running agent or asked permission cycles `◐◓◑◒`. A failed one shows a red `▲` and an `ERROR` badge (bold red `Error` on a tinted chip). When an action is blocked or denied, one toast names it, such as `↯ block-secrets blocked Bash`; turn it off with `toast_on_block`. The status line under the prompt keeps the count: `16 active · /session-activity`.
 
 Blocked, denied and errored chips sit first in the row and stay visible even when their type is hidden or muted. Each status is also a text badge, so the colour is never the only signal.
 
