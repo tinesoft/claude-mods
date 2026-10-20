@@ -196,10 +196,25 @@ for (const columns of [60, 100, 200]) {
     const { boxes, more, hidden } = await row($, columns, 'desktop')
     expect(boxes.length + hidden).toBe(SKILLS.length)
     const chipCells = boxes.reduce((sum, b) => sum + b.text.length + 1 + 2 + 2, 0)
-    const used = chipCells + (boxes.length - 1) + (more ? 1 + more.text.length : 0)
+    const used = chipCells + (boxes.length - 1) + (more ? 1 + more.text.length + 4 : 0)
     expect(used).toBeLessThanOrEqual(columns - 2)
   })
 }
+
+test('on desktop the overflow count sits in a dashed box; elsewhere it stays plain', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on)
+  await loadSkills($, clock)
+  const desktop = await mountBand($, 'desktop', 60)
+  const dashed = (await desktop.findAll({ type: 'Box' })).filter(
+    b => b.props.borderStyle === 'dashed',
+  )
+  expect(dashed).toHaveLength(1)
+  expect(dashed[0]!.text).toMatch(/\+\d+ more/)
+  expect(dashed[0]!.props).toMatchObject({ borderColor: '#50545C', paddingX: 1 })
+  const terminal = await mountBand($, 'terminal', 60)
+  expect((await terminal.findAll({ type: 'Box' })).some(b => b.props.borderStyle)).toBe(false)
+})
 
 test('a tinted chip on desktop is round, bordered and darkens on hover', async ($, on) => {
   const clock = session(on)
@@ -320,6 +335,7 @@ test('a tinted error chip is white with bold red text and a red border', async (
   expect(boxes[0]!.props).toMatchObject({
     backgroundColor: '#FFFFFF',
     borderColor: '#B42318',
+    borderStyle: 'dashed',
   })
   const badge = (await band.findAll({ type: 'Text' })).find(t => t.text === 'Error')
   expect(badge?.props).toMatchObject({ bold: true, color: '#B42318' })

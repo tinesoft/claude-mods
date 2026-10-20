@@ -273,6 +273,8 @@ export const ERROR_TINT = { light: '#FFFFFF', dark: '#2A1A1A' } as const
 
 export const CARD_BORDER = { light: '#DADCE1', dark: '#3A3D44' } as const
 
+export const MORE_BORDER = { light: '#B9BCC4', dark: '#50545C' } as const
+
 export const SPINNER = ['◐', '◓', '◑', '◒'] as const
 
 export const SPIN_MS = 150

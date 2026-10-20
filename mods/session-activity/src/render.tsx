@@ -6,6 +6,7 @@ import { chipId } from './model'
 import {
   BORDER_MIX,
   CARD_BORDER,
+  MORE_BORDER,
   ERROR_FG,
   ERROR_TINT,
   FRESH_MS,
@@ -145,6 +146,8 @@ export const chipWidth = (
 
 const moreLabel = (n: number) => `+${n} more`
 
+const MORE_BOX = 4
+
 export const fitChips = (
   chips: readonly Activation[],
   columns: number,
@@ -162,7 +165,13 @@ export const fitChips = (
       chipWidth(chip, settings, now, tone, settings.hotkeys && index < 9, desktop) +
       (shown.length > 0 ? gap : 0)
     const rest = chips.length - shown.length - 1
-    const reserve = rest > 0 ? gap + moreLabel(rest).length + (settings.hotkeys ? 3 : 0) : 0
+    const reserve =
+      rest > 0
+        ? gap +
+          moreLabel(rest).length +
+          (settings.hotkeys ? 3 : 0) +
+          (desktop && tone ? MORE_BOX : 0)
+        : 0
     if (shown.length > 0 && used + width + reserve > columns) break
     shown.push(chip)
     used += width
@@ -255,7 +264,10 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
       columnGap={1}
       paddingX={tone === undefined ? 0 : 1}
       {...withTint(tint)}
-      {...(pill && { borderStyle: 'round', borderColor: border })}
+      {...(pill && {
+        borderStyle: a.status === 'error' ? 'dashed' : 'round',
+        borderColor: border,
+      })}
       {...(desktop && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
       {desktop ? (
@@ -285,6 +297,15 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
     </Box>
   )
 }
+
+const MoreBox = ({ ui, tone, children }: { ui: Ui; tone: Palette; children: RenderElement }) =>
+  isPill(ui, tone) ? (
+    <ui.Box borderStyle="dashed" borderColor={MORE_BORDER[tone!]} paddingX={1}>
+      {[children]}
+    </ui.Box>
+  ) : (
+    <>{[children]}</>
+  )
 
 export const ChipRow = (args: RowArgs) => {
   const { ui, columns, now, tone, chips, settings, on } = args
@@ -328,15 +349,17 @@ export const ChipRow = (args: RowArgs) => {
         <Chip args={args} a={a} index={index} />
       ))}
       {hidden > 0 && (
-        <Button
-          key="more"
-          plain
-          dimColor
-          {...(settings.hotkeys && { hotkey: '0' })}
-          onPress={() => on.open()}
-        >
-          <Text dimColor>{moreLabel(hidden)}</Text>
-        </Button>
+        <MoreBox ui={ui} tone={tone}>
+          <Button
+            key="more"
+            plain
+            dimColor
+            {...(settings.hotkeys && { hotkey: '0' })}
+            onPress={() => on.open()}
+          >
+            <Text dimColor>{moreLabel(hidden)}</Text>
+          </Button>
+        </MoreBox>
       )}
     </Box>
   )
