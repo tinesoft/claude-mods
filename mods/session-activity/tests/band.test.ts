@@ -639,3 +639,11 @@ test(
     expect((await (await mountBand($)).find({ key: 'card' }))?.props.borderColor).toBe('suggestion')
   },
 )
+
+test('with digit hotkeys on, the terminal chip reads hotkey, glyph, label', async ($, on) => {
+  const clock = session(on, {}, new Map([['overrides', { hotkeys: true }]]))
+  stubEngine(on)
+  await loadSkills($, clock, ['docx'])
+  const band = await mountBand($)
+  expect((await band.find({ key: 'box-skill:docx' }))?.text).toBe('1: ▤docx')
+})
