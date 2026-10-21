@@ -105,7 +105,7 @@ test('the mode allowing a call on its own records no permission chip', () => {
     ),
   ).toMatchObject({
     key: 'Bash(git push:*)',
-    label: 'git push',
+    label: 'Allowed: git push',
     status: 'ok',
   })
   expect(

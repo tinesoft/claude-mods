@@ -89,7 +89,14 @@ test('an asked call that runs ends as approved, not pending', async ($, on) => {
     expect.stringMatching(/^perm:Bash:git push\|[◐◓◑◒] git push$/),
   ])
   await $.tool.call({ tool: 'Bash', command: 'git push', tool_use_id: 'tu2' } as never)
-  expect(await band($, clock)).toEqual(['perm:Bash:git push|⚷ git push'])
+  expect(await band($, clock)).toEqual(['perm:Bash:git push|⚷ Allowed: git push'])
+})
+
+test('a call a rule auto-allows says Allowed on its chip', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on, { verdict: { decision: 'allow', rule: 'Bash(git push:*)' } })
+  await $.tool.check({ tool: 'Bash', input: { command: 'git push' }, tool_use_id: 'tu3' } as never)
+  expect(await band($, clock)).toEqual(['perm:Bash(git push:*)|⚷ Allowed: git push'])
 })
 
 test('a PreToolUse hook that blocks shows its script name and BLOCKED', async ($, on) => {
