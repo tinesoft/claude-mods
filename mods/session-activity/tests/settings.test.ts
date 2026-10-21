@@ -233,3 +233,23 @@ test('two presses of a toggle before a redraw flip it twice, back where it was',
   expect((await pane.find({ key: 'toggle-memory' }))?.text).toBe('○')
   expect((await pane.find({ key: 'toggle-hotkeys' }))?.text).toBe('○')
 })
+
+for (const tone of ['light', 'dark'] as const) {
+  test(
+    `${tone}: untinted chips keep the switch tokens on desktop switches`,
+    { options: { chip_style: 'text' } },
+    async ($, on) => {
+      session(on, {}, new Map(), tone, ['desktop'])
+      stubEngine(on)
+      const pane = await mountPane($, 'desktop')
+      await pane.press({ key: 'tab-settings' })
+      const switches = (await pane.findAll({ type: 'Svg' })).filter(s =>
+        /^(On|Off)$/.test(String(s.props.alt)),
+      )
+      const fill = (alt: string) =>
+        switches.find(s => s.props.alt === alt)?.props.source as string | undefined
+      expect(fill('On')).toContain(`fill="${SWITCH[tone].on}"`)
+      expect(fill('Off')).toContain(`fill="${SWITCH[tone].off}"`)
+    },
+  )
+}
