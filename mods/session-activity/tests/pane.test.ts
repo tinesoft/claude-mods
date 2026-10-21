@@ -77,6 +77,14 @@ test('the activity header counts items and activations', async ($, on) => {
   expect(await texts(pane)).toContain('3 items · 4 activations · started 18 min ago')
 })
 
+test('the activity header counts one item and one activation in the singular', async ($, on) => {
+  session(on)
+  stubEngine(on)
+  await $.tool.call({ tool: 'mcp__github__get_pull_request' } as never)
+  const pane = await mountPane($)
+  expect(await texts(pane)).toContain('1 item · 1 activation · started just now')
+})
+
 test('filters carry their hotkey and count, and the active one is the only one not dim', async ($, on) => {
   session(on, HOOKS)
   stubEngine(on)
