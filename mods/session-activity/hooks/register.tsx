@@ -132,10 +132,15 @@ async function notify(
   }
 }
 
-async function observe($: EngineInterface, options: Options, seen: Observed | undefined) {
+async function observe(
+  $: EngineInterface,
+  options: Options,
+  seen: Observed | undefined,
+  counted?: number,
+) {
   if (seen === undefined) return
   const at = await $.clock.now()
-  await commit($, options, list => record(list, seen, at))
+  await commit($, options, list => record(list, seen, at, counted))
   $.clock.after(FRESH_MS, () => $.ui.invalidate('ui.render'))
   await notify($, options, seen)
 }
@@ -319,15 +324,18 @@ export const register: Register = (on, options) => {
   })
 
   on('classic.*', async ($, e, next) => {
-    const result = (await next(e)) as Record<string, unknown>
     const event = 'hook_event_name' in e ? String(e.hook_event_name) : 'PreToolUse'
     const target = hookTarget(e)
     const commands = hookCommands(await $.settings.read(), event, target)
+    const isStarted = commands.length > 0
+    if (isStarted) await observe($, options, fromHook(event, commands, 'running', target))
+    const result = (await next(e)) as Record<string, unknown>
     const blocked = blockedBy(result)
     await observe(
       $,
       options,
       fromHook(event, commands, blocked === undefined ? {} : { blocked }, target),
+      isStarted ? 0 : 1,
     )
     return result as never
   })

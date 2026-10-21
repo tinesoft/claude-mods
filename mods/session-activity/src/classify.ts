@@ -184,7 +184,7 @@ export const commandName = (command: string) => {
   return base.replace(/\.(sh|js|mjs|cjs|ts|py)$/, '') || command
 }
 
-export type HookOutcome = { blocked?: string }
+export type HookOutcome = 'running' | { blocked?: string }
 
 export const fromHook = (
   event: string,
@@ -192,17 +192,23 @@ export const fromHook = (
   outcome: HookOutcome,
   target: string | undefined,
 ): Observed | undefined => {
-  if (commands.length === 0 && outcome.blocked === undefined) return undefined
+  const blocked = outcome === 'running' ? undefined : outcome.blocked
+  if (commands.length === 0 && blocked === undefined) return undefined
   const only = commands.length === 1 ? commands[0] : undefined
-  const ran = commands.length === 1 ? 'Ran 1 command' : `Ran ${commands.length} commands`
+  const n = commands.length === 1 ? '1 command' : `${commands.length} commands`
   return {
     kind: 'hook',
     key: only ?? event,
     label: only !== undefined ? commandName(only) : `${event} hooks`,
-    detail: outcome.blocked !== undefined ? `Blocked: ${outcome.blocked}` : `${ran}.`,
+    detail:
+      outcome === 'running'
+        ? `Running ${n}.`
+        : blocked !== undefined
+          ? `Blocked: ${blocked}`
+          : `Ran ${n}.`,
     meta: target !== undefined ? `${event} · ${target}` : event,
     ...(only !== undefined && { source: only }),
-    status: outcome.blocked !== undefined ? 'blocked' : 'ok',
+    status: outcome === 'running' ? 'running' : blocked !== undefined ? 'blocked' : 'ok',
   }
 }
 
