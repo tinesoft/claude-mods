@@ -325,7 +325,7 @@ Untinted chips (`chip_style: text`, or an ansi theme in the terminal) keep the t
 | Group headers | Uppercase plural in the kind `fg` + `muted` count | Same | Exact |
 | Row icon tile | Tinted glyph | Round `Box` with kind `bg` and `bd` holding the `Svg` icon | Close / exact |
 | Row text | Bold name, `muted` meta, badges, `text-2` why line on every row, `×N · last` on the right | Same | Exact |
-| Badges | ` BLOCKED ` / ` DENIED ` white on red; ` Muted ` inverse when untinted | ` Blocked ` / ` Denied ` white on red; ` Muted ` in `text-2` on `line-soft` | Exact |
+| Badges | ` BLOCKED ` / ` DENIED ` white on red; ` Muted ` inverse when untinted | ` Blocked ` / ` Denied ` white on red; ` Muted ` in `text-2` on `fill` | Exact |
 | Per-row Mute / Unmute | A `Mute` / `Unmute` button on every row; the selected row also takes hotkey `m`. Stopped and errored rows always show, so they carry a note instead | Same | Exact |
 | Selected row | Expands to source path and `c: Copy path` (agreed addition) | Same | Addition |
 | Muted row at 60% opacity | `dimColor` name + `Muted` badge | Same | Close |

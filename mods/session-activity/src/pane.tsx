@@ -215,9 +215,9 @@ const MutedBadge = ({ ui, tone }: { ui: Ui; tone: Tone | undefined }) => {
       </Text>
     )
   }
-  const { text2, lineSoft } = TOKENS[tone]
+  const { text2, fill } = TOKENS[tone]
   return (
-    <Text color={text2} backgroundColor={lineSoft}>
+    <Text color={text2} backgroundColor={fill}>
       {' Muted '}
     </Text>
   )
