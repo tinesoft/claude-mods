@@ -55,7 +55,50 @@ export const bandProps = (bodyColumns: number, maxRows = 24) => ({
   view: {},
 })
 
-export const mountBand = <S extends BandSurface = 'terminal'>(
+type Node = { type?: string; props?: Record<string, unknown>; children?: unknown[] }
+
+const LEAF_TEXT = ['label', 'text', 'source', 'value'] as const
+
+const shown = (node: unknown, prefixed: boolean): string => {
+  if (typeof node === 'string') return node
+  const { type, props = {}, children = [] } = node as Node
+  const own = children.length
+    ? children.map(c => shown(c, prefixed)).join('')
+    : String(LEAF_TEXT.map(k => props[k]).find(v => typeof v === 'string') ?? '')
+  return prefixed && type === 'Button' && props.plain && typeof props.hotkey === 'string'
+    ? `${props.hotkey}: ${own}`
+    : own
+}
+
+const matches = (text: string, q: string | RegExp | undefined) =>
+  q === undefined || (typeof q === 'string' ? text.includes(q) : q.test(text))
+
+/**
+ * The kit reports a Button's label as drawn on no surface in particular. The terminal draws a
+ * `plain` one with a hotkey as `hotkey: label`, so on the terminal every found text carries it.
+ */
+const asDrawn = <
+  M extends Finder & { find: (q: ElementQuery) => Promise<FoundElement | undefined> },
+>(
+  mounted: M,
+  surface: RenderSurface,
+): M => {
+  if (surface !== 'terminal') return mounted
+  const findAll = async ({ text, ...q }: ElementQuery) => {
+    const found = await mounted.findAll(q)
+    return found
+      .map(el => {
+        if (shown(el, false) !== el.text)
+          throw new Error(`harness drift: the kit shows ${JSON.stringify(el.text)}`)
+        return { ...el, text: shown(el, true) }
+      })
+      .filter(el => matches(el.text, text))
+  }
+  const find = async (q: ElementQuery) => (await findAll(q))[0]
+  return { ...mounted, find, findAll }
+}
+
+export const mountBand = async <S extends BandSurface = 'terminal'>(
   $: Engine,
   surface: S = 'terminal' as S,
   columns = 100,
@@ -63,33 +106,39 @@ export const mountBand = <S extends BandSurface = 'terminal'>(
 ) => {
   if (!(BAND_SURFACES as readonly string[]).includes(surface))
     throw new Error(`the engine never raises AbovePrompt on ${surface}`)
-  return $.ui.mount({
-    plugin: 'session-activity',
+  return asDrawn(
+    await $.ui.mount({
+      plugin: 'session-activity',
+      surface,
+      component: 'AbovePrompt',
+      props: bandProps(columns, maxRows),
+    }),
     surface,
-    component: 'AbovePrompt',
-    props: bandProps(columns, maxRows),
-  })
+  )
 }
 
-export const mountPane = <S extends RenderSurface = 'terminal'>(
+export const mountPane = async <S extends RenderSurface = 'terminal'>(
   $: Engine,
   surface: S = 'terminal' as S,
   columns = 100,
 ) =>
-  $.ui.mount({
-    plugin: 'session-activity',
+  asDrawn(
+    await $.ui.mount({
+      plugin: 'session-activity',
+      surface,
+      component: 'Pane',
+      requestId: 'session-activity',
+      props: {
+        title: 'Session activity',
+        isFocused: true,
+        bodyColumns: columns,
+        placement: 'dock',
+        scroll: { offset: 0, bodyRows: 40 },
+        view: {},
+      },
+    }),
     surface,
-    component: 'Pane',
-    requestId: 'session-activity',
-    props: {
-      title: 'Session activity',
-      isFocused: true,
-      bodyColumns: columns,
-      placement: 'dock',
-      scroll: { offset: 0, bodyRows: 40 },
-      view: {},
-    },
-  })
+  )
 
 export type Finder = { findAll: (q: ElementQuery) => Promise<FoundElement[]> }
 

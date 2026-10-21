@@ -88,8 +88,8 @@ test(
     await loadSkills($, clock)
     const buttons = await (await mountBand($, 'terminal', 200)).findAll({ type: 'Button' })
     expect(buttons.slice(0, 2).map(b => [b.props.hotkey, b.text])).toEqual([
-      ['1', 'hotel'],
-      ['2', 'golf'],
+      ['1', '1: hotel'],
+      ['2', '2: golf'],
     ])
     expect(buttons.at(-1)?.props.hotkey).toBe('0')
   },

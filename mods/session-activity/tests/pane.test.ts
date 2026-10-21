@@ -81,9 +81,9 @@ test('filters carry their hotkey and count, and the active one is the only one n
   await activity($)
   const pane = await mountPane($)
   const all = await pane.find({ key: 'filter-all' })
-  expect([all?.props.hotkey, all?.text]).toEqual(['a', 'All 3'])
+  expect([all?.props.hotkey, all?.text]).toEqual(['a', 'a: All 3'])
   const skills = await pane.find({ key: 'filter-skill' })
-  expect([skills?.props.hotkey, skills?.text]).toEqual(['s', 'Skills 1'])
+  expect([skills?.props.hotkey, skills?.text]).toEqual(['s', 's: Skills 1'])
   await pane.press({ key: 'filter-skill' })
   const label = async (text: string) =>
     (await pane.findAll({ type: 'Text' })).find(t => t.text === text)
