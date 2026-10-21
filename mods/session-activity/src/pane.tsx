@@ -29,8 +29,10 @@ import {
 } from './render'
 import {
   across,
+  HOVER_MIX,
   isUrgent,
   KIND_ORDER,
+  mix,
   SPACE,
   TOGGLE_ORDER,
   TOGGLES,
@@ -227,7 +229,6 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
   const id = chipId(a)
   const isSelected = selected === id
   const isMuted = muted.includes(id)
-  const look = lookOf(a.kind, tone)
   const badgeText = badgeOf(a.status, tone, isRich(ui))
   const urgent = isUrgent(a.status)
   const tally = `×${a.count} · ${ago(now - a.lastAt)}`
@@ -247,7 +248,10 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
       key={`rowbox-${id}`}
       flexDirection="column"
       rowGap={SPACE.rowTextGap}
-      {...(isRich(ui) && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
+      {...(isRich(ui) &&
+        tone !== undefined && {
+          hover: { backgroundColor: mix(TOKENS[tone].surface, TOKENS[tone].ink, HOVER_MIX) },
+        })}
     >
       <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowSide}>
         <Box
