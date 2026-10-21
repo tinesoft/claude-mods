@@ -101,6 +101,7 @@ type Segment = {
   key: string
   boxKey: string
   label: string
+  count?: number
   isOn: boolean
   hotkey?: string
   onPress: () => void
@@ -126,7 +127,7 @@ const Segmented = ({
       columnGap={segmented ? 0 : SPACE.tabGap}
       {...(segmented && { backgroundColor: t!.fill })}
     >
-      {segments.map(({ key, boxKey, label, isOn, hotkey, onPress }) => {
+      {segments.map(({ key, boxKey, label, count, isOn, hotkey, onPress }) => {
         const bg = segmented ? (isOn ? t!.surface : t!.fill) : undefined
         return (
           <Box key={boxKey} paddingX={segmented ? 1 : 0} {...withTint(bg)}>
@@ -137,6 +138,11 @@ const Segmented = ({
               >
                 {label}
               </Text>
+              {count !== undefined && (
+                <Text mono size="caption" {...inkOf(ui, tone, 'muted', bg)}>
+                  {` ${count}`}
+                </Text>
+              )}
             </Button>
           </Box>
         )
@@ -145,9 +151,15 @@ const Segmented = ({
   )
 }
 
+/** The types shown by default always have a filter, as the board draws them; optional ones once they have items. */
+const filterKinds = (listed: readonly Activation[], settings: Settings) =>
+  KIND_ORDER.filter(
+    kind => (!TOGGLES[kind].optional && settings.shown[kind]) || listed.some(a => a.kind === kind),
+  )
+
 const Filters = ({ ui, tone, activations, settings, filter, on }: PaneArgs) => {
   const listed = activations.filter(a => inPane(a, settings))
-  const kinds = KIND_ORDER.filter(kind => listed.some(a => a.kind === kind))
+  const kinds = filterKinds(listed, settings)
   const choices: [Filter, string, string, number][] = [
     ['all', 'a', 'All', listed.length],
     ...kinds.map((kind): [Filter, string, string, number] => [
@@ -160,7 +172,8 @@ const Filters = ({ ui, tone, activations, settings, filter, on }: PaneArgs) => {
   const segments = choices.map(([id, hotkey, title, n]) => ({
     key: `filter-${id}`,
     boxKey: `filterbox-${id}`,
-    label: `${title} ${n}`,
+    label: title,
+    count: n,
     isOn: filter === id,
     hotkey,
     onPress: () => on.filter(id),
@@ -315,7 +328,10 @@ const Activity = (args: PaneArgs) => {
   const { ui, now, tone, activations, settings, on } = args
   const { Box, Button, Text } = ui
   const listed = activations.filter(a => inPane(a, settings))
-  const filter = listed.some(a => a.kind === args.filter) ? args.filter : 'all'
+  const filter =
+    args.filter !== 'all' && filterKinds(listed, settings).includes(args.filter)
+      ? args.filter
+      : 'all'
   const groups = paneGroups(activations, settings, filter)
   const total = listed.reduce((sum, a) => sum + a.count, 0)
   const started = startedAgo(listed, now)
