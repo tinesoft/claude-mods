@@ -31,7 +31,7 @@ A Claude Code mod that shows what took part in your session. A row of chips abov
 - 🔍 **Why is it there?** — press a chip for a detail card with the reason and the source it came from
 - 🚨 **Problems first** — blocked, denied and errored chips lead the row, stay visible when their type is hidden, and raise one toast
 - 📋 **A full pane** — `/session-activity` opens every activation grouped by type, with filters, muting and live settings
-- 🎛️ **Optional types** — slash commands, memory writes, context use, the model per request and background Bash tasks
+- 🎛️ **Optional types** — slash commands, memory writes, context use, model switches and background Bash tasks
 - 🌓 **Follows your theme** — tinted chips in the design's light or dark colours, picked from your Claude Code theme, your terminal or your system, or pinned with `chip_theme`
 - ♿ **Never colour alone** — every status is also a text badge
 - 🖥️ **Terminal, Desktop, VS Code and mobile** — glyphs in the terminal, `Svg` icons and clickable chips on the rest, a text summary elsewhere
@@ -96,7 +96,7 @@ Remote Control from claude.ai shows the chips in the terminal on your machine. D
 | Hook       | `↯`   | A settings hook configured for the event ran, or the event was blocked | ok, blocked                 |
 | Rule       | `▣`   | A `CLAUDE.md` or `.claude/rules` file was loaded                       | active                      |
 
-Optional types are off by default: slash commands (`/`), memory (`✎`), context use and compaction (`◔`), the model each request went to (`≡`), background Bash tasks (`▶`), and checkpoints (`⚑`, not yet supported). The plugin option tags every chip that a plugin supplied with a dim `via <plugin>`; it is a tag, not a chip of its own.
+Optional types are off by default: slash commands (`/`), memory (`✎`), context use and compaction (`◔`), model switches (`≡`), background Bash tasks (`▶`), and checkpoints (`⚑`, not yet supported). The plugin option tags every chip that a plugin supplied with a dim `via <plugin>`; it is a tag, not a chip of its own.
 
 A memory chip appears when Claude writes or edits `CLAUDE.md`, `CLAUDE.local.md` or a markdown file in a `memory/` folder, labelled `Remembered: <file>`.
 

@@ -291,7 +291,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
   },
   model: {
     option: 'show_model',
-    title: 'Output style and model',
+    title: 'Model switches',
     noun: 'Model',
     plural: 'Model',
     description: 'A quiet chip when the style or model changes mid-session.',
@@ -299,7 +299,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     glyph: '≡',
     hotkey: 'l',
     optional: true,
-    showsTally: true,
+    showsTally: false,
     dim: true,
     palette: OPTIONAL,
   },

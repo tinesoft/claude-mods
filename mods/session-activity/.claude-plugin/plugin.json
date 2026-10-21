@@ -94,7 +94,7 @@
     },
     "show_model": {
       "type": "boolean",
-      "title": "Output style and model",
+      "title": "Model switches",
       "description": "Optional",
       "default": false
     },

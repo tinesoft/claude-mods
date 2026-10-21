@@ -71,6 +71,7 @@ declare module 'claude-code' {
       filter: Filter
       overrides: Overrides | null
       appearance: { system: Tone | null; colorFgBg: Tone | null }
+      model: string | null
     }
   }
 }

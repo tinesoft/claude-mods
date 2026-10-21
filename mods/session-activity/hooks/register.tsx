@@ -49,6 +49,7 @@ const muted = atom({ plugin: 'session-activity', key: 'muted' } as const, [])
 const selected = atom({ plugin: 'session-activity', key: 'selected' } as const, null)
 const paneView = atom({ plugin: 'session-activity', key: 'paneView' } as const, 'activity')
 const filter = atom({ plugin: 'session-activity', key: 'filter' } as const, 'all')
+const model = atom({ plugin: 'session-activity', key: 'model' } as const, null)
 const overrides = atom({ plugin: 'session-activity', key: 'overrides' } as const, null)
 const appearance = atom({ plugin: 'session-activity', key: 'appearance' } as const, {
   system: null,
@@ -367,7 +368,11 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.step', async function* ($, e, next) {
-    if (e.agentId === undefined) await observe($, options, fromModel(e.model))
+    if (e.agentId === undefined) {
+      const last = await read($, model)
+      await update($, model, () => e.model)
+      if (last !== null && last !== e.model) await observe($, options, fromModel(e.model))
+    }
     return yield* next(e)
   })
 

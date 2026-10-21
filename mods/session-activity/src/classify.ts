@@ -268,9 +268,9 @@ export const fromContextUsage = (percent: number): Observed => ({
 
 export const fromModel = (model: string): Observed => ({
   kind: 'model',
-  key: model,
-  label: model,
-  detail: `Model requests went to ${model}.`,
+  key: 'model',
+  label: `Model: ${model}`,
+  detail: `Switched the model to ${model}.`,
   status: 'active',
 })
 
