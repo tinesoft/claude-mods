@@ -538,6 +538,15 @@ test('the selected chip label is underlined; the card has a close button', async
   expect(await (await mountBand($)).find({ key: 'card' })).toBeUndefined()
 })
 
+test('the band never gets Esc, so the card closes on x as well', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on)
+  await withSkill($, clock)
+  await (await mountBand($)).press({ key: 'chip-skill-docx' })
+  const close = await (await mountBand($)).find({ key: 'close' })
+  expect(close).toMatchObject({ text: 'x: ✕', props: { hotkey: 'x' } })
+})
+
 test('the card copies the source path and mutes the chip', async ($, on) => {
   const clock = session(on)
   const { copied } = stubEngine(on)
