@@ -1,6 +1,15 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
-import { BAND_SURFACES, FRESH, type Finder, mountBand, session, skip, stubEngine } from './harness'
+import {
+  BAND_SURFACES,
+  FRESH,
+  type Finder,
+  mountBand,
+  mountPane,
+  session,
+  stubEngine,
+  SURFACES,
+} from './harness'
 
 const TONES = {
   light: {
@@ -174,34 +183,29 @@ for (const surface of BAND_SURFACES) {
   }
 }
 
-// B1: band not raised on vscode/mobile; moves to pane header in W4
-skip('mobile leads with an N active chip that opens the pane; the others have none', async ($, on) => {
+test('the mobile pane header leads with an N active chip; the other surfaces have none', async ($, on) => {
   const clock = session(on, {}, new Map(), 'light', ['mobile'])
-  const { opens } = stubEngine(on)
-  for (const name of ['a', 'b', 'c']) await skill($, name)
+  stubEngine(on)
+  for (const name of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']) await skill($, name)
   await clock.advance(FRESH)
-  // @ts-expect-error B1: the engine never raises the band on mobile
-  const band = await mountBand($, 'mobile', 120)
-  expect((await band.find({ key: 'lead' }))?.text).toBe('3 active')
-  expect(await textOf(band, ' ●')).toBeUndefined()
-  await band.press({ key: 'lead' })
-  expect(opens).toEqual([expect.objectContaining({ id: 'session-activity' })])
-  for (const surface of BAND_SURFACES) {
-    expect(await (await mountBand($, surface, 120)).find({ key: 'lead' })).toBeUndefined()
+  const pane = await mountPane($, 'mobile', 40)
+  expect((await pane.find({ key: 'lead' }))?.text).toBe('10 active')
+  expect(await textOf(pane, ' ●')).toBeUndefined()
+  expect(await pane.find({ text: /^\+\d+ more$/ })).toBeUndefined()
+  for (const surface of SURFACES.filter(s => s !== 'mobile')) {
+    expect(await (await mountPane($, surface)).find({ key: 'lead' })).toBeUndefined()
   }
 })
 
-// B1: band not raised on vscode/mobile; moves to pane header in W4
-skip('the mobile lead chip carries a red dot when something is blocked', async ($, on) => {
+test('the mobile pane lead chip carries a red dot when something is blocked', async ($, on) => {
   const clock = session(on, {}, new Map(), 'dark', ['mobile'])
   stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
   await skill($)
   await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
   await clock.advance(FRESH)
-  // @ts-expect-error B1: the engine never raises the band on mobile
-  const band = await mountBand($, 'mobile', 120)
-  expect((await band.find({ key: 'lead' }))?.text).toBe('2 active ●')
-  expect((await textOf(band, ' ●'))?.props.color).toBe('#F97066')
+  const pane = await mountPane($, 'mobile')
+  expect((await pane.find({ key: 'lead' }))?.text).toBe('2 active ●')
+  expect((await textOf(pane, ' ●'))?.props.color).toBe('#F97066')
 })
 
 test(

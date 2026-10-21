@@ -65,6 +65,17 @@ for (const surface of BAND_SURFACES) {
   })
 }
 
+for (const surface of ['vscode', 'mobile'] as const) {
+  test(`on ${surface}, which has no band, /session-activity opens the pane`, async ($, on) => {
+    session(on, {}, new Map(), 'dark', [surface])
+    const { opened } = stubEngine(on)
+    expect(await $.command.run({ command: 'session-activity', args: '' } as never)).toEqual({
+      text: 'Opened the session activity pane.',
+    })
+    expect(opened).toEqual(['session-activity'])
+  })
+}
+
 for (const surface of SURFACES) {
   test(`on ${surface} the pane draws both tabs`, async ($, on) => {
     session(on, HOOKS, new Map(), 'dark', [surface])

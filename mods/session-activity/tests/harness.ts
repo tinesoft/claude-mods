@@ -1,6 +1,6 @@
 import type { On, RenderSurface } from 'claude-code'
 import { mock } from 'claude-code/testing'
-import type { ElementQuery, Engine, FoundElement, TestRest } from 'claude-code/testing'
+import type { ElementQuery, Engine, FoundElement } from 'claude-code/testing'
 import { across } from '../src/theme'
 
 export const CWD = '/repo'
@@ -43,9 +43,6 @@ export const session = (
   on('fs.read', ($, e) => (e.path in FILES ? { value: FILES[e.path]! } : { deny: 'no such file' }))
   return clock
 }
-
-/** The kit has no `test.skip`: declares nothing, but keeps the body type-checked. */
-export const skip: (name: string, ...rest: TestRest) => void = () => {}
 
 export const bandProps = (bodyColumns: number, maxRows = 24) => ({
   hasSurvey: false,
