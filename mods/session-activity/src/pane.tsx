@@ -292,7 +292,7 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
                   key="copy"
                   plain
                   hotkey="c"
-                  label="c: Copy path"
+                  label="Copy path"
                   onPress={() => on.copy(a.source!)}
                 />
               </>
