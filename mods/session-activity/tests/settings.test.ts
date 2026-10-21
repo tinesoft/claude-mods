@@ -3,8 +3,8 @@ import { across } from '../src/theme'
 import { mountBand, mountPane, session, stubEngine, SURFACES } from './harness'
 
 const SWITCH = {
-  light: { on: '#17181C', off: '#B9BCC4', muted: '#5A5E68', text2: '#3B3F48' },
-  dark: { on: '#5B7FE0', off: '#4A4E57', muted: '#9499A3', text2: '#B4B8C1' },
+  light: { on: '#17181C', off: '#B9BCC4', muted: '#5A5E68', text2: '#3B3F48', line: '#DADCE1' },
+  dark: { on: '#5B7FE0', off: '#4A4E57', muted: '#9499A3', text2: '#B4B8C1', line: '#34373E' },
 } as const
 
 for (const surface of SURFACES) {
@@ -103,6 +103,25 @@ for (const surface of SURFACES) {
       expect((await shown()).some(x => /^\s*(BLOCKED|Blocked)\s*$/.test(x))).toBe(false)
       await pane.press({ key: 'layout-summary' })
       expect((await pane.find({ key: 'summary-stopped' }))?.text).toBe('● 1 blocked')
+    })
+
+    test(`${tone} on ${surface}: the preview ends with a muted prompt bar stand-in`, async ($, on) => {
+      session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      const pane = await mountPane($, surface, 160)
+      await pane.press({ key: 'tab-settings' })
+      for (const press of [undefined, 'layout-summary', 'toggle-enabled']) {
+        if (press !== undefined) await pane.press({ key: press })
+        const bar = await pane.find({ key: 'prompt-standin' })
+        expect(bar?.text).toBe('Reply to Claude…')
+        const text = (await pane.findAll({ type: 'Text' })).find(x => x.text === 'Reply to Claude…')
+        if (rich) {
+          expect(bar?.props).toMatchObject({ borderStyle: 'round', borderColor: t.line })
+          expect(text?.props.color).toBe(t.muted)
+        } else {
+          expect(text?.props.dimColor).toBe(true)
+        }
+      }
     })
 
     test(`${tone} on ${surface}: the preview follows the layout and the master switch`, async ($, on) => {
