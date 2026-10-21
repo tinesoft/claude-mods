@@ -502,10 +502,18 @@ const Switch = ({
   )
 }
 
+/** A settings section header: the board's quiet upper-case mono eyebrow. */
+const Eyebrow = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => (
+  <ui.Text mono size="caption" {...inkOf(ui, tone, 'muted')}>
+    {text.toUpperCase()}
+  </ui.Text>
+)
+
 const Segments = <T extends string>({
   ui,
   tone,
   title,
+  isSection = false,
   note,
   current,
   choices,
@@ -514,6 +522,7 @@ const Segments = <T extends string>({
   ui: Ui
   tone: Tone | undefined
   title: string
+  isSection?: boolean
   note?: string
   current: T
   choices: [T, string, string][]
@@ -529,8 +538,8 @@ const Segments = <T extends string>({
   }))
   return (
     <Box flexDirection="column" rowGap={SPACE.rowTextGap}>
-      <Box flexDirection="row" columnGap={SPACE.tabGap}>
-        <Text bold>{title}</Text>
+      <Box flexDirection="row" columnGap={SPACE.segmentsHeadGap}>
+        {isSection ? <Eyebrow ui={ui} tone={tone} text={title} /> : <Text bold>{title}</Text>}
         <Segmented ui={ui} tone={tone} segments={segments} />
       </Box>
       {note !== undefined && (
@@ -598,6 +607,7 @@ const SettingsTab = (args: PaneArgs) => {
           ui={ui}
           tone={tone}
           title="Preview"
+          isSection
           current={settings.layout}
           choices={layouts}
           onPick={layout => on.set({ layout })}
@@ -622,15 +632,15 @@ const SettingsTab = (args: PaneArgs) => {
         )}
       </Box>
       <Box flexDirection="column" rowGap={SPACE.sectionGap}>
-        <Text bold>Shown by default</Text>
+        <Eyebrow ui={ui} tone={tone} text="Shown by default" />
         <Box flexDirection="column" rowGap={SPACE.listGap}>
           {TOGGLE_ORDER.filter(t => !TOGGLES[t].optional).map(toggleRow)}
         </Box>
       </Box>
       <Box flexDirection="column" rowGap={SPACE.sectionGap}>
-        <Box flexDirection="row" columnGap={SPACE.tabGap}>
-          <Text bold>Optional</Text>
-          <Text {...inkOf(ui, tone, 'muted')}>
+        <Box flexDirection="row" columnGap={SPACE.optionalHeadGap}>
+          <Eyebrow ui={ui} tone={tone} text="Optional" />
+          <Text {...inkOf(ui, tone, 'text2')}>
             {`Off by default · ${optionalOn} of ${optional.length} on`}
           </Text>
         </Box>
