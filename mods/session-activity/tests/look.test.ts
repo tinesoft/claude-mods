@@ -220,3 +220,20 @@ test(
     expect(boxes.map(b => b.props.borderStyle)).toEqual([undefined, undefined])
   },
 )
+
+test(
+  'untinted skill and permission chips take theme keys of different hues, blue and cyan',
+  { options: { chip_style: 'text' } },
+  async ($, on) => {
+    const clock = session(on)
+    stubEngine(on, { verdict: { decision: 'allow', rule: 'Bash(git push:*)' } })
+    await skill($)
+    await $.tool.check({ tool: 'Bash', input: { command: 'git push' }, tool_use_id: 't' } as never)
+    await clock.advance(FRESH)
+    const band = await mountBand($)
+    const colorOf = async (key: string) =>
+      (await band.findAll({ type: 'Text' })).find(t => t.text.endsWith(key))?.props.color
+    expect(await colorOf('docx')).toBe('suggestion')
+    expect(await colorOf('git push')).toBe('planMode')
+  },
+)
