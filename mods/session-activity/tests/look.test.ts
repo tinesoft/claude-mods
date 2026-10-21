@@ -79,6 +79,29 @@ for (const surface of BAND_SURFACES) {
       })
     })
 
+    test(`${tone} on ${surface}: a chip that just activated takes the board's fresh look`, async ($, on) => {
+      session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      await skill($)
+      const band = await mountBand($, surface, 120)
+      const box = await chipBox(band, 'skill:docx')
+      const label = (await band.findAll({ type: 'Text' })).find(x => x.text.endsWith('docx'))
+      const icons = (await band.findAll({ type: 'Svg' })).map(i => i.props)
+      if (rich) {
+        expect(box.props.borderColor).toBe(t.skill.fg)
+        expect(label).toMatchObject({ text: 'docx', props: { bold: false } })
+        expect(icons).toEqual([
+          expect.objectContaining({
+            width: 7,
+            height: 7,
+            source: expect.stringContaining(`fill="${t.skill.fg}"`),
+          }),
+        ])
+      } else {
+        expect(label).toMatchObject({ text: '● docx', props: { bold: true } })
+      }
+    })
+
     test(`${tone} on ${surface}: blocked and denied show a white-on-red badge`, async ($, on) => {
       const clock = session(on, {}, new Map(), tone, [surface])
       stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
