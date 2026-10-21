@@ -221,3 +221,15 @@ test(
     expect((await label('Auto'))?.props.bold).toBe(false)
   },
 )
+
+test('two presses of a toggle before a redraw flip it twice, back where it was', async ($, on) => {
+  const store = new Map<string, unknown>()
+  session(on, {}, store)
+  stubEngine(on)
+  const pane = await mountPane($)
+  await pane.press({ key: 'tab-settings' })
+  await Promise.all([pane.press({ key: 'toggle-memory' }), pane.press({ key: 'toggle-memory' })])
+  await Promise.all([pane.press({ key: 'toggle-hotkeys' }), pane.press({ key: 'toggle-hotkeys' })])
+  expect((await pane.find({ key: 'toggle-memory' }))?.text).toBe('○')
+  expect((await pane.find({ key: 'toggle-hotkeys' }))?.text).toBe('○')
+})
