@@ -12,7 +12,7 @@ import type {
   Toggle,
 } from '../types'
 import { chipId, inPane, paneGroups, sampleActivations, startedAgo } from './model'
-import { OFF_TRACK, switchSvg, SWITCH_SIZE } from './icons'
+import { switchSvg, SWITCH_SIZE } from './icons'
 import {
   agoLabel,
   Badge,
@@ -48,8 +48,6 @@ const ICON_CELLS = 3
 
 const MIN_META = 5
 
-const UNTINTED_ON = '#2F6FED'
-
 export type PaneFlag = 'enabled' | 'hotkeys' | 'toastOnBlock' | 'textSummary'
 
 export type PaneArgs = {
@@ -58,6 +56,8 @@ export type PaneArgs = {
   columns: number
   now: number
   tone: Tone | undefined
+  /** The tone switches are painted in: the tinted one even when chips are untinted. */
+  switchTone: Tone | undefined
   activations: readonly Activation[]
   settings: Settings
   muted: readonly string[]
@@ -445,6 +445,7 @@ const ToggleMark = ({ ui, tone, toggle }: { ui: Ui; tone: Tone | undefined; togg
 const Switch = ({
   ui,
   tone,
+  switchTone,
   id,
   isOn,
   title,
@@ -454,6 +455,7 @@ const Switch = ({
 }: {
   ui: Ui
   tone: Tone | undefined
+  switchTone: Tone | undefined
   id: string
   isOn: boolean
   title: string
@@ -462,9 +464,8 @@ const Switch = ({
   onPress: () => void
 }) => {
   const { Box, Button, Text } = ui
-  const { Svg } = ui
-  const [on, off] =
-    tone === undefined ? [UNTINTED_ON, OFF_TRACK] : [TOKENS[tone].switchOn, TOKENS[tone].switchOff]
+  const track = switchTone === undefined ? undefined : TOKENS[switchTone]
+  const Svg = track === undefined ? undefined : ui.Svg
   return (
     <Box
       key={`row-${id}`}
@@ -484,9 +485,9 @@ const Switch = ({
         </Box>
       </Box>
       <Box flexDirection="row" columnGap={SPACE.chipInner}>
-        {Svg && (
+        {Svg && track && (
           <Svg
-            source={switchSvg(isOn, on, off)}
+            source={switchSvg(isOn, track.switchOn, track.switchOff)}
             alt={isOn ? 'On' : 'Off'}
             width={SWITCH_SIZE.width}
             height={SWITCH_SIZE.height}
@@ -572,7 +573,7 @@ const INTRO =
   'Choose what shows above the prompt bar when it activates during a session. Optional types stay off until you turn them on.'
 
 const SettingsTab = (args: PaneArgs) => {
-  const { ui, surface, columns, now, tone, settings, on } = args
+  const { ui, surface, columns, now, tone, switchTone, settings, on } = args
   const { Box, Button, Text } = ui
   const optional = TOGGLE_ORDER.filter(t => TOGGLES[t].optional)
   const optionalOn = optional.filter(t => settings.shown[t]).length
@@ -580,6 +581,7 @@ const SettingsTab = (args: PaneArgs) => {
     <Switch
       ui={ui}
       tone={tone}
+      switchTone={switchTone}
       id={`toggle-${toggle}`}
       isOn={settings.shown[toggle]}
       title={TOGGLES[toggle].title}
@@ -614,6 +616,7 @@ const SettingsTab = (args: PaneArgs) => {
         <Switch
           ui={ui}
           tone={tone}
+          switchTone={switchTone}
           id="toggle-enabled"
           isOn={settings.enabled}
           title="Show chips above the prompt bar"
@@ -716,6 +719,7 @@ const SettingsTab = (args: PaneArgs) => {
         <Switch
           ui={ui}
           tone={tone}
+          switchTone={switchTone}
           id="toggle-hotkeys"
           isOn={settings.hotkeys}
           title="Digit hotkeys on chips"
@@ -725,6 +729,7 @@ const SettingsTab = (args: PaneArgs) => {
         <Switch
           ui={ui}
           tone={tone}
+          switchTone={switchTone}
           id="toggle-toast"
           isOn={settings.toastOnBlock}
           title="Toast when blocked or denied"
@@ -734,6 +739,7 @@ const SettingsTab = (args: PaneArgs) => {
         <Switch
           ui={ui}
           tone={tone}
+          switchTone={switchTone}
           id="toggle-text-summary"
           isOn={settings.textSummary}
           title="Text summary after each answer"

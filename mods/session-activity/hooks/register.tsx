@@ -427,6 +427,7 @@ export const register: Register = (on, options) => {
       columns: e.props.bodyColumns,
       now: await $.clock.now(),
       tone: await toneOf($, settings, e.surface),
+      switchTone: await toneOf($, { ...settings, chipStyle: 'tinted' }, e.surface),
       activations: await read($, activations),
       settings,
       muted: await read($, muted),
