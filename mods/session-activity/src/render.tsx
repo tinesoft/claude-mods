@@ -330,19 +330,18 @@ const Chip = ({ args, a, index, labelMax }: ChipArgs) => {
       })}
       {...(rich && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
-      {rich ? (
-        <ChipIcon ui={ui} a={a} look={look} now={now} />
-      ) : (
-        <Text {...paint} {...(a.status === 'error' && { color: 'error', dimColor: false })}>
-          {p.glyph}
-        </Text>
-      )}
+      {rich && <ChipIcon ui={ui} a={a} look={look} now={now} />}
       <Button
         key={`chip-${a.kind}-${a.key}`}
         plain
         {...(settings.hotkeys && index < 9 && { hotkey: String(index + 1) })}
         onPress={() => on.pick(id, fits(a))}
       >
+        {!rich && (
+          <Text {...paint} {...(a.status === 'error' && { color: 'error', dimColor: false })}>
+            {`${p.glyph} `}
+          </Text>
+        )}
         <Text {...paint} bold={p.lead !== ''} underline={selected === id}>
           {p.lead + p.label}
         </Text>

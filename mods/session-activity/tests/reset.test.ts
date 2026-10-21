@@ -50,5 +50,5 @@ test('activations and mutes are cleared when the session forks, as /branch does'
   await $.classic.SessionStart({ source: 'fork' } as never)
   expect(status()).toBeUndefined()
   await $.tool.call({ tool: 'mcp__github__get_issue' } as never)
-  expect((await (await mountBand($)).find({ key: 'chip-mcp-github' }))?.text).toBe('● github')
+  expect((await (await mountBand($)).find({ key: 'chip-mcp-github' }))?.text).toBe('⇌ ● github')
 })

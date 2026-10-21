@@ -23,7 +23,7 @@ test('two calls to one MCP server record one github chip counted twice', async (
   stubEngine(on)
   await $.tool.call({ tool: 'mcp__github__get_pull_request', number: 418 } as never)
   await $.tool.call({ tool: 'mcp__github__create_review', number: 418 } as never)
-  expect(await band($, clock)).toEqual(['mcp:github|⇌github ×2 '])
+  expect(await band($, clock)).toEqual(['mcp:github|⇌ github ×2 '])
 })
 
 test('an MCP server that errored clears to ok once a call to it succeeds', async ($, on) => {
@@ -33,10 +33,10 @@ test('an MCP server that errored clears to ok once a call to it succeeds', async
   }
   stubEngine(on, answers)
   await $.tool.call({ tool: 'mcp__github__get_issue' } as never)
-  expect(await band($, clock)).toEqual(['mcp:github|▲githubError'])
+  expect(await band($, clock)).toEqual(['mcp:github|▲ githubError'])
   delete answers.call
   await $.tool.call({ tool: 'mcp__github__list_issues' } as never)
-  expect(await band($, clock)).toEqual(['mcp:github|⇌github ×2 '])
+  expect(await band($, clock)).toEqual(['mcp:github|⇌ github ×2 '])
 })
 
 test('a skill Claude loads becomes a skill chip', async ($, on) => {
@@ -49,7 +49,7 @@ test('a skill Claude loads becomes a skill chip', async ($, on) => {
     source: 'plugin',
     pluginName: 'anthropic-skills',
   } as never)
-  expect(await band($, clock)).toEqual(['skill:docx|▤docx'])
+  expect(await band($, clock)).toEqual(['skill:docx|▤ docx'])
 })
 
 test('a subagent chip runs until its turn completes', async ($, on) => {
@@ -57,7 +57,7 @@ test('a subagent chip runs until its turn completes', async ($, on) => {
   stubEngine(on)
   await $.agent.spawn(spawn('pr'))
   expect(await band($, clock)).toEqual([
-    expect.stringMatching(/^agent:code-reviewer\|[◐◓◑◒]code-reviewer$/),
+    expect.stringMatching(/^agent:code-reviewer\|[◐◓◑◒] code-reviewer$/),
   ])
   await $.turn.complete({
     answer: 'ok',
@@ -67,7 +67,7 @@ test('a subagent chip runs until its turn completes', async ($, on) => {
     agentId: 'agent-pr',
     reason: 'answer',
   })
-  expect(await band($, clock)).toEqual(['agent:code-reviewer|◉code-reviewer'])
+  expect(await band($, clock)).toEqual(['agent:code-reviewer|◉ code-reviewer'])
 })
 
 test('a denied tool call records a denied permission chip', async ($, on) => {
@@ -78,7 +78,7 @@ test('a denied tool call records a denied permission chip', async ($, on) => {
     input: { command: 'rm -rf build' },
     tool_use_id: 'tu1',
   } as never)
-  expect(await band($, clock)).toEqual(['perm:Bash(rm:*)|⚷rm -rf DENIED '])
+  expect(await band($, clock)).toEqual(['perm:Bash(rm:*)|⚷ rm -rf DENIED '])
 })
 
 test('an asked call that runs ends as approved, not pending', async ($, on) => {
@@ -86,10 +86,10 @@ test('an asked call that runs ends as approved, not pending', async ($, on) => {
   stubEngine(on, { verdict: { decision: 'ask' } })
   await $.tool.check({ tool: 'Bash', input: { command: 'git push' }, tool_use_id: 'tu2' } as never)
   expect(await band($, clock)).toEqual([
-    expect.stringMatching(/^perm:Bash:git push\|[◐◓◑◒]git push$/),
+    expect.stringMatching(/^perm:Bash:git push\|[◐◓◑◒] git push$/),
   ])
   await $.tool.call({ tool: 'Bash', command: 'git push', tool_use_id: 'tu2' } as never)
-  expect(await band($, clock)).toEqual(['perm:Bash:git push|⚷git push'])
+  expect(await band($, clock)).toEqual(['perm:Bash:git push|⚷ git push'])
 })
 
 test('a PreToolUse hook that blocks shows its script name and BLOCKED', async ($, on) => {
@@ -110,7 +110,7 @@ test('a PreToolUse hook that blocks shows its script name and BLOCKED', async ($
   await $.tool.call({ tool: 'Bash', command: 'ls' } as never)
   await $.tool.call({ tool: 'Bash', command: 'cat .env' } as never)
   expect(await band($, clock)).toEqual([
-    'hook:bash .claude/hooks/block-secrets.sh|↯block-secrets ×2  BLOCKED ',
+    'hook:bash .claude/hooks/block-secrets.sh|↯ block-secrets ×2  BLOCKED ',
   ])
 })
 
@@ -125,8 +125,8 @@ test('a hook chip spins while its hook runs, then settles counted once', async (
     return next(e)
   })
   await $.tool.call({ tool: 'Bash', command: 'ls' } as never)
-  expect(during).toEqual([expect.stringMatching(/^hook:lint\.sh\|[◐◓◑◒]● lint$/)])
-  expect(await band($, clock)).toEqual(['hook:lint.sh|↯lint'])
+  expect(during).toEqual([expect.stringMatching(/^hook:lint\.sh\|[◐◓◑◒] ● lint$/)])
+  expect(await band($, clock)).toEqual(['hook:lint.sh|↯ lint'])
 })
 
 test('two hooks on one event each get their own chip, and only the one that blocked says so', async ($, on) => {
@@ -148,8 +148,8 @@ test('two hooks on one event each get their own chip, and only the one that bloc
   await $.tool.call({ tool: 'Bash', command: 'cat .env' } as never)
   await $.tool.call({ tool: 'Edit', file_path: 'a.ts' } as never)
   expect((await band($, clock)).map(chip => chip.split('|')[1])).toEqual([
-    '↯block-secrets BLOCKED ',
-    '↯format',
+    '↯ block-secrets BLOCKED ',
+    '↯ format',
   ])
 })
 
@@ -174,8 +174,8 @@ test('each instruction file load becomes a rule chip with its line count', async
     load_reason: 'path_glob_match',
   } as never)
   expect(await band($, clock)).toEqual([
-    'rule:/repo/CLAUDE.md|▣CLAUDE.md',
-    'rule:/repo/.claude/rules/testing.md|▣.claude/rules/testing.md',
+    'rule:/repo/CLAUDE.md|▣ CLAUDE.md',
+    'rule:/repo/.claude/rules/testing.md|▣ .claude/rules/testing.md',
   ])
   const pane = await mountPane($)
   await pane.press({ key: 'row-rule-/repo/CLAUDE.md' })
@@ -200,7 +200,10 @@ test(
     stubEngine(on)
     await $.command.run({ command: 'review', args: '' } as never)
     await $.tool.call({ tool: 'Bash', command: 'npm run dev', run_in_background: true } as never)
-    expect(await band($, clock)).toEqual(['command:review|//review', 'background:npm run|▶npm run'])
+    expect(await band($, clock)).toEqual([
+      'command:review|/ /review',
+      'background:npm run|▶ npm run',
+    ])
   },
 )
 
@@ -242,5 +245,5 @@ test('an interrupted subagent ends as an error, not a success', async ($, on) =>
     agentId: 'agent-pr',
     reason: 'aborted',
   })
-  expect(await band($, clock)).toEqual(['agent:code-reviewer|▲code-reviewerError'])
+  expect(await band($, clock)).toEqual(['agent:code-reviewer|▲ code-reviewerError'])
 })

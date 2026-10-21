@@ -38,7 +38,7 @@ for (const columns of [60, 100, 200]) {
     const { boxes, more, hidden } = await row($, columns)
     expect(boxes.length + hidden).toBe(SKILLS.length)
     expect(boxes.length).toBeLessThanOrEqual(6)
-    const chipCells = boxes.reduce((sum, b) => sum + b.text.length + 3, 0)
+    const chipCells = boxes.reduce((sum, b) => sum + b.text.length + 2, 0)
     const used = chipCells + (boxes.length - 1) + (more ? 1 + more.text.length : 0)
     expect(used).toBeLessThanOrEqual(columns - 2)
   })
@@ -66,7 +66,7 @@ test('max_chips caps the row', { options: { max_chips: 2 } }, async ($, on) => {
   stubEngine(on)
   await loadSkills($, clock)
   const { boxes, more } = await row($, 200)
-  expect(boxes.map(b => b.text)).toEqual(['▤hotel', '▤golf'])
+  expect(boxes.map(b => b.text)).toEqual(['▤ hotel', '▤ golf'])
   expect(more?.text).toBe('+6 more')
 })
 
@@ -88,8 +88,8 @@ test(
     await loadSkills($, clock)
     const buttons = await (await mountBand($, 'terminal', 200)).findAll({ type: 'Button' })
     expect(buttons.slice(0, 2).map(b => [b.props.hotkey, b.text])).toEqual([
-      ['1', '1: hotel'],
-      ['2', '2: golf'],
+      ['1', '1: ▤ hotel'],
+      ['2', '2: ▤ golf'],
     ])
     expect(buttons.at(-1)?.props.hotkey).toBe('0')
   },
@@ -104,7 +104,7 @@ test('a blocked hook takes the first seat even when everything else is newer', a
   await $.tool.call({ tool: 'Bash', command: 'cat .env' } as never)
   await loadSkills($, clock)
   const { boxes } = await row($, 100)
-  expect(boxes[0]!.text).toBe('↯guard BLOCKED ')
+  expect(boxes[0]!.text).toBe('↯ guard BLOCKED ')
 })
 
 test(
@@ -208,7 +208,7 @@ test('the band draws on the terminal and on desktop', async ($, on) => {
   const clock = session(on)
   stubEngine(on)
   await loadSkills($, clock)
-  expect((await row($, 100, 'terminal')).boxes[0]!.text).toBe('▤hotel')
+  expect((await row($, 100, 'terminal')).boxes[0]!.text).toBe('▤ hotel')
   expect((await row($, 100, 'desktop')).boxes[0]!.text).toBe('hotel')
 })
 
@@ -358,8 +358,8 @@ test(
     stubEngine(on)
     await interrupt($, clock)
     const { band, boxes } = await row($, 100)
-    expect(boxes.map(b => b.text)).toEqual(['▲Explore ERROR '])
-    const triangle = (await band.findAll({ type: 'Text' })).find(t => t.text === '▲')
+    expect(boxes.map(b => b.text)).toEqual(['▲ Explore ERROR '])
+    const triangle = (await band.findAll({ type: 'Text' })).find(t => t.text === '▲ ')
     expect(triangle?.props.color).toBe('error')
   },
 )
@@ -465,7 +465,7 @@ test(
       pluginName: 'anthropic-skills',
     } as never)
     await clock.advance(FRESH)
-    expect((await row($, 100)).boxes[0]!.text).toBe('▤docxvia anthropic-skills')
+    expect((await row($, 100)).boxes[0]!.text).toBe('▤ docxvia anthropic-skills')
   },
 )
 
@@ -480,7 +480,7 @@ test('without the plugin toggle chips carry no plugin tag', async ($, on) => {
     pluginName: 'anthropic-skills',
   } as never)
   await clock.advance(FRESH)
-  expect((await row($, 100)).boxes[0]!.text).toBe('▤docx')
+  expect((await row($, 100)).boxes[0]!.text).toBe('▤ docx')
 })
 
 const withSkill = async ($: Engine, clock: MockClock) => {
@@ -645,5 +645,5 @@ test('with digit hotkeys on, the terminal chip reads hotkey, glyph, label', asyn
   stubEngine(on)
   await loadSkills($, clock, ['docx'])
   const band = await mountBand($)
-  expect((await band.find({ key: 'box-skill:docx' }))?.text).toBe('1: ▤docx')
+  expect((await band.find({ key: 'box-skill:docx' }))?.text).toBe('1: ▤ docx')
 })

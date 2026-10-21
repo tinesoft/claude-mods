@@ -32,6 +32,6 @@ test(
     expect(await band($, clock)).toEqual([])
     await step($, 'sonnet')
     await step($, 'sonnet')
-    expect(await band($, clock)).toEqual(['model:model|≡Model: sonnet'])
+    expect(await band($, clock)).toEqual(['model:model|≡ Model: sonnet'])
   },
 )
