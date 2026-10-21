@@ -1,6 +1,7 @@
 import type { On, RenderSurface } from 'claude-code'
 import { mock } from 'claude-code/testing'
 import type { ElementQuery, Engine, FoundElement, TestRest } from 'claude-code/testing'
+import { across } from '../src/theme'
 
 export const CWD = '/repo'
 
@@ -221,4 +222,30 @@ export const probes = (
       : { value: { ...answer, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   return answers
+}
+
+type Space = Parameters<typeof across>[0]
+
+/** Cells a drawn row takes on the terminal, as the engine lays it out. */
+export const cellsAcross = (node: unknown): number => {
+  if (typeof node === 'string') return node.length
+  if (node === null || typeof node !== 'object') return 0
+  const { type, props = {}, children = [] } = node as Node
+  const parts = children.filter(c => c !== null && c !== false && c !== undefined && c !== '')
+  const inner = parts.map(cellsAcross)
+  if (type === 'Button') {
+    const label = parts.length ? inner.reduce((a, b) => a + b, 0) : String(props.label ?? '').length
+    return label + (props.plain && typeof props.hotkey === 'string' ? props.hotkey.length + 2 : 0)
+  }
+  if (type !== 'Box' || props.flexDirection === 'column') {
+    return type === 'Box' ? Math.max(0, ...inner) : inner.reduce((a, b) => a + b, 0)
+  }
+  const gap = props.columnGap === undefined ? 0 : across(props.columnGap as Space)
+  const pad = props.paddingX === undefined ? 0 : across(props.paddingX as Space)
+  return (
+    inner.reduce((a, b) => a + b, 0) +
+    Math.max(0, parts.length - 1) * gap +
+    2 * pad +
+    (props.borderStyle === undefined ? 0 : 2)
+  )
 }

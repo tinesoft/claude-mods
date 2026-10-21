@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { mountBand, mountPane, session, stubEngine } from './harness'
+import { cellsAcross, mountBand, mountPane, session, stubEngine } from './harness'
 
 const SKILLS = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel']
 
@@ -71,3 +71,21 @@ test(
     expect(more?.props.color).toBeUndefined()
   },
 )
+
+for (const columns of [20, 30]) {
+  test(`at ${columns} columns the first chip clips so it and "+N more" fit the band`, async ($, on) => {
+    session(on)
+    stubEngine(on)
+    for (const skill of [
+      'a-very-long-skill-name-one',
+      'a-very-long-skill-name-two',
+      'third-long-skill-name-here',
+    ]) {
+      await $.skill.prompt({ skill, text: '', frontmatter: {}, source: 'projectSettings' } as never)
+    }
+    const band = await mountBand($, 'terminal', columns)
+    const row = ((await band.drawn()) as { children: unknown[] }).children.at(-1)
+    expect(cellsAcross(row)).toBeLessThanOrEqual(columns - 2)
+    expect((await band.find({ key: 'more' }))?.text).toBe('+2 more')
+  })
+}
