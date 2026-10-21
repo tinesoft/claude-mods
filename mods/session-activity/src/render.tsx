@@ -159,6 +159,7 @@ const partsOf = (
   now: number,
   tone: Tone | undefined,
   rich: boolean,
+  labelMax = LABEL_MAX,
 ): Parts => {
   const status = STATUSES[a.status]
   const frame = Math.floor(now / SPIN_MS)
@@ -169,7 +170,7 @@ const partsOf = (
         ? SPINNER[frame % SPINNER.length]!
         : (status.glyph ?? TOGGLES[a.kind].glyph),
     lead: a.lastAt > now - FRESH_MS ? '● ' : '',
-    label: clip(a.label, LABEL_MAX),
+    label: clip(a.label, labelMax),
     count: tone !== undefined && tally !== '' ? ` ${tally} ` : tally,
     via: settings.shown.plugin && a.plugin !== undefined ? `via ${clip(a.plugin, 16)}` : '',
     badge: badgeOf(a.status, tone, rich),
@@ -216,6 +217,7 @@ export const fitChips = (
   const gap = gapOf(tone)
   const shown: Activation[] = []
   let used = 0
+  let labelMax = LABEL_MAX
   for (const [index, chip] of chips.entries()) {
     if (shown.length >= settings.maxChips) break
     const width =
@@ -226,11 +228,13 @@ export const fitChips = (
       rest > 0
         ? gap + moreLabel(rest).length + (settings.hotkeys ? 3 : 0) + (rich && tone ? MORE_BOX : 0)
         : 0
-    if (shown.length > 0 && used + width + reserve > columns) break
+    const excess = used + width + reserve - columns
+    if (shown.length > 0 && excess > 0) break
+    if (excess > 0) labelMax = Math.max(2, Math.min(chip.label.length, LABEL_MAX) - excess)
     shown.push(chip)
     used += width
   }
-  return { shown, hidden: chips.length - shown.length }
+  return { shown, hidden: chips.length - shown.length, labelMax }
 }
 
 const stoppedCount = (chips: readonly Activation[]) => chips.filter(a => isStopped(a.status)).length
@@ -297,11 +301,13 @@ const chipBorder = (look: Look, a: Activation, tone: Tone | undefined, isSelecte
   return tone !== undefined && isStopped(a.status) ? TOKENS[tone].dangerBd : look.border
 }
 
-const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number }) => {
+type ChipArgs = { args: RowArgs; a: Activation; index: number; labelMax: number }
+
+const Chip = ({ args, a, index, labelMax }: ChipArgs) => {
   const { ui, now, tone, settings, selected, fits, on } = args
   const { Box, Button, Text } = ui
   const rich = isRich(ui)
-  const p = partsOf(a, settings, now, tone, rich)
+  const p = partsOf(a, settings, now, tone, rich, labelMax)
   const look = lookOf(a.kind, tone, a.status)
   const { color, tint, dim } = look
   const paint = { color, dimColor: dim, ...withTint(tint) }
@@ -453,7 +459,7 @@ export const ChipRow = (args: RowArgs) => {
   if (settings.layout === 'summary') return <Summary args={args} />
   const leads = surface === 'mobile'
   const inset = leads ? SPACE.rowPadX : 0
-  const { shown, hidden } = fitChips(
+  const { shown, hidden, labelMax } = fitChips(
     chips,
     columns - MORE_RESERVE - 2 * across(inset) - (leads ? leadWidth(chips, tone) : 0),
     settings,
@@ -465,7 +471,7 @@ export const ChipRow = (args: RowArgs) => {
     <Box flexDirection="row" columnGap={gap} {...(leads && { paddingX: inset })}>
       {leads && <Lead args={args} />}
       {shown.map((a, index) => (
-        <Chip args={args} a={a} index={index} />
+        <Chip args={args} a={a} index={index} labelMax={index === 0 ? labelMax : LABEL_MAX} />
       ))}
       {hidden > 0 && (
         <MoreBox ui={ui} tone={tone}>
