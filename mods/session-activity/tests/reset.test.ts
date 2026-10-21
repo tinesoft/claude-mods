@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { stubEngine, mountBand, mountPane, session } from './harness'
+import { FRESH, mountBand, mountPane, session, stubEngine } from './harness'
 
 for (const reason of ['clear', 'resume'] as const) {
   test(`activations are empty after ${reason}, and settings survive it`, async ($, on) => {
@@ -37,4 +37,18 @@ test('settings are reloaded from the store when a session starts, as after /clea
   await $.classic.SessionStart({ source: 'clear' } as never)
   expect(status()).toBeUndefined()
   expect(await (await mountBand($)).find({ key: 'chip-mcp-github' })).toBeUndefined()
+})
+
+test('activations and mutes are cleared when the session forks, as /branch does', async ($, on) => {
+  const clock = session(on)
+  const { status } = stubEngine(on)
+  on('classic.SessionStart', () => ({}))
+  await $.tool.call({ tool: 'mcp__github__get_issue' } as never)
+  await clock.advance(FRESH)
+  await (await mountBand($)).press({ key: 'chip-mcp-github' })
+  await (await mountBand($)).press({ key: 'mute' })
+  await $.classic.SessionStart({ source: 'fork' } as never)
+  expect(status()).toBeUndefined()
+  await $.tool.call({ tool: 'mcp__github__get_issue' } as never)
+  expect((await (await mountBand($)).find({ key: 'chip-mcp-github' }))?.text).toBe('● github')
 })
