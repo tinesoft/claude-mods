@@ -166,11 +166,14 @@ for (const surface of BAND_SURFACES) {
     const probe = async (maxRows: number) => {
       const tall = await mountBand($, surface, 120, 60)
       if (await tall.find({ key: 'card' })) await tall.press({ key: 'close' })
+      await tall.unmount()
       opens.length = 0
-      await (await mountBand($, surface, 120, maxRows)).press({ key: 'chip-skill-alpha' })
-      const card = await (await mountBand($, surface, 120, maxRows)).find({ key: 'card' })
+      const band = await mountBand($, surface, 120, maxRows)
+      await band.press({ key: 'chip-skill-alpha' })
+      const card = await band.find({ key: 'card' })
+      if (card !== undefined) await band.press({ key: 'close' })
+      await band.unmount()
       if (card === undefined) return opens.length === 1 ? 'pane' : 'none'
-      await (await mountBand($, surface, 120, maxRows)).press({ key: 'close' })
       return card.props.rowGap === 0 ? 'compact' : 'roomy'
     }
 
@@ -194,9 +197,11 @@ test('the compact card keeps the horizontal padding and drops the vertical paddi
   await load($)
   await clock.advance(FRESH)
   const props = async (maxRows: number) => {
-    await (await mountBand($, 'terminal', 120, maxRows)).press({ key: 'chip-skill-alpha' })
-    const card = await (await mountBand($, 'terminal', 120, maxRows)).find({ key: 'card' })
-    if (card) await (await mountBand($, 'terminal', 120, maxRows)).press({ key: 'close' })
+    const band = await mountBand($, 'terminal', 120, maxRows)
+    await band.press({ key: 'chip-skill-alpha' })
+    const card = await band.find({ key: 'card' })
+    if (card) await band.press({ key: 'close' })
+    await band.unmount()
     return card?.props
   }
   let rows = 0
