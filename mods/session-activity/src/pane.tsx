@@ -630,6 +630,17 @@ const SettingsTab = (args: PaneArgs) => {
             Chips are hidden. Activity is still listed in the session tray.
           </Text>
         )}
+        <Box
+          key="prompt-standin"
+          {...(isRich(ui) &&
+            tone !== undefined && {
+              borderStyle: 'round',
+              borderColor: TOKENS[tone].line,
+              paddingX: SPACE.promptPadX,
+            })}
+        >
+          <Text {...inkOf(ui, tone, 'muted')}>Reply to Claude…</Text>
+        </Box>
       </Box>
       <Box flexDirection="column" rowGap={SPACE.sectionGap}>
         <Eyebrow ui={ui} tone={tone} text="Shown by default" />

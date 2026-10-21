@@ -146,6 +146,7 @@ same cells to the width and height math, so the chip row never overflows.
 | Settings section gap, preview gap, footer buttons gap | 10px, 8px, 8px | `sm` |
 | Settings row grid gap | 14px | `md` |
 | Settings Preview header gap, Optional header gap | 12px, 10px | `md`, `sm` |
+| Preview prompt bar stand-in padding | 0 14px | `md` across |
 
 Where the terminal needs a blank line between rows, the row padding of the board becomes one `lg` gap
 between rows, which draws as 16px on Desktop and one blank line in the terminal. The 6-cell indent of the why

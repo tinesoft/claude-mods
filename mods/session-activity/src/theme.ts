@@ -433,6 +433,7 @@ export const SPACE = {
   sectionGap: 'sm',
   previewGap: 'sm',
   segmentsHeadGap: 'md',
+  promptPadX: 'md',
   optionalHeadGap: 'sm',
   switchGrid: 'md',
   switchSide: 'md',
