@@ -22,7 +22,7 @@ filters, mute, toggles), which is the most useful part to read.
 | Expanded tray | `Expanded.dc.html` | `Pane` id `session-activity`, tab `1: Activity`: filter row, grouped rows, mute |
 | Settings | `Settings.dc.html` | `userConfig` defaults + pane tab `2: Settings` overrides stored in `$.store` |
 | Types, states, overflow | `States.dc.html` | Glyph + colour + text badge rules below |
-| Mobile | `Mobile.dc.html` | The same row on the mobile surface, led by an `N active` chip that opens the pane |
+| Mobile | `Mobile.dc.html` | No band, because Claude Code raises `AbovePrompt` on the terminal and desktop only. The pane header on mobile starts with the `N active` chip |
 
 `canvas.json` is the board index; ignore its layout coordinates.
 
@@ -42,7 +42,12 @@ See `artboards/README.md`.
 The design is implemented on the **rich surfaces** (Desktop Code tab, VS Code, mobile: any surface whose
 element table has `Svg`) and on the **terminal**. Rich surfaces get exact hex colours, the artboards' icons
 redrawn as `Svg`, round bordered chips, hover and clicks. The terminal uses glyphs and one-row tinted chips.
-Mobile adds a leading `N active` chip. claude.ai chat can't show a mod's UI and is out of scope;
+
+Claude Code raises the `AbovePrompt` band on the terminal and desktop only, and the `Pane` on every surface
+(`tools/claude-code-types/2.1.302/index.d.ts`). So the chip row and its detail card exist on the terminal and
+desktop. On VS Code and mobile, the status line counter and `/session-activity` are the way in, and the pane is
+the whole UI. On mobile the pane header starts with the `N active` chip, with a red dot when something stopped.
+claude.ai chat can't show a mod's UI and is out of scope;
 claude.ai/code cloud sessions get text summaries at most (optional milestone M6).
 See "Rich surfaces" in the UI spec of `plan.md`.
 
@@ -68,7 +73,7 @@ Optional types (off by default, opt-in in settings) are neutral: `ink-2` on `fil
 | Plugin | `⬡` | `via acme-devtools` (a tag on other chips) |
 | Context | `◔` | `Compacted · 62% used` |
 | Checkpoint | `⚑` | `Checkpoint 3 · Rewind` |
-| Output style / model | `≡` | `Style: Explanatory` |
+| Model switch | `≡` | `Model: opus` |
 | Background task | `▶` | `pnpm dev · running` |
 
 Every glyph must be one terminal cell wide; `↯` is used for hooks, and `⚷` falls back to `⌐` where it renders wide.
@@ -94,14 +99,17 @@ The dark values and every neutral token are in `plan.md` (Palette).
 | Blocked an action | red `Blocked` badge, `danger-bd` border | `BLOCKED` badge (`Blocked` and a `danger-bd` border on rich surfaces), always shown first, plus a 4 s toast |
 | Denied (permission) | red `Denied` badge | `DENIED` badge, red, always shown first |
 | Hook failed | dashed red outline, triangle icon, `Error` | rich: dashed `danger` border, triangle, bold `Error`; terminal: red `▲` + `Error`, no border |
-| Muted | grey, struck through | hidden from band, dimmed `Muted` in pane |
+| Muted | grey, struck through | hidden from band; in the pane a dim name and a `Muted` badge, `text-2` on `fill` when tinted, `inverse` when not |
 | Pinned | pin icon, stays first | out of scope for v1 |
 | Selected | 3 px focus ring | border takes the kind colour on rich surfaces; `underline` on the label; detail card opens above the row |
+
+A hook chip never reaches Hook failed. The 2.1.302 API reports no exit code for a settings hook, so a hook chip is
+running, ok or blocked. The Error look still draws for MCP errors and failed agents.
 
 ## Band rules
 
 1. One chip row, width `e.props.bodyColumns`, first row 2 cells shorter. While a chip is selected, its detail
-   card is drawn above the row (pane fallback when `maxRows` is too small). On mobile the row starts with the `N active` lead chip.
+   card is drawn above the row (pane fallback when `maxRows` is too small).
 2. Order: blocked / denied / error → running → most recent.
 3. Show as many chips as fit, capped by `max_chips` (default 6); the rest fold into `+N more`, which opens the pane.
 4. Layout `summary`: one box with a glyph or icon and count per type in that type's colour (`▤2 ◉2 ⇌2 ⚷3 ↯4 ▣3`), then `● 2 blocked` in `danger` when anything was blocked or denied.
@@ -112,7 +120,8 @@ The dark values and every neutral token are in `plan.md` (Palette).
 
 ## Pane rules
 
-- Opened by `+N more`, `/session-activity` (`immediate: true`), or a chip press when the band is too short for the detail card.
+- Opened by `+N more`, `/session-activity` (`immediate: true`), or a chip press when the band is too short for the detail card. On VS Code and mobile, which have no band, `/session-activity` is the way in.
+- On mobile the header starts with the `N active` chip, plus a `danger` `●` when anything is blocked, denied or errored. It never adds `+N more`.
 - Tab `1: Activity`: header `Session activity` and `N items · M activations · started X ago · Customize`; filters `a: All`, `s: Skills`, `g: Agents`, `p: MCP`, `k: Permissions`, `h: Hooks`, `r: Rules` with counts; rows grouped by type showing an icon tile, name, meta, status badge, a why line, `×count · last` and a `Mute` / `Unmute` button (stopped and errored rows always show, so they carry a note instead). The selected row also expands to the source path and `c: Copy path`.
 - Tab `2: Settings`: title and intro, master toggle, live preview with layout buttons (chip row / collapsed summary), one switch per type in "Shown by default" and "Optional · Off by default · N of 7 on", chip theme (auto / light / dark), chip style (tinted / text), digit hotkeys on chips (off), toast when blocked or denied (on), text summary after each answer (off), `Reset to defaults`, `Turn everything on`. Saved per user in `$.store`.
 
@@ -130,7 +139,6 @@ same cells to the width and height math, so the chip row never overflows.
 | Chip gap, chip icon-to-label gap | 6px | `xs` |
 | Chip inner padding, `+N more` padding | 0 10px 0 8px, 0 10px | `sm` across, none down |
 | Summary chip padding, gap between its groups | 0 12px, 10px | `md` across, `sm` |
-| Mobile chip row padding | 0 16px | `lg` across |
 | Card above the chip row | 8px | `sm` |
 | Card padding, card inner gap | 16px, 12px | `lg`, `md` in the roomy density (see below) |
 | Card header gap, buttons gap, tiles gap | 10px, 8px, 8px | `sm` |
@@ -165,7 +173,7 @@ so they stay one row tall. The card has two densities, `CARD_SPACE` in `theme.ts
 rows fit under `maxRows` (prompt rows, chip row, the gap above the card and the card), draws `DetailCard` with it,
 and falls back to the pane only when neither fits. The chip's `pick` uses the same test. The pane always draws the
 roomy card. On the terminal the roomy card costs 5 to 6 more rows than the compact one, so a short band shows the compact
-card and a tall one keeps the board's spacing; Desktop, VS Code and mobile get the roomy card wherever it fits, as before.
+card and a tall one keeps the board's spacing. Desktop gets the roomy card wherever it fits.
 
 ## Copy
 

@@ -34,7 +34,7 @@ A Claude Code mod that shows what took part in your session. A row of chips abov
 - 🎛️ **Optional types** — slash commands, memory writes, context use, model switches and background Bash tasks
 - 🌓 **Follows your theme** — tinted chips in the design's light or dark colours, picked from your Claude Code theme, your terminal or your system, or pinned with `chip_theme`
 - ♿ **Never colour alone** — every status is also a text badge
-- 🖥️ **Terminal, Desktop, VS Code and mobile** — glyphs in the terminal, `Svg` icons and clickable chips on the rest, a text summary elsewhere
+- 🖥️ **Terminal, Desktop, VS Code and mobile** — chips above the prompt in the terminal and on Desktop, the pane everywhere, a text summary where nothing can be drawn
 
 ---
 
@@ -70,14 +70,14 @@ This is unverified until the cloud spike confirms that a setup script can instal
 
 ### Surfaces
 
-| Surface                               | What you get                                                                                                             |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Terminal (`claude`, editor terminals) | The full UI, drawn with glyphs and one-row tinted chips                                                                  |
-| Claude Desktop app, Code tab          | The full UI with `Svg` icons, exact colours, rounded bordered chips, a darker tint on hover, and clicks on every control |
-| VS Code                               | The same as Desktop, once Claude Code for VS Code attaches a surface                                                     |
-| Mobile                                | The same as Desktop, with a leading `N active` chip (and a red dot when something stopped) that opens the pane           |
-| claude.ai/code cloud sessions         | Text only: `/session-activity` replies with a summary, and `text_summary` adds a line after each answer                  |
-| claude.ai chat, `claude -p`           | Nothing is drawn. Hooks still run, so `/session-activity` replies in text where it is available                          |
+| Surface                               | What you get                                                                                                                 |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Terminal (`claude`, editor terminals) | The full UI, drawn with glyphs and one-row tinted chips                                                                      |
+| Claude Desktop app, Code tab          | The full UI with `Svg` icons, exact colours, rounded bordered chips, a darker tint on hover, and clicks on every control     |
+| VS Code                               | The pane and the status line, drawn as on Desktop. Claude Code draws no band here, so open the pane with `/session-activity` |
+| Mobile                                | The pane and the status line, with an `N active` chip (and a red dot when something stopped) heading the pane. No band       |
+| claude.ai/code cloud sessions         | Text only: `/session-activity` replies with a summary, and `text_summary` adds a line after each answer                      |
+| claude.ai chat, `claude -p`           | Nothing is drawn. Hooks still run, so `/session-activity` replies in text where it is available                              |
 
 Remote Control from claude.ai shows the chips in the terminal on your machine. Desktop WSL sessions do not load plugins.
 
@@ -100,7 +100,7 @@ Optional types are off by default: slash commands (`/`), memory (`✎`), context
 
 A memory chip appears when Claude writes or edits `CLAUDE.md`, `CLAUDE.local.md` or a markdown file in a `memory/` folder, labelled `Remembered: <file>`.
 
-A chip that was just activated is bold with a `●` for four seconds. A running agent or asked permission cycles `◐◓◑◒`. A failed one shows a red `▲` and an `ERROR` badge (bold red `Error` on a tinted chip, with a dashed red border on Desktop, VS Code and mobile). When an action is blocked or denied, one toast names it, such as `↯ block-secrets blocked Bash`; turn it off with `toast_on_block`. The status line under the prompt keeps the count: `16 active · /session-activity`.
+A chip that was just activated is bold with a `●` for four seconds. A running agent or asked permission cycles `◐◓◑◒`. A failed one shows a red `▲` and an `ERROR` badge (bold red `Error` on a tinted chip, with a dashed red border on Desktop). When an action is blocked or denied, one toast names it, such as `↯ block-secrets blocked Bash`; turn it off with `toast_on_block`. The status line under the prompt keeps the count: `16 active · /session-activity`.
 
 Blocked, denied and errored chips sit first in the row and stay visible even when their type is hidden or muted. Each status is also a text badge, so the colour is never the only signal.
 
@@ -152,11 +152,13 @@ Chips belong to one conversation. `/clear` and `/resume` empty them; muting last
 
 ## ⚠️ Limits
 
-- Hook chips are one per event (`PreToolUse`, `PostToolUse`, ...). Claude Code does not expose each command's exit code to a mod, so a chip names the script when one command is configured and `<Event> hooks` otherwise. Hooks that plugins configure are not in your settings, so they show only when they block.
+- A hook chip is keyed by its full command when one configured command matches the event, and is one `<Event> hooks` chip when several match. Claude Code does not expose a hook's exit code to a mod, so a hook chip is running, ok or blocked and never shows an error. Hooks that plugins configure are not in your settings, so they show only when they block.
 - Permission chips leave out calls your permission mode allows on its own, such as reads, to keep the band readable. A call a hook allowed or denied shows on that hook's chip instead. Whether you approved "once" or "always" is not visible to a mod.
 - Rule chips mean a file was loaded, not that a line in it shaped an action.
 - Where an organization manages Claude Code, skill, hook, rule and compaction events reach only plugins the organization lists, so those chips stay empty.
 - Checkpoints are not supported yet: Claude Code 2.1.302 sends no event for them, so the toggle exists and records nothing. Memory chips come only from writes Claude makes with `Write`, `Edit` or `MultiEdit`.
+- Claude Code draws the band above the prompt only in the terminal and on Desktop. On VS Code and mobile, use the status line and `/session-activity`.
+- Background task chips never show as running, because no event reports a background shell exiting.
 - The ANSI themes cannot be told apart as light or dark, so chips fall back to coloured text there. Under the `auto` theme the tone is a guess from `COLORFGBG` or the system, and dark when neither is known; pin it with `chip_theme`.
 - The system appearance is read with `defaults` (macOS), `gsettings` (Linux) or `reg` (Windows) once a minute. Where none is available the guess stops at the Claude Code theme.
 - Where the design promises more than the mod can do, the pane keeps the accurate text: rules mean a file was loaded, memory covers writes only, checkpoints record nothing yet, and background tasks cannot be stopped from the chip.
