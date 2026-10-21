@@ -116,6 +116,43 @@ The dark values and every neutral token are in `plan.md` (Palette).
 - Tab `1: Activity`: header `Session activity` and `N items · M activations · started X ago · Customize`; filters `a: All`, `s: Skills`, `g: Agents`, `p: MCP`, `k: Permissions`, `h: Hooks`, `r: Rules` with counts; rows grouped by type showing an icon tile, name, meta, status badge, a why line, `×count · last` and a `Mute` / `Unmute` button (stopped and errored rows always show, so they carry a note instead). The selected row also expands to the source path and `c: Copy path`.
 - Tab `2: Settings`: title and intro, master toggle, live preview with layout buttons (chip row / collapsed summary), one switch per type in "Shown by default" and "Optional · Off by default · N of 7 on", chip theme (auto / light / dark), chip style (tinted / text), digit hotkeys on chips (off), toast when blocked or denied (on), text summary after each answer (off), `Reset to defaults`, `Turn everything on`. Saved per user in `$.store`.
 
+## Spacing
+
+Every gap, padding and margin in `render.tsx` and `pane.tsx` reads from the `SPACE` table in `src/theme.ts`,
+keyed by design role. Each value is a `Space` step, taken from the board's pixel value: 6px `xs`,
+8-10px `sm`, 12-14px `md`, 16-20px `lg`, 24px and up `xl`. A step lets each surface use its own scale.
+Desktop and mobile draw it in pixels. The terminal and VS Code draw it in cells, across as `xs`/`sm` 1,
+`md` 2, `lg` 3, `xl` 4 and down as `xs`/`sm` 0, `md`/`lg` 1, `xl` 2. `across` and `down` in `theme.ts` give the
+same cells to the width and height math, so the chip row never overflows.
+
+| Role | Board value | Step |
+| --- | --- | --- |
+| Chip gap, chip icon-to-label gap | 6px | `xs` |
+| Chip inner padding, `+N more` padding | 0 10px 0 8px, 0 10px | `sm` across, none down |
+| Mobile chip row padding | 0 16px | `lg` across |
+| Card above the chip row | 8px | `sm` |
+| Card padding | 16px | `lg` |
+| Card inner gap | 12px | `md` |
+| Card header gap, buttons gap, tiles gap | 10px, 8px, 8px | `sm` |
+| Card header lines gap, tile label gap | 4px, 2px | `xs` |
+| Tile padding | 8px 10px | `sm` |
+| Pane padding | 16px left, 12px right | `md` left, `sm` right |
+| Pane header, tabs-to-body and group gaps | 12px | `md` |
+| Pane row grid gap, row side gap | 10px | `sm` |
+| Pane row text gap, stats gap | 2px, 6px | `xs` |
+| Gap between rows (activity and settings) | row padding 8-10px twice | `lg` |
+| Settings main column gap | 24px | `xl` |
+| Settings title and intro gap | 6px | `xs` |
+| Settings section gap, preview gap, footer buttons gap | 10px, 8px, 8px | `sm` |
+| Settings row grid gap | 14px | `md` |
+
+Where the terminal needs a blank line between rows, the row padding of the board becomes one `lg` gap
+between rows, which draws as 16px on Desktop and one blank line in the terminal. The 6-cell indent of the why
+line under a row name is the one bare number left, because it must line up with the icon column in cells.
+The untinted `chip_style: text` look keeps its two-cell chip gap. Terminal chips never get vertical padding,
+so they stay one row tall. The card costs 4 more terminal rows than before (its padding and the gaps between
+its parts), and `cardRows` counts them, so the pane fallback starts at a slightly larger `maxRows`.
+
 ## Copy
 
 Use the exact strings from the artboards for titles and labels: "Session activity", "Shown by default",
