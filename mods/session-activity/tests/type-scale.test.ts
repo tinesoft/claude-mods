@@ -39,7 +39,7 @@ test('desktop: the tray draws group headers, meta, tallies and why lines on the 
   await $.tool.call({ tool: 'mcp__github__get_issue' } as never)
   await $.tool.call({ tool: 'mcp__github__get_issue' } as never)
   const pane = await mountPane($, 'desktop')
-  expect(await textBy(pane, 'MCP')).toMatchObject({ mono: true, size: 'caption' })
+  expect(await textBy(pane, 'MCP SERVERS')).toMatchObject({ mono: true, size: 'caption' })
   expect(await textBy(pane, ' get_issue')).toMatchObject({ mono: true, size: 'footnote' })
   expect(await textBy(pane, '×2 · now')).toMatchObject({ mono: true, size: 'footnote' })
   expect(await textBy(pane, 'Called get_issue')).toMatchObject({ size: 'footnote' })

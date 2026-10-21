@@ -124,7 +124,7 @@ test('rows are grouped under a coloured eyebrow with a dim count and show their 
   const pane = await mountPane($)
   const all = await pane.findAll({ type: 'Text' })
   expect(all.find(t => t.text === 'SKILLS')?.props.color).toBe('#8FB0FF')
-  expect(all.find(t => t.text === 'MCP')).toBeDefined()
+  expect(all.find(t => t.text === 'MCP SERVERS')).toBeDefined()
   expect(all.map(t => t.text)).toContain('Claude loaded this skill from a plugin.')
   expect((await pane.find({ key: 'row-skill-docx' }))?.text).toContain('docx')
 })

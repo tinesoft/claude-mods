@@ -76,3 +76,13 @@ for (const surface of BAND_SURFACES) {
     })
   }
 }
+
+test("an MCP server's card eyebrow names the type as the board does: MCP", async ($, on) => {
+  const clock = session(on)
+  stubEngine(on)
+  await $.tool.call({ tool: 'mcp__github__get_issue' } as never)
+  await clock.advance(FRESH)
+  await (await mountBand($, 'terminal', 120, 40)).press({ key: 'chip-mcp-github' })
+  const texts = await (await mountBand($, 'terminal', 120, 40)).findAll({ type: 'Text' })
+  expect(texts.map(x => x.text)).toContain('MCP · get_issue')
+})
