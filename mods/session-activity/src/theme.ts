@@ -1,4 +1,4 @@
-import type { Color, RenderSurface } from 'claude-code'
+import type { Color, RenderSurface, Space } from 'claude-code'
 
 import type { ChipStyle, ChipTheme, Kind, Status, Toggle, Tone } from '../types'
 
@@ -393,3 +393,54 @@ export const STATUSES: Record<Status, StatusTheme> = {
 export const isStopped = (status: Status) => status === 'blocked' || status === 'denied'
 
 export const isUrgent = (status: Status) => isStopped(status) || status === 'error'
+
+/**
+ * Layout spacing by design role, as the step each board pixel value rounds to
+ * (6px xs, 8-10px sm, 12-14px md, 16-20px lg, 24px and up xl). Desktop and the
+ * phones size a step in pixels; the terminal and VS Code turn it into cells with `across` and `down`.
+ */
+export const SPACE = {
+  chipGap: 'xs',
+  chipInner: 'xs',
+  chipPadX: 'sm',
+  morePadX: 'sm',
+  rowPadX: 'lg',
+  cardAbove: 'sm',
+  cardPad: 'lg',
+  cardGap: 'md',
+  cardHeadGap: 'sm',
+  cardLinesGap: 'xs',
+  tilesGap: 'sm',
+  tilePadX: 'sm',
+  tilePadY: 'sm',
+  tileGap: 'xs',
+  actionsGap: 'sm',
+  paneLeft: 'md',
+  paneRight: 'sm',
+  paneGap: 'md',
+  paneTitleGap: 'xs',
+  statsGap: 'xs',
+  tabsBelow: 'md',
+  tabGap: 'lg',
+  groupGap: 'xs',
+  listGap: 'lg',
+  rowGrid: 'sm',
+  rowTextGap: 'xs',
+  rowSide: 'sm',
+  settingsGap: 'xl',
+  introGap: 'xs',
+  sectionGap: 'sm',
+  previewGap: 'sm',
+  switchGrid: 'md',
+  switchSide: 'md',
+  footerGap: 'sm',
+} as const satisfies Record<string, Space>
+
+const ACROSS = { xs: 1, sm: 1, md: 2, lg: 3, xl: 4 } as const
+const DOWN = { xs: 0, sm: 0, md: 1, lg: 1, xl: 2 } as const
+
+/** Cells a step takes along a row on the terminal and VS Code, and a plain number as itself. */
+export const across = (space: Space) => (typeof space === 'number' ? space : ACROSS[space])
+
+/** Cells a step takes down a column on the terminal and VS Code. */
+export const down = (space: Space) => (typeof space === 'number' ? space : DOWN[space])

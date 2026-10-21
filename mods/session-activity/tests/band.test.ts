@@ -239,7 +239,7 @@ test('on desktop the overflow count sits in a dashed box; elsewhere it stays pla
   )
   expect(dashed).toHaveLength(1)
   expect(dashed[0]!.text).toMatch(/\+\d+ more/)
-  expect(dashed[0]!.props).toMatchObject({ borderColor: '#5A5F69', paddingX: 1 })
+  expect(dashed[0]!.props).toMatchObject({ borderColor: '#5A5F69', paddingX: 'sm' })
   const terminal = await mountBand($, 'terminal', 60)
   expect((await terminal.findAll({ type: 'Box' })).some(b => b.props.borderStyle)).toBe(false)
 })

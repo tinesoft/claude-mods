@@ -27,9 +27,24 @@ import {
   lookOf,
   type Ui,
 } from './render'
-import { isUrgent, KIND_ORDER, TOGGLE_ORDER, TOGGLES, TOKENS, type Tone } from './theme'
+import {
+  across,
+  isUrgent,
+  KIND_ORDER,
+  SPACE,
+  TOGGLE_ORDER,
+  TOGGLES,
+  TOKENS,
+  type Tone,
+} from './theme'
 
-const GAP = 3
+/** Cells, not a step: the why line lines up under the row's name, past the icon and the cursor. */
+const WHY_INDENT = 6
+
+/** The row's type mark: the terminal's ` ◉ ` is three cells. */
+const ICON_CELLS = 3
+
+const MIN_META = 5
 
 const UNTINTED_ON = '#2F6FED'
 
@@ -70,7 +85,7 @@ const Tabs = ({ ui, view, on }: Pick<PaneArgs, 'ui' | 'view' | 'on'>) => {
     ['settings', '2', 'Settings'],
   ]
   return (
-    <Box flexDirection="row" columnGap={GAP}>
+    <Box flexDirection="row" columnGap={SPACE.tabGap}>
       {tabs.map(([id, hotkey, title]) => (
         <Button key={`tab-${id}`} plain hotkey={hotkey} onPress={() => on.view(id)}>
           <Text bold={view === id} dimColor={view !== id}>
@@ -108,7 +123,7 @@ const Segmented = ({
     <Box
       flexDirection="row"
       flexWrap="wrap"
-      columnGap={segmented ? 0 : GAP}
+      columnGap={segmented ? 0 : SPACE.tabGap}
       {...(segmented && { backgroundColor: t!.fill })}
     >
       {segments.map(({ key, boxKey, label, isOn, hotkey, onPress }) => {
@@ -161,7 +176,7 @@ const RowIcon = ({ args, a, muted }: { args: PaneArgs; a: Activation; muted: boo
   if (isRich(ui)) {
     return (
       <Box
-        paddingX={1}
+        paddingX={SPACE.tilePadX}
         {...withTint(look.tint)}
         {...(tone !== undefined && { borderStyle: 'round', borderColor: look.border })}
       >
@@ -202,29 +217,46 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
   const look = lookOf(a.kind, tone)
   const badgeText = badgeOf(a.status, tone, isRich(ui))
   const urgent = isUrgent(a.status)
+  const tally = `×${a.count} · ${ago(now - a.lastAt)}`
+  const right =
+    tally.length + (urgent ? 0 : across(SPACE.rowSide) + (isMuted ? 'Unmute' : 'Mute').length)
+  const left =
+    ICON_CELLS +
+    across(SPACE.rowGrid) +
+    2 +
+    Math.min(a.label.length, 28) +
+    1 +
+    (badgeText === '' ? 0 : badgeText.length + 2) +
+    (isMuted ? ' Muted '.length : 0)
+  const metaRoom = columns - right - across(SPACE.rowSide) - left
   return (
     <Box
       key={`rowbox-${id}`}
       flexDirection="column"
+      rowGap={SPACE.rowTextGap}
       {...(isRich(ui) && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
-      <Box flexDirection="row" justifyContent="space-between" columnGap={1}>
-        <Box flexDirection="row" columnGap={1} flexShrink={1} minWidth={0} overflow="hidden">
+      <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowSide}>
+        <Box
+          flexDirection="row"
+          columnGap={SPACE.rowGrid}
+          flexShrink={1}
+          minWidth={0}
+          overflow="hidden"
+        >
           <RowIcon args={args} a={a} muted={isMuted} />
           <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
             <Text>{isSelected ? '▸' : ' '}</Text>
             <Text bold dimColor={isMuted}>{` ${clip(a.label, 28)}`}</Text>
-            {a.meta !== undefined && (
-              <Text {...inkOf(ui, tone, 'muted')}>
-                {` ${clip(a.meta, Math.max(8, columns - 52))}`}
-              </Text>
+            {a.meta !== undefined && metaRoom >= MIN_META && (
+              <Text {...inkOf(ui, tone, 'muted')}>{` ${clip(a.meta, metaRoom)}`}</Text>
             )}
             {badgeText !== '' && <Badge ui={ui} text={badgeText} tone={tone} status={a.status} />}
             {isMuted && <MutedBadge ui={ui} tone={tone} />}
           </Button>
         </Box>
-        <Box flexDirection="row" columnGap={2} flexShrink={0}>
-          <Text {...inkOf(ui, tone, 'text2')}>{`×${a.count} · ${ago(now - a.lastAt)}`}</Text>
+        <Box flexDirection="row" columnGap={SPACE.rowSide} flexShrink={0}>
+          <Text {...inkOf(ui, tone, 'text2')}>{tally}</Text>
           {!urgent && (
             <Button
               key={`mute-${a.kind}-${a.key}`}
@@ -236,7 +268,7 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
           )}
         </Box>
       </Box>
-      <Box flexDirection="column" paddingLeft={6}>
+      <Box flexDirection="column" rowGap={SPACE.rowTextGap} paddingLeft={WHY_INDENT}>
         <Text
           wrap={isSelected ? 'wrap' : 'truncate-end'}
           {...inkOf(ui, tone, isSelected ? 'ink2' : 'text2')}
@@ -281,24 +313,26 @@ const Activity = (args: PaneArgs) => {
   const started = startedAgo(listed, now)
   const link = isRich(ui) && tone !== undefined
   return (
-    <Box flexDirection="column">
-      <Text bold>Session activity</Text>
-      <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
-        <Text key="stats" {...inkOf(ui, tone, 'muted')}>
-          {`${listed.length} items · ${total} activations · started ${started < 60_000 ? 'just now' : agoLabel(started)}`}
-        </Text>
-        <Box key="customize-link" flexDirection="row" columnGap={1} flexShrink={0}>
-          <Text {...inkOf(ui, tone, 'muted')}>·</Text>
-          <Button
-            key="customize"
-            plain
-            {...(link && { hover: { color: TOKENS[tone].linkHover } })}
-            onPress={() => on.view('settings')}
-          >
-            <Text {...(link ? { color: TOGGLES.skill.palette[tone].fg } : { dimColor: true })}>
-              Customize
-            </Text>
-          </Button>
+    <Box flexDirection="column" rowGap={SPACE.paneGap}>
+      <Box flexDirection="column" rowGap={SPACE.paneTitleGap}>
+        <Text bold>Session activity</Text>
+        <Box flexDirection="row" flexWrap="wrap" columnGap={SPACE.statsGap}>
+          <Text key="stats" {...inkOf(ui, tone, 'muted')}>
+            {`${listed.length} items · ${total} activations · started ${started < 60_000 ? 'just now' : agoLabel(started)}`}
+          </Text>
+          <Box key="customize-link" flexDirection="row" columnGap={SPACE.statsGap} flexShrink={0}>
+            <Text {...inkOf(ui, tone, 'muted')}>·</Text>
+            <Button
+              key="customize"
+              plain
+              {...(link && { hover: { color: TOKENS[tone].linkHover } })}
+              onPress={() => on.view('settings')}
+            >
+              <Text {...(link ? { color: TOGGLES.skill.palette[tone].fg } : { dimColor: true })}>
+                Customize
+              </Text>
+            </Button>
+          </Box>
         </Box>
       </Box>
       <Filters {...args} />
@@ -308,16 +342,18 @@ const Activity = (args: PaneArgs) => {
       {groups.map(group => {
         const { color, dim } = lookOf(group.kind, tone)
         return (
-          <Box key={`group-${group.kind}`} flexDirection="column" marginTop={1}>
-            <Box flexDirection="row" columnGap={1}>
+          <Box key={`group-${group.kind}`} flexDirection="column" rowGap={SPACE.groupGap}>
+            <Box flexDirection="row" columnGap={SPACE.rowGrid}>
               <Text color={color} dimColor={dim}>
                 {TOGGLES[group.kind].plural.toUpperCase()}
               </Text>
               <Text {...inkOf(ui, tone, 'muted')}>{String(group.rows.length)}</Text>
             </Box>
-            {group.rows.map(a => (
-              <Row args={args} a={a} />
-            ))}
+            <Box flexDirection="column" rowGap={SPACE.listGap}>
+              {group.rows.map(a => (
+                <Row args={args} a={a} />
+              ))}
+            </Box>
           </Box>
         )
       })}
@@ -360,7 +396,7 @@ const ToggleMark = ({ ui, tone, toggle }: { ui: Ui; tone: Tone | undefined; togg
   if (isRich(ui)) {
     return (
       <Box
-        paddingX={1}
+        paddingX={SPACE.tilePadX}
         {...withTint(look.tint)}
         {...(tone !== undefined && { borderStyle: 'round', borderColor: look.border })}
       >
@@ -399,10 +435,15 @@ const Switch = ({
   const [on, off] =
     tone === undefined ? [UNTINTED_ON, OFF_TRACK] : [TOKENS[tone].switchOn, TOKENS[tone].switchOff]
   return (
-    <Box key={`row-${id}`} flexDirection="row" justifyContent="space-between" columnGap={2}>
-      <Box flexDirection="row" columnGap={1} flexShrink={1}>
+    <Box
+      key={`row-${id}`}
+      flexDirection="row"
+      justifyContent="space-between"
+      columnGap={SPACE.switchSide}
+    >
+      <Box flexDirection="row" columnGap={SPACE.switchGrid} flexShrink={1}>
         {toggle !== undefined && <ToggleMark ui={ui} tone={tone} toggle={toggle} />}
-        <Box flexDirection="column" flexShrink={1}>
+        <Box flexDirection="column" rowGap={SPACE.rowTextGap} flexShrink={1}>
           <Text bold dimColor={!isOn && toggle !== undefined}>
             {title}
           </Text>
@@ -411,7 +452,7 @@ const Switch = ({
           </Text>
         </Box>
       </Box>
-      <Box flexDirection="row" columnGap={1}>
+      <Box flexDirection="row" columnGap={SPACE.chipInner}>
         {Svg && (
           <Svg
             source={switchSvg(isOn, on, off)}
@@ -456,8 +497,8 @@ const Segments = <T extends string>({
     onPress: () => onPick(value),
   }))
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="row" columnGap={GAP}>
+    <Box flexDirection="column" rowGap={SPACE.rowTextGap}>
+      <Box flexDirection="row" columnGap={SPACE.tabGap}>
         <Text bold>{title}</Text>
         <Segmented ui={ui} tone={tone} segments={segments} />
       </Box>
@@ -505,8 +546,8 @@ const SettingsTab = (args: PaneArgs) => {
     ['text', 'style-text', 'Text'],
   ]
   return (
-    <Box flexDirection="column" rowGap={1}>
-      <Box flexDirection="column">
+    <Box flexDirection="column" rowGap={SPACE.settingsGap}>
+      <Box flexDirection="column" rowGap={SPACE.introGap}>
         <Text bold>Session activity chips</Text>
         <Text wrap="wrap" {...inkOf(ui, tone, 'text2')}>
           {INTRO}
@@ -521,7 +562,7 @@ const SettingsTab = (args: PaneArgs) => {
         description="Blocked and denied actions are always shown while this is on."
         onPress={() => on.toggle('enabled')}
       />
-      <Box flexDirection="column">
+      <Box flexDirection="column" rowGap={SPACE.previewGap}>
         <Segments
           ui={ui}
           tone={tone}
@@ -549,18 +590,22 @@ const SettingsTab = (args: PaneArgs) => {
           </Text>
         )}
       </Box>
-      <Box flexDirection="column" rowGap={1}>
+      <Box flexDirection="column" rowGap={SPACE.sectionGap}>
         <Text bold>Shown by default</Text>
-        {TOGGLE_ORDER.filter(t => !TOGGLES[t].optional).map(toggleRow)}
+        <Box flexDirection="column" rowGap={SPACE.listGap}>
+          {TOGGLE_ORDER.filter(t => !TOGGLES[t].optional).map(toggleRow)}
+        </Box>
       </Box>
-      <Box flexDirection="column" rowGap={1}>
-        <Box flexDirection="row" columnGap={GAP}>
+      <Box flexDirection="column" rowGap={SPACE.sectionGap}>
+        <Box flexDirection="row" columnGap={SPACE.tabGap}>
           <Text bold>Optional</Text>
           <Text {...inkOf(ui, tone, 'muted')}>
             {`Off by default · ${optionalOn} of ${optional.length} on`}
           </Text>
         </Box>
-        {optional.map(toggleRow)}
+        <Box flexDirection="column" rowGap={SPACE.listGap}>
+          {optional.map(toggleRow)}
+        </Box>
       </Box>
       <Segments
         ui={ui}
@@ -579,34 +624,36 @@ const SettingsTab = (args: PaneArgs) => {
         choices={styles}
         onPick={chipStyle => on.set({ chipStyle })}
       />
-      <Switch
-        ui={ui}
-        tone={tone}
-        id="toggle-hotkeys"
-        isOn={settings.hotkeys}
-        title="Digit hotkeys on chips"
-        description="Type 1-9 alone in an empty prompt to open a chip."
-        onPress={() => on.toggle('hotkeys')}
-      />
-      <Switch
-        ui={ui}
-        tone={tone}
-        id="toggle-toast"
-        isOn={settings.toastOnBlock}
-        title="Toast when blocked or denied"
-        description="Show a short notice when an action is blocked or denied."
-        onPress={() => on.toggle('toastOnBlock')}
-      />
-      <Switch
-        ui={ui}
-        tone={tone}
-        id="toggle-text-summary"
-        isOn={settings.textSummary}
-        title="Text summary after each answer"
-        description="Where nothing can be drawn (cloud sessions), add a one-line activity summary."
-        onPress={() => on.toggle('textSummary')}
-      />
-      <Box flexDirection="row" columnGap={2}>
+      <Box flexDirection="column" rowGap={SPACE.listGap}>
+        <Switch
+          ui={ui}
+          tone={tone}
+          id="toggle-hotkeys"
+          isOn={settings.hotkeys}
+          title="Digit hotkeys on chips"
+          description="Type 1-9 alone in an empty prompt to open a chip."
+          onPress={() => on.toggle('hotkeys')}
+        />
+        <Switch
+          ui={ui}
+          tone={tone}
+          id="toggle-toast"
+          isOn={settings.toastOnBlock}
+          title="Toast when blocked or denied"
+          description="Show a short notice when an action is blocked or denied."
+          onPress={() => on.toggle('toastOnBlock')}
+        />
+        <Switch
+          ui={ui}
+          tone={tone}
+          id="toggle-text-summary"
+          isOn={settings.textSummary}
+          title="Text summary after each answer"
+          description="Where nothing can be drawn (cloud sessions), add a one-line activity summary."
+          onPress={() => on.toggle('textSummary')}
+        />
+      </Box>
+      <Box flexDirection="row" columnGap={SPACE.footerGap}>
         <Button key="reset" label="Reset to defaults" onPress={() => on.reset()} />
         <Button key="all-on" label="Turn everything on" onPress={() => on.allOn()} />
       </Box>
@@ -616,17 +663,21 @@ const SettingsTab = (args: PaneArgs) => {
 
 export const renderPane = (args: PaneArgs) => {
   const { Box } = args.ui
+  const inner = args.columns - across(SPACE.paneLeft) - across(SPACE.paneRight)
   return (
-    <Box flexDirection="column">
-      <Box marginBottom={1}>
-        <Tabs ui={args.ui} view={args.view} on={args.on} />
-      </Box>
+    <Box
+      flexDirection="column"
+      paddingLeft={SPACE.paneLeft}
+      paddingRight={SPACE.paneRight}
+      rowGap={SPACE.tabsBelow}
+    >
+      <Tabs ui={args.ui} view={args.view} on={args.on} />
       {args.view === 'settings' ? (
-        <SettingsTab {...args} />
+        <SettingsTab {...args} columns={inner} />
       ) : args.view === 'detail' ? (
-        <Detail {...args} />
+        <Detail {...args} columns={inner} />
       ) : (
-        <Activity {...args} />
+        <Activity {...args} columns={inner} />
       )}
     </Box>
   )

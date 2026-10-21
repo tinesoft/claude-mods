@@ -4,12 +4,15 @@ import type { Activation, Kind, Settings, Status } from '../types'
 import { errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg } from './icons'
 import { chipId } from './model'
 import {
+  across,
+  down,
   FRESH_MS,
   HOVER_MIX,
   isStopped,
   isUrgent,
   KIND_ORDER,
   mix,
+  SPACE,
   SPIN_MS,
   SPINNER,
   STATUSES,
@@ -124,7 +127,12 @@ export const kindIcon = (ui: Ui, kind: Kind | 'plugin', look: Look, extra?: stri
 
 const withTint = (tint: Color | undefined) => (tint === undefined ? {} : { backgroundColor: tint })
 
-export const gapOf = (tone: Tone | undefined) => (tone === undefined ? 2 : 1)
+/** The untinted text look keeps its two-cell gap so plain chips stay apart. */
+const chipGapOf = (tone: Tone | undefined) => (tone === undefined ? 2 : SPACE.chipGap)
+
+const chipPad = (tone: Tone | undefined) => (tone === undefined ? 0 : SPACE.chipPadX)
+
+export const gapOf = (tone: Tone | undefined) => across(chipGapOf(tone))
 
 type Parts = {
   glyph: string
@@ -184,16 +192,15 @@ export const chipWidth = (
   ].filter(n => n > 0)
   return (
     segments.reduce((sum, n) => sum + n, 0) +
-    segments.length -
-    1 +
-    (tone ? 2 : 0) +
+    (segments.length - 1) * across(SPACE.chipInner) +
+    2 * across(chipPad(tone)) +
     (rich && tone ? 2 : 0)
   )
 }
 
 const moreLabel = (n: number) => `+${n} more`
 
-const MORE_BOX = 4
+const MORE_BOX = 2 + 2 * across(SPACE.morePadX)
 
 export const fitChips = (
   chips: readonly Activation[],
@@ -301,8 +308,8 @@ const Chip = ({ args, a, index }: { args: RowArgs; a: Activation; index: number 
     <Box
       key={`box-${id}`}
       flexDirection="row"
-      columnGap={1}
-      paddingX={tone === undefined ? 0 : 1}
+      columnGap={SPACE.chipInner}
+      paddingX={chipPad(tone)}
       {...withTint(tint)}
       {...(pill && {
         borderStyle: a.status === 'error' ? 'dashed' : 'round',
@@ -352,7 +359,7 @@ const MoreBox = ({
   children: RenderElement
 }) =>
   isPill(ui, tone) ? (
-    <ui.Box borderStyle="dashed" borderColor={TOKENS[tone!].lineDashed} paddingX={1}>
+    <ui.Box borderStyle="dashed" borderColor={TOKENS[tone!].lineDashed} paddingX={SPACE.morePadX}>
       {[children]}
     </ui.Box>
   ) : (
@@ -360,8 +367,6 @@ const MoreBox = ({
   )
 
 const urgentCount = (chips: readonly Activation[]) => chips.filter(a => isUrgent(a.status)).length
-
-const LEAD_BOX = 4
 
 const leadText = (chips: readonly Activation[]) => `${chips.length} active`
 
@@ -374,8 +379,8 @@ const Lead = ({ args }: { args: RowArgs }) => {
     <Box
       key="lead-box"
       flexDirection="row"
-      columnGap={1}
-      paddingX={tone === undefined ? 0 : 1}
+      columnGap={SPACE.chipInner}
+      paddingX={chipPad(tone)}
       {...withTint(surface)}
       {...(tone !== undefined && { borderStyle: 'round', borderColor: TOKENS[tone].line })}
     >
@@ -392,8 +397,8 @@ const Lead = ({ args }: { args: RowArgs }) => {
 const leadWidth = (chips: readonly Activation[], tone: Tone | undefined) =>
   leadText(chips).length +
   (urgentCount(chips) > 0 ? 2 : 0) +
-  (tone === undefined ? 0 : LEAD_BOX) +
-  1
+  (tone === undefined ? 0 : 2 + 2 * across(chipPad(tone))) +
+  across(SPACE.chipGap)
 
 const Summary = ({ args }: { args: RowArgs }) => {
   const { ui, tone, chips, settings, on } = args
@@ -405,8 +410,8 @@ const Summary = ({ args }: { args: RowArgs }) => {
   return (
     <Box
       flexDirection="row"
-      columnGap={1}
-      paddingX={tone === undefined ? 0 : 1}
+      columnGap={SPACE.chipInner}
+      paddingX={chipPad(tone)}
       {...withTint(neutral)}
       {...(isPill(ui, tone) && { borderStyle: 'round', borderColor: TOKENS[tone!].line })}
     >
@@ -416,7 +421,7 @@ const Summary = ({ args }: { args: RowArgs }) => {
         const look = lookOf(kind, tone)
         const paint = { color: look.color, dimColor: look.dim, ...withTint(neutral) }
         return [
-          <Box key={`sum-${kind}`} flexDirection="row" columnGap={1}>
+          <Box key={`sum-${kind}`} flexDirection="row" columnGap={SPACE.chipInner}>
             {rich && kindIcon(ui, kind, look)}
             <Button
               key={`summary-${kind}`}
@@ -441,19 +446,20 @@ const Summary = ({ args }: { args: RowArgs }) => {
 export const ChipRow = (args: RowArgs) => {
   const { ui, surface, columns, now, tone, chips, settings, on } = args
   const { Box, Button, Text } = ui
-  const gap = gapOf(tone)
+  const gap = chipGapOf(tone)
   if (settings.layout === 'summary') return <Summary args={args} />
   const leads = surface === 'mobile'
+  const inset = leads ? SPACE.rowPadX : 0
   const { shown, hidden } = fitChips(
     chips,
-    columns - MORE_RESERVE - (leads ? leadWidth(chips, tone) : 0),
+    columns - MORE_RESERVE - 2 * across(inset) - (leads ? leadWidth(chips, tone) : 0),
     settings,
     now,
     tone,
     isRich(ui),
   )
   return (
-    <Box flexDirection="row" columnGap={gap}>
+    <Box flexDirection="row" columnGap={gap} {...(leads && { paddingX: inset })}>
       {leads && <Lead args={args} />}
       {shown.map((a, index) => (
         <Chip args={args} a={a} index={index} />
@@ -493,7 +499,15 @@ const Tile = ({
   const { Box, Text } = ui
   const tint = tone === undefined ? undefined : TOKENS[tone].tile
   return (
-    <Box key={`tile-${title}`} flexDirection="column" flexGrow={1} paddingX={1} {...withTint(tint)}>
+    <Box
+      key={`tile-${title}`}
+      flexDirection="column"
+      flexGrow={1}
+      paddingX={SPACE.tilePadX}
+      paddingY={SPACE.tilePadY}
+      rowGap={SPACE.tileGap}
+      {...withTint(tint)}
+    >
       <Text {...inkOf(ui, tone, 'muted', tint)}>{title}</Text>
       <Text bold {...inkOf(ui, tone, danger ? 'danger' : 'ink', tint)}>
         {value}
@@ -502,10 +516,15 @@ const Tile = ({
   )
 }
 
+/** Terminal rows the card takes: border, padding, its parts and the gaps between them. */
 export const cardRows = (a: Activation, columns: number) => {
-  const inner = Math.max(10, columns - 4)
+  const inner = Math.max(10, columns - 2 - 2 * across(SPACE.cardPad))
   const why = Math.max(1, Math.ceil(a.detail.length / inner))
-  return 2 + 1 + 1 + why + 2 + (a.source === undefined ? 0 : 1) + 1
+  const header = 2 + down(SPACE.cardLinesGap)
+  const tiles = 2 + down(SPACE.tileGap) + 2 * down(SPACE.tilePadY)
+  const parts = a.source === undefined ? 4 : 5
+  const content = header + why + tiles + (a.source === undefined ? 0 : 1) + 1
+  return 2 + 2 * down(SPACE.cardPad) + content + (parts - 1) * down(SPACE.cardGap)
 }
 
 export type CardArgs = {
@@ -532,29 +551,32 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
       borderStyle="round"
       borderColor={tone === undefined ? color : TOKENS[tone].line}
       borderDimColor={dim}
-      paddingX={1}
+      padding={SPACE.cardPad}
+      rowGap={SPACE.cardGap}
       {...withTint(surface)}
     >
-      <Box flexDirection="row" justifyContent="space-between">
-        <Text color={color} dimColor={dim} {...withTint(surface)}>
-          {[theme.noun.toUpperCase(), a.meta].filter(Boolean).join(' · ')}
-        </Text>
-        {on.close && <Button key="close" plain label="✕" onPress={() => on.close?.()} />}
-      </Box>
-      {isRich(ui) ? (
-        <Box flexDirection="row" columnGap={1}>
-          {kindIcon(ui, a.kind, look)}
-          <Text bold {...inkOf(ui, tone, 'ink', surface)}>
-            {a.label}
+      <Box flexDirection="column" rowGap={SPACE.cardLinesGap}>
+        <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.cardHeadGap}>
+          <Text color={color} dimColor={dim} {...withTint(surface)}>
+            {[theme.noun.toUpperCase(), a.meta].filter(Boolean).join(' · ')}
           </Text>
+          {on.close && <Button key="close" plain label="✕" onPress={() => on.close?.()} />}
         </Box>
-      ) : (
-        <Text bold>{a.label}</Text>
-      )}
+        {isRich(ui) ? (
+          <Box flexDirection="row" columnGap={SPACE.cardHeadGap}>
+            {kindIcon(ui, a.kind, look)}
+            <Text bold {...inkOf(ui, tone, 'ink', surface)}>
+              {a.label}
+            </Text>
+          </Box>
+        ) : (
+          <Text bold>{a.label}</Text>
+        )}
+      </Box>
       <Text wrap="wrap" {...inkOf(ui, tone, 'ink2', surface)}>
         {a.detail}
       </Text>
-      <Box flexDirection="row" columnGap={1}>
+      <Box flexDirection="row" columnGap={SPACE.tilesGap}>
         <Tile ui={ui} tone={tone} title="Status" value={status.label} danger={isUrgent(a.status)} />
         <Tile ui={ui} tone={tone} title="Activations" value={String(a.count)} />
         <Tile ui={ui} tone={tone} title="Last" value={agoLabel(now - a.lastAt)} />
@@ -564,7 +586,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
           {a.source}
         </Text>
       )}
-      <Box flexDirection="row" columnGap={2}>
+      <Box flexDirection="row" columnGap={SPACE.actionsGap}>
         {a.source !== undefined && (
           <Button key="open" hotkey="o" label="o: Open source" onPress={() => on.copy(a.source!)} />
         )}
@@ -589,20 +611,23 @@ export const renderBand = (args: BandArgs) => {
   const { ui, columns, maxRows, now, tone, chips, settings, selected, below, on } = args
   const { Box } = ui
   const chipRowRows = isPill(ui, tone) ? 3 : 1
-  const fits = (a: Activation) => maxRows >= PROMPT_ROWS + chipRowRows + cardRows(a, columns)
+  const fits = (a: Activation) =>
+    maxRows >= PROMPT_ROWS + chipRowRows + down(SPACE.cardAbove) + cardRows(a, columns)
   const current = settings.layout === 'row' ? chips.find(a => chipId(a) === selected) : undefined
   return (
     <Box flexDirection="column">
       {below}
       {current && fits(current) && (
-        <DetailCard
-          ui={ui}
-          tone={tone}
-          now={now}
-          a={current}
-          isMuted={false}
-          on={{ mute: on.mute, copy: on.copy, close: on.close }}
-        />
+        <Box key="card-slot" flexDirection="column" marginBottom={SPACE.cardAbove}>
+          <DetailCard
+            ui={ui}
+            tone={tone}
+            now={now}
+            a={current}
+            isMuted={false}
+            on={{ mute: on.mute, copy: on.copy, close: on.close }}
+          />
+        </Box>
       )}
       <ChipRow {...args} fits={fits} on={on} />
     </Box>
