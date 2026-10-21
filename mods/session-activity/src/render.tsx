@@ -1,7 +1,7 @@
 import type { Color, ElementTable, RenderElement, RenderSurface } from 'claude-code'
 
 import type { Activation, Kind, Settings, Status } from '../types'
-import { errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg, stoppedSvg } from './icons'
+import { dotSvg, errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg, stoppedSvg } from './icons'
 import { chipId } from './model'
 import {
   across,
@@ -37,6 +37,8 @@ const isPill = (ui: Ui, tone: Tone | undefined) => isRich(ui) && tone !== undefi
 const ICON_PX = 14
 
 const STOPPED_ICON_PX = 11
+
+const FRESH_DOT_PX = 7
 
 const LABEL_MAX = 24
 const MORE_RESERVE = 2
@@ -141,6 +143,7 @@ export const gapOf = (tone: Tone | undefined) => across(chipGapOf(tone))
 
 type Parts = {
   glyph: string
+  isFresh: boolean
   lead: string
   label: string
   count: string
@@ -166,12 +169,14 @@ const partsOf = (
   const status = STATUSES[a.status]
   const frame = Math.floor(now / SPIN_MS)
   const tally = a.count > 1 && TOGGLES[a.kind].showsTally ? `×${a.count}` : ''
+  const isFresh = a.lastAt > now - FRESH_MS
   return {
     glyph:
       a.status === 'running'
         ? SPINNER[frame % SPINNER.length]!
         : (status.glyph ?? TOGGLES[a.kind].glyph),
-    lead: a.lastAt > now - FRESH_MS ? '● ' : '',
+    isFresh,
+    lead: isFresh && !(rich && tone !== undefined) ? '● ' : '',
     label: clip(a.label, labelMax),
     count: tone !== undefined && tally !== '' ? ` ${tally} ` : tally,
     via: settings.shown.plugin && a.plugin !== undefined ? `via ${clip(a.plugin, 16)}` : '',
@@ -292,7 +297,9 @@ type RowArgs = {
   on: Pick<Actions, 'pick' | 'open'>
 }
 
-const ChipIcon = ({ ui, a, look, now }: { ui: Ui; a: Activation; look: Look; now: number }) => {
+type ChipIconArgs = { ui: Ui; a: Activation; look: Look; now: number; isFresh: boolean }
+
+const ChipIcon = ({ ui, a, look, now, isFresh }: ChipIconArgs) => {
   const noun = TOGGLES[a.kind].noun
   if (a.status === 'running') {
     const frame = Math.floor(now / SPIN_MS)
@@ -300,12 +307,23 @@ const ChipIcon = ({ ui, a, look, now }: { ui: Ui; a: Activation; look: Look; now
     return <Icon ui={ui} svg={svg} alt={noun} />
   }
   if (a.status === 'error') return <Icon ui={ui} svg={errorSvg(hexOr(look.color))} alt={noun} />
+  if (isFresh && look.tint !== undefined) {
+    const svg = dotSvg(hexOr(look.color))
+    return <Icon ui={ui} svg={svg} alt={noun} width={FRESH_DOT_PX} height={FRESH_DOT_PX} />
+  }
   return kindIcon(ui, a.kind, look)
 }
 
-const chipBorder = (look: Look, a: Activation, tone: Tone | undefined, isSelected: boolean) => {
+const chipBorder = (
+  look: Look,
+  a: Activation,
+  tone: Tone | undefined,
+  p: Parts,
+  isSelected: boolean,
+) => {
   if (isSelected) return look.color
-  return tone !== undefined && isStopped(a.status) ? TOKENS[tone].dangerBd : look.border
+  if (tone !== undefined && isStopped(a.status)) return TOKENS[tone].dangerBd
+  return p.isFresh ? look.color : look.border
 }
 
 type ChipArgs = { args: RowArgs; a: Activation; index: number; labelMax: number }
@@ -333,11 +351,11 @@ const Chip = ({ args, a, index, labelMax }: ChipArgs) => {
       {...withTint(tint)}
       {...(pill && {
         borderStyle: a.status === 'error' ? 'dashed' : 'round',
-        borderColor: chipBorder(look, a, tone, selected === id),
+        borderColor: chipBorder(look, a, tone, p, selected === id),
       })}
       {...(rich && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
-      {rich && <ChipIcon ui={ui} a={a} look={look} now={now} />}
+      {rich && <ChipIcon ui={ui} a={a} look={look} now={now} isFresh={p.isFresh} />}
       <Button
         key={`chip-${a.kind}-${a.key}`}
         plain
