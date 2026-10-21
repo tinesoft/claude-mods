@@ -41,7 +41,8 @@ export const record = (
     startedAgentId === undefined
       ? old.runningAgentIds
       : [...(old.runningAgentIds ?? []), startedAgentId]
-  const keepsUrgent = isUrgent(old.status) && !isUrgent(seen.status)
+  const hasRecovered = seen.kind === 'mcp' && old.status === 'error' && seen.status === 'ok'
+  const keepsUrgent = isUrgent(old.status) && !isUrgent(seen.status) && !hasRecovered
   const merged: Activation = {
     ...old,
     ...fields,
