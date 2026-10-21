@@ -101,6 +101,22 @@ test('filters carry their hotkey and count, and the active one is the only one n
   expect((await label('All 3'))?.props.dimColor).toBe(true)
 })
 
+test('hiding the filtered type falls back to All instead of an empty list', async ($, on) => {
+  session(on, HOOKS)
+  stubEngine(on)
+  await activity($)
+  const pane = await mountPane($)
+  await pane.press({ key: 'filter-skill' })
+  await pane.press({ key: 'tab-settings' })
+  await pane.press({ key: 'toggle-skill' })
+  await pane.press({ key: 'tab-activity' })
+  expect((await pane.findAll({ type: 'Text' })).find(t => t.text === 'All 2')?.props.dimColor).toBe(
+    false,
+  )
+  expect(await texts(pane)).not.toContain('Nothing has activated yet in this session.')
+  expect(await pane.find({ key: 'row-mcp-github' })).toBeDefined()
+})
+
 test('rows are grouped under a coloured eyebrow with a dim count and show their why line', async ($, on) => {
   session(on, HOOKS)
   stubEngine(on)
