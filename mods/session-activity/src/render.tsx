@@ -5,6 +5,9 @@ import { errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg } from './icons'
 import { chipId } from './model'
 import {
   across,
+  CARD_DENSITIES,
+  CARD_SPACE,
+  type CardDensity,
   down,
   FRESH_MS,
   HOVER_MIX,
@@ -517,14 +520,15 @@ const Tile = ({
 }
 
 /** Terminal rows the card takes: border, padding, its parts and the gaps between them. */
-export const cardRows = (a: Activation, columns: number) => {
-  const inner = Math.max(10, columns - 2 - 2 * across(SPACE.cardPad))
+export const cardRows = (a: Activation, columns: number, density: CardDensity) => {
+  const space = CARD_SPACE[density]
+  const inner = Math.max(10, columns - 2 - 2 * across(space.padX))
   const why = Math.max(1, Math.ceil(a.detail.length / inner))
   const header = 2 + down(SPACE.cardLinesGap)
   const tiles = 2 + down(SPACE.tileGap) + 2 * down(SPACE.tilePadY)
   const parts = a.source === undefined ? 4 : 5
   const content = header + why + tiles + (a.source === undefined ? 0 : 1) + 1
-  return 2 + 2 * down(SPACE.cardPad) + content + (parts - 1) * down(SPACE.cardGap)
+  return 2 + 2 * down(space.padY) + content + (parts - 1) * down(space.gap)
 }
 
 export type CardArgs = {
@@ -533,11 +537,13 @@ export type CardArgs = {
   now: number
   a: Activation
   isMuted: boolean
+  density: CardDensity
   on: Pick<Actions, 'mute' | 'copy'> & { close?: () => void }
 }
 
-export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
+export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs) => {
   const { Box, Button, Text } = ui
+  const space = CARD_SPACE[density]
   const look = lookOf(a.kind, tone)
   const { color, dim } = look
   const theme = TOGGLES[a.kind]
@@ -551,8 +557,9 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, on }: CardArgs) => {
       borderStyle="round"
       borderColor={tone === undefined ? color : TOKENS[tone].line}
       borderDimColor={dim}
-      padding={SPACE.cardPad}
-      rowGap={SPACE.cardGap}
+      paddingX={space.padX}
+      paddingY={space.padY}
+      rowGap={space.gap}
       {...withTint(surface)}
     >
       <Box flexDirection="column" rowGap={SPACE.cardLinesGap}>
@@ -611,13 +618,19 @@ export const renderBand = (args: BandArgs) => {
   const { ui, columns, maxRows, now, tone, chips, settings, selected, below, on } = args
   const { Box } = ui
   const chipRowRows = isPill(ui, tone) ? 3 : 1
-  const fits = (a: Activation) =>
-    maxRows >= PROMPT_ROWS + chipRowRows + down(SPACE.cardAbove) + cardRows(a, columns)
+  const densityOf = (a: Activation) =>
+    CARD_DENSITIES.find(
+      density =>
+        maxRows >=
+        PROMPT_ROWS + chipRowRows + down(SPACE.cardAbove) + cardRows(a, columns, density),
+    )
+  const fits = (a: Activation) => densityOf(a) !== undefined
   const current = settings.layout === 'row' ? chips.find(a => chipId(a) === selected) : undefined
+  const density = current && densityOf(current)
   return (
     <Box flexDirection="column">
       {below}
-      {current && fits(current) && (
+      {current && density && (
         <Box key="card-slot" flexDirection="column" marginBottom={SPACE.cardAbove}>
           <DetailCard
             ui={ui}
@@ -625,6 +638,7 @@ export const renderBand = (args: BandArgs) => {
             now={now}
             a={current}
             isMuted={false}
+            density={density}
             on={{ mute: on.mute, copy: on.copy, close: on.close }}
           />
         </Box>

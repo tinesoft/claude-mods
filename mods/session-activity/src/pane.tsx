@@ -373,6 +373,7 @@ const Detail = ({ ui, tone, now, activations, selected, muted, on }: PaneArgs) =
           now={now}
           a={a}
           isMuted={muted.includes(chipId(a))}
+          density="roomy"
           on={{ mute: on.mute, copy: on.copy }}
         />
       ) : (

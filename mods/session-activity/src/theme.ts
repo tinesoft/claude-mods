@@ -406,8 +406,6 @@ export const SPACE = {
   morePadX: 'sm',
   rowPadX: 'lg',
   cardAbove: 'sm',
-  cardPad: 'lg',
-  cardGap: 'md',
   cardHeadGap: 'sm',
   cardLinesGap: 'xs',
   tilesGap: 'sm',
@@ -435,6 +433,16 @@ export const SPACE = {
   switchSide: 'md',
   footerGap: 'sm',
 } as const satisfies Record<string, Space>
+
+/** How much air the detail card keeps: roomy where the band has the rows, compact where it is short. */
+export type CardDensity = 'roomy' | 'compact'
+
+export const CARD_DENSITIES = ['roomy', 'compact'] as const satisfies readonly CardDensity[]
+
+export const CARD_SPACE = {
+  roomy: { padX: 'lg', padY: 'lg', gap: 'md' },
+  compact: { padX: 'lg', padY: 0, gap: 0 },
+} as const satisfies Record<CardDensity, { padX: Space; padY: Space; gap: Space }>
 
 const ACROSS = { xs: 1, sm: 1, md: 2, lg: 3, xl: 4 } as const
 const DOWN = { xs: 0, sm: 0, md: 1, lg: 1, xl: 2 } as const

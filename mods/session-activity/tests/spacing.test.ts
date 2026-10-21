@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import type { RenderSurface, Space } from 'claude-code'
-import { across, down, SPACE } from '../src/theme'
+import { across, CARD_SPACE, down, SPACE } from '../src/theme'
 import { FRESH, mountBand, mountPane, session, stubEngine, SURFACES } from './harness'
 
 /** The step as the tree holds it: VS Code resolves steps to cells before drawing, the others keep the name. */
@@ -57,12 +57,11 @@ for (const surface of SURFACES) {
       await closed.press({ key: 'chip-skill-alpha' })
       const open = await mountBand($, surface, 120, 40)
       const card = await open.find({ key: 'card' })
-      expect(card?.props.rowGap).toBe(y(SPACE.cardGap))
-      expect(card?.props).toMatchObject(
-        surface === 'vscode'
-          ? { paddingX: x(SPACE.cardPad), paddingY: y(SPACE.cardPad) }
-          : { padding: SPACE.cardPad },
-      )
+      expect(card?.props).toMatchObject({
+        rowGap: y(CARD_SPACE.roomy.gap),
+        paddingX: x(CARD_SPACE.roomy.padX),
+        paddingY: y(CARD_SPACE.roomy.padY),
+      })
       expect((await open.find({ key: 'card-slot' }))?.props.marginBottom).toBe(y(SPACE.cardAbove))
       const boxes = await open.findAll({ type: 'Box' })
       expect(
@@ -134,4 +133,53 @@ test('terminal chips stay one row tall', async ($, on) => {
   for (const box of (await band.findAll({ type: 'Box' })).filter(b => b.key?.startsWith('box-'))) {
     expect(box.props.paddingY).toBeUndefined()
   }
+})
+
+for (const surface of SURFACES) {
+  test(`on ${surface} the card is roomy where the band has the rows, compact where it is short, and the pane only below that`, async ($, on) => {
+    const clock = session(on, {}, new Map(), 'light', [surface])
+    const { opens } = stubEngine(on)
+    await load($)
+    await clock.advance(FRESH)
+
+    const probe = async (maxRows: number) => {
+      const tall = await mountBand($, surface, 120, 60)
+      if (await tall.find({ key: 'card' })) await tall.press({ key: 'close' })
+      opens.length = 0
+      await (await mountBand($, surface, 120, maxRows)).press({ key: 'chip-skill-alpha' })
+      const card = await (await mountBand($, surface, 120, maxRows)).find({ key: 'card' })
+      if (card === undefined) return opens.length === 1 ? 'pane' : 'none'
+      await (await mountBand($, surface, 120, maxRows)).press({ key: 'close' })
+      return card.props.rowGap === 0 ? 'compact' : 'roomy'
+    }
+
+    const seen: string[] = []
+    for (let rows = 0; rows <= 40; rows++) seen.push(await probe(rows))
+    const first = (kind: string) => seen.indexOf(kind)
+    expect(seen.join()).not.toContain('none')
+    expect(first('compact')).toBeGreaterThan(0)
+    expect(first('roomy')).toBeGreaterThan(first('compact'))
+    expect(seen.slice(0, first('compact')).every(kind => kind === 'pane')).toBe(true)
+    expect(seen.slice(first('compact'), first('roomy')).every(kind => kind === 'compact')).toBe(
+      true,
+    )
+    expect(seen.slice(first('roomy')).every(kind => kind === 'roomy')).toBe(true)
+  })
+}
+
+test('the compact card keeps the horizontal padding and drops the vertical padding and the gaps', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on)
+  await load($)
+  await clock.advance(FRESH)
+  const props = async (maxRows: number) => {
+    await (await mountBand($, 'terminal', 120, maxRows)).press({ key: 'chip-skill-alpha' })
+    const card = await (await mountBand($, 'terminal', 120, maxRows)).find({ key: 'card' })
+    if (card) await (await mountBand($, 'terminal', 120, maxRows)).press({ key: 'close' })
+    return card?.props
+  }
+  let rows = 0
+  while ((await props(rows)) === undefined) rows++
+  expect(await props(rows)).toMatchObject({ paddingX: 'lg', paddingY: 0, rowGap: 0 })
+  expect(await props(40)).toMatchObject({ paddingX: 'lg', paddingY: 'lg', rowGap: 'md' })
 })
