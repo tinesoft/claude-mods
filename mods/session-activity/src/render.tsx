@@ -256,12 +256,16 @@ export const Badge = ({
   if (tone === undefined) return <Text inverse bold color="error">{` ${text} `}</Text>
   if (status === 'error') {
     return (
-      <Text bold {...inkOf(ui, tone, 'danger', bg)}>
+      <Text bold size="caption" {...inkOf(ui, tone, 'danger', bg)}>
         {text}
       </Text>
     )
   }
-  return <Text bold color={STOPPED.fg} backgroundColor={STOPPED.bg}>{` ${text} `}</Text>
+  return (
+    <Text bold size="caption" color={STOPPED.fg} backgroundColor={STOPPED.bg}>
+      {` ${text} `}
+    </Text>
+  )
 }
 
 export type Actions = {
@@ -344,7 +348,12 @@ const Chip = ({ args, a, index, labelMax }: ChipArgs) => {
         </Text>
       </Button>
       {p.count !== '' && (
-        <Text {...paint} {...(look.count !== undefined && { backgroundColor: look.count })}>
+        <Text
+          mono
+          size="caption"
+          {...paint}
+          {...(look.count !== undefined && { backgroundColor: look.count })}
+        >
           {p.count}
         </Text>
       )}
@@ -517,8 +526,10 @@ const Tile = ({
       rowGap={SPACE.tileGap}
       {...withTint(tint)}
     >
-      <Text {...inkOf(ui, tone, 'muted', tint)}>{title}</Text>
-      <Text bold {...inkOf(ui, tone, danger ? 'danger' : 'ink', tint)}>
+      <Text size="footnote" {...inkOf(ui, tone, 'muted', tint)}>
+        {title}
+      </Text>
+      <Text bold size="footnote" {...inkOf(ui, tone, danger ? 'danger' : 'ink', tint)}>
         {value}
       </Text>
     </Box>
@@ -574,7 +585,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
     >
       <Box flexDirection="column" rowGap={SPACE.cardLinesGap}>
         <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.cardHeadGap}>
-          <Text color={color} dimColor={dim} {...withTint(surface)}>
+          <Text mono size="caption" color={color} dimColor={dim} {...withTint(surface)}>
             {[theme.noun.toUpperCase(), a.meta].filter(Boolean).join(' · ')}
           </Text>
           {on.close && <Button key="close" plain label="✕" onPress={() => on.close?.()} />}
@@ -582,7 +593,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
         {isRich(ui) ? (
           <Box flexDirection="row" columnGap={SPACE.cardHeadGap}>
             {kindIcon(ui, a.kind, look)}
-            <Text bold {...inkOf(ui, tone, 'ink', surface)}>
+            <Text bold size="heading" {...inkOf(ui, tone, 'ink', surface)}>
               {a.label}
             </Text>
           </Box>
@@ -599,7 +610,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
         <Tile ui={ui} tone={tone} title="Last" value={agoLabel(now - a.lastAt)} />
       </Box>
       {a.source !== undefined && (
-        <Text wrap="truncate-middle" {...inkOf(ui, tone, 'muted', surface)}>
+        <Text mono size="footnote" wrap="truncate-middle" {...inkOf(ui, tone, 'muted', surface)}>
           {a.source}
         </Text>
       )}

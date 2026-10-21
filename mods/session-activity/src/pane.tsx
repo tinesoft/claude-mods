@@ -249,14 +249,18 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
             <Text>{isSelected ? '▸' : ' '}</Text>
             <Text bold dimColor={isMuted}>{` ${clip(a.label, 28)}`}</Text>
             {a.meta !== undefined && metaRoom >= MIN_META && (
-              <Text {...inkOf(ui, tone, 'muted')}>{` ${clip(a.meta, metaRoom)}`}</Text>
+              <Text mono size="footnote" {...inkOf(ui, tone, 'muted')}>
+                {` ${clip(a.meta, metaRoom)}`}
+              </Text>
             )}
             {badgeText !== '' && <Badge ui={ui} text={badgeText} tone={tone} status={a.status} />}
             {isMuted && <MutedBadge ui={ui} tone={tone} />}
           </Button>
         </Box>
         <Box flexDirection="row" columnGap={SPACE.rowSide} flexShrink={0}>
-          <Text {...inkOf(ui, tone, 'text2')}>{tally}</Text>
+          <Text mono size="footnote" {...inkOf(ui, tone, 'text2')}>
+            {tally}
+          </Text>
           {!urgent && (
             <Button
               key={`mute-${a.kind}-${a.key}`}
@@ -270,6 +274,7 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
       </Box>
       <Box flexDirection="column" rowGap={SPACE.rowTextGap} paddingLeft={WHY_INDENT}>
         <Text
+          size="footnote"
           wrap={isSelected ? 'wrap' : 'truncate-end'}
           {...inkOf(ui, tone, isSelected ? 'ink2' : 'text2')}
         >
@@ -347,10 +352,12 @@ const Activity = (args: PaneArgs) => {
         return (
           <Box key={`group-${group.kind}`} flexDirection="column" rowGap={SPACE.groupGap}>
             <Box flexDirection="row" columnGap={SPACE.rowGrid}>
-              <Text color={color} dimColor={dim}>
+              <Text mono size="caption" color={color} dimColor={dim}>
                 {TOGGLES[group.kind].plural.toUpperCase()}
               </Text>
-              <Text {...inkOf(ui, tone, 'muted')}>{String(group.rows.length)}</Text>
+              <Text mono size="caption" {...inkOf(ui, tone, 'muted')}>
+                {String(group.rows.length)}
+              </Text>
             </Box>
             <Box flexDirection="column" rowGap={SPACE.listGap}>
               {group.rows.map(a => (
