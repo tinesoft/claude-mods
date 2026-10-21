@@ -154,7 +154,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
   mcp: {
     option: 'show_mcp',
     title: 'MCP servers',
-    noun: 'MCP server',
+    noun: 'MCP',
     plural: 'MCP',
     description: 'Servers whose tools were called, with a count and any auth failures.',
     example: 'github',

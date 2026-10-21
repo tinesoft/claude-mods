@@ -353,7 +353,7 @@ const Activity = (args: PaneArgs) => {
           <Box key={`group-${group.kind}`} flexDirection="column" rowGap={SPACE.groupGap}>
             <Box flexDirection="row" columnGap={SPACE.rowGrid}>
               <Text mono size="caption" color={color} dimColor={dim}>
-                {TOGGLES[group.kind].plural.toUpperCase()}
+                {TOGGLES[group.kind].title.toUpperCase()}
               </Text>
               <Text mono size="caption" {...inkOf(ui, tone, 'muted')}>
                 {String(group.rows.length)}
