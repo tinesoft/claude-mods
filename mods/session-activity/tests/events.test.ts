@@ -26,6 +26,19 @@ test('two calls to one MCP server record one github chip counted twice', async (
   expect(await band($, clock)).toEqual(['mcp:github|⇌github ×2 '])
 })
 
+test('an MCP server that errored clears to ok once a call to it succeeds', async ($, on) => {
+  const clock = session(on)
+  const answers: Parameters<typeof stubEngine>[1] = {
+    call: { result: 'auth failed', isError: true },
+  }
+  stubEngine(on, answers)
+  await $.tool.call({ tool: 'mcp__github__get_issue' } as never)
+  expect(await band($, clock)).toEqual(['mcp:github|▲githubError'])
+  delete answers.call
+  await $.tool.call({ tool: 'mcp__github__list_issues' } as never)
+  expect(await band($, clock)).toEqual(['mcp:github|⇌github ×2 '])
+})
+
 test('a skill Claude loads becomes a skill chip', async ($, on) => {
   const clock = session(on)
   stubEngine(on)

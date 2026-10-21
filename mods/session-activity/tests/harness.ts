@@ -170,7 +170,7 @@ export const stubEngine = (
   answers: {
     verdict?: { decision: 'allow' | 'ask' | 'deny'; rule?: string; reason?: string }
     stop?: { block?: string }
-    call?: { deny: string }
+    call?: { deny: string } | { result: string; isError: true }
   } = {},
 ) => {
   const opened: string[] = []
