@@ -96,7 +96,9 @@ test('a PreToolUse hook that blocks shows its script name and BLOCKED', async ($
   )
   await $.tool.call({ tool: 'Bash', command: 'ls' } as never)
   await $.tool.call({ tool: 'Bash', command: 'cat .env' } as never)
-  expect(await band($, clock)).toEqual(['hook:PreToolUse|↯block-secrets ×2  BLOCKED '])
+  expect(await band($, clock)).toEqual([
+    'hook:bash .claude/hooks/block-secrets.sh|↯block-secrets ×2  BLOCKED ',
+  ])
 })
 
 test('two hooks on one event each get their own chip, and only the one that blocked says so', async ($, on) => {

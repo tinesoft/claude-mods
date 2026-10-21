@@ -192,7 +192,7 @@ export const fromHook = (
   const ran = commands.length === 1 ? 'Ran 1 command' : `Ran ${commands.length} commands`
   return {
     kind: 'hook',
-    key: event,
+    key: only ?? event,
     label: only !== undefined ? commandName(only) : `${event} hooks`,
     detail: outcome.blocked !== undefined ? `Blocked: ${outcome.blocked}` : `${ran}.`,
     meta: target !== undefined ? `${event} · ${target}` : event,

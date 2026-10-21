@@ -54,14 +54,16 @@ for (const columns of [40, 100]) {
     const { opens } = stubEngine(on)
     blocking(on)
     await activity($)
-    await (await mountBand($, 'terminal', columns, 3)).press({ key: 'chip-hook-PreToolUse' })
+    await (
+      await mountBand($, 'terminal', columns, 3)
+    ).press({ key: 'chip-hook-bash .claude/hooks/block-secrets.sh' })
     expect(opens).toEqual([expect.objectContaining({ id: 'session-activity', rows: 10 })])
     const pane = await mountPane($, 'terminal', columns)
     expect(await texts(pane)).toContain('Blocked: reads a secret')
     expect(await texts(pane)).toContain('bash .claude/hooks/block-secrets.sh')
     expect(await texts(pane)).toContain('HOOK · PreToolUse · Bash')
     await pane.press({ key: 'back' })
-    expect(await pane.find({ key: 'row-hook-PreToolUse' })).toBeDefined()
+    expect(await pane.find({ key: 'row-hook-bash .claude/hooks/block-secrets.sh' })).toBeDefined()
   })
 }
 
@@ -328,7 +330,7 @@ test('a blocked chip of a hidden type is still listed in the pane, without a mut
   await activity($)
   const pane = await mountPane($)
   expect(await pane.find({ key: 'filter-hook' })).toBeDefined()
-  expect(await pane.find({ key: 'mute-hook-PreToolUse' })).toBeUndefined()
+  expect(await pane.find({ key: 'mute-hook-bash .claude/hooks/block-secrets.sh' })).toBeUndefined()
   expect(await texts(pane)).toContain('Stopped and errored chips always show.')
 })
 
