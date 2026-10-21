@@ -10,7 +10,6 @@ const PAINT = {
     ink: '#17181C',
     text2: '#3B3F48',
     muted: '#5A5E68',
-    lineSoft: '#ECEDF0',
     link: '#1F4FC1',
     rowHover: '#E8E8E8',
   },
@@ -21,7 +20,6 @@ const PAINT = {
     ink: '#ECEDEF',
     text2: '#B4B8C1',
     muted: '#9499A3',
-    lineSoft: '#2A2C31',
     link: '#8FB0FF',
     rowHover: '#303236',
   },
@@ -136,14 +134,14 @@ for (const surface of SURFACES) {
       )
     })
 
-    test(`${tone} on ${surface}: Mute marks a row Muted in text-2 on line-soft, and Unmute undoes it`, async ($, on) => {
+    test(`${tone} on ${surface}: Mute marks a row Muted in text-2 on fill, and Unmute undoes it`, async ($, on) => {
       session(on, {}, new Map(), tone, [surface])
       stubEngine(on, DENY)
       await activity($)
       const pane = await mountPane($, surface)
       await pane.press({ key: 'mute-skill-docx' })
       const muted = (await pane.findAll({ type: 'Text' })).find(x => x.text === ' Muted ')
-      expect(muted?.props).toMatchObject({ color: t.text2, backgroundColor: t.lineSoft })
+      expect(muted?.props).toMatchObject({ color: t.text2, backgroundColor: t.fill })
       expect(muted?.props.inverse).toBeUndefined()
       expect(await pane.find({ key: 'mute-skill-docx' })).toMatchObject({ text: 'Unmute' })
       await pane.press({ key: 'mute-skill-docx' })
