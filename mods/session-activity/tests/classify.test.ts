@@ -36,7 +36,15 @@ test('call summaries name what the call does', () => {
 
 test('a hook command is named by its script', () => {
   expect(commandName('bash .claude/hooks/block-secrets.sh --strict')).toBe('block-secrets')
-  expect(commandName('npx lint-staged')).toBe('npx')
+  expect(commandName('npx lint-staged')).toBe('lint-staged')
+  expect(commandName('npx --yes lint-staged')).toBe('lint-staged')
+  expect(commandName('pnpm exec eslint .')).toBe('eslint')
+  expect(commandName('pnpm dlx prettier --check .')).toBe('prettier')
+  expect(commandName('npm run lint')).toBe('lint')
+  expect(commandName('yarn lint')).toBe('lint')
+  expect(commandName('bunx tsc --noEmit')).toBe('tsc')
+  expect(commandName('uv run ruff check')).toBe('ruff')
+  expect(commandName('npx')).toBe('npx')
   expect(commandName('node ./scripts/check.mjs')).toBe('check')
 })
 
