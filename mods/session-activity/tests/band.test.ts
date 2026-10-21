@@ -647,3 +647,34 @@ test('with digit hotkeys on, the terminal chip reads hotkey, glyph, label', asyn
   const band = await mountBand($)
   expect((await band.find({ key: 'box-skill:docx' }))?.text).toBe('1: ▤ docx')
 })
+
+for (const surface of BAND_SURFACES) {
+  test(
+    `${surface}: the summary chip has the board's spacing, 13 px icons and a divider before the tally`,
+    { options: { layout: 'summary' } },
+    async ($, on) => {
+      const clock = session(on, {}, new Map(), 'dark', [surface])
+      stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
+      await loadSkills($, clock, ['docx'])
+      await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
+      const band = await mountBand($, surface, 100)
+      const summary = (await band.findAll({ type: 'Box' })).find(
+        b => b.props.flexDirection === 'row' && b.text.endsWith('● 1 blocked'),
+      )
+      expect(summary?.props).toMatchObject({ columnGap: 'sm', paddingX: 'md' })
+      const shown = (await band.findAll({ type: 'Text' })).map(t => t.text)
+      if (surface === 'desktop') {
+        expect(shown.slice(-2)).toEqual(['│', '● 1 blocked'])
+        const divider = (await band.findAll({ type: 'Text' })).find(t => t.text === '│')
+        expect(divider?.props.color).toBe('#34373E')
+        const icons = await band.findAll({ type: 'Svg' })
+        expect(icons.map(i => [i.props.width, i.props.height])).toEqual([
+          [13, 13],
+          [13, 13],
+        ])
+      } else {
+        expect(shown).not.toContain('│')
+      }
+    },
+  )
+}
