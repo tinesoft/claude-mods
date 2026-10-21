@@ -440,9 +440,13 @@ export const register: Register = (on, options) => {
         mute: id => toggleMuted($, options, id),
         copy: text => copyPath($, e.surface, text),
         set: patch => change(old => ({ ...old, ...patch })),
-        toggle: (flag: PaneFlag) => change(old => ({ ...old, [flag]: !settings[flag] })),
+        toggle: (flag: PaneFlag) =>
+          change(old => ({ ...old, [flag]: !resolveSettings(options, old)[flag] })),
         toggleShown: (toggle: Toggle) =>
-          change(old => ({ ...old, shown: { ...old.shown, [toggle]: !settings.shown[toggle] } })),
+          change(old => {
+            const shown = !resolveSettings(options, old).shown[toggle]
+            return { ...old, shown: { ...old.shown, [toggle]: shown } }
+          }),
         reset: () => change(() => ({})),
         allOn: () =>
           change(old => ({
