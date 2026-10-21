@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { mountPane, session, stubEngine, SURFACES } from './harness'
+import { hoversOf, mountPane, session, stubEngine, SURFACES } from './harness'
 
 const PAINT = {
   light: {
@@ -12,6 +12,7 @@ const PAINT = {
     muted: '#5A5E68',
     lineSoft: '#ECEDF0',
     link: '#1F4FC1',
+    rowHover: '#E8E8E8',
   },
   dark: {
     skill: { fg: '#8FB0FF', bg: '#1B2A4A', bd: '#2D4373' },
@@ -22,6 +23,7 @@ const PAINT = {
     muted: '#9499A3',
     lineSoft: '#2A2C31',
     link: '#8FB0FF',
+    rowHover: '#303236',
   },
 } as const
 
@@ -79,6 +81,15 @@ for (const surface of SURFACES) {
         expect(texts.find(x => x.text === ' 0')?.props.dimColor).toBe(true)
         expect(filterBoxes.every(b => b.props.backgroundColor === undefined)).toBe(true)
       }
+    })
+
+    test(`${tone} on ${surface}: a hovered row darkens its neutral fill, whatever its type`, async ($, on) => {
+      session(on, {}, new Map(), tone, [surface])
+      stubEngine(on, DENY)
+      await activity($)
+      const hovers = await hoversOf(await mountPane($, surface), 'rowbox-')
+      const neutral = rich ? { backgroundColor: t.rowHover } : undefined
+      expect(hovers).toEqual([neutral, neutral])
     })
 
     test(`${tone} on ${surface}: a row has its type mark, why line, tally and Mute button`, async ($, on) => {
