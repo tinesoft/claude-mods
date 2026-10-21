@@ -1,4 +1,4 @@
-import type { Color, RenderSurface } from 'claude-code'
+import type { Color, RenderSurface, Space } from 'claude-code'
 
 import type {
   Activation,
@@ -551,6 +551,23 @@ const Segments = <T extends string>({
   )
 }
 
+/** The board's bordered surface card on rich surfaces; the terminal keeps the bare layout. */
+const card = (ui: Ui, tone: Tone | undefined, padding: Record<string, Space>) =>
+  isRich(ui) && tone !== undefined
+    ? {
+        borderStyle: 'round',
+        borderColor: TOKENS[tone].line,
+        backgroundColor: TOKENS[tone].surface,
+        ...padding,
+      }
+    : {}
+
+const SWITCH_CARD = {
+  paddingLeft: SPACE.switchCardPadLeft,
+  paddingRight: SPACE.switchCardPadRight,
+  paddingY: SPACE.switchCardPadY,
+}
+
 const INTRO =
   'Choose what shows above the prompt bar when it activates during a session. Optional types stay off until you turn them on.'
 
@@ -593,15 +610,17 @@ const SettingsTab = (args: PaneArgs) => {
           {INTRO}
         </Text>
       </Box>
-      <Switch
-        ui={ui}
-        tone={tone}
-        id="toggle-enabled"
-        isOn={settings.enabled}
-        title="Show chips above the prompt bar"
-        description="Blocked and denied actions are always shown while this is on."
-        onPress={() => on.toggle('enabled')}
-      />
+      <Box key="card-master" flexDirection="column" {...card(ui, tone, SWITCH_CARD)}>
+        <Switch
+          ui={ui}
+          tone={tone}
+          id="toggle-enabled"
+          isOn={settings.enabled}
+          title="Show chips above the prompt bar"
+          description="Blocked and denied actions are always shown while this is on."
+          onPress={() => on.toggle('enabled')}
+        />
+      </Box>
       <Box flexDirection="column" rowGap={SPACE.previewGap}>
         <Segments
           ui={ui}
@@ -612,39 +631,51 @@ const SettingsTab = (args: PaneArgs) => {
           choices={layouts}
           onPick={layout => on.set({ layout })}
         />
-        {settings.enabled ? (
-          <ChipRow
-            ui={ui}
-            surface={surface}
-            columns={columns}
-            now={now}
-            tone={tone}
-            chips={samples}
-            settings={{ ...settings, hotkeys: false, maxChips: 20 }}
-            selected={null}
-            fits={() => false}
-            on={{ pick: () => undefined, open: () => undefined }}
-          />
-        ) : (
-          <Text {...inkOf(ui, tone, 'muted')}>
-            Chips are hidden. Activity is still listed in the session tray.
-          </Text>
-        )}
         <Box
-          key="prompt-standin"
-          {...(isRich(ui) &&
-            tone !== undefined && {
-              borderStyle: 'round',
-              borderColor: TOKENS[tone].line,
-              paddingX: SPACE.promptPadX,
-            })}
+          key="card-preview"
+          flexDirection="column"
+          rowGap={SPACE.previewInnerGap}
+          {...card(ui, tone, { padding: SPACE.previewPad })}
         >
-          <Text {...inkOf(ui, tone, 'muted')}>Reply to Claude…</Text>
+          {settings.enabled ? (
+            <ChipRow
+              ui={ui}
+              surface={surface}
+              columns={columns}
+              now={now}
+              tone={tone}
+              chips={samples}
+              settings={{ ...settings, hotkeys: false, maxChips: 20 }}
+              selected={null}
+              fits={() => false}
+              on={{ pick: () => undefined, open: () => undefined }}
+            />
+          ) : (
+            <Text {...inkOf(ui, tone, 'muted')}>
+              Chips are hidden. Activity is still listed in the session tray.
+            </Text>
+          )}
+          <Box
+            key="prompt-standin"
+            {...(isRich(ui) &&
+              tone !== undefined && {
+                borderStyle: 'round',
+                borderColor: TOKENS[tone].line,
+                paddingX: SPACE.promptPadX,
+              })}
+          >
+            <Text {...inkOf(ui, tone, 'muted')}>Reply to Claude…</Text>
+          </Box>
         </Box>
       </Box>
       <Box flexDirection="column" rowGap={SPACE.sectionGap}>
         <Eyebrow ui={ui} tone={tone} text="Shown by default" />
-        <Box flexDirection="column" rowGap={SPACE.listGap}>
+        <Box
+          key="card-shown"
+          flexDirection="column"
+          rowGap={SPACE.listGap}
+          {...card(ui, tone, SWITCH_CARD)}
+        >
           {TOGGLE_ORDER.filter(t => !TOGGLES[t].optional).map(toggleRow)}
         </Box>
       </Box>
@@ -655,7 +686,12 @@ const SettingsTab = (args: PaneArgs) => {
             {`Off by default · ${optionalOn} of ${optional.length} on`}
           </Text>
         </Box>
-        <Box flexDirection="column" rowGap={SPACE.listGap}>
+        <Box
+          key="card-optional"
+          flexDirection="column"
+          rowGap={SPACE.listGap}
+          {...card(ui, tone, SWITCH_CARD)}
+        >
           {optional.map(toggleRow)}
         </Box>
       </Box>
