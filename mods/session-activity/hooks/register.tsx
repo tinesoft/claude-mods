@@ -219,6 +219,14 @@ async function toggleMuted($: EngineInterface, options: Options, id: string) {
   await refresh($, options)
 }
 
+/** `/clear` and `/resume` end the session; `/branch` only starts its fork. */
+async function resetActivity($: EngineInterface, options: Options) {
+  await update($, activations, () => [])
+  await update($, muted, () => [])
+  await update($, selected, () => null)
+  await refresh($, options)
+}
+
 function blockedBy(result: Record<string, unknown>): string | undefined {
   if (typeof result.deny === 'string') return result.deny
   if (typeof result.block === 'string') return result.block
@@ -242,6 +250,7 @@ export const register: Register = (on, options) => {
   })
 
   on('classic.SessionStart', async ($, e, next) => {
+    if (e.source === 'fork') await resetActivity($, options)
     await loadOverrides($, options)
     return next(e)
   })
@@ -261,12 +270,7 @@ export const register: Register = (on, options) => {
   })
 
   on('session.end', async ($, e, next) => {
-    if (e.reason === 'clear' || e.reason === 'resume') {
-      await update($, activations, () => [])
-      await update($, muted, () => [])
-      await update($, selected, () => null)
-      await refresh($, options)
-    }
+    if (e.reason === 'clear' || e.reason === 'resume') await resetActivity($, options)
     return next(e)
   })
 
