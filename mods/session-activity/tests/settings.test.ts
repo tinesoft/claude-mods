@@ -1,4 +1,5 @@
 import { expect, test } from 'claude-code/testing'
+import { across } from '../src/theme'
 import { mountBand, mountPane, session, stubEngine, SURFACES } from './harness'
 
 const SWITCH = {
@@ -45,11 +46,11 @@ for (const surface of SURFACES) {
           'Session activity chips',
           'Choose what shows above the prompt bar when it activates during a session. Optional types stay off until you turn them on.',
           'Show chips above the prompt bar',
-          'Preview',
+          'PREVIEW',
           'Chip row',
           'Collapsed summary',
-          'Shown by default',
-          'Optional',
+          'SHOWN BY DEFAULT',
+          'OPTIONAL',
           'Off by default · 0 of 7 on',
           'Chip theme',
           'Chip style',
@@ -65,11 +66,32 @@ for (const surface of SURFACES) {
       const optionalCount = (await pane.findAll({ type: 'Text' })).find(x =>
         x.text.startsWith('Off by default'),
       )
-      if (rich) expect(optionalCount?.props.color).toBe(t.muted)
+      if (rich) expect(optionalCount?.props.color).toBe(t.text2)
       if (rich) {
         const marks = (await pane.findAll({ type: 'Svg' })).filter(s => s.props.alt === 'Skill')
         expect(marks.length).toBeGreaterThan(0)
       }
+    })
+
+    test(`${tone} on ${surface}: section headers are quiet uppercase eyebrows on the board's gaps`, async ($, on) => {
+      session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      const pane = await mountPane($, surface)
+      await pane.press({ key: 'tab-settings' })
+      const texts = await pane.findAll({ type: 'Text' })
+      for (const title of ['PREVIEW', 'SHOWN BY DEFAULT', 'OPTIONAL']) {
+        const header = texts.find(x => x.text === title)
+        expect(header?.props.mono).toBe(true)
+        expect(header?.props.bold).toBeFalsy()
+        if (rich) expect(header?.props.color).toBe(t.muted)
+        else expect(header?.props.dimColor).toBe(true)
+      }
+      const step = (s: 'sm' | 'md') => (surface === 'vscode' ? across(s) : s)
+      const rows = (await pane.findAll({ type: 'Box' })).filter(
+        b => b.props.flexDirection === 'row',
+      )
+      expect(rows.find(b => b.text.startsWith('PREVIEW'))?.props.columnGap).toBe(step('md'))
+      expect(rows.find(b => b.text.startsWith('OPTIONAL'))?.props.columnGap).toBe(step('sm'))
     })
 
     test(`${tone} on ${surface}: the preview follows the layout and the master switch`, async ($, on) => {
