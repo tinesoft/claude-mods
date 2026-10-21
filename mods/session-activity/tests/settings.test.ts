@@ -3,8 +3,22 @@ import { across } from '../src/theme'
 import { mountBand, mountPane, session, stubEngine, SURFACES } from './harness'
 
 const SWITCH = {
-  light: { on: '#17181C', off: '#B9BCC4', muted: '#5A5E68', text2: '#3B3F48', line: '#DADCE1' },
-  dark: { on: '#5B7FE0', off: '#4A4E57', muted: '#9499A3', text2: '#B4B8C1', line: '#34373E' },
+  light: {
+    on: '#17181C',
+    off: '#B9BCC4',
+    muted: '#5A5E68',
+    text2: '#3B3F48',
+    line: '#DADCE1',
+    surface: '#FFFFFF',
+  },
+  dark: {
+    on: '#5B7FE0',
+    off: '#4A4E57',
+    muted: '#9499A3',
+    text2: '#B4B8C1',
+    line: '#34373E',
+    surface: '#1B1D21',
+  },
 } as const
 
 for (const surface of SURFACES) {
@@ -122,6 +136,36 @@ for (const surface of SURFACES) {
           expect(text?.props.dimColor).toBe(true)
         }
       }
+    })
+
+    test(`${tone} on ${surface}: the master switch, the preview and each type list sit on cards`, async ($, on) => {
+      session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      const pane = await mountPane($, surface, 160)
+      await pane.press({ key: 'tab-settings' })
+      const cards = ['card-master', 'card-preview', 'card-shown', 'card-optional']
+      for (const key of cards) {
+        const card = await pane.find({ key })
+        expect(card).toBeDefined()
+        if (rich) {
+          expect(card?.props).toMatchObject({
+            borderStyle: 'round',
+            borderColor: t.line,
+            backgroundColor: t.surface,
+          })
+        } else {
+          expect([card?.props.borderStyle, card?.props.backgroundColor]).toEqual([
+            undefined,
+            undefined,
+          ])
+        }
+      }
+      expect((await pane.find({ key: 'card-master' }))?.text).toContain(
+        'Show chips above the prompt bar',
+      )
+      expect((await pane.find({ key: 'card-preview' }))?.text).toContain('Reply to Claude…')
+      expect((await pane.find({ key: 'card-shown' }))?.text).toContain('Skills')
+      expect((await pane.find({ key: 'card-optional' }))?.text).toContain('Slash commands')
     })
 
     test(`${tone} on ${surface}: the preview follows the layout and the master switch`, async ($, on) => {
