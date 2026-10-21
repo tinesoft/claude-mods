@@ -519,6 +519,9 @@ const Tile = ({
   )
 }
 
+/** A chip that always shows can't be muted, so without a source its card has no actions row. */
+const hasActions = (a: Activation) => a.source !== undefined || !isUrgent(a.status)
+
 /** Terminal rows the card takes: border, padding, its parts and the gaps between them. */
 export const cardRows = (a: Activation, columns: number, density: CardDensity) => {
   const space = CARD_SPACE[density]
@@ -526,8 +529,9 @@ export const cardRows = (a: Activation, columns: number, density: CardDensity) =
   const why = Math.max(1, Math.ceil(a.detail.length / inner))
   const header = 2 + down(SPACE.cardLinesGap)
   const tiles = 2 + down(SPACE.tileGap) + 2 * down(SPACE.tilePadY)
-  const parts = a.source === undefined ? 4 : 5
-  const content = header + why + tiles + (a.source === undefined ? 0 : 1) + 1
+  const lines = [a.source !== undefined, hasActions(a)].filter(Boolean).length
+  const parts = 3 + lines
+  const content = header + why + tiles + lines
   return 2 + 2 * down(space.padY) + content + (parts - 1) * down(space.gap)
 }
 
@@ -593,17 +597,26 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
           {a.source}
         </Text>
       )}
-      <Box flexDirection="row" columnGap={SPACE.actionsGap}>
-        {a.source !== undefined && (
-          <Button key="open" hotkey="o" label="o: Open source" onPress={() => on.copy(a.source!)} />
-        )}
-        <Button
-          key="mute"
-          hotkey="m"
-          label={isMuted ? 'm: Unmute' : 'm: Mute for this session'}
-          onPress={() => on.mute(id)}
-        />
-      </Box>
+      {hasActions(a) && (
+        <Box flexDirection="row" columnGap={SPACE.actionsGap}>
+          {a.source !== undefined && (
+            <Button
+              key="open"
+              hotkey="o"
+              label="o: Open source"
+              onPress={() => on.copy(a.source!)}
+            />
+          )}
+          {!isUrgent(a.status) && (
+            <Button
+              key="mute"
+              hotkey="m"
+              label={isMuted ? 'm: Unmute' : 'm: Mute for this session'}
+              onPress={() => on.mute(id)}
+            />
+          )}
+        </Box>
+      )}
     </Box>
   )
 }
