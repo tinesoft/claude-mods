@@ -253,3 +253,16 @@ for (const tone of ['light', 'dark'] as const) {
     },
   )
 }
+
+test('the Model switches setting and its preview speak of the model only, never the output style', async ($, on) => {
+  session(on, {}, new Map(), 'dark', ['terminal'])
+  stubEngine(on)
+  const pane = await mountPane($, 'terminal', 400)
+  await pane.press({ key: 'tab-settings' })
+  await pane.press({ key: 'toggle-model' })
+  expect(
+    await pane.find({ text: 'A quiet chip when the model changes mid-session.' }),
+  ).toBeDefined()
+  expect(await pane.find({ text: /Style: |style or model/ })).toBeUndefined()
+  expect(await pane.find({ text: /Model: / })).toBeDefined()
+})
