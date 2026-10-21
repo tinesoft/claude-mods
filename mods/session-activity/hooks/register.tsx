@@ -137,11 +137,11 @@ async function observe(
   $: EngineInterface,
   options: Options,
   seen: Observed | undefined,
-  counted?: number,
+  { isSettling = false } = {},
 ) {
   if (seen === undefined) return
   const at = await $.clock.now()
-  await commit($, options, list => record(list, seen, at, counted))
+  await commit($, options, list => record(list, seen, at, { isSettling }))
   $.clock.after(FRESH_MS, () => $.ui.invalidate('ui.render'))
   await notify($, options, seen)
 }
@@ -219,7 +219,6 @@ async function toggleMuted($: EngineInterface, options: Options, id: string) {
   await refresh($, options)
 }
 
-/** `/clear` and `/resume` end the session; `/branch` only starts its fork. */
 async function resetActivity($: EngineInterface, options: Options) {
   await update($, activations, () => [])
   await update($, muted, () => [])
@@ -340,7 +339,7 @@ export const register: Register = (on, options) => {
       $,
       options,
       fromHook(event, commands, blocked === undefined ? {} : { blocked }, target),
-      isStarted ? 0 : 1,
+      { isSettling: isStarted },
     )
     return result as never
   })
@@ -427,7 +426,7 @@ export const register: Register = (on, options) => {
       columns: e.props.bodyColumns,
       now: await $.clock.now(),
       tone: await toneOf($, settings, e.surface),
-      switchTone: await toneOf($, { ...settings, chipStyle: 'tinted' }, e.surface),
+      tintedTone: await toneOf($, { ...settings, chipStyle: 'tinted' }, e.surface),
       activations: await read($, activations),
       settings,
       muted: await read($, muted),

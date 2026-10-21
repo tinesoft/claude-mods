@@ -22,12 +22,11 @@ const mergeMeta = (old: string | undefined, next: string | undefined) => {
   return parts.includes(next) ? old : [...parts, next].join(' · ')
 }
 
-/** `counted` 0 settles a chip already counted at its start, as a hook's outcome follows its run. */
 export const record = (
   list: readonly Activation[],
   seen: Observed,
   at: number,
-  counted = 1,
+  { isSettling = false } = {},
 ): Activation[] => {
   const { startedAgentId, ...fields } = seen
   const index = list.findIndex(a => a.kind === seen.kind && a.key === seen.key)
@@ -48,7 +47,7 @@ export const record = (
     ...fields,
     detail: keepsUrgent ? old.detail : fields.detail,
     meta: seen.kind === 'mcp' ? mergeMeta(old.meta, seen.meta) : (seen.meta ?? old.meta),
-    count: old.count + counted,
+    count: isSettling ? old.count : old.count + 1,
     lastAt: at,
     status: keepsUrgent ? old.status : running?.length ? 'running' : seen.status,
   }

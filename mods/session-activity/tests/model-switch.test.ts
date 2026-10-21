@@ -13,8 +13,8 @@ const step = async ($: Engine, model: string, agentId?: string) => {
 }
 
 const stubModel = (on: Parameters<typeof stubEngine>[0]) => {
-  // eslint-disable-next-line require-yield -- a step that streams nothing still answers as a stream
   on('turn.step', async function* (_$, e) {
+    yield* []
     return { turnId: e.turnId, index: e.index, answer: '', toolUses: [] } as never
   })
 }

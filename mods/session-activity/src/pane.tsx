@@ -56,8 +56,7 @@ export type PaneArgs = {
   columns: number
   now: number
   tone: Tone | undefined
-  /** The tone switches are painted in: the tinted one even when chips are untinted. */
-  switchTone: Tone | undefined
+  tintedTone: Tone | undefined
   activations: readonly Activation[]
   settings: Settings
   muted: readonly string[]
@@ -153,7 +152,6 @@ const Segmented = ({
   )
 }
 
-/** The types shown by default always have a filter, as the board draws them; optional ones once they have items. */
 const filterKinds = (listed: readonly Activation[], settings: Settings) =>
   KIND_ORDER.filter(
     kind => (!TOGGLES[kind].optional && settings.shown[kind]) || listed.some(a => a.kind === kind),
@@ -445,7 +443,7 @@ const ToggleMark = ({ ui, tone, toggle }: { ui: Ui; tone: Tone | undefined; togg
 const Switch = ({
   ui,
   tone,
-  switchTone,
+  tintedTone,
   id,
   isOn,
   title,
@@ -455,7 +453,7 @@ const Switch = ({
 }: {
   ui: Ui
   tone: Tone | undefined
-  switchTone: Tone | undefined
+  tintedTone: Tone | undefined
   id: string
   isOn: boolean
   title: string
@@ -464,7 +462,7 @@ const Switch = ({
   onPress: () => void
 }) => {
   const { Box, Button, Text } = ui
-  const track = switchTone === undefined ? undefined : TOKENS[switchTone]
+  const track = tintedTone === undefined ? undefined : TOKENS[tintedTone]
   const Svg = track === undefined ? undefined : ui.Svg
   return (
     <Box
@@ -503,7 +501,6 @@ const Switch = ({
   )
 }
 
-/** A settings section header: the board's quiet upper-case mono eyebrow. */
 const Eyebrow = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => (
   <ui.Text mono size="caption" {...inkOf(ui, tone, 'muted')}>
     {text.toUpperCase()}
@@ -552,7 +549,6 @@ const Segments = <T extends string>({
   )
 }
 
-/** The board's bordered surface card on rich surfaces; the terminal keeps the bare layout. */
 const card = (ui: Ui, tone: Tone | undefined, padding: Record<string, Space>) =>
   isRich(ui) && tone !== undefined
     ? {
@@ -573,7 +569,7 @@ const INTRO =
   'Choose what shows above the prompt bar when it activates during a session. Optional types stay off until you turn them on.'
 
 const SettingsTab = (args: PaneArgs) => {
-  const { ui, surface, columns, now, tone, switchTone, settings, on } = args
+  const { ui, surface, columns, now, tone, tintedTone, settings, on } = args
   const { Box, Button, Text } = ui
   const optional = TOGGLE_ORDER.filter(t => TOGGLES[t].optional)
   const optionalOn = optional.filter(t => settings.shown[t]).length
@@ -581,7 +577,7 @@ const SettingsTab = (args: PaneArgs) => {
     <Switch
       ui={ui}
       tone={tone}
-      switchTone={switchTone}
+      tintedTone={tintedTone}
       id={`toggle-${toggle}`}
       isOn={settings.shown[toggle]}
       title={TOGGLES[toggle].title}
@@ -616,7 +612,7 @@ const SettingsTab = (args: PaneArgs) => {
         <Switch
           ui={ui}
           tone={tone}
-          switchTone={switchTone}
+          tintedTone={tintedTone}
           id="toggle-enabled"
           isOn={settings.enabled}
           title="Show chips above the prompt bar"
@@ -719,7 +715,7 @@ const SettingsTab = (args: PaneArgs) => {
         <Switch
           ui={ui}
           tone={tone}
-          switchTone={switchTone}
+          tintedTone={tintedTone}
           id="toggle-hotkeys"
           isOn={settings.hotkeys}
           title="Digit hotkeys on chips"
@@ -729,7 +725,7 @@ const SettingsTab = (args: PaneArgs) => {
         <Switch
           ui={ui}
           tone={tone}
-          switchTone={switchTone}
+          tintedTone={tintedTone}
           id="toggle-toast"
           isOn={settings.toastOnBlock}
           title="Toast when blocked or denied"
@@ -739,7 +735,7 @@ const SettingsTab = (args: PaneArgs) => {
         <Switch
           ui={ui}
           tone={tone}
-          switchTone={switchTone}
+          tintedTone={tintedTone}
           id="toggle-text-summary"
           isOn={settings.textSummary}
           title="Text summary after each answer"
@@ -755,7 +751,6 @@ const SettingsTab = (args: PaneArgs) => {
   )
 }
 
-/** Mobile has no band, so the pane header carries its count, with a red dot when something stopped. */
 const Lead = ({ ui, tone, activations, settings, muted }: PaneArgs) => {
   const { Box, Text } = ui
   const chips = bandCandidates(activations, settings, muted)

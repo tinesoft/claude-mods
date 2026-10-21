@@ -546,8 +546,9 @@ const Tile = ({
   )
 }
 
-/** A chip that always shows can't be muted, so without a source its card has no actions row. */
-const hasActions = (a: Activation) => a.source !== undefined || !isUrgent(a.status)
+const canMute = (a: Activation) => !isUrgent(a.status)
+
+const hasActions = (a: Activation) => a.source !== undefined || canMute(a)
 
 /** Terminal rows the card takes: border, padding, its parts and the gaps between them. */
 export const cardRows = (a: Activation, columns: number, density: CardDensity) => {
@@ -636,7 +637,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
               onPress={() => on.copy(a.source!)}
             />
           )}
-          {!isUrgent(a.status) && (
+          {canMute(a) && (
             <Button
               key="mute"
               hotkey="m"

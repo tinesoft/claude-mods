@@ -242,7 +242,6 @@ export const probes = (
 
 type Space = Parameters<typeof across>[0]
 
-/** Cells a drawn row takes on the terminal, as the engine lays it out. */
 export const cellsAcross = (node: unknown): number => {
   if (typeof node === 'string') return node.length
   if (node === null || typeof node !== 'object') return 0
