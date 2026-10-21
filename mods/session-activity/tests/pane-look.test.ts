@@ -53,13 +53,30 @@ for (const surface of SURFACES) {
       expect(filterBoxes.map(b => b.key)).toEqual([
         'filterbox-all',
         'filterbox-skill',
+        'filterbox-agent',
+        'filterbox-mcp',
         'filterbox-perm',
+        'filterbox-hook',
+        'filterbox-rule',
       ])
+      expect((await pane.find({ key: 'filter-agent' }))?.text).toMatch(/Agents 0$/)
+      const texts = await pane.findAll({ type: 'Text' })
       if (rich) {
-        expect(filterBoxes.map(b => b.props.backgroundColor)).toEqual([t.surface, t.fill, t.fill])
-        const label = (await pane.findAll({ type: 'Text' })).find(x => x.text === 'All 2')
-        expect(label?.props).toMatchObject({ bold: true, color: t.ink })
+        expect(filterBoxes.map(b => b.props.backgroundColor)).toEqual([
+          t.surface,
+          ...filterBoxes.slice(1).map(() => t.fill),
+        ])
+        expect(texts.find(x => x.text === 'All')?.props).toMatchObject({ bold: true, color: t.ink })
+        expect(texts.find(x => x.text === ' 2')?.props).toMatchObject({
+          mono: true,
+          color: t.muted,
+        })
+        expect(texts.find(x => x.text === ' 0')?.props).toMatchObject({
+          mono: true,
+          color: t.muted,
+        })
       } else {
+        expect(texts.find(x => x.text === ' 0')?.props.dimColor).toBe(true)
         expect(filterBoxes.every(b => b.props.backgroundColor === undefined)).toBe(true)
       }
     })

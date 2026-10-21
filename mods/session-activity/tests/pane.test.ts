@@ -97,8 +97,8 @@ test('filters carry their hotkey and count, and the active one is the only one n
   await pane.press({ key: 'filter-skill' })
   const label = async (text: string) =>
     (await pane.findAll({ type: 'Text' })).find(t => t.text === text)
-  expect((await label('Skills 1'))?.props.dimColor).toBe(false)
-  expect((await label('All 3'))?.props.dimColor).toBe(true)
+  expect((await label('Skills'))?.props.dimColor).toBe(false)
+  expect((await label('All'))?.props.dimColor).toBe(true)
 })
 
 test('hiding the filtered type falls back to All instead of an empty list', async ($, on) => {
@@ -110,7 +110,7 @@ test('hiding the filtered type falls back to All instead of an empty list', asyn
   await pane.press({ key: 'tab-settings' })
   await pane.press({ key: 'toggle-skill' })
   await pane.press({ key: 'tab-activity' })
-  expect((await pane.findAll({ type: 'Text' })).find(t => t.text === 'All 2')?.props.dimColor).toBe(
+  expect((await pane.findAll({ type: 'Text' })).find(t => t.text === 'All')?.props.dimColor).toBe(
     false,
   )
   expect(await texts(pane)).not.toContain('Nothing has activated yet in this session.')
@@ -335,6 +335,18 @@ test('desktop settings draw a switch beside each label and keep the buttons', as
   const terminal = await mountPane($, 'terminal')
   await terminal.press({ key: 'tab-settings' })
   expect(await terminal.findAll({ type: 'Svg' })).toEqual([])
+})
+
+test('a filter for a shown type with no items yet can still be picked', async ($, on) => {
+  session(on, HOOKS)
+  stubEngine(on)
+  await activity($)
+  const pane = await mountPane($)
+  await pane.press({ key: 'filter-agent' })
+  const label = async (text: string) =>
+    (await pane.findAll({ type: 'Text' })).find(t => t.text === text)
+  expect((await label('Agents'))?.props.bold).toBe(true)
+  expect(await pane.find({ key: 'row-skill-docx' })).toBeUndefined()
 })
 
 test('the filter row lists only the types the settings show', async ($, on) => {
