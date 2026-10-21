@@ -94,6 +94,17 @@ for (const surface of SURFACES) {
       expect(rows.find(b => b.text.startsWith('OPTIONAL'))?.props.columnGap).toBe(step('sm'))
     })
 
+    test(`${tone} on ${surface}: the summary preview shows a blocked tally, the row preview no badge`, async ($, on) => {
+      session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      const pane = await mountPane($, surface, 160)
+      await pane.press({ key: 'tab-settings' })
+      const shown = async () => (await pane.findAll({ type: 'Text' })).map(x => x.text)
+      expect((await shown()).some(x => /^\s*(BLOCKED|Blocked)\s*$/.test(x))).toBe(false)
+      await pane.press({ key: 'layout-summary' })
+      expect((await pane.find({ key: 'summary-stopped' }))?.text).toBe('● 1 blocked')
+    })
+
     test(`${tone} on ${surface}: the preview follows the layout and the master switch`, async ($, on) => {
       session(on, {}, new Map(), tone, [surface])
       stubEngine(on)
