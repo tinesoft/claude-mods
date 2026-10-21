@@ -552,6 +552,21 @@ test('the card copies the source path and mutes the chip', async ($, on) => {
   expect(await after.find({ key: 'card' })).toBeUndefined()
 })
 
+test('the card of a chip that always shows offers no Mute', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
+  await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
+  await clock.advance(FRESH)
+  const first = await mountBand($, 'terminal', 120, 40)
+  const [chip] = (await first.findAll({ type: 'Button' })).filter(b =>
+    b.key?.startsWith('chip-perm'),
+  )
+  await first.press({ key: chip!.key! })
+  const band = await mountBand($, 'terminal', 120, 40)
+  expect(await band.find({ key: 'card' })).toBeDefined()
+  expect(await band.find({ text: /Mute/ })).toBeUndefined()
+})
+
 test('when the band is too short for the card the chip opens the pane on its detail view', async ($, on) => {
   const clock = session(on)
   const { opens } = stubEngine(on)
