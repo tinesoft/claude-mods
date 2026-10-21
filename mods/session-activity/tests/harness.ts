@@ -179,6 +179,7 @@ export const stubEngine = (
   const toasts: string[] = []
   let invalidations = 0
   const status: { text: string | undefined }[] = []
+  const panes = new Map<string, string>()
   on('tool.call', () => answers.call ?? { result: 'ran' })
   on('tool.check', () => answers.verdict ?? { decision: 'allow' })
   on('skill.prompt', ($, e) => ({ text: `body of ${e.skill}` }))
@@ -189,7 +190,24 @@ export const stubEngine = (
   on('classic.PostToolUse', () => ({}))
   on('session.end', ($, e) => ({ sessionId: e.sessionId }))
   on('command.run', () => ({ text: 'ran' }))
-  on('ui.open', ($, e) => (opened.push(e.id), opens.push(e), { value: { isPlaced: true } }))
+  on('ui.open', ($, e) => {
+    opened.push(e.id)
+    opens.push(e)
+    panes.set(e.id, e.title ?? e.id)
+    return { value: { isPlaced: true } }
+  })
+  on('ui.close', ($, e) => (panes.delete(e.id), { value: undefined }))
+  on('ui.panes', () => ({
+    value: [...panes].map(([id, title]) => ({
+      id,
+      title,
+      isShown: true,
+      isFocused: true,
+      isPlaced: true,
+      plugin: 'session-activity',
+      element: 'Pane',
+    })),
+  }))
   on('ui.copy', ($, e) => (copied.push(e.text), { value: { isCopied: true } }))
   on('ui.invalidate', () => (invalidations++, { value: undefined }))
   on('ui.toast', ($, e) => (toasts.push(e.text), { value: undefined }))
@@ -200,6 +218,7 @@ export const stubEngine = (
     toasts,
     invalidations: () => invalidations,
     opens,
+    isOpen: (id: string) => panes.has(id),
     status: () => status.at(-1)?.text,
   }
 }

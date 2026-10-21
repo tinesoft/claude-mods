@@ -590,6 +590,20 @@ test(
   },
 )
 
+test(
+  'pressing +N more again closes the pane it opened',
+  { options: { max_chips: 1 } },
+  async ($, on) => {
+    const clock = session(on)
+    const { isOpen } = stubEngine(on)
+    await loadSkills($, clock)
+    await (await mountBand($)).press({ key: 'more' })
+    expect(isOpen('session-activity')).toBe(true)
+    await (await mountBand($)).press({ key: 'more' })
+    expect(isOpen('session-activity')).toBe(false)
+  },
+)
+
 test('on desktop the bordered chip row counts three rows, so the card gives way to the pane sooner', async ($, on) => {
   const clock = session(on)
   const { opens } = stubEngine(on)
