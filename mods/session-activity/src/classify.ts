@@ -171,10 +171,15 @@ const matches = (matcher: unknown, target: string | undefined) => {
   }
 }
 
+/** Launchers, their subcommands and flags: `npx lint-staged` is named by `lint-staged`. */
+const RUNNER =
+  /^(npx|pnpx|bunx|npm|pnpm|yarn|bun|deno|node|uv|python3?|bash|sh|zsh|exec|dlx|run|-.*)$/
+
 export const commandName = (command: string) => {
   const words = command.trim().split(/\s+/)
+  const named = words.find(w => !RUNNER.test(w))
   const script =
-    words.find(w => w.includes('/') || /\.(sh|js|mjs|ts|py)$/.test(w)) ?? words[0] ?? ''
+    words.find(w => w.includes('/') || /\.(sh|js|mjs|ts|py)$/.test(w)) ?? named ?? words[0] ?? ''
   const base = script.split('/').pop() ?? script
   return base.replace(/\.(sh|js|mjs|cjs|ts|py)$/, '') || command
 }
