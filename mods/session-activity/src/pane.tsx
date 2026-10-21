@@ -307,10 +307,11 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
 const counted = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`
 
 const Activity = (args: PaneArgs) => {
-  const { ui, now, tone, activations, settings, filter, on } = args
+  const { ui, now, tone, activations, settings, on } = args
   const { Box, Button, Text } = ui
-  const groups = paneGroups(activations, settings, filter)
   const listed = activations.filter(a => inPane(a, settings))
+  const filter = listed.some(a => a.kind === args.filter) ? args.filter : 'all'
+  const groups = paneGroups(activations, settings, filter)
   const total = listed.reduce((sum, a) => sum + a.count, 0)
   const started = startedAgo(listed, now)
   const link = isRich(ui) && tone !== undefined
@@ -337,8 +338,8 @@ const Activity = (args: PaneArgs) => {
           </Box>
         </Box>
       </Box>
-      <Filters {...args} />
-      {groups.length === 0 && (
+      <Filters {...args} filter={filter} />
+      {listed.length === 0 && (
         <Text {...inkOf(ui, tone, 'muted')}>Nothing has activated yet in this session.</Text>
       )}
       {groups.map(group => {
