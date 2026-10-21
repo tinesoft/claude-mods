@@ -66,6 +66,7 @@ export const settleAsked = (
     if (askedCallId !== callId) return askedCallId === undefined ? a : { ...a, askedCallId }
     return {
       ...a,
+      label: hasRun ? `Allowed: ${a.label}` : a.label,
       status: hasRun ? 'ok' : 'denied',
       lastAt: at,
       detail: hasRun

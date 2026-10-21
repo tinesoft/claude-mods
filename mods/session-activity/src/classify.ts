@@ -129,7 +129,7 @@ export const fromPermission = (
   return {
     kind: 'perm',
     key: verdict.rule ?? `${tool}:${summary}`,
-    label: summary,
+    label: verdict.decision === 'allow' ? `Allowed: ${summary}` : summary,
     detail,
     meta: tool,
     ...(verdict.decision === 'ask' && { askedCallId: callId }),
