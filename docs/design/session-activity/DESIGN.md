@@ -131,8 +131,7 @@ same cells to the width and height math, so the chip row never overflows.
 | Chip inner padding, `+N more` padding | 0 10px 0 8px, 0 10px | `sm` across, none down |
 | Mobile chip row padding | 0 16px | `lg` across |
 | Card above the chip row | 8px | `sm` |
-| Card padding | 16px | `lg` |
-| Card inner gap | 12px | `md` |
+| Card padding, card inner gap | 16px, 12px | `lg`, `md` in the roomy density (see below) |
 | Card header gap, buttons gap, tiles gap | 10px, 8px, 8px | `sm` |
 | Card header lines gap, tile label gap | 4px, 2px | `xs` |
 | Tile padding | 8px 10px | `sm` |
@@ -150,8 +149,18 @@ Where the terminal needs a blank line between rows, the row padding of the board
 between rows, which draws as 16px on Desktop and one blank line in the terminal. The 6-cell indent of the why
 line under a row name is the one bare number left, because it must line up with the icon column in cells.
 The untinted `chip_style: text` look keeps its two-cell chip gap. Terminal chips never get vertical padding,
-so they stay one row tall. The card costs 4 more terminal rows than before (its padding and the gaps between
-its parts), and `cardRows` counts them, so the pane fallback starts at a slightly larger `maxRows`.
+so they stay one row tall. The card has two densities, `CARD_SPACE` in `theme.ts`:
+
+| Density | Horizontal padding | Vertical padding | Gap between parts |
+| --- | --- | --- | --- |
+| `roomy` | `lg` | `lg` | `md` |
+| `compact` | `lg` | none | none |
+
+`cardRows(a, columns, density)` counts the terminal rows of each. The band takes the first of `roomy`, `compact` whose
+rows fit under `maxRows` (prompt rows, chip row, the gap above the card and the card), draws `DetailCard` with it,
+and falls back to the pane only when neither fits. The chip's `pick` uses the same test. The pane always draws the
+roomy card. On the terminal the roomy card costs 5 to 6 more rows than the compact one, so a short band shows the compact
+card and a tall one keeps the board's spacing; Desktop, VS Code and mobile get the roomy card wherever it fits, as before.
 
 ## Copy
 
