@@ -184,7 +184,8 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     palette: {
       light: { fg: '#0E6159', bg: '#E8F5F2', bd: '#BCE0D8' },
       dark: { fg: '#7FD6C8', bg: '#123A35', bd: '#22594F' },
-      key: 'permission',
+      // Every Claude Code theme gives `permission` the same blue as `suggestion` (Skill); `planMode` is its teal.
+      key: 'planMode',
     },
   },
   hook: {
