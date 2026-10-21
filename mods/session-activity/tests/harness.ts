@@ -1,12 +1,17 @@
 import type { On, RenderSurface } from 'claude-code'
 import { mock } from 'claude-code/testing'
-import type { ElementQuery, Engine, FoundElement } from 'claude-code/testing'
+import type { ElementQuery, Engine, FoundElement, TestRest } from 'claude-code/testing'
 
 export const CWD = '/repo'
 
 const FILES: Record<string, string> = { '/repo/CLAUDE.md': 'a\nb\nc' }
 
 export const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
+
+/** The engine raises `AbovePrompt` on these surfaces only (index.d.ts:10673). */
+export const BAND_SURFACES = ['terminal', 'desktop'] as const
+
+export type BandSurface = (typeof BAND_SURFACES)[number]
 
 export const session = (
   on: On,
@@ -38,6 +43,9 @@ export const session = (
   return clock
 }
 
+/** The kit has no `test.skip`: declares nothing, but keeps the body type-checked. */
+export const skip: (name: string, ...rest: TestRest) => void = () => {}
+
 export const bandProps = (bodyColumns: number, maxRows = 24) => ({
   hasSurvey: false,
   isWorking: false,
@@ -47,18 +55,21 @@ export const bandProps = (bodyColumns: number, maxRows = 24) => ({
   view: {},
 })
 
-export const mountBand = <S extends RenderSurface = 'terminal'>(
+export const mountBand = <S extends BandSurface = 'terminal'>(
   $: Engine,
   surface: S = 'terminal' as S,
   columns = 100,
   maxRows = 24,
-) =>
-  $.ui.mount({
+) => {
+  if (!(BAND_SURFACES as readonly string[]).includes(surface))
+    throw new Error(`the engine never raises AbovePrompt on ${surface}`)
+  return $.ui.mount({
     plugin: 'session-activity',
     surface,
     component: 'AbovePrompt',
     props: bandProps(columns, maxRows),
   })
+}
 
 export const mountPane = <S extends RenderSurface = 'terminal'>(
   $: Engine,

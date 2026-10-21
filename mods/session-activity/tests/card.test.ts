@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { FRESH, mountBand, session, stubEngine, SURFACES } from './harness'
+import { BAND_SURFACES, FRESH, mountBand, session, stubEngine } from './harness'
 
 const PAINT = {
   light: {
@@ -24,7 +24,7 @@ const PAINT = {
   },
 } as const
 
-for (const surface of SURFACES) {
+for (const surface of BAND_SURFACES) {
   const rich = surface !== 'terminal'
   for (const tone of ['light', 'dark'] as const) {
     const t = PAINT[tone]

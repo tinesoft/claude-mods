@@ -1,12 +1,11 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import type { SURFACES } from './harness'
-import { mountBand, probes, session, stubEngine } from './harness'
+import { type BandSurface, mountBand, probes, session, stubEngine } from './harness'
 
 const LIGHT_SKILL = '#EDF2FD'
 const DARK_SKILL = '#1B2A4A'
 
-const skillBg = async ($: Engine, surface: (typeof SURFACES)[number] = 'terminal') => {
+const skillBg = async ($: Engine, surface: BandSurface = 'terminal') => {
   const band = await mountBand($, surface)
   const box = (await band.findAll({ type: 'Box' })).find(b => b.key === 'box-skill:docx')
   return box?.props.backgroundColor
@@ -55,7 +54,7 @@ test('a light or dark Claude theme beats COLORFGBG and the system on the termina
   expect(await skillBg($)).toBe(LIGHT_SKILL)
 })
 
-for (const surface of ['desktop', 'vscode', 'mobile'] as const) {
+for (const surface of ['desktop'] as const) {
   test(`on ${surface} the system appearance beats the Claude theme`, async ($, on) => {
     const clock = session(on, {}, new Map(), 'light', [surface])
     stubEngine(on)

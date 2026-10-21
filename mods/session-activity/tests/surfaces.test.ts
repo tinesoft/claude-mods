@@ -1,5 +1,13 @@
 import { expect, test } from 'claude-code/testing'
-import { FRESH, mountBand, mountPane, session, stubEngine, SURFACES } from './harness'
+import {
+  BAND_SURFACES,
+  FRESH,
+  mountBand,
+  mountPane,
+  session,
+  stubEngine,
+  SURFACES,
+} from './harness'
 
 const HOOKS = {
   hooks: {
@@ -7,8 +15,8 @@ const HOOKS = {
   },
 }
 
-for (const surface of SURFACES) {
-  test(`on ${surface} the band and the pane draw a mix of chips`, async ($, on) => {
+for (const surface of BAND_SURFACES) {
+  test(`on ${surface} the band draws a mix of chips`, async ($, on) => {
     const clock = session(on, HOOKS, new Map(), 'dark', [surface])
     const { opens } = stubEngine(on)
     on('classic.PreToolUse', ($, e, next) =>
@@ -39,7 +47,7 @@ for (const surface of SURFACES) {
     })
     await clock.advance(FRESH)
 
-    const band = await mountBand($, surface, surface === 'mobile' ? 85 : 70)
+    const band = await mountBand($, surface, 70)
     const boxes = (await band.findAll({ type: 'Box' })).filter(b => b.key?.startsWith('box-'))
     expect(boxes.length).toBeGreaterThanOrEqual(2)
     expect(boxes.some(b => b.text.includes('Explore'))).toBe(true)
@@ -54,7 +62,19 @@ for (const surface of SURFACES) {
     await wide.press({ key: agent!.key! })
     expect(opens).toEqual([])
     expect(await (await mountBand($, surface, 100, 40)).find({ key: 'card' })).toBeDefined()
+  })
+}
 
+for (const surface of SURFACES) {
+  test(`on ${surface} the pane draws both tabs`, async ($, on) => {
+    session(on, HOOKS, new Map(), 'dark', [surface])
+    stubEngine(on)
+    await $.skill.prompt({
+      skill: 'alpha',
+      text: '',
+      frontmatter: {},
+      source: 'projectSettings',
+    } as never)
     const pane = await mountPane($, surface)
     expect(await pane.find({ key: 'tab-settings' })).toBeDefined()
     await pane.press({ key: 'tab-settings' })

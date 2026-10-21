@@ -1,6 +1,15 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
-import { FRESH, type Finder, hoversOf, mountBand, session, stubEngine, SURFACES } from './harness'
+import {
+  BAND_SURFACES,
+  type BandSurface,
+  FRESH,
+  type Finder,
+  hoversOf,
+  mountBand,
+  session,
+  stubEngine,
+} from './harness'
 
 const SKILLS = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel']
 
@@ -12,7 +21,7 @@ const loadSkills = async ($: Engine, clock: MockClock, skills = SKILLS) => {
   await clock.advance(FRESH)
 }
 
-const row = async ($: Engine, columns: number, surface: (typeof SURFACES)[number] = 'terminal') => {
+const row = async ($: Engine, columns: number, surface: BandSurface = 'terminal') => {
   const band = await mountBand($, surface, columns)
   const boxes = (await band.findAll({ type: 'Box' })).filter(b => b.key?.startsWith('box-'))
   const more = await band.find({ key: 'more' })
@@ -124,7 +133,7 @@ test(
   },
 )
 
-for (const surface of ['desktop', 'vscode', 'mobile'] as const) {
+for (const surface of ['desktop'] as const) {
   test(
     `on ${surface} the summary layout draws type icons in the type colour inside a round box`,
     { options: { layout: 'summary' } },
@@ -207,7 +216,7 @@ test('Svg icons are drawn on every surface but the terminal', async ($, on) => {
   const clock = session(on)
   stubEngine(on)
   await loadSkills($, clock, ['alpha', 'bravo'])
-  for (const surface of SURFACES) {
+  for (const surface of BAND_SURFACES) {
     const icons = await (await mountBand($, surface, 100)).findAll({ type: 'Svg' })
     expect(icons.length).toBe(surface === 'terminal' ? 0 : 2)
   }
@@ -570,7 +579,7 @@ test('on desktop the bordered chip row counts three rows, so the card gives way 
   const clock = session(on)
   const { opens } = stubEngine(on)
   await withSkill($, clock)
-  const probe = async (surface: (typeof SURFACES)[number], maxRows: number) => {
+  const probe = async (surface: BandSurface, maxRows: number) => {
     opens.length = 0
     await (await mountBand($, surface, 100, maxRows)).press({ key: 'chip-skill-docx' })
     return opens.length === 0 ? 'card' : 'pane'

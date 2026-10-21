@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
-import { FRESH, type Finder, mountBand, session, stubEngine, SURFACES } from './harness'
+import { BAND_SURFACES, FRESH, type Finder, mountBand, session, skip, stubEngine } from './harness'
 
 const TONES = {
   light: {
@@ -56,7 +56,7 @@ const chipBox = async (band: Finder, key: string) =>
 const textOf = async (band: Finder, text: string) =>
   (await band.findAll({ type: 'Text' })).find(t => t.text === text)
 
-for (const surface of SURFACES) {
+for (const surface of BAND_SURFACES) {
   const rich = surface !== 'terminal'
   for (const tone of ['light', 'dark'] as const) {
     const t = TONES[tone]
@@ -146,27 +146,31 @@ for (const surface of SURFACES) {
   }
 }
 
-test('mobile leads with an N active chip that opens the pane; the others have none', async ($, on) => {
+// B1: band not raised on vscode/mobile; moves to pane header in W4
+skip('mobile leads with an N active chip that opens the pane; the others have none', async ($, on) => {
   const clock = session(on, {}, new Map(), 'light', ['mobile'])
   const { opens } = stubEngine(on)
   for (const name of ['a', 'b', 'c']) await skill($, name)
   await clock.advance(FRESH)
+  // @ts-expect-error B1: the engine never raises the band on mobile
   const band = await mountBand($, 'mobile', 120)
   expect((await band.find({ key: 'lead' }))?.text).toBe('3 active')
   expect(await textOf(band, ' ●')).toBeUndefined()
   await band.press({ key: 'lead' })
   expect(opens).toEqual([expect.objectContaining({ id: 'session-activity' })])
-  for (const surface of ['terminal', 'desktop', 'vscode'] as const) {
+  for (const surface of BAND_SURFACES) {
     expect(await (await mountBand($, surface, 120)).find({ key: 'lead' })).toBeUndefined()
   }
 })
 
-test('the mobile lead chip carries a red dot when something is blocked', async ($, on) => {
+// B1: band not raised on vscode/mobile; moves to pane header in W4
+skip('the mobile lead chip carries a red dot when something is blocked', async ($, on) => {
   const clock = session(on, {}, new Map(), 'dark', ['mobile'])
   stubEngine(on, { verdict: { decision: 'deny', rule: 'Bash(rm:*)' } })
   await skill($)
   await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 't' } as never)
   await clock.advance(FRESH)
+  // @ts-expect-error B1: the engine never raises the band on mobile
   const band = await mountBand($, 'mobile', 120)
   expect((await band.find({ key: 'lead' }))?.text).toBe('2 active ●')
   expect((await textOf(band, ' ●'))?.props.color).toBe('#F97066')

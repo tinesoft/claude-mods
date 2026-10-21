@@ -2,7 +2,15 @@ import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import type { RenderSurface, Space } from 'claude-code'
 import { across, CARD_SPACE, down, SPACE } from '../src/theme'
-import { FRESH, mountBand, mountPane, session, stubEngine, SURFACES } from './harness'
+import {
+  BAND_SURFACES,
+  FRESH,
+  mountBand,
+  mountPane,
+  session,
+  stubEngine,
+  SURFACES,
+} from './harness'
 
 /** The step as the tree holds it: VS Code resolves steps to cells before drawing, the others keep the name. */
 const drawn = (surface: RenderSurface, step: Space, axis: 'across' | 'down') =>
@@ -28,9 +36,9 @@ test('a step reaches the terminal as the cells the type documents', () => {
   expect(across(2)).toBe(2)
 })
 
-for (const surface of SURFACES) {
+for (const surface of BAND_SURFACES) {
   for (const tone of ['light', 'dark'] as const) {
-    test(`${tone} on ${surface}: the band, the card and both pane tabs carry the spacing steps`, async ($, on) => {
+    test(`${tone} on ${surface}: the band and the card carry the spacing steps`, async ($, on) => {
       const clock = session(on, {}, new Map(), tone, [surface])
       stubEngine(on)
       await load($)
@@ -47,7 +55,7 @@ for (const surface of SURFACES) {
           b.text.includes('bravo'),
       )
       expect(rowBox?.props.columnGap).toBe(x(SPACE.chipGap))
-      expect(rowBox?.props.paddingX).toBe(surface === 'mobile' ? SPACE.rowPadX : undefined)
+      expect(rowBox?.props.paddingX).toBeUndefined()
       const chip = (await closed.findAll({ type: 'Box' })).find(b => b.key?.startsWith('box-'))
       expect(chip?.props).toMatchObject({
         paddingX: x(SPACE.chipPadX),
@@ -75,7 +83,20 @@ for (const surface of SURFACES) {
       expect(
         boxes.some(b => b.props.columnGap === x(SPACE.actionsGap) && b.text.includes('Mute')),
       ).toBe(true)
+    })
+  }
+}
 
+for (const surface of SURFACES) {
+  for (const tone of ['light', 'dark'] as const) {
+    test(`${tone} on ${surface}: both pane tabs carry the spacing steps`, async ($, on) => {
+      const clock = session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      await load($)
+      await clock.advance(FRESH)
+
+      const x = (step: Space) => drawn(surface, step, 'across')
+      const y = (step: Space) => drawn(surface, step, 'down')
       const pane = await mountPane($, surface, 80)
       const paneBoxes = await pane.findAll({ type: 'Box' })
       expect(paneBoxes.find(b => b.props.paddingLeft !== undefined)?.props).toMatchObject({
@@ -135,7 +156,7 @@ test('terminal chips stay one row tall', async ($, on) => {
   }
 })
 
-for (const surface of SURFACES) {
+for (const surface of BAND_SURFACES) {
   test(`on ${surface} the card is roomy where the band has the rows, compact where it is short, and the pane only below that`, async ($, on) => {
     const clock = session(on, {}, new Map(), 'light', [surface])
     const { opens } = stubEngine(on)
