@@ -129,6 +129,7 @@ same cells to the width and height math, so the chip row never overflows.
 | --- | --- | --- |
 | Chip gap, chip icon-to-label gap | 6px | `xs` |
 | Chip inner padding, `+N more` padding | 0 10px 0 8px, 0 10px | `sm` across, none down |
+| Summary chip padding, gap between its groups | 0 12px, 10px | `md` across, `sm` |
 | Mobile chip row padding | 0 16px | `lg` across |
 | Card above the chip row | 8px | `sm` |
 | Card padding, card inner gap | 16px, 12px | `lg`, `md` in the roomy density (see below) |

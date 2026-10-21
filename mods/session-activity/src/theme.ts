@@ -404,6 +404,8 @@ export const SPACE = {
   chipInner: 'xs',
   chipPadX: 'sm',
   morePadX: 'sm',
+  summaryGap: 'sm',
+  summaryPadX: 'md',
   rowPadX: 'lg',
   cardAbove: 'sm',
   cardHeadGap: 'sm',

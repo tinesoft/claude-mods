@@ -36,6 +36,8 @@ const isPill = (ui: Ui, tone: Tone | undefined) => isRich(ui) && tone !== undefi
 
 const ICON_PX = 14
 
+const SUMMARY_ICON_PX = 13
+
 const STOPPED_ICON_PX = 11
 
 const FRESH_DOT_PX = 7
@@ -128,8 +130,14 @@ export const Icon = ({ ui, svg, alt, width = ICON_PX, height = ICON_PX }: IconAr
   return Svg && <Svg source={svg} alt={alt} width={width} height={height} />
 }
 
-export const kindIcon = (ui: Ui, kind: Kind | 'plugin', look: Look, extra?: string) => (
-  <Icon ui={ui} svg={iconSvg(kind, hexOr(look.color))} alt={extra ?? TOGGLES[kind].noun} />
+export const kindIcon = (ui: Ui, kind: Kind | 'plugin', look: Look, px = ICON_PX) => (
+  <Icon
+    ui={ui}
+    svg={iconSvg(kind, hexOr(look.color))}
+    alt={TOGGLES[kind].noun}
+    width={px}
+    height={px}
+  />
 )
 
 const withTint = (tint: Color | undefined) => (tint === undefined ? {} : { backgroundColor: tint })
@@ -466,8 +474,8 @@ const Summary = ({ args }: { args: RowArgs }) => {
   return (
     <Box
       flexDirection="row"
-      columnGap={SPACE.chipInner}
-      paddingX={chipPad(tone)}
+      columnGap={SPACE.summaryGap}
+      paddingX={tone === undefined ? 0 : SPACE.summaryPadX}
       {...withTint(neutral)}
       {...(isPill(ui, tone) && { borderStyle: 'round', borderColor: TOKENS[tone!].line })}
     >
@@ -478,7 +486,7 @@ const Summary = ({ args }: { args: RowArgs }) => {
         const paint = { color: look.color, dimColor: look.dim, ...withTint(neutral) }
         return [
           <Box key={`sum-${kind}`} flexDirection="row" columnGap={SPACE.chipInner}>
-            {rich && kindIcon(ui, kind, look)}
+            {rich && kindIcon(ui, kind, look, SUMMARY_ICON_PX)}
             <Button
               key={`summary-${kind}`}
               plain
@@ -490,6 +498,7 @@ const Summary = ({ args }: { args: RowArgs }) => {
           </Box>,
         ]
       })}
+      {stopped > 0 && isPill(ui, tone) && <Text color={TOKENS[tone!].line}>│</Text>}
       {stopped > 0 && (
         <Button key="summary-stopped" plain onPress={() => on.open()}>
           <Text {...inkOf(ui, tone, 'danger', neutral)}>{`● ${stopped} blocked`}</Text>
