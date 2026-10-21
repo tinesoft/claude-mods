@@ -99,6 +99,30 @@ test('a PreToolUse hook that blocks shows its script name and BLOCKED', async ($
   expect(await band($, clock)).toEqual(['hook:PreToolUse|↯block-secrets ×2  BLOCKED '])
 })
 
+test('two hooks on one event each get their own chip, and only the one that blocked says so', async ($, on) => {
+  const clock = session(on, {
+    hooks: {
+      PreToolUse: [
+        {
+          matcher: 'Bash',
+          hooks: [{ type: 'command', command: 'bash .claude/hooks/block-secrets.sh' }],
+        },
+        { matcher: 'Edit', hooks: [{ type: 'command', command: 'bash .claude/hooks/format.sh' }] },
+      ],
+    },
+  })
+  stubEngine(on)
+  on('classic.PreToolUse', ($, e, next) =>
+    (e as { command?: string }).command === 'cat .env' ? { deny: 'reads a secret' } : next(e),
+  )
+  await $.tool.call({ tool: 'Bash', command: 'cat .env' } as never)
+  await $.tool.call({ tool: 'Edit', file_path: 'a.ts' } as never)
+  expect((await band($, clock)).map(chip => chip.split('|')[1])).toEqual([
+    '↯block-secrets BLOCKED ',
+    '↯format',
+  ])
+})
+
 test('settings hooks that are not configured record nothing', async ($, on) => {
   const clock = session(on)
   stubEngine(on)
