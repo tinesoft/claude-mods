@@ -101,6 +101,21 @@ test('a PreToolUse hook that blocks shows its script name and BLOCKED', async ($
   ])
 })
 
+test('a hook chip spins while its hook runs, then settles counted once', async ($, on) => {
+  const clock = session(on, {
+    hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'lint.sh' }] }] },
+  })
+  stubEngine(on)
+  let during: string[] = []
+  on('classic.PreToolUse', async (_$, e, next) => {
+    during = await chipTexts(await mountBand($, 'terminal', 200))
+    return next(e)
+  })
+  await $.tool.call({ tool: 'Bash', command: 'ls' } as never)
+  expect(during).toEqual([expect.stringMatching(/^hook:lint\.sh\|[◐◓◑◒]● lint$/)])
+  expect(await band($, clock)).toEqual(['hook:lint.sh|↯lint'])
+})
+
 test('two hooks on one event each get their own chip, and only the one that blocked says so', async ($, on) => {
   const clock = session(on, {
     hooks: {
