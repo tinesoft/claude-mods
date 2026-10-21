@@ -1,7 +1,7 @@
 import type { Color, ElementTable, RenderElement, RenderSurface } from 'claude-code'
 
 import type { Activation, Kind, Settings, Status } from '../types'
-import { errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg } from './icons'
+import { errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg, stoppedSvg } from './icons'
 import { chipId } from './model'
 import {
   across,
@@ -35,6 +35,8 @@ export const isRich = (ui: Ui) => ui.Svg !== undefined
 const isPill = (ui: Ui, tone: Tone | undefined) => isRich(ui) && tone !== undefined
 
 const ICON_PX = 14
+
+const STOPPED_ICON_PX = 11
 
 const LABEL_MAX = 24
 const MORE_RESERVE = 2
@@ -198,7 +200,8 @@ export const chipWidth = (
     segments.reduce((sum, n) => sum + n, 0) +
     (segments.length - 1) * across(SPACE.chipInner) +
     2 * across(chipPad(tone)) +
-    (rich && tone ? 2 : 0)
+    (rich && tone ? 2 : 0) +
+    (rich && tone && isStopped(a.status) ? 1 : 0)
   )
 }
 
@@ -308,7 +311,7 @@ const chipBorder = (look: Look, a: Activation, tone: Tone | undefined, isSelecte
 type ChipArgs = { args: RowArgs; a: Activation; index: number; labelMax: number }
 
 const Chip = ({ args, a, index, labelMax }: ChipArgs) => {
-  const { ui, now, tone, settings, selected, fits, on } = args
+  const { ui, surface, now, tone, settings, selected, fits, on } = args
   const { Box, Button, Text } = ui
   const rich = isRich(ui)
   const p = partsOf(a, settings, now, tone, rich, labelMax)
@@ -317,6 +320,10 @@ const Chip = ({ args, a, index, labelMax }: ChipArgs) => {
   const paint = { color, dimColor: dim, ...withTint(tint) }
   const id = chipId(a)
   const pill = isPill(ui, tone)
+  const badge =
+    p.badge === '' ? undefined : (
+      <Badge ui={ui} text={p.badge} tone={tone} status={a.status} bg={tint} />
+    )
   return (
     <Box
       key={`box-${id}`}
@@ -361,7 +368,21 @@ const Chip = ({ args, a, index, labelMax }: ChipArgs) => {
           {p.via}
         </Text>
       )}
-      {p.badge !== '' && <Badge ui={ui} text={p.badge} tone={tone} status={a.status} bg={tint} />}
+      {badge !== undefined &&
+        (surface === 'desktop' && tone !== undefined && isStopped(a.status) ? (
+          <Box flexDirection="row" backgroundColor={STOPPED.bg}>
+            <Icon
+              ui={ui}
+              svg={stoppedSvg(STOPPED.fg)}
+              alt=""
+              width={STOPPED_ICON_PX}
+              height={STOPPED_ICON_PX}
+            />
+            {badge}
+          </Box>
+        ) : (
+          badge
+        ))}
     </Box>
   )
 }

@@ -40,6 +40,10 @@ export const iconSvg = (toggle: Toggle, color: string) =>
 
 export const errorSvg = (color: string) => strokeSvg(`<path d="${ERROR_PATH}"/>`, color)
 
+export const stoppedSvg = (color: string) =>
+  `<svg ${XMLNS} viewBox="0 0 16 16" fill="none" stroke="${color}" stroke-width="2">` +
+  `<circle cx="8" cy="8" r="6"/><path d="M3.8 12.2l8.4-8.4"/></svg>`
+
 export const SPIN_FRAMES = 4
 
 export const spinnerSvg = (frame: number, color: string, track: string) => {
