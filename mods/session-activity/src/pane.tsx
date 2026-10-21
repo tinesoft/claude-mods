@@ -11,7 +11,7 @@ import type {
   Settings,
   Toggle,
 } from '../types'
-import { chipId, inPane, paneGroups, sampleActivations, startedAgo } from './model'
+import { bandCandidates, chipId, inPane, paneGroups, sampleActivations, startedAgo } from './model'
 import { switchSvg, SWITCH_SIZE } from './icons'
 import {
   agoLabel,
@@ -755,6 +755,29 @@ const SettingsTab = (args: PaneArgs) => {
   )
 }
 
+/** Mobile has no band, so the pane header carries its count, with a red dot when something stopped. */
+const Lead = ({ ui, tone, activations, settings, muted }: PaneArgs) => {
+  const { Box, Text } = ui
+  const chips = bandCandidates(activations, settings, muted)
+  const surface = tone === undefined ? undefined : TOKENS[tone].surface
+  return (
+    <Box
+      key="lead"
+      flexDirection="row"
+      paddingX={tone === undefined ? 0 : SPACE.chipPadX}
+      {...withTint(surface)}
+      {...(tone !== undefined && { borderStyle: 'round', borderColor: TOKENS[tone].line })}
+    >
+      <Text bold {...inkOf(ui, tone, 'ink', surface)}>
+        {`${chips.length} active`}
+      </Text>
+      {chips.some(a => isUrgent(a.status)) && (
+        <Text {...inkOf(ui, tone, 'danger', surface)}>{' ●'}</Text>
+      )}
+    </Box>
+  )
+}
+
 export const renderPane = (args: PaneArgs) => {
   const { Box } = args.ui
   const inner = args.columns - across(SPACE.paneLeft) - across(SPACE.paneRight)
@@ -765,7 +788,14 @@ export const renderPane = (args: PaneArgs) => {
       paddingRight={SPACE.paneRight}
       rowGap={SPACE.tabsBelow}
     >
-      <Tabs ui={args.ui} view={args.view} on={args.on} />
+      {args.surface === 'mobile' ? (
+        <Box flexDirection="row" columnGap={SPACE.tabGap}>
+          <Lead {...args} />
+          <Tabs ui={args.ui} view={args.view} on={args.on} />
+        </Box>
+      ) : (
+        <Tabs ui={args.ui} view={args.view} on={args.on} />
+      )}
       {args.view === 'settings' ? (
         <SettingsTab {...args} columns={inner} />
       ) : args.view === 'detail' ? (

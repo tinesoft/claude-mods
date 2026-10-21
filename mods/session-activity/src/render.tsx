@@ -430,40 +430,6 @@ const MoreBox = ({
     <>{[children]}</>
   )
 
-const urgentCount = (chips: readonly Activation[]) => chips.filter(a => isUrgent(a.status)).length
-
-const leadText = (chips: readonly Activation[]) => `${chips.length} active`
-
-/** Mobile's first chip: how many are active, a red dot when something stopped or failed. */
-const Lead = ({ args }: { args: RowArgs }) => {
-  const { ui, tone, chips, on } = args
-  const { Box, Button, Text } = ui
-  const surface = tone === undefined ? undefined : TOKENS[tone].surface
-  return (
-    <Box
-      key="lead-box"
-      flexDirection="row"
-      columnGap={SPACE.chipInner}
-      paddingX={chipPad(tone)}
-      {...withTint(surface)}
-      {...(tone !== undefined && { borderStyle: 'round', borderColor: TOKENS[tone].line })}
-    >
-      <Button key="lead" plain onPress={() => on.open()}>
-        <Text bold {...inkOf(ui, tone, 'ink', surface)}>
-          {leadText(chips)}
-        </Text>
-        {urgentCount(chips) > 0 && <Text {...inkOf(ui, tone, 'danger', surface)}>{' ●'}</Text>}
-      </Button>
-    </Box>
-  )
-}
-
-const leadWidth = (chips: readonly Activation[], tone: Tone | undefined) =>
-  leadText(chips).length +
-  (urgentCount(chips) > 0 ? 2 : 0) +
-  (tone === undefined ? 0 : 2 + 2 * across(chipPad(tone))) +
-  across(SPACE.chipGap)
-
 const Summary = ({ args }: { args: RowArgs }) => {
   const { ui, tone, chips, settings, on } = args
   const { Box, Button, Text } = ui
@@ -509,23 +475,20 @@ const Summary = ({ args }: { args: RowArgs }) => {
 }
 
 export const ChipRow = (args: RowArgs) => {
-  const { ui, surface, columns, now, tone, chips, settings, on } = args
+  const { ui, columns, now, tone, chips, settings, on } = args
   const { Box, Button, Text } = ui
   const gap = chipGapOf(tone)
   if (settings.layout === 'summary') return <Summary args={args} />
-  const leads = surface === 'mobile'
-  const inset = leads ? SPACE.rowPadX : 0
   const { shown, hidden, labelMax } = fitChips(
     chips,
-    columns - MORE_RESERVE - 2 * across(inset) - (leads ? leadWidth(chips, tone) : 0),
+    columns - MORE_RESERVE,
     settings,
     now,
     tone,
     isRich(ui),
   )
   return (
-    <Box flexDirection="row" columnGap={gap} {...(leads && { paddingX: inset })}>
-      {leads && <Lead args={args} />}
+    <Box flexDirection="row" columnGap={gap}>
       {shown.map((a, index) => (
         <Chip args={args} a={a} index={index} labelMax={index === 0 ? labelMax : LABEL_MAX} />
       ))}

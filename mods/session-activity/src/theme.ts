@@ -407,7 +407,6 @@ export const SPACE = {
   morePadX: 'sm',
   summaryGap: 'sm',
   summaryPadX: 'md',
-  rowPadX: 'lg',
   cardAbove: 'sm',
   cardHeadGap: 'sm',
   cardLinesGap: 'xs',
