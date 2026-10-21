@@ -161,7 +161,7 @@ export const sampleActivations = (settings: Settings, at: number): Activation[] 
     label: TOGGLES[kind].example,
     detail: TOGGLES[kind].description,
     ...(index === 0 && settings.shown.plugin && { plugin: 'acme-devtools' }),
-    status: 'ok',
+    status: settings.layout === 'summary' && kind === 'hook' ? 'blocked' : 'ok',
     count: 1,
     firstAt: at,
     lastAt: at - 60_000,
