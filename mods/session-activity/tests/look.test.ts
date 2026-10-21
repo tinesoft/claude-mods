@@ -92,6 +92,11 @@ for (const surface of BAND_SURFACES) {
       ]
       const box = await chipBox(band, key.slice(4))
       if (rich) expect(box.props.borderColor).toBe(t.dangerBd)
+      const slash = (await band.findAll({ type: 'Svg' })).filter(s =>
+        String(s.props.source).includes('M3.8 12.2l8.4-8.4'),
+      )
+      expect(slash).toHaveLength(rich ? 1 : 0)
+      if (rich) expect(String(slash[0]!.props.source)).toContain('stroke="#FFFFFF"')
     })
 
     test(`${tone} on ${surface}: an error is plain bold red on the surface colour`, async ($, on) => {
