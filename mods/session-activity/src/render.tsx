@@ -588,7 +588,9 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
           <Text mono size="caption" color={color} dimColor={dim} {...withTint(surface)}>
             {[theme.noun.toUpperCase(), a.meta].filter(Boolean).join(' · ')}
           </Text>
-          {on.close && <Button key="close" plain label="✕" onPress={() => on.close?.()} />}
+          {on.close && (
+            <Button key="close" plain hotkey="x" label="✕" onPress={() => on.close?.()} />
+          )}
         </Box>
         {isRich(ui) ? (
           <Box flexDirection="row" columnGap={SPACE.cardHeadGap}>
