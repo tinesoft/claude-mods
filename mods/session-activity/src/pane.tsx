@@ -304,6 +304,8 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
   )
 }
 
+const counted = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`
+
 const Activity = (args: PaneArgs) => {
   const { ui, now, tone, activations, settings, filter, on } = args
   const { Box, Button, Text } = ui
@@ -318,7 +320,7 @@ const Activity = (args: PaneArgs) => {
         <Text bold>Session activity</Text>
         <Box flexDirection="row" flexWrap="wrap" columnGap={SPACE.statsGap}>
           <Text key="stats" {...inkOf(ui, tone, 'muted')}>
-            {`${listed.length} items · ${total} activations · started ${started < 60_000 ? 'just now' : agoLabel(started)}`}
+            {`${counted(listed.length, 'item')} · ${counted(total, 'activation')} · started ${started < 60_000 ? 'just now' : agoLabel(started)}`}
           </Text>
           <Box key="customize-link" flexDirection="row" columnGap={SPACE.statsGap} flexShrink={0}>
             <Text {...inkOf(ui, tone, 'muted')}>·</Text>
