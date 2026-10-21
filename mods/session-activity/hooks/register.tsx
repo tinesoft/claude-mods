@@ -386,7 +386,11 @@ export const register: Register = (on, options) => {
           if (fitsCard) await update($, selected, old => (old === id ? null : id))
           else await openPane($, 'detail', id, DETAIL_PANE_ROWS)
         },
-        open: () => openPane($, 'activity'),
+        open: async () => {
+          const isUp = (await $.ui.panes()).some(pane => pane.id === PANE)
+          if (isUp && (await read($, paneView)) === 'activity') await $.ui.close({ id: PANE })
+          else await openPane($, 'activity')
+        },
         close: () => update($, selected, () => null),
         mute: async id => {
           await update($, selected, () => null)
