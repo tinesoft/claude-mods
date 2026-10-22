@@ -40,7 +40,7 @@ A Claude Code mod that shows what took part in your session. A row of chips abov
 
 ## 📦 Installation
 
-Requires Claude Code 2.1.287 or later. Tested with 2.1.302.
+Requires Claude Code 2.1.299 or later. On an older version the mod draws nothing and says to run `claude update`. Tested with 2.1.302.
 
 Add the marketplace from `main`, which holds released code only:
 

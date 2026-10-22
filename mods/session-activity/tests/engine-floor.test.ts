@@ -1,4 +1,5 @@
 import { expect, test } from 'claude-code/testing'
+import { meetsFloor } from '../src/engine'
 import { mountBand, session, stubEngine } from './harness'
 
 const olderEngine = (on: Parameters<typeof session>[0]) =>
@@ -38,4 +39,19 @@ test('on the floor itself the band draws its chips', async ($, on) => {
   await $.skill.prompt({ skill: 'docx', text: '', frontmatter: {}, source: 'plugin' } as never)
   const band = await mountBand($)
   expect(await band.findAll({ type: 'Button' })).not.toEqual([])
+})
+
+test('a release meets the floor by its numbers, a dev build by its release, an unnamed build always', () => {
+  expect(
+    [
+      '2.1.298',
+      '2.1.299',
+      '2.1.300',
+      '2.2.0',
+      '3.0.0',
+      '2.1.299-dev',
+      '2.1.294-dev',
+      undefined,
+    ].map(base => meetsFloor(base)),
+  ).toEqual([false, true, true, true, true, true, false, true])
 })

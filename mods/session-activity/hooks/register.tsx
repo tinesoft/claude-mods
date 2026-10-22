@@ -29,6 +29,7 @@ import {
   type Observed,
 } from '../src/model'
 import { parseColorFgBg, SYSTEM_PROBES } from '../src/appearance'
+import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
 import { renderPane, type PaneFlag } from '../src/pane'
 import { lineSummary, markdownSummary } from '../src/summary'
 import { renderBand, type Ui } from '../src/render'
@@ -198,7 +199,10 @@ async function openPane($: EngineInterface, view: PaneView, id?: string, rows?: 
   })
 }
 
-const drawsAnything = async ($: EngineInterface) => (await $.session.surfaces()).length > 0
+const isSupported = async ($: EngineInterface) => meetsFloor((await $.session.version()).base)
+
+const drawsAnything = async ($: EngineInterface) =>
+  (await isSupported($)) && (await $.session.surfaces()).length > 0
 
 /** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */
 function uiFor($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']>[0]): Ui {
@@ -245,6 +249,9 @@ export const register: Register = (on, options) => {
     })
     await loadOverrides($, options)
     watchAppearance($)
+    if (!(await isSupported($))) {
+      $.ui.toast(`session-activity needs Claude Code ${ENGINE_FLOOR} or later. Run claude update.`)
+    }
     return next(e)
   })
 
@@ -381,7 +388,7 @@ export const register: Register = (on, options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
-    if (e.props.hasSurvey) return below
+    if (e.props.hasSurvey || !(await isSupported($))) return below
     const settings = await settingsOf($, options)
     if (!settings.enabled) return below
     const chips = bandCandidates(await read($, activations), settings, await read($, muted))
