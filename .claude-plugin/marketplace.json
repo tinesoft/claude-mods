@@ -7,7 +7,7 @@
     {
       "name": "session-activity",
       "source": "session-activity",
-      "description": "Chips above the prompt for the skills, agents, MCP servers, permissions, hooks and rules that activated this session",
+      "description": "Chips above the prompt for each skill, subagent, MCP server, permission decision, hook and rule that activated this session. Press one to see why.",
       "category": "productivity",
       "tags": ["mod", "observability", "ui"]
     }
