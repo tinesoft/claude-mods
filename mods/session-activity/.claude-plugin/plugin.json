@@ -1,7 +1,7 @@
 {
   "name": "session-activity",
   "displayName": "Session Activity",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Chips above the prompt for each skill, subagent, MCP server, permission decision, hook and rule that activated this session. Press one to see why.",
   "author": {
     "name": "tinesoft",
