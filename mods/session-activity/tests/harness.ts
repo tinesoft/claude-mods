@@ -20,12 +20,16 @@ export const session = (
   store = new Map<string, unknown>(),
   theme = 'dark',
   surfaces: readonly RenderSurface[] = ['terminal'],
+  version = '2.1.302',
 ) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   on('store.get', ($, e) => ({ value: store.get(e.key) }))
   on('store.set', ($, e) => (store.set(e.key, e.value), { value: undefined }))
   on('session.surfaces', () => ({ value: surfaces }))
   on('session.cwd', () => ({ value: CWD }))
+  on('session.version', () => ({
+    value: { version, base: version, builtAt: '2026-10-01T00:00:00.000Z' },
+  }))
   on('settings.read', () => ({ value: settings }))
   on('config.list', () => ({
     value: [
