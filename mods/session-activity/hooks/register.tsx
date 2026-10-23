@@ -310,10 +310,11 @@ export const register: Register = (on, options) => {
 
   on('tool.check', async ($, e, next) => {
     const verdict = await next(e)
-    if (e.tool_use_id === undefined) return verdict
+    if (e.tool_use_id === undefined) return next(e)
     const cwd = await $.session.cwd()
     await observe($, options, fromPermission(e.tool, e.input, verdict, cwd, e.tool_use_id))
-    return verdict
+    // At tool.check next(e) replays the settled verdict, it does not ask again.
+    return next(e)
   })
 
   on('tool.call', async ($, e, next) => {
