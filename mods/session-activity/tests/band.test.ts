@@ -704,7 +704,7 @@ test(
   },
 )
 
-test('on desktop the bordered chip row counts three rows, so the card gives way to the pane sooner', async ($, on) => {
+test('on desktop the card opens in the band at any maxRows, where the terminal gives way to the pane', async ($, on) => {
   const clock = session(on)
   const { opens } = stubEngine(on)
   await withSkill($, clock)
@@ -713,10 +713,9 @@ test('on desktop the bordered chip row counts three rows, so the card gives way 
     await (await mountBand($, surface, 100, maxRows)).press({ key: 'chip-skill-docx' })
     return opens.length === 0 ? 'card' : 'pane'
   }
-  let edge = 0
-  while ((await probe('terminal', edge)) === 'pane') edge++
-  expect(await probe('desktop', edge)).toBe('pane')
-  expect(await probe('desktop', edge + 2)).toBe('card')
+  // Desktop reports 12 rows for the band, fewer than any card takes on the terminal.
+  expect(await probe('terminal', 12)).toBe('pane')
+  expect(await probe('desktop', 12)).toBe('card')
 })
 
 test(

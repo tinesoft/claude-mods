@@ -1,9 +1,10 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import type { RenderSurface, Space } from 'claude-code'
+import type { On, RenderSurface, Space } from 'claude-code'
 import { across, CARD_SPACE, down, SPACE } from '../src/theme'
 import {
   BAND_SURFACES,
+  type BandSurface,
   FRESH,
   mountBand,
   mountPane,
@@ -156,40 +157,44 @@ test('terminal chips stay one row tall', async ($, on) => {
   }
 })
 
-for (const surface of BAND_SURFACES) {
-  test(`on ${surface} the card is roomy where the band has the rows, compact where it is short, and the pane only below that`, async ($, on) => {
-    const clock = session(on, {}, new Map(), 'light', [surface])
-    const { opens } = stubEngine(on)
-    await load($)
-    await clock.advance(FRESH)
-
-    const probe = async (maxRows: number) => {
-      const tall = await mountBand($, surface, 120, 60)
-      if (await tall.find({ key: 'card' })) await tall.press({ key: 'close' })
-      await tall.unmount()
-      opens.length = 0
-      const band = await mountBand($, surface, 120, maxRows)
-      await band.press({ key: 'chip-skill-alpha' })
-      const card = await band.find({ key: 'card' })
-      if (card !== undefined) await band.press({ key: 'close' })
-      await band.unmount()
-      if (card === undefined) return opens.length === 1 ? 'pane' : 'none'
-      return card.props.rowGap === 0 ? 'compact' : 'roomy'
-    }
-
-    const seen: string[] = []
-    for (let rows = 0; rows <= 40; rows++) seen.push(await probe(rows))
-    const first = (kind: string) => seen.indexOf(kind)
-    expect(seen.join()).not.toContain('none')
-    expect(first('compact')).toBeGreaterThan(0)
-    expect(first('roomy')).toBeGreaterThan(first('compact'))
-    expect(seen.slice(0, first('compact')).every(kind => kind === 'pane')).toBe(true)
-    expect(seen.slice(first('compact'), first('roomy')).every(kind => kind === 'compact')).toBe(
-      true,
-    )
-    expect(seen.slice(first('roomy')).every(kind => kind === 'roomy')).toBe(true)
-  })
+const cardAt = async ($: Engine, on: On, surface: BandSurface) => {
+  const clock = session(on, {}, new Map(), 'light', [surface])
+  const { opens } = stubEngine(on)
+  await load($)
+  await clock.advance(FRESH)
+  return async (maxRows: number) => {
+    const tall = await mountBand($, surface, 120, 60)
+    if (await tall.find({ key: 'card' })) await tall.press({ key: 'close' })
+    await tall.unmount()
+    opens.length = 0
+    const band = await mountBand($, surface, 120, maxRows)
+    await band.press({ key: 'chip-skill-alpha' })
+    const card = await band.find({ key: 'card' })
+    if (card !== undefined) await band.press({ key: 'close' })
+    await band.unmount()
+    if (card === undefined) return opens.length === 1 ? 'pane' : 'none'
+    return card.props.rowGap === 0 ? 'compact' : 'roomy'
+  }
 }
+
+test('on terminal the card is roomy where the band has the rows, compact where it is short, and the pane only below that', async ($, on) => {
+  const probe = await cardAt($, on, 'terminal')
+
+  const seen: string[] = []
+  for (let rows = 0; rows <= 40; rows++) seen.push(await probe(rows))
+  const first = (kind: string) => seen.indexOf(kind)
+  expect(seen.join()).not.toContain('none')
+  expect(first('compact')).toBeGreaterThan(0)
+  expect(first('roomy')).toBeGreaterThan(first('compact'))
+  expect(seen.slice(0, first('compact')).every(kind => kind === 'pane')).toBe(true)
+  expect(seen.slice(first('compact'), first('roomy')).every(kind => kind === 'compact')).toBe(true)
+  expect(seen.slice(first('roomy')).every(kind => kind === 'roomy')).toBe(true)
+})
+
+test('on desktop the card is always roomy in the band, however few rows the band reports', async ($, on) => {
+  const probe = await cardAt($, on, 'desktop')
+  for (let rows = 0; rows <= 40; rows += 4) expect(await probe(rows)).toBe('roomy')
+})
 
 test('the compact card keeps the horizontal padding and drops the vertical padding and the gaps', async ($, on) => {
   const clock = session(on)

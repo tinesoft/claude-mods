@@ -680,11 +680,13 @@ export const renderBand = (args: BandArgs) => {
   const { ui, columns, maxRows, now, tone, chips, settings, selected, below, on } = args
   const { Box } = ui
   const chipRowRows = isPill(ui, tone) ? 3 : 1
+  // A rich surface lays the band out in pixels and grows it to fit, whatever its `maxRows` says.
   const densityOf = (a: Activation) =>
     CARD_DENSITIES.find(
       density =>
+        isRich(ui) ||
         maxRows >=
-        PROMPT_ROWS + chipRowRows + down(SPACE.cardAbove) + cardRows(a, columns, density),
+          PROMPT_ROWS + chipRowRows + down(SPACE.cardAbove) + cardRows(a, columns, density),
     )
   const fits = (a: Activation) => densityOf(a) !== undefined
   const current = settings.layout === 'row' ? chips.find(a => chipId(a) === selected) : undefined
