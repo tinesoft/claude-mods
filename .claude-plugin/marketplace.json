@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "session-activity",
-      "source": "session-activity",
+      "source": "./mods/session-activity",
       "description": "Chips above the prompt for each skill, subagent, MCP server, permission decision, hook and rule that activated this session. Press one to see why.",
       "category": "productivity",
       "tags": ["mod", "observability", "ui"]
