@@ -471,9 +471,9 @@ const Switch = ({
       justifyContent="space-between"
       columnGap={SPACE.switchSide}
     >
-      <Box flexDirection="row" columnGap={SPACE.switchGrid} flexShrink={1}>
+      <Box flexDirection="row" columnGap={SPACE.switchGrid} flexShrink={1} minWidth={0}>
         {toggle !== undefined && <ToggleMark ui={ui} tone={tone} toggle={toggle} />}
-        <Box flexDirection="column" rowGap={SPACE.rowTextGap} flexShrink={1}>
+        <Box flexDirection="column" rowGap={SPACE.rowTextGap} flexShrink={1} minWidth={0}>
           <Text bold dimColor={!isOn && toggle !== undefined}>
             {title}
           </Text>
@@ -482,7 +482,7 @@ const Switch = ({
           </Text>
         </Box>
       </Box>
-      <Box flexDirection="row" columnGap={SPACE.chipInner}>
+      <Box flexDirection="row" columnGap={SPACE.chipInner} flexShrink={0}>
         {Svg && track && (
           <Svg
             source={switchSvg(isOn, track.switchOn, track.switchOff)}

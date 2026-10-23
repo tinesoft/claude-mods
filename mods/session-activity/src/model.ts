@@ -55,6 +55,13 @@ export const record = (
   return list.map((a, i) => (i === index ? merged : a))
 }
 
+/** Records `seen` only when its chip is not listed yet, for a source that may repeat another's. */
+export const recordOnce = (list: readonly Activation[], seen: Observed, at: number) =>
+  list.some(a => a.kind === seen.kind && a.key === seen.key) ? list.slice() : record(list, seen, at)
+
+export const forget = (list: readonly Activation[], kind: Activation['kind'], key: string) =>
+  list.filter(a => a.kind !== kind || a.key !== key)
+
 export const settleAsked = (
   list: readonly Activation[],
   callId: string,

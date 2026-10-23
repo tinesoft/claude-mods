@@ -41,9 +41,22 @@ export const callSummary = (tool: string, input: unknown, cwd: string) => {
   return mcp ? `${mcp.server} · ${mcp.name}` : tool
 }
 
-export const fromMcpCall = (tool: string, isError: boolean): Observed | undefined => {
+/**
+ * The server's name when the host runs it in process (`source: "sdk"`), such as Desktop's
+ * `ccd_turn`: its tools are the host's plumbing, not a server the person added.
+ */
+export const hostServerOf = (server: unknown) => {
+  const { name, source } = (server ?? {}) as { name?: unknown; source?: unknown }
+  return source === 'sdk' && typeof name === 'string' ? name : undefined
+}
+
+export const fromMcpCall = (
+  tool: string,
+  isError: boolean,
+  hostServers: readonly string[] = [],
+): Observed | undefined => {
   const mcp = mcpParts(tool)
-  if (!mcp) return undefined
+  if (!mcp || hostServers.includes(mcp.server)) return undefined
   return {
     kind: 'mcp',
     key: mcp.server,

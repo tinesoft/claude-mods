@@ -189,6 +189,11 @@ export const stubEngine = (
   on('classic.InstructionsLoaded', () => ({}))
   on('classic.Stop', () => answers.stop ?? {})
   on('classic.PostToolUse', () => ({}))
+  on('classic.PostToolUseFailure', () => ({}))
+  on('prompt.context', ($, e) => ({
+    blocks: e.blocks,
+    ...(e.instructionFiles !== undefined && { instructionFiles: e.instructionFiles }),
+  }))
   on('session.end', ($, e) => ({ sessionId: e.sessionId }))
   on('command.run', () => ({ text: 'ran' }))
   on('ui.open', ($, e) => {

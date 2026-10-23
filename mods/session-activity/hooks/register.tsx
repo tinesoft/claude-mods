@@ -10,6 +10,7 @@ import {
   fromHook,
   fromInstructions,
   fromMcpCall,
+  hostServerOf,
   fromMemoryWrite,
   fromModel,
   fromPermission,
@@ -23,9 +24,11 @@ import {
 import {
   bandCandidates,
   finishAgent,
+  forget,
   inPane,
   nextFadeAt,
   record,
+  recordOnce,
   resolveSettings,
   settleAsked,
   type Observed,
@@ -52,6 +55,7 @@ const muted = atom({ plugin: 'session-activity', key: 'muted' } as const, [])
 const selected = atom({ plugin: 'session-activity', key: 'selected' } as const, null)
 const paneView = atom({ plugin: 'session-activity', key: 'paneView' } as const, 'activity')
 const filter = atom({ plugin: 'session-activity', key: 'filter' } as const, 'all')
+const hostServers = atom({ plugin: 'session-activity', key: 'hostServers' } as const, [])
 const model = atom({ plugin: 'session-activity', key: 'model' } as const, null)
 const overrides = atom({ plugin: 'session-activity', key: 'overrides' } as const, null)
 const appearance = atom({ plugin: 'session-activity', key: 'appearance' } as const, {
@@ -161,6 +165,19 @@ async function observe(
   const at = await $.clock.now()
   await commit($, options, list => record(list, seen, at, { isSettling }))
   await notify($, options, seen)
+}
+
+/** For a source that may repeat another's, such as `prompt.context` after `InstructionsLoaded`. */
+async function observeOnce($: EngineInterface, options: Options, seen: Observed) {
+  const at = await $.clock.now()
+  await commit($, options, list => recordOnce(list, seen, at))
+}
+
+/** Drops a host-run server's chip, once its provenance shows up, and keeps it out from then on. */
+async function learnHostServer($: EngineInterface, options: Options, server: string) {
+  if ((await read($, hostServers)).includes(server)) return
+  await update($, hostServers, list => [...list, server])
+  await commit($, options, list => forget(list, 'mcp', server))
 }
 
 async function loadOverrides($: EngineInterface, options: Options) {
@@ -336,7 +353,11 @@ export const register: Register = (on, options) => {
   on('tool.call', async ($, e, next) => {
     const ran = await next(e)
     if (ran.deny === undefined) {
-      await observe($, options, fromMcpCall(e.tool, ran.isError === true))
+      await observe(
+        $,
+        options,
+        fromMcpCall(e.tool, ran.isError === true, await read($, hostServers)),
+      )
       if (ran.isError !== true) await observe($, options, fromMemoryWrite(e.tool, e))
       if (e.tool === 'Bash' && e.run_in_background === true) {
         await observe($, options, fromBackground(e.command, await $.session.cwd()))
@@ -353,6 +374,8 @@ export const register: Register = (on, options) => {
   })
 
   on('classic.*', async ($, e, next) => {
+    const host = hostServerOf('mcp_server' in e ? e.mcp_server : undefined)
+    if (host !== undefined) await learnHostServer($, options, host)
     const event = 'hook_event_name' in e ? String(e.hook_event_name) : 'PreToolUse'
     const target = hookTarget(e)
     const commands = hookCommands(await $.settings.read(), event, target)
@@ -371,14 +394,35 @@ export const register: Register = (on, options) => {
 
   on('classic.InstructionsLoaded', async ($, e, next) => {
     const lines = await $.fs.read(e.file_path).then(lineCount, () => undefined)
-    await observe(
-      $,
-      options,
-      fromInstructions(
-        { path: e.file_path, tier: e.memory_type, reason: e.load_reason, lines },
-        await $.session.cwd(),
-      ),
+    const seen = fromInstructions(
+      { path: e.file_path, tier: e.memory_type, reason: e.load_reason, lines },
+      await $.session.cwd(),
     )
+    // `prompt.context` may have listed it already.
+    if (e.load_reason === 'session_start') await observeOnce($, options, seen)
+    else await observe($, options, seen)
+    return next(e)
+  })
+
+  // On Desktop and under `claude -p`, no `InstructionsLoaded` reaches the mod for the files
+  // loaded at session start; the first message's context still lists them.
+  on('prompt.context', async ($, e, next) => {
+    const cwd = await $.session.cwd()
+    for (const file of e.instructionFiles ?? []) {
+      await observeOnce(
+        $,
+        options,
+        fromInstructions(
+          {
+            path: file.path,
+            tier: file.kind,
+            reason: 'session_start',
+            lines: lineCount(file.content),
+          },
+          cwd,
+        ),
+      )
+    }
     return next(e)
   })
 
