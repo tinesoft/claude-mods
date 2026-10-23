@@ -224,7 +224,7 @@ test(
     await $.command.run({ command: 'review', args: '' } as never)
     await $.tool.call({ tool: 'Bash', command: 'npm run dev', run_in_background: true } as never)
     expect(await band($, clock)).toEqual([
-      'command:review|/ /review',
+      'command:review|/ review',
       'background:npm run|▶ npm run',
     ])
   },

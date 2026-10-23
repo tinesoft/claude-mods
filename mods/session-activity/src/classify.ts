@@ -244,7 +244,7 @@ export const lineCount = (text: string) => (text === '' ? 0 : text.split('\n').l
 export const fromCommand = (command: string, args: string): Observed => ({
   kind: 'command',
   key: command,
-  label: `/${command}`,
+  label: command,
   detail: args ? `Ran /${command} ${args}` : `Ran /${command}`,
   status: 'ok',
 })

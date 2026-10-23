@@ -226,7 +226,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     noun: 'Slash command',
     plural: 'Commands',
     description: 'Custom commands from .claude/commands that ran.',
-    example: '/release-notes',
+    example: 'release-notes',
     glyph: '/',
     hotkey: 'o',
     optional: true,

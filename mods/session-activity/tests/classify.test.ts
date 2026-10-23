@@ -2,6 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import {
   callSummary,
   commandName,
+  fromCommand,
   fromHook,
   fromInstructions,
   fromMemoryWrite,
@@ -202,4 +203,10 @@ test('a stopped action has a one-line notice; a quiet one has none', () => {
     '⚷ Bash denied: rm -rf',
   )
   expect(stopNotice({ status: 'ok', label: 'x' })).toBeUndefined()
+})
+
+test('a slash command chip leaves the slash to its glyph', () => {
+  const c = fromCommand('release-notes', 'v2')
+  expect(c.label).toBe('release-notes')
+  expect(c.detail).toBe('Ran /release-notes v2')
 })

@@ -68,7 +68,7 @@ Optional types (off by default, opt-in in settings). Permission keeps its cyan c
 | Type | Glyph | Example label |
 | --- | --- | --- |
 | Permission | `⚷` | `Allowed: git push` (cyan: `#0E6159` / `#E8F5F2` / `#BCE0D8`) |
-| Slash command | `/` | `/release-notes` |
+| Slash command | `/` | `release-notes` (the glyph is the slash) |
 | Memory | `✎` | `Remembered: prefers pnpm` |
 | Plugin | `⬡` | `via acme-devtools` (a tag on other chips) |
 | Context | `◔` | `Compacted · 62% used` |

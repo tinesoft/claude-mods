@@ -261,7 +261,7 @@ Chip order in the band: `blocked`, `denied` and `error` first, then `running`, t
 | Permission | `tool.check`: `await next(e)` gives `allow`, `ask` or `deny`; the `tool.call` result tells whether an asked call ran | `Tool:command` summary, e.g. `Bash:git push` | ok (auto), ok (asked), denied | Documented; "once" vs "always" needs a spike |
 | Hook | `classic.PreToolUse`, `classic.PostToolUse`, `classic.Stop`, `classic.SessionStart` and the other `classic.*` events; configured commands from `$.settings.read` | One matched command: keyed by the full command string, labelled with its script name. Several: keyed by the event, labelled `<Event> hooks` | running, ok, blocked | Spiked: commands from `$.settings.read`, no exit code (see Spike findings) |
 | Rule | `prompt.context` and `prompt.attachment` for loaded instruction files; `classic.InstructionsLoaded` if the build has it | File path, e.g. `CLAUDE.md`, `.claude/rules/testing.md` | active | Needs spike; "applied" is out of v1 (open decision 1) |
-| Slash command (optional) | `command.run` (observe) | Command name | ok | Documented |
+| Slash command (optional) | `command.run` (observe) | Command name, without the `/`, which the glyph already shows | ok | Documented |
 | Plugin (optional) | `next.origin.plugin` on observed events | Tag on other chips, not its own chip | n/a | Documented |
 | Context (optional) | `session.compact`, `session.measure`, `$.session.usage()` | `context`; label `62% used` or `Compacted` | active | Documented |
 | Model switch (optional) | `turn.step` model on the main thread, recorded only when it differs from the last one. Output style is out of scope, because its only signal, `prompt.compose`, has no agent id | `model`; label `Model: <id>` | active | Documented |
