@@ -315,7 +315,7 @@ Untinted chips (`chip_style: text`, or an ansi theme in the terminal) keep the t
 | Three stat tiles | Three `Box`es with the `tile` fill, a `muted` title over a bold value; the status value is `danger` when stopped or errored | Close |
 | Source path | `Text`, `muted`, `wrap: 'truncate-middle'` | Exact |
 | Open source, Mute for this session | `[ o: Open source ]` copies the path (`$.ui.copy`; a mod can't open an editor), `[ m: Mute for this session ]` / `[ m: Unmute ]` | Close |
-| Close ✕ | `✕` button, or pressing the same chip again. Esc hands the focus back and never reaches the band | Close |
+| Close ✕ | `x: Close` button, worded like the other actions because a `plain` `Button` already prints its hotkey (a `✕` label read `x: ✕`), or pressing the same chip again. Esc hands the focus back and never reaches the band | Close |
 | Card width 420 px | Full band width | Documented deviation: `Box` width is in cells and its desktop unit is undocumented; needs a desktop check |
 
 ### Mapping: expanded tray (`Expanded.dc.html`)
@@ -547,7 +547,7 @@ The spikes ran against Claude Code 2.1.302. Its declarations are committed as a 
 - **Theme.** The `theme` row of `$.config.list()` holds the Claude Code theme. The ANSI themes and the `auto` theme do not say light or dark, which led to the tone resolution chain.
 - **Buttons.** The terminal draws a `plain` `Button` with a hotkey as `hotkey: label` (`:1132`). A desktop draws every `Button` as a native button, `plain` or not (`:1137`).
 - **Box.** `Box` has no `onPress`, no shadow and no single-side border. Its spacing takes `Space` steps, which desktop draws in pixels and the terminal in cells. Its `width` is in cells, and the unit desktop applies to it is undocumented.
-- **Esc.** Escape hands the focus back and never reaches the band. The detail card closes with its `✕` or a second press on the chip.
+- **Esc.** Escape hands the focus back and never reaches the band. The detail card closes with its `x: Close` button or a second press on the chip.
 - **Managed installs.** Where an organization manages Claude Code, skill, hook, rule and compaction events reach only the plugins it lists.
 
 Not yet observed on a live client: desktop button chrome inside a chip, desktop card width, clicks in terminal fullscreen mode, and the cloud setup script.

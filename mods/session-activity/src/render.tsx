@@ -600,7 +600,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
             {[theme.noun.toUpperCase(), a.meta].filter(Boolean).join(' · ')}
           </Text>
           {on.close && (
-            <Button key="close" plain hotkey="x" label="✕" onPress={() => on.close?.()} />
+            <Button key="close" plain hotkey="x" label="Close" onPress={() => on.close?.()} />
           )}
         </Box>
         {isRich(ui) ? (

@@ -114,12 +114,12 @@ Press Ctrl+X then Tab to focus the band. In fullscreen mode and in the Desktop a
 | --------------- | ---------------------------------------------------------- |
 | `Ctrl+X` `Tab`  | Focus the band                                             |
 | `Enter`         | Open the selected chip's detail card                       |
-| `Enter` again   | Close the card (as does its `✕`)                           |
+| `Enter` again   | Close the card (as does its `x: Close`)                    |
 | `o`             | Copy the source path (a mod cannot open an editor)         |
 | `m`             | Mute the chip, hiding it from the band                     |
 | `1` to `9`, `0` | Open a chip, or `+N more` (off by default; `chip_hotkeys`) |
 
-Digit hotkeys are off by default, because a bare digit typed into an empty prompt would open a chip. A mod cannot read Esc in the band, so the card closes with the chip or its `✕`, not with Esc.
+Digit hotkeys are off by default, because a bare digit typed into an empty prompt would open a chip. A mod cannot read Esc in the band, so the card closes with the chip or its `x: Close` button, not with Esc.
 
 ### The pane
 

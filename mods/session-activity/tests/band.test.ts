@@ -544,7 +544,7 @@ test('the band never gets Esc, so the card closes on x as well', async ($, on) =
   await withSkill($, clock)
   await (await mountBand($)).press({ key: 'chip-skill-docx' })
   const close = await (await mountBand($)).find({ key: 'close' })
-  expect(close).toMatchObject({ text: 'x: ✕', props: { hotkey: 'x' } })
+  expect(close).toMatchObject({ text: 'x: Close', props: { hotkey: 'x' } })
 })
 
 test('the card copies the source path and mutes the chip', async ($, on) => {
