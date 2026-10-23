@@ -4,6 +4,7 @@ import {
   bandCandidates,
   bandOrder,
   finishAgent,
+  nextFadeAt,
   record,
   resolveSettings,
   type Observed,
@@ -147,4 +148,18 @@ test('the list cap drops the oldest quiet chip, never a stopped one', () => {
   expect(list).toHaveLength(500)
   expect(list[0]).toMatchObject({ kind: 'hook', status: 'blocked' })
   expect(list.some(a => a.key === 's0')).toBe(false)
+})
+
+test('dots that fade within a second share one redraw; a later one gets its own', () => {
+  const settings = resolveSettings({}, undefined)
+  const at = (key: string, t: number) => record([], { ...skill, key }, t)[0]!
+  const list = [at('a', 0), at('b', 600), at('c', 3000)]
+  expect(nextFadeAt(list, settings, 0)).toBe(4600)
+  expect(nextFadeAt(list, settings, 4600)).toBe(7000)
+  expect(nextFadeAt(list, settings, 7000)).toBeUndefined()
+})
+
+test('a dot of a hidden type never asks for a redraw', () => {
+  const list = record([], { ...skill, kind: 'context', key: 'usage' }, 0)
+  expect(nextFadeAt(list, resolveSettings({}, undefined), 0)).toBeUndefined()
 })

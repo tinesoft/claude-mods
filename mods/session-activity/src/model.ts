@@ -1,5 +1,5 @@
 import type { Activation, ChipTheme, Kind, Overrides, Settings, Status, Toggle } from '../types'
-import { isUrgent, KIND_ORDER, TOGGLE_ORDER, TOGGLES } from './theme'
+import { FADE_SLACK_MS, FRESH_MS, isUrgent, KIND_ORDER, TOGGLE_ORDER, TOGGLES } from './theme'
 
 export type Observed = Omit<Activation, 'count' | 'firstAt' | 'lastAt' | 'runningAgentIds'> & {
   startedAgentId?: string
@@ -137,6 +137,20 @@ export const bandCandidates = (
 /** Hidden types still list their stopped and errored chips, which the band always shows. */
 export const inPane = (a: Activation, settings: Settings) =>
   settings.shown[a.kind] || isUrgent(a.status)
+
+/**
+ * When to redraw for the next drawn fresh dot to fade, or undefined when none is fresh. Dots
+ * that fade within `FADE_SLACK_MS` of the first share its redraw, fading that much late at most.
+ */
+export const nextFadeAt = (list: readonly Activation[], settings: Settings, now: number) => {
+  const fades = list
+    .filter(a => inPane(a, settings))
+    .map(a => a.lastAt + FRESH_MS)
+    .filter(at => at > now)
+  if (fades.length === 0) return undefined
+  const first = Math.min(...fades)
+  return Math.max(...fades.filter(at => at <= first + FADE_SLACK_MS))
+}
 
 export const paneGroups = (
   list: readonly Activation[],

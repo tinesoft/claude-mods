@@ -24,6 +24,7 @@ import {
   bandCandidates,
   finishAgent,
   inPane,
+  nextFadeAt,
   record,
   resolveSettings,
   settleAsked,
@@ -34,7 +35,7 @@ import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
 import { renderPane, type PaneFlag } from '../src/pane'
 import { lineSummary, markdownSummary } from '../src/summary'
 import { renderBand, type Ui } from '../src/render'
-import { FRESH_MS, resolveTone, SPIN_MS, TOGGLE_ORDER, type Tone } from '../src/theme'
+import { resolveTone, SPIN_MS, TOGGLE_ORDER, type Tone } from '../src/theme'
 
 const PANE = 'session-activity'
 const COMMAND = 'session-activity'
@@ -60,6 +61,7 @@ const appearance = atom({ plugin: 'session-activity', key: 'appearance' } as con
 
 let spinner: Timer | undefined
 let appearanceTimer: Timer | undefined
+let fadeTimer: Timer | undefined
 
 async function probeSystem($: EngineInterface): Promise<Tone | null> {
   for (const probe of SYSTEM_PROBES) {
@@ -124,6 +126,19 @@ async function commit(
   await refresh($, options)
 }
 
+/** One timer redraws as the next fresh dots fade, instead of one per activation. */
+async function scheduleFade($: EngineInterface, options: Options) {
+  if (fadeTimer !== undefined) return
+  const now = await $.clock.now()
+  const at = nextFadeAt(await read($, activations), await settingsOf($, options), now)
+  if (at === undefined) return
+  fadeTimer = $.clock.after(at - now, async () => {
+    fadeTimer = undefined
+    $.ui.invalidate('ui.render')
+    await scheduleFade($, options)
+  })
+}
+
 async function notify(
   $: EngineInterface,
   options: Options,
@@ -144,7 +159,7 @@ async function observe(
   if (seen === undefined) return
   const at = await $.clock.now()
   await commit($, options, list => record(list, seen, at, { isSettling }))
-  $.clock.after(FRESH_MS, () => $.ui.invalidate('ui.render'))
+  await scheduleFade($, options)
   await notify($, options, seen)
 }
 
@@ -328,9 +343,10 @@ export const register: Register = (on, options) => {
       }
     }
     const asked = (await read($, activations)).find(a => a.askedCallId === e.tool_use_id)
+    if (asked === undefined) return ran
     const at = await $.clock.now()
     await commit($, options, list => settleAsked(list, e.tool_use_id, ran.deny === undefined, at))
-    if (asked !== undefined && ran.deny !== undefined) {
+    if (ran.deny !== undefined) {
       await notify($, options, { status: 'denied', label: asked.label, meta: asked.meta })
     }
     return ran

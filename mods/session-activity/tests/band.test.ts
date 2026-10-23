@@ -355,6 +355,41 @@ test(
   },
 )
 
+test('a tool call that asked nothing writes no activity, so nothing redraws', async ($, on) => {
+  session(on)
+  stubEngine(on)
+  let writes = 0
+  on('state.set', (_$, e, next) => (writes++, next(e)))
+  for (const id of ['a', 'b', 'c']) {
+    await $.tool.check({ tool: 'Read', file_path: `/repo/${id}`, tool_use_id: id } as never)
+    await $.tool.call({ tool: 'Read', file_path: `/repo/${id}`, tool_use_id: id } as never)
+  }
+  expect(writes).toBe(0)
+})
+
+test('a chip of a hidden type schedules no redraw when it stops being fresh', async ($, on) => {
+  const clock = session(on)
+  const engine = stubEngine(on)
+  on('session.measure', () => ({ changed: [] }))
+  await $.session.measure({ context: { percent: 40 } } as never)
+  const before = engine.invalidations()
+  await clock.advance(FRESH)
+  expect(engine.invalidations()).toBe(before)
+})
+
+test('a burst of fresh chips fades in one redraw', async ($, on) => {
+  const clock = session(on)
+  const engine = stubEngine(on)
+  for (const skill of SKILLS) {
+    await $.skill.prompt({ skill, text: '', frontmatter: {}, source: 'projectSettings' } as never)
+  }
+  expect((await texts(await mountBand($, 'terminal', 200))).join('')).toContain('●')
+  const before = engine.invalidations()
+  await clock.advance(FRESH)
+  expect(engine.invalidations() - before).toBe(1)
+  expect((await texts(await mountBand($, 'terminal', 200))).join('')).not.toContain('●')
+})
+
 const interrupt = async ($: Engine, clock: MockClock) => {
   await $.agent.spawn({
     tool_use_id: 'tu',

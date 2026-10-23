@@ -350,6 +350,8 @@ export const SPIN_MS = 150
 
 export const FRESH_MS = 4000
 
+export const FADE_SLACK_MS = 1000
+
 const CLAUDE_THEME = /^(light|dark)(-daltonized|-ansi)?$/
 
 export type ToneInput = {
