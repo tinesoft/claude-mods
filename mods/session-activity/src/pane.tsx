@@ -126,10 +126,10 @@ const Segmented = ({
       flexDirection="row"
       flexWrap="wrap"
       columnGap={segmented ? 0 : SPACE.tabGap}
-      {...(segmented && { backgroundColor: t!.fill })}
+      {...(segmented && { backgroundColor: t!.fill2, padding: SPACE.segmentTrack })}
     >
       {segments.map(({ key, boxKey, label, count, isOn, hotkey, onPress }) => {
-        const bg = segmented ? (isOn ? t!.surface : t!.fill) : undefined
+        const bg = segmented && isOn ? t!.surface : undefined
         return (
           <Box key={boxKey} paddingX={segmented ? 1 : 0} {...withTint(bg)}>
             <Button key={key} plain {...(hotkey !== undefined && { hotkey })} onPress={onPress}>
@@ -477,7 +477,10 @@ const Switch = ({
       <Box flexDirection="row" columnGap={SPACE.switchGrid} flexShrink={1} minWidth={0}>
         {toggle !== undefined && <ToggleMark ui={ui} tone={tone} toggle={toggle} />}
         <Box flexDirection="column" rowGap={SPACE.rowTextGap} flexShrink={1} minWidth={0}>
-          <Text bold dimColor={!isOn && toggle !== undefined}>
+          <Text
+            bold
+            {...(Svg ? inkOf(ui, tone, 'ink') : { dimColor: !isOn && toggle !== undefined })}
+          >
             {title}
           </Text>
           <Text wrap="wrap" {...inkOf(ui, tone, 'text2')}>

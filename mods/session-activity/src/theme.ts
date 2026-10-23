@@ -432,6 +432,7 @@ export const SPACE = {
   sectionGap: 'sm',
   previewGap: 'sm',
   segmentsHeadGap: 'md',
+  segmentTrack: 'xs',
   promptPadX: 'md',
   previewPad: 'lg',
   previewInnerGap: 'sm',

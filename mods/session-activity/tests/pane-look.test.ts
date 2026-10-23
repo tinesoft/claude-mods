@@ -1,11 +1,13 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
+import { across } from '../src/theme'
 import { hoversOf, mountPane, session, stubEngine, SURFACES } from './harness'
 
 const PAINT = {
   light: {
     skill: { fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7' },
     fill: '#F0F1F4',
+    fill2: '#E8EAEE',
     surface: '#FFFFFF',
     ink: '#17181C',
     text2: '#3B3F48',
@@ -16,6 +18,7 @@ const PAINT = {
   dark: {
     skill: { fg: '#8FB0FF', bg: '#1B2A4A', bd: '#2D4373' },
     fill: '#2A2C31',
+    fill2: '#2E3036',
     surface: '#1B1D21',
     ink: '#ECEDEF',
     text2: '#B4B8C1',
@@ -64,8 +67,14 @@ for (const surface of SURFACES) {
       if (rich) {
         expect(filterBoxes.map(b => b.props.backgroundColor)).toEqual([
           t.surface,
-          ...filterBoxes.slice(1).map(() => t.fill),
+          ...filterBoxes.slice(1).map(() => undefined),
         ])
+        const track = boxes.find(
+          b => b.props.backgroundColor === t.fill2 && b.text.startsWith('All'),
+        )
+        expect(track?.props).toMatchObject(
+          surface === 'vscode' ? { paddingX: across('xs'), paddingY: 0 } : { padding: 'xs' },
+        )
         expect(texts.find(x => x.text === 'All')?.props).toMatchObject({ bold: true, color: t.ink })
         expect(texts.find(x => x.text === ' 2')?.props).toMatchObject({
           mono: true,

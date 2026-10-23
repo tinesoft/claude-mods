@@ -6,6 +6,7 @@ const SWITCH = {
   light: {
     on: '#17181C',
     off: '#B9BCC4',
+    ink: '#17181C',
     muted: '#5A5E68',
     text2: '#3B3F48',
     line: '#DADCE1',
@@ -14,6 +15,7 @@ const SWITCH = {
   dark: {
     on: '#5B7FE0',
     off: '#4A4E57',
+    ink: '#ECEDEF',
     muted: '#9499A3',
     text2: '#B4B8C1',
     line: '#34373E',
@@ -135,6 +137,20 @@ for (const surface of SURFACES) {
         } else {
           expect(text?.props.dimColor).toBe(true)
         }
+      }
+    })
+
+    test(`${tone} on ${surface}: a setting that is off keeps its title in ink above the text-2 line`, async ($, on) => {
+      session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      const pane = await mountPane($, surface, 160)
+      await pane.press({ key: 'tab-settings' })
+      const title = (await pane.findAll({ type: 'Text' })).find(x => x.text === 'Memory')
+      if (rich) {
+        expect(title?.props).toMatchObject({ bold: true, color: t.ink })
+        expect(title?.props.dimColor).toBeFalsy()
+      } else {
+        expect(title?.props.dimColor).toBe(true)
       }
     })
 
