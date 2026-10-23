@@ -65,7 +65,7 @@ for (const surface of SURFACES) {
           'Collapsed summary',
           'SHOWN BY DEFAULT',
           'OPTIONAL',
-          'Off by default · 0 of 7 on',
+          'Off by default · 0 of 8 on',
           'Chip theme',
           'Chip style',
           'Digit hotkeys on chips',
@@ -175,7 +175,7 @@ for (const surface of SURFACES) {
       await pane.press({ key: 'tab-settings' })
       expect(
         (await pane.findAll({ type: 'Box' })).filter(b => b.key?.startsWith('box-')).length,
-      ).toBe(6)
+      ).toBe(5)
       await pane.press({ key: 'layout-summary' })
       expect((await pane.findAll({ type: 'Button' })).some(b => b.key === 'summary-skill')).toBe(
         true,

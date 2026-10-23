@@ -79,7 +79,7 @@ button{font:inherit}
       <section style="display: flex; flex-direction: column; gap: 10px">
         <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500">Shown by default</h2>
         <ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
-          <sc-for list="{{core}}" as="t" hint-placeholder-count="6">
+          <sc-for list="{{core}}" as="t" hint-placeholder-count="5">
             <li style="display: flex; align-items: center; gap: 14px; padding: 8px 8px 8px 18px; border-top: {{t.divider}}">
               <span style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; display: inline-flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
               <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 6px 0">
@@ -97,12 +97,12 @@ button{font:inherit}
       <section style="display: flex; flex-direction: column; gap: 10px">
         <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
           <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500">Optional</h2>
-          <span style="font-size: 13px; color: var(--text-2)">Off by default · {{optOnCount}} of 7 on</span>
+          <span style="font-size: 13px; color: var(--text-2)">Off by default · {{optOnCount}} of 8 on</span>
         </div>
         <ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
-          <sc-for list="{{optional}}" as="t" hint-placeholder-count="7">
+          <sc-for list="{{optional}}" as="t" hint-placeholder-count="8">
             <li style="display: flex; align-items: center; gap: 14px; padding: 8px 8px 8px 18px; border-top: {{t.divider}}">
-              <span style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--fill); color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
+              <span style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; display: inline-flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
               <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 6px 0">
                 <span style="font-size: 14.5px; font-weight: 600">{{t.label}}</span>
                 <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">{{t.desc}}</span>
@@ -131,11 +131,11 @@ class Component extends DCLogic {
       { id: 'skill', label: 'Skills', desc: 'SKILL.md files Claude loaded because your request matched them.', example: 'docx', fg: 'var(--skill-fg)', bg: 'var(--skill-bg)', bd: 'var(--skill-bd)', icon: 'M8 2L14 5 8 8 2 5zM2 8l6 3 6-3M2 11l6 3 6-3' },
       { id: 'agent', label: 'Agents', desc: 'Subagents Claude handed work to, built-in or from .claude/agents.', example: 'code-reviewer', fg: 'var(--agent-fg)', bg: 'var(--agent-bg)', bd: 'var(--agent-bd)', icon: 'M4.5 5h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 2.5V5M6 8.5v1M10 8.5v1' },
       { id: 'mcp', label: 'MCP servers', desc: 'Servers whose tools were called, with a count and any auth failures.', example: 'github ×3', fg: 'var(--mcp-fg)', bg: 'var(--mcp-bg)', bd: 'var(--mcp-bd)', icon: 'M6 1.5v3M10 1.5v3M4 4.5h8v3a4 4 0 0 1-8 0zM8 11.5v3' },
-      { id: 'perm', label: 'Permissions', desc: 'Actions you approved, auto-allowed by a rule, or denied.', example: 'Allowed: git push', fg: 'var(--perm-fg)', bg: 'var(--perm-bg)', bd: 'var(--perm-bd)', icon: 'M8.5 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM7.6 8.4l5.9-5.9M11 5l1.5 1.5M12.5 3.5L14 5' },
       { id: 'hook', label: 'Hooks', desc: 'Commands from settings that ran on events like PreToolUse or Stop.', example: 'lint-staged ×4', fg: 'var(--hook-fg)', bg: 'var(--hook-bg)', bd: 'var(--hook-bd)', icon: 'M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z' },
       { id: 'rule', label: 'Rules', desc: 'Lines from CLAUDE.md or .claude/rules that shaped an action.', example: 'Use pnpm, not npm', fg: 'var(--ink-2)', bg: 'var(--surface)', bd: 'var(--line-strong)', icon: 'M8 1.8l5 2v4c0 3-2.2 5.2-5 6.4-2.8-1.2-5-3.4-5-6.4v-4z' }
     ];
     var OPT = [
+      { id: 'perm', label: 'Permissions', desc: 'Actions you approved, auto-allowed by a rule, or denied.', example: 'Allowed: git push', fg: 'var(--perm-fg)', bg: 'var(--perm-bg)', bd: 'var(--perm-bd)', icon: 'M8.5 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM7.6 8.4l5.9-5.9M11 5l1.5 1.5M12.5 3.5L14 5' },
       { id: 'cmd', label: 'Slash commands', desc: 'Custom commands from .claude/commands that ran.', example: '/release-notes', icon: 'M5.5 13.5l5-11' },
       { id: 'mem', label: 'Memory', desc: 'When Claude reads or writes a memory, so you can see what it learned.', example: 'Remembered: prefers pnpm', icon: 'M4.5 2h7v12L8 11.5 4.5 14z' },
       { id: 'plugin', label: 'Plugins', desc: 'Tags each chip with the plugin that supplied it.', example: 'via acme-devtools', icon: 'M2.5 5.5L8 2.5l5.5 3v5L8 13.5l-5.5-3zM2.5 5.5L8 8.5l5.5-3M8 8.5v5' },
@@ -144,7 +144,7 @@ class Component extends DCLogic {
       { id: 'style', label: 'Output style and model', desc: 'A quiet chip when the style or model changes mid-session.', example: 'Style: Explanatory', icon: 'M2.5 4.5h11M2.5 11.5h11M10 3v3M6 10v3' },
       { id: 'bg', label: 'Background tasks', desc: 'Long-running shells or dev servers still alive; stop them from the chip.', example: 'pnpm dev · running', icon: 'M2.5 3.5h11v9h-11zM5 7l2 1.5L5 10M8.5 10.5h2.5' }
     ];
-    var DEFAULTS = { skill: true, agent: true, mcp: true, perm: true, hook: true, rule: true };
+    var DEFAULTS = { skill: true, agent: true, mcp: true, hook: true, rule: true };
     var st = this.state || {};
     var on = st.on || DEFAULTS;
     var master = st.master !== undefined ? st.master : true;
@@ -154,7 +154,7 @@ class Component extends DCLogic {
       return list.map(function (t, i) {
         var isOn = !!on[t.id];
         var s = sw(isOn);
-        return { label: t.label, desc: t.desc, icon: t.icon, fg: t.fg, bg: t.bg, bd: t.bd,
+        return { label: t.label, desc: t.desc, icon: t.icon, fg: t.fg || 'var(--ink-2)', bg: t.bg || 'var(--fill)', bd: t.bd || 'var(--line)',
           divider: i === 0 ? '0' : '1px solid var(--line-soft)', aria: s.aria, track: s.track, knob: s.knob,
           switchLabel: 'Show ' + t.label + ' chips',
           toggle: function () { var n = Object.assign({}, on); n[t.id] = !isOn; self.setState({ on: n }); } };
@@ -162,7 +162,7 @@ class Component extends DCLogic {
     }
     var preview = [];
     CORE.forEach(function (t) { if (on[t.id]) preview.push({ example: t.example, icon: t.icon, fg: t.fg, bg: t.bg, bd: t.bd }); });
-    OPT.forEach(function (t) { if (on[t.id]) preview.push({ example: t.example, icon: t.icon, fg: 'var(--ink-2)', bg: 'var(--fill)', bd: 'var(--line)' }); });
+    OPT.forEach(function (t) { if (on[t.id]) preview.push({ example: t.example, icon: t.icon, fg: t.fg || 'var(--ink-2)', bg: t.bg || 'var(--fill)', bd: t.bd || 'var(--line)' }); });
     var optOn = OPT.filter(function (t) { return on[t.id]; }).length;
     var m = sw(master);
     return { theme: this.props.theme ?? 'auto',

@@ -227,7 +227,7 @@ test(
 
 test(
   'untinted skill and permission chips take theme keys of different hues, blue and cyan',
-  { options: { chip_style: 'text' } },
+  { options: { chip_style: 'text', show_permissions: true } },
   async ($, on) => {
     const clock = session(on)
     stubEngine(on, { verdict: { decision: 'allow', rule: 'Bash(git push:*)' } })

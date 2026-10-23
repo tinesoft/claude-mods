@@ -60,14 +60,14 @@ Default-on types, in band order after status sorting:
 | Skill | stacked layers | `▤` | blue | `#1F4FC1` / `#EDF2FD` / `#C9D7F7` |
 | Agent | robot head | `◉` | magenta | `#5B3A99` / `#F3EEFB` / `#D9CCF0` |
 | MCP server | plug | `⇌` | magenta (dim) | `#9C1F62` / `#FCEEF5` / `#F0C8DC` |
-| Permission | key | `⚷` | cyan | `#0E6159` / `#E8F5F2` / `#BCE0D8` |
 | Hook | bolt | `↯` | yellow | `#9A4A0B` / `#FDF1E6` / `#F0CFAE` |
 | Rule | shield | `▣` | default text | `#2A2D35` / `#FFFFFF` / `#CFD2D8` |
 
-Optional types (off by default, opt-in in settings) are neutral: `ink-2` on `fill`, border `line`:
+Optional types (off by default, opt-in in settings). Permission keeps its cyan colours, since a denied call shows even while the type is off; the rest are neutral: `ink-2` on `fill`, border `line`:
 
 | Type | Glyph | Example label |
 | --- | --- | --- |
+| Permission | `⚷` | `Allowed: git push` (cyan: `#0E6159` / `#E8F5F2` / `#BCE0D8`) |
 | Slash command | `/` | `/release-notes` |
 | Memory | `✎` | `Remembered: prefers pnpm` |
 | Plugin | `⬡` | `via acme-devtools` (a tag on other chips) |
@@ -123,7 +123,7 @@ running, ok or blocked. The Error look still draws for MCP errors and failed age
 - Opened by `+N more`, `/session-activity` (`immediate: true`), or a chip press when the band is too short for the detail card. On VS Code and mobile, which have no band, `/session-activity` is the way in.
 - On mobile the header starts with the `N active` chip, plus a `danger` `●` when anything is blocked, denied or errored. It never adds `+N more`.
 - Tab `1: Activity`: header `Session activity` and `N items · M activations · started X ago · Customize`; filters `a: All`, `s: Skills`, `g: Agents`, `p: MCP`, `k: Permissions`, `h: Hooks`, `r: Rules` with counts; rows grouped by type showing an icon tile, name, meta, status badge, a why line, `×count · last` and a `Mute` / `Unmute` button (stopped and errored rows always show, so they carry a note instead). The selected row also expands to the source path and `c: Copy path`.
-- Tab `2: Settings`: title and intro, master toggle, live preview with layout buttons (chip row / collapsed summary), one switch per type in "Shown by default" and "Optional · Off by default · N of 7 on", chip theme (auto / light / dark), chip style (tinted / text), digit hotkeys on chips (off), toast when blocked or denied (on), text summary after each answer (off), `Reset to defaults`, `Turn everything on`. Saved per user in `$.store`.
+- Tab `2: Settings`: title and intro, master toggle, live preview with layout buttons (chip row / collapsed summary), one switch per type in "Shown by default" and "Optional · Off by default · N of 8 on", chip theme (auto / light / dark), chip style (tinted / text), digit hotkeys on chips (off), toast when blocked or denied (on), text summary after each answer (off), `Reset to defaults`, `Turn everything on`. Saved per user in `$.store`.
 
 ## Spacing
 

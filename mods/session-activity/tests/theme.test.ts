@@ -62,13 +62,13 @@ test('the tokens carry the design values in both tones', () => {
   expect(TOKENS.dark.countBg).toEqual({ base: '#FFFFFF', alpha: 0.1 })
 })
 
-test('each kind paints from the design tokens; rules and optional types use the neutral ones', () => {
+test('each kind paints from the design tokens; rules and optional types but permissions use the neutral ones', () => {
   expect(TOGGLES.skill.palette.light).toEqual({ fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7' })
   expect(TOGGLES.hook.palette.dark).toEqual({ fg: '#F5B47A', bg: '#3D2614', bd: '#643F20' })
   for (const tone of ['light', 'dark'] as const) {
     const t = TOKENS[tone]
     expect(TOGGLES.rule.palette[tone]).toEqual({ fg: t.ink2, bg: t.surface, bd: t.lineStrong })
-    for (const toggle of TOGGLE_ORDER.filter(x => TOGGLES[x].optional)) {
+    for (const toggle of TOGGLE_ORDER.filter(x => TOGGLES[x].optional && x !== 'perm')) {
       expect(TOGGLES[toggle].palette[tone]).toEqual({ fg: t.ink2, bg: t.fill, bd: t.line })
     }
   }

@@ -47,8 +47,8 @@
     "show_permissions": {
       "type": "boolean",
       "title": "Permissions",
-      "description": "Auto-allowed, asked and denied tool calls",
-      "default": true
+      "description": "Optional: auto-allowed and asked tool calls; denied ones always show",
+      "default": false
     },
     "show_hooks": {
       "type": "boolean",

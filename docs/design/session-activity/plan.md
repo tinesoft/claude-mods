@@ -181,7 +181,7 @@ The mod is a plugin with three required files plus a types file for `$.state`. S
     "show_skills":      { "type": "boolean", "title": "Skills", "description": "Skills Claude loaded", "default": true },
     "show_agents":      { "type": "boolean", "title": "Agents", "description": "Subagents Claude started", "default": true },
     "show_mcp":         { "type": "boolean", "title": "MCP servers", "description": "MCP servers whose tools were called", "default": true },
-    "show_permissions": { "type": "boolean", "title": "Permissions", "description": "Auto-allowed, asked and denied tool calls", "default": true },
+    "show_permissions": { "type": "boolean", "title": "Permissions", "description": "Optional: auto-allowed and asked tool calls; denied ones always show", "default": false },
     "show_hooks":       { "type": "boolean", "title": "Hooks", "description": "Settings hooks that ran", "default": true },
     "show_rules":       { "type": "boolean", "title": "Rules", "description": "CLAUDE.md and .claude/rules files loaded", "default": true },
     "show_commands":    { "type": "boolean", "title": "Slash commands", "description": "Optional", "default": false },
@@ -342,7 +342,7 @@ Untinted chips (`chip_style: text`, or an ansi theme in the terminal) keep the t
 | Title and intro | Bold `Session activity chips`, then the board's paragraph | Exact |
 | Master switch | Label and description on the left, switch on the right | Exact |
 | Live preview + layout segmented control | The real band renderer drawn inside the tab, with `Chip row` / `Collapsed summary` segments; when chips are off, `Chips are hidden. Activity is still listed in the session tray.` | Exact |
-| "Shown by default" and "Optional · N of 7 on" | Two groups; each row an icon tile (a tinted glyph in the terminal), label, description and a switch on the right. `Optional` has `Off by default · N of 7 on` beside it | Exact |
+| "Shown by default" and "Optional · N of 8 on" | Two groups; each row an icon tile (a tinted glyph in the terminal), label, description and a switch on the right. `Optional` has `Off by default · N of 8 on` beside it; Permissions is the first optional row | Exact |
 | Switch | Terminal: `●` / `○` button. Rich: an `Svg` switch with the `switch-on` / `switch-off` tokens (neutral, not the kind colour), and an `On` / `Off` button beside it, because a `Button` cannot hold an `Svg` | Close |
 | Reset to defaults, Turn everything on | Buttons | Exact |
 | `line-soft` dividers between list rows | None | Documented deviation: `Box` has no single-side border |
@@ -419,10 +419,10 @@ Every artboard defines one token set on `.sa` (light) and `.sa[data-theme="dark"
 | Skill | `▤` | `#1F4FC1` / `#EDF2FD` / `#C9D7F7` | `#8FB0FF` / `#1B2A4A` / `#2D4373` | blue |
 | Agent | `◉` | `#5B3A99` / `#F3EEFB` / `#D9CCF0` | `#C3A8F5` / `#2C2147` / `#463470` | magenta |
 | MCP | `⇌` | `#9C1F62` / `#FCEEF5` / `#F0C8DC` | `#F29BC8` / `#3D1A2D` / `#63304A` | magenta |
-| Permission | `⚷` | `#0E6159` / `#E8F5F2` / `#BCE0D8` | `#7FD6C8` / `#123A35` / `#22594F` | cyan |
+| Permission (optional) | `⚷` | `#0E6159` / `#E8F5F2` / `#BCE0D8` | `#7FD6C8` / `#123A35` / `#22594F` | cyan |
 | Hook | `↯` | `#9A4A0B` / `#FDF1E6` / `#F0CFAE` | `#F5B47A` / `#3D2614` / `#643F20` | yellow |
 | Rule | `▣` | `ink-2` / `surface` / `line-strong` | same tokens | default |
-| Optional | `/ ✎ ⬡ ◔ ⚑ ≡ ▶` | `ink-2` / `fill` / `line` | same tokens | dim |
+| Other optional | `/ ✎ ⬡ ◔ ⚑ ≡ ▶` | `ink-2` / `fill` / `line` | same tokens | dim |
 
 Every glyph must be one cell wide. `↯` replaces `⚡` for hooks; `⚷` is checked in M3 and swapped for `⌐` if it renders two cells wide.
 
@@ -573,7 +573,7 @@ Not yet observed on a live client: desktop button chrome inside a chip, desktop 
 
 **M4 · Optional types**
 
-- [ ] Slash commands, plugins tag, context, model switches, background tasks, all off by default
+- [ ] Permissions, slash commands, plugins tag, context, model switches, background tasks, all off by default (denied permissions still show)
 - [ ] Memory and checkpoints only if M1 found a signal; otherwise listed in the README as not yet supported
 
 **M5 · Release**

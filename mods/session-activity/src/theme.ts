@@ -178,7 +178,7 @@ export const TOGGLES: Record<Toggle, ToggleTheme> = {
     example: 'git push',
     glyph: '⚷',
     hotkey: 'k',
-    optional: false,
+    optional: true,
     showsTally: true,
     dim: false,
     palette: {
