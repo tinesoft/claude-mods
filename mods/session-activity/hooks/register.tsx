@@ -124,6 +124,7 @@ async function commit(
 ) {
   await update($, activations, change)
   await refresh($, options)
+  await scheduleFade($, options)
 }
 
 /** One timer redraws as the next fresh dots fade, instead of one per activation. */
@@ -159,7 +160,6 @@ async function observe(
   if (seen === undefined) return
   const at = await $.clock.now()
   await commit($, options, list => record(list, seen, at, { isSettling }))
-  await scheduleFade($, options)
   await notify($, options, seen)
 }
 

@@ -329,6 +329,35 @@ test('a running agent cycles its glyph on the clock, and the timer stops when it
   expect(await glyph()).toBe('◉')
 })
 
+test('an agent that finishes redraws the band when its fresh dot fades', async ($, on) => {
+  const clock = session(on)
+  const engine = stubEngine(on)
+  await $.agent.spawn({
+    tool_use_id: 'tu',
+    prompt: 'p',
+    description: 'pr',
+    subagentType: 'Explore',
+    provider: { plugin: 'engine', tier: 'core' },
+    parentModel: 'opus',
+    background: false,
+    fork: false,
+  } as never)
+  await clock.advance(FRESH)
+  await $.turn.complete({
+    answer: 'ok',
+    durationMs: 1,
+    isAborted: false,
+    turnId: 't',
+    agentId: 'agent-pr',
+    reason: 'answer',
+  })
+  expect((await row($, 100)).boxes[0]!.text).toContain('●')
+  const after = engine.invalidations()
+  await clock.advance(FRESH)
+  expect(engine.invalidations() - after).toBe(1)
+  expect((await row($, 100)).boxes[0]!.text).not.toContain('●')
+})
+
 const askBash = ($: Engine) =>
   $.tool.check({ tool: 'Bash', command: 'sleep 10', tool_use_id: 'asked' } as never)
 

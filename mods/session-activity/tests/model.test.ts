@@ -150,11 +150,12 @@ test('the list cap drops the oldest quiet chip, never a stopped one', () => {
   expect(list.some(a => a.key === 's0')).toBe(false)
 })
 
-test('dots that fade within a second share one redraw; a later one gets its own', () => {
+test('each fresh dot asks for a redraw the moment it fades', () => {
   const settings = resolveSettings({}, undefined)
   const at = (key: string, t: number) => record([], { ...skill, key }, t)[0]!
   const list = [at('a', 0), at('b', 600), at('c', 3000)]
-  expect(nextFadeAt(list, settings, 0)).toBe(4600)
+  expect(nextFadeAt(list, settings, 0)).toBe(4000)
+  expect(nextFadeAt(list, settings, 4000)).toBe(4600)
   expect(nextFadeAt(list, settings, 4600)).toBe(7000)
   expect(nextFadeAt(list, settings, 7000)).toBeUndefined()
 })
