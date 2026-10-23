@@ -92,3 +92,19 @@ test('the appearance is read again every minute and redraws on change', async ($
   await clock.advance(60_000)
   expect(await skillBg($)).toBe(LIGHT_SKILL)
 })
+
+test('a drawn band is told to redraw when the appearance changes, and only then', async ($, on) => {
+  const clock = session(on, {}, new Map(), 'auto')
+  const engine = stubEngine(on)
+  const answers = probes(on, { system: { defaults: { exitCode: 0, stdout: 'Dark' } } })
+  await $.session.start({ cwd: '/repo', surface: 'desktop' } as never)
+  await clock.advance(0)
+  await load($)
+  await clock.advance(5_000)
+  const settled = engine.invalidations()
+  await clock.advance(60_000)
+  expect(engine.invalidations()).toBe(settled)
+  answers.system = { defaults: { exitCode: 1, stdout: '' } }
+  await clock.advance(60_000)
+  expect(engine.invalidations()).toBe(settled + 1)
+})

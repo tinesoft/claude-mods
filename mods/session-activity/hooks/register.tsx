@@ -85,9 +85,13 @@ async function refreshAppearance($: EngineInterface) {
     system: await probeSystem($),
     colorFgBg: parseColorFgBg(await $.env.get('COLORFGBG')) ?? null,
   }
-  await update($, appearance, old =>
-    old.system === current.system && old.colorFgBg === current.colorFgBg ? old : current,
-  )
+  let changed = false
+  await update($, appearance, old => {
+    changed = old.system !== current.system || old.colorFgBg !== current.colorFgBg
+    return changed ? current : old
+  })
+  // A write from the timer leaves the band and pane drawn in the old tone on Desktop.
+  if (changed) $.ui.invalidate('ui.render')
 }
 
 /** Reads the system appearance off the render path, now and every minute. */
