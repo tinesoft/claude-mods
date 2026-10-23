@@ -418,14 +418,17 @@ const Detail = ({ ui, tone, now, activations, selected, muted, on }: PaneArgs) =
   )
 }
 
-/** The mark beside a setting: a rounded tile holding the icon on rich surfaces, a tinted glyph in the terminal. */
+/** The mark beside a setting: a square rounded tile holding the icon on rich surfaces, a tinted glyph in the terminal. */
 const ToggleMark = ({ ui, tone, toggle }: { ui: Ui; tone: Tone | undefined; toggle: Toggle }) => {
   const { Box, Text } = ui
   const look = lookOf(toggle, tone)
   if (isRich(ui)) {
     return (
       <Box
-        paddingX={SPACE.tilePadX}
+        key={`mark-${toggle}`}
+        alignSelf="center"
+        flexShrink={0}
+        padding={SPACE.tilePadX}
         {...withTint(look.tint)}
         {...(tone !== undefined && { borderStyle: 'round', borderColor: look.border })}
       >

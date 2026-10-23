@@ -138,6 +138,26 @@ for (const surface of SURFACES) {
       }
     })
 
+    test(`${tone} on ${surface}: each type's mark is a square tile centred in its row`, async ($, on) => {
+      session(on, {}, new Map(), tone, [surface])
+      stubEngine(on)
+      const pane = await mountPane($, surface, 160)
+      await pane.press({ key: 'tab-settings' })
+      const marks = (await pane.findAll({ type: 'Box' })).filter(b => b.key?.startsWith('mark-'))
+      if (!rich) {
+        expect(marks).toEqual([])
+        return
+      }
+      expect(marks.length).toBe(13)
+      for (const mark of marks) {
+        expect([mark.props.alignSelf, mark.props.flexShrink]).toEqual(['center', 0])
+        // VS Code lays out in cells, so it resolves the step to a column and no row.
+        if (surface === 'vscode') continue
+        expect(mark.props.padding).toBe('sm')
+        expect([mark.props.paddingX, mark.props.paddingY]).toEqual([undefined, undefined])
+      }
+    })
+
     test(`${tone} on ${surface}: the master switch, the preview and each type list sit on cards`, async ($, on) => {
       session(on, {}, new Map(), tone, [surface])
       stubEngine(on)
