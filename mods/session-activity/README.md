@@ -25,6 +25,18 @@ A Claude Code mod that shows what took part in your session. A row of chips abov
 
 ---
 
+## 📸 Screenshots
+
+### Terminal
+
+![session-activity in the terminal: chips arrive as Claude works, a blocked hook's card and an agent's card open above the row, the gear opens the settings and /session-activity the full pane](../../assets/screenshots/session-activity.gif)
+
+### Claude Desktop app
+
+![session-activity in the Claude Desktop app: the same chips with icons and rounded borders, a blocked hook's card above the row, then the activity and settings pane beside the transcript](../../assets/screenshots/session-activity-desktop.gif)
+
+---
+
 ## ✨ Features
 
 - 🧩 **One chip per participant** — skills, subagents, MCP servers, permission decisions, settings hooks and rule files, each with its own glyph
