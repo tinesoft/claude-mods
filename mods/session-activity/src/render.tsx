@@ -1,4 +1,4 @@
-import type { Color, ElementTable, RenderElement, RenderSurface } from 'claude-code'
+import type { Color, ElementTable, RenderElement, RenderSurface, Space } from 'claude-code'
 
 import type { Activation, Kind, Settings, Status } from '../types'
 import { dotSvg, errorSvg, hexOr, iconSvg, OFF_TRACK, spinnerSvg, stoppedSvg } from './icons'
@@ -565,6 +565,63 @@ export const cardRows = (a: Activation, columns: number, density: CardDensity) =
   return 2 + 2 * down(space.padY) + content + (parts - 1) * down(space.gap)
 }
 
+/**
+ * Points the card takes on desktop, measured off the Desktop app: there the band shows
+ * `maxRows` lines of the code font whole and scrolls anything taller, so the card must fit.
+ */
+const DESKTOP_PT = {
+  /** A band line: a 248 pt band of 12 showed whole. */
+  line: 20.5,
+  step: { xs: 6, sm: 9, md: 12, lg: 16, xl: 24 },
+  border: 2,
+  header: 36,
+  whyLine: 20,
+  /** The why line's proportional font fits about 1.25 characters per code-font cell. */
+  whyPerCell: 1.2,
+  tiles: 48,
+  source: 16,
+  actions: 20,
+  /** The engine's padding around the band, and the bordered chip row. */
+  band: 13,
+  chipRow: 36,
+} as const
+
+const points = (space: Space) => (typeof space === 'number' ? space : DESKTOP_PT.step[space])
+
+export const cardPoints = (
+  a: Activation,
+  columns: number,
+  density: CardDensity,
+  isWhyBrief = false,
+) => {
+  const space = CARD_SPACE[density]
+  const inner = Math.max(10, columns - 2 * across(space.padX))
+  const perLine = inner * DESKTOP_PT.whyPerCell
+  const whyLines = isWhyBrief ? 1 : Math.max(1, Math.ceil(a.detail.length / perLine))
+  const why = whyLines * DESKTOP_PT.whyLine
+  const lines =
+    (a.source !== undefined ? DESKTOP_PT.source : 0) + (hasActions(a) ? DESKTOP_PT.actions : 0)
+  const parts = 3 + [a.source !== undefined, hasActions(a)].filter(Boolean).length
+  const content = DESKTOP_PT.header + why + DESKTOP_PT.tiles + lines
+  return DESKTOP_PT.border + 2 * points(space.padY) + content + (parts - 1) * points(space.gap)
+}
+
+const fitsDesktop = (
+  a: Activation,
+  columns: number,
+  density: CardDensity,
+  maxRows: number,
+  isWhyBrief = false,
+) =>
+  maxRows * DESKTOP_PT.line >=
+  DESKTOP_PT.band +
+    DESKTOP_PT.chipRow +
+    points(SPACE.cardAbove) +
+    cardPoints(a, columns, density, isWhyBrief)
+
+/** How the card fits the band: its density, and whether its why line keeps to one line. */
+type CardFit = { density: CardDensity; isWhyBrief: boolean }
+
 export type CardArgs = {
   ui: Ui
   tone: Tone | undefined
@@ -572,10 +629,24 @@ export type CardArgs = {
   a: Activation
   isMuted: boolean
   density: CardDensity
+  /** The band sizes the card by its lines, so there the head and the name keep to one each. */
+  isInBand?: boolean
+  /** On desktop, where even the compact card is too tall, the why line keeps to one line too. */
+  isWhyBrief?: boolean
   on: Pick<Actions, 'mute' | 'copy'> & { close?: () => void }
 }
 
-export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs) => {
+export const DetailCard = ({
+  ui,
+  tone,
+  now,
+  a,
+  isMuted,
+  density,
+  isInBand = false,
+  isWhyBrief = false,
+  on,
+}: CardArgs) => {
   const { Box, Button, Text } = ui
   const space = CARD_SPACE[density]
   const look = lookOf(a.kind, tone)
@@ -584,6 +655,7 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
   const status = STATUSES[a.status]
   const id = chipId(a)
   const surface = tone !== undefined && isRich(ui) ? TOKENS[tone].surface : undefined
+  const nameWrap = isInBand ? { wrap: 'truncate-end' as const } : {}
   return (
     <Box
       key="card"
@@ -598,25 +670,36 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
     >
       <Box flexDirection="column" rowGap={SPACE.cardLinesGap}>
         <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.cardHeadGap}>
-          <Text mono size="caption" color={color} dimColor={dim} {...withTint(surface)}>
-            {[theme.noun.toUpperCase(), a.meta].filter(Boolean).join(' · ')}
-          </Text>
+          <Box flexShrink={1} minWidth={0}>
+            <Text
+              mono
+              size="caption"
+              color={color}
+              dimColor={dim}
+              {...(isInBand && { wrap: 'truncate-end' as const })}
+              {...withTint(surface)}
+            >
+              {[theme.noun.toUpperCase(), a.meta].filter(Boolean).join(' · ')}
+            </Text>
+          </Box>
           {on.close && (
             <Button key="close" plain hotkey="x" label="Close" onPress={() => on.close?.()} />
           )}
         </Box>
         {isRich(ui) ? (
-          <Box flexDirection="row" columnGap={SPACE.cardHeadGap}>
+          <Box flexDirection="row" columnGap={SPACE.cardHeadGap} minWidth={0}>
             {kindIcon(ui, a.kind, look)}
-            <Text bold size="heading" {...inkOf(ui, tone, 'ink', surface)}>
+            <Text bold size="heading" {...nameWrap} {...inkOf(ui, tone, 'ink', surface)}>
               {a.label}
             </Text>
           </Box>
         ) : (
-          <Text bold>{a.label}</Text>
+          <Text bold {...nameWrap}>
+            {a.label}
+          </Text>
         )}
       </Box>
-      <Text wrap="wrap" {...inkOf(ui, tone, 'ink2', surface)}>
+      <Text wrap={isWhyBrief ? 'truncate-end' : 'wrap'} {...inkOf(ui, tone, 'ink2', surface)}>
         {a.detail}
       </Text>
       <Box flexDirection="row" columnGap={SPACE.tilesGap}>
@@ -680,21 +763,26 @@ export const renderBand = (args: BandArgs) => {
   const { ui, columns, maxRows, now, tone, chips, settings, selected, below, on } = args
   const { Box } = ui
   const chipRowRows = isPill(ui, tone) ? 3 : 1
-  // A rich surface lays the band out in pixels and grows it to fit, whatever its `maxRows` says.
-  const densityOf = (a: Activation) =>
-    CARD_DENSITIES.find(
-      density =>
-        isRich(ui) ||
-        maxRows >=
+  const fitOf = (a: Activation): CardFit | undefined => {
+    const density = CARD_DENSITIES.find(density =>
+      isRich(ui)
+        ? fitsDesktop(a, columns, density, maxRows)
+        : maxRows >=
           PROMPT_ROWS + chipRowRows + down(SPACE.cardAbove) + cardRows(a, columns, density),
     )
-  const fits = (a: Activation) => densityOf(a) !== undefined
+    if (density !== undefined) return { density, isWhyBrief: false }
+    // How a why line wraps on desktop is a guess, so one that may not fit keeps to one line.
+    return isRich(ui) && fitsDesktop(a, columns, 'compact', maxRows, true)
+      ? { density: 'compact', isWhyBrief: true }
+      : undefined
+  }
+  const fits = (a: Activation) => fitOf(a) !== undefined
   const current = settings.layout === 'row' ? chips.find(a => chipId(a) === selected) : undefined
-  const density = current && densityOf(current)
+  const fit = current && fitOf(current)
   return (
     <Box flexDirection="column">
       {below}
-      {current && density && (
+      {current && fit && (
         <Box key="card-slot" flexDirection="column" marginBottom={SPACE.cardAbove}>
           <DetailCard
             ui={ui}
@@ -702,7 +790,9 @@ export const renderBand = (args: BandArgs) => {
             now={now}
             a={current}
             isMuted={false}
-            density={density}
+            density={fit.density}
+            isWhyBrief={fit.isWhyBrief}
+            isInBand
             on={{ mute: on.mute, copy: on.copy, close: on.close }}
           />
         </Box>

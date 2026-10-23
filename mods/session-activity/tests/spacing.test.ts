@@ -173,30 +173,35 @@ const cardAt = async ($: Engine, on: On, surface: BandSurface) => {
     if (card !== undefined) await band.press({ key: 'close' })
     await band.unmount()
     if (card === undefined) return opens.length === 1 ? 'pane' : 'none'
-    return card.props.rowGap === 0 ? 'compact' : 'roomy'
+    return card.props.rowGap === CARD_SPACE.compact.gap ? 'compact' : 'roomy'
   }
 }
 
-test('on terminal the card is roomy where the band has the rows, compact where it is short, and the pane only below that', async ($, on) => {
-  const probe = await cardAt($, on, 'terminal')
+for (const surface of BAND_SURFACES) {
+  test(`on ${surface} the card is roomy where the band has the rows, compact where it is short, and the pane only below that`, async ($, on) => {
+    const probe = await cardAt($, on, surface)
 
-  const seen: string[] = []
-  for (let rows = 0; rows <= 40; rows++) seen.push(await probe(rows))
-  const first = (kind: string) => seen.indexOf(kind)
-  expect(seen.join()).not.toContain('none')
-  expect(first('compact')).toBeGreaterThan(0)
-  expect(first('roomy')).toBeGreaterThan(first('compact'))
-  expect(seen.slice(0, first('compact')).every(kind => kind === 'pane')).toBe(true)
-  expect(seen.slice(first('compact'), first('roomy')).every(kind => kind === 'compact')).toBe(true)
-  expect(seen.slice(first('roomy')).every(kind => kind === 'roomy')).toBe(true)
-})
+    const seen: string[] = []
+    for (let rows = 0; rows <= 40; rows++) seen.push(await probe(rows))
+    const first = (kind: string) => seen.indexOf(kind)
+    expect(seen.join()).not.toContain('none')
+    expect(first('compact')).toBeGreaterThan(0)
+    expect(first('roomy')).toBeGreaterThan(first('compact'))
+    expect(seen.slice(0, first('compact')).every(kind => kind === 'pane')).toBe(true)
+    expect(seen.slice(first('compact'), first('roomy')).every(kind => kind === 'compact')).toBe(
+      true,
+    )
+    expect(seen.slice(first('roomy')).every(kind => kind === 'roomy')).toBe(true)
+  })
+}
 
-test('on desktop the card is always roomy in the band, however few rows the band reports', async ($, on) => {
+test('on desktop the 12 rows the band reports hold the compact card, and more rows the roomy one', async ($, on) => {
   const probe = await cardAt($, on, 'desktop')
-  for (let rows = 0; rows <= 40; rows += 4) expect(await probe(rows)).toBe('roomy')
+  expect(await probe(12)).toBe('compact')
+  expect(await probe(40)).toBe('roomy')
 })
 
-test('the compact card keeps the horizontal padding and drops the vertical padding and the gaps', async ($, on) => {
+test('the compact card keeps the horizontal padding and shrinks the vertical padding and the gaps to xs', async ($, on) => {
   const clock = session(on)
   stubEngine(on)
   await load($)
@@ -211,6 +216,6 @@ test('the compact card keeps the horizontal padding and drops the vertical paddi
   }
   let rows = 0
   while ((await props(rows)) === undefined) rows++
-  expect(await props(rows)).toMatchObject({ paddingX: 'lg', paddingY: 0, rowGap: 0 })
+  expect(await props(rows)).toMatchObject({ paddingX: 'lg', paddingY: 'xs', rowGap: 'xs' })
   expect(await props(40)).toMatchObject({ paddingX: 'lg', paddingY: 'lg', rowGap: 'md' })
 })

@@ -451,7 +451,8 @@ export const CARD_DENSITIES = ['roomy', 'compact'] as const satisfies readonly C
 
 export const CARD_SPACE = {
   roomy: { padX: 'lg', padY: 'lg', gap: 'md' },
-  compact: { padX: 'lg', padY: 0, gap: 0 },
+  // `xs` is no row on the terminal, and a little air on desktop.
+  compact: { padX: 'lg', padY: 'xs', gap: 'xs' },
 } as const satisfies Record<CardDensity, { padX: Space; padY: Space; gap: Space }>
 
 const ACROSS = { xs: 1, sm: 1, md: 2, lg: 3, xl: 4 } as const
