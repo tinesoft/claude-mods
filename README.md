@@ -4,16 +4,10 @@ Claude Code mods by [tinesoft](https://github.com/tinesoft), published as one pl
 
 ## Install
 
-Add the marketplace from the `main` branch, which holds released code only. Without `@main` you track `develop`, which is unreleased.
+Install a mod from the `main` branch, which holds released code only. Without `@main` you track `develop`, which is unreleased.
 
 ```sh
-claude plugin marketplace add tinesoft/claude-mods@main
-```
-
-Then install a mod from inside Claude Code:
-
-```text
-/plugin install <mod-name>@tinesoft-mods
+claude plugin install <mod-name> --marketplace tinesoft/claude-mods@main
 ```
 
 > `<mod-name>` = Name of the Mod to install (see below)

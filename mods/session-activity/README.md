@@ -42,26 +42,19 @@ A Claude Code mod that shows what took part in your session. A row of chips abov
 
 Requires Claude Code 2.1.299 or later. On an older version the mod draws nothing and says to run `claude update`. Tested with 2.1.302.
 
-Add the marketplace from `main`, which holds released code only:
+Install the mod from `main`, which holds released code only:
 
 ```sh
-claude plugin marketplace add tinesoft/claude-mods@main
-```
-
-Then install the mod from inside Claude Code:
-
-```text
-/plugin install session-activity@tinesoft-mods
+claude plugin install session-activity --marketplace tinesoft/claude-mods@main
 ```
 
 <details>
 <summary><strong>claude.ai/code cloud sessions</strong></summary>
 
-Cloud sessions do not install plugins from your settings. If your cloud environment's setup script can run these commands, the mod works there in text form:
+Cloud sessions do not install plugins from your settings. If your cloud environment's setup script can run this command, the mod works there in text form:
 
 ```sh
-claude plugin marketplace add tinesoft/claude-mods@main
-claude plugin install session-activity@tinesoft-mods
+claude plugin install session-activity --marketplace tinesoft/claude-mods@main
 ```
 
 This is unverified until the cloud spike confirms that a setup script can install a plugin and that the text shows in the transcript.
