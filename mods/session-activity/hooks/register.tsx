@@ -23,6 +23,7 @@ import {
 import {
   bandCandidates,
   finishAgent,
+  inPane,
   record,
   resolveSettings,
   settleAsked,
@@ -105,7 +106,7 @@ async function refresh($: EngineInterface, options: Options) {
   const settings = await settingsOf($, options)
   const active = settings.enabled ? bandCandidates(list, settings, await read($, muted)).length : 0
   $.ui.status(active > 0 ? `${active} active · /session-activity` : undefined)
-  const isRunning = list.some(a => a.status === 'running')
+  const isRunning = list.some(a => a.status === 'running' && inPane(a, settings))
   if (isRunning && spinner === undefined) {
     spinner = $.clock.every(SPIN_MS, () => $.ui.invalidate('ui.render'))
   } else if (!isRunning && spinner !== undefined) {

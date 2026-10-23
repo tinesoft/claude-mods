@@ -329,6 +329,32 @@ test('a running agent cycles its glyph on the clock, and the timer stops when it
   expect(await glyph()).toBe('◉')
 })
 
+const askBash = ($: Engine) =>
+  $.tool.check({ tool: 'Bash', command: 'sleep 10', tool_use_id: 'asked' } as never)
+
+test('a running chip of a hidden type never redraws the band', async ($, on) => {
+  const clock = session(on)
+  const engine = stubEngine(on, { verdict: { decision: 'ask' } })
+  await askBash($)
+  const before = engine.invalidations()
+  await clock.advance(2000)
+  expect((await row($, 160, 'desktop')).boxes).toEqual([])
+  expect(engine.invalidations()).toBe(before)
+})
+
+test(
+  'a running chip of a shown type spins',
+  { options: { show_permissions: true } },
+  async ($, on) => {
+    const clock = session(on)
+    const engine = stubEngine(on, { verdict: { decision: 'ask' } })
+    await askBash($)
+    const before = engine.invalidations()
+    await clock.advance(2000)
+    expect(engine.invalidations() - before).toBeGreaterThanOrEqual(10)
+  },
+)
+
 const interrupt = async ($: Engine, clock: MockClock) => {
   await $.agent.spawn({
     tool_use_id: 'tu',
