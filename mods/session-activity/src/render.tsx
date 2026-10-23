@@ -44,6 +44,7 @@ const FRESH_DOT_PX = 7
 
 const LABEL_MAX = 24
 const MORE_RESERVE = 2
+const GEAR_RESERVE = 2
 const PROMPT_ROWS = 6
 
 export const clip = (text: string, max: number) =>
@@ -287,6 +288,7 @@ export const Badge = ({
 export type Actions = {
   pick: (id: string, fitsCard: boolean) => void
   open: () => void
+  settings: () => void
   close: () => void
   mute: (id: string) => void
   copy: (text: string) => void
@@ -481,7 +483,7 @@ export const ChipRow = (args: RowArgs) => {
   if (settings.layout === 'summary') return <Summary args={args} />
   const { shown, hidden, labelMax } = fitChips(
     chips,
-    columns - MORE_RESERVE,
+    columns - MORE_RESERVE - GEAR_RESERVE,
     settings,
     now,
     tone,
@@ -651,6 +653,23 @@ export const DetailCard = ({ ui, tone, now, a, isMuted, density, on }: CardArgs)
   )
 }
 
+const Gear = ({
+  ui,
+  tone,
+  on,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  on: Pick<Actions, 'settings'>
+}) => {
+  const { Button, Text } = ui
+  return (
+    <Button key="settings-gear" plain onPress={() => on.settings()}>
+      <Text {...(tone ? { color: TOKENS[tone].text2 } : { dimColor: true })}>{'\u2699'}</Text>
+    </Button>
+  )
+}
+
 export type BandArgs = Omit<RowArgs, 'fits' | 'on'> & {
   maxRows: number
   below: RenderElement
@@ -686,7 +705,15 @@ export const renderBand = (args: BandArgs) => {
           />
         </Box>
       )}
-      <ChipRow {...args} fits={fits} on={on} />
+      <Box
+        key="band-row"
+        flexDirection="row"
+        justifyContent="space-between"
+        columnGap={GEAR_RESERVE - 1}
+      >
+        <ChipRow {...args} fits={fits} on={on} />
+        <Gear ui={ui} tone={tone} on={on} />
+      </Box>
     </Box>
   )
 }

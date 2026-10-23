@@ -222,7 +222,12 @@ test('the layout buttons switch the band to one summary chip', async ($, on) => 
   await pane.press({ key: 'tab-settings' })
   await pane.press({ key: 'layout-summary' })
   const buttons = await (await mountBand($)).findAll({ type: 'Button' })
-  expect(buttons.map(b => b.key)).toEqual(['summary-skill', 'summary-mcp', 'summary-hook'])
+  expect(buttons.map(b => b.key)).toEqual([
+    'summary-skill',
+    'summary-mcp',
+    'summary-hook',
+    'settings-gear',
+  ])
   expect(store.get('overrides')).toEqual({ layout: 'summary' })
   await pane.press({ key: 'layout-row' })
   expect(store.get('overrides')).toEqual({ layout: 'row' })

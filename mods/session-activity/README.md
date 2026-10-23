@@ -108,6 +108,8 @@ Chips are tinted with the design's light or dark colours. With `chip_theme` on `
 
 ### Key bindings
 
+A gear (`⚙`) at the right end of the row opens the pane on its settings view, and pressing it again closes the pane. It sits beside Claude Code's own `[-]` collapse mark.
+
 Press Ctrl+X then Tab to focus the band. In fullscreen mode and in the Desktop app a click works too.
 
 | Keys            | Action                                                     |

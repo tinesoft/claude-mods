@@ -108,19 +108,20 @@ running, ok or blocked. The Error look still draws for MCP errors and failed age
 
 ## Band rules
 
-1. One chip row, width `e.props.bodyColumns`, first row 2 cells shorter. While a chip is selected, its detail
+1. One chip row, width `e.props.bodyColumns`; chips leave 2 cells for `+N more` and 2 for the settings gear. While a chip is selected, its detail
    card is drawn above the row (pane fallback when `maxRows` is too small).
 2. Order: blocked / denied / error → running → most recent.
 3. Show as many chips as fit, capped by `max_chips` (default 6); the rest fold into `+N more`, which opens the pane.
 4. Layout `summary`: one box with a glyph or icon and count per type in that type's colour (`▤2 ◉2 ⇌2 ⚷3 ↯4 ▣3`), then `● 2 blocked` in `danger` when anything was blocked or denied.
 5. Nothing recorded, or disabled: return `next(e)` (empty band). Always include `await next(e)` so other mods' band content stays.
-6. Counter in the status line under the prompt: `16 active · /session-activity`.
-7. Everything reachable by keyboard (Ctrl+X then Tab, Up/Down, Enter); clicks work in fullscreen mode and Desktop.
-8. On rich surfaces, chips and rows use `hover` (fill one step darker) and `Svg` icons from the artboards.
+6. The row ends with a `⚙` button, right-aligned so it sits just left of Claude Code's own `[-]` collapse mark, which takes the five columns past `e.props.bodyColumns` where a mod cannot draw. It opens the pane on tab `2: Settings`, and closes the pane when Settings is already showing. It has no hotkey, because digits and `o`, `m`, `x` are taken.
+7. Counter in the status line under the prompt: `16 active · /session-activity`.
+8. Everything reachable by keyboard (Ctrl+X then Tab, Up/Down, Enter); clicks work in fullscreen mode and Desktop.
+9. On rich surfaces, chips and rows use `hover` (fill one step darker) and `Svg` icons from the artboards.
 
 ## Pane rules
 
-- Opened by `+N more`, `/session-activity` (`immediate: true`), or a chip press when the band is too short for the detail card. On VS Code and mobile, which have no band, `/session-activity` is the way in.
+- Opened by `+N more`, the band's `⚙` (on tab `2: Settings`), `/session-activity` (`immediate: true`), or a chip press when the band is too short for the detail card. On VS Code and mobile, which have no band, `/session-activity` is the way in.
 - On mobile the header starts with the `N active` chip, plus a `danger` `●` when anything is blocked, denied or errored. It never adds `+N more`.
 - Tab `1: Activity`: header `Session activity` and `N items · M activations · started X ago · Customize`; filters `a: All`, `s: Skills`, `g: Agents`, `p: MCP`, `k: Permissions`, `h: Hooks`, `r: Rules` with counts; rows grouped by type showing an icon tile, name, meta, status badge, a why line, `×count · last` and a `Mute` / `Unmute` button (stopped and errored rows always show, so they carry a note instead). The selected row also expands to the source path and `c: Copy path`.
 - Tab `2: Settings`: title and intro, master toggle, live preview with layout buttons (chip row / collapsed summary), one switch per type in "Shown by default" and "Optional · Off by default · N of 8 on", chip theme (auto / light / dark), chip style (tinted / text), digit hotkeys on chips (off), toast when blocked or denied (on), text summary after each answer (off), `Reset to defaults`, `Turn everything on`. Saved per user in `$.store`.

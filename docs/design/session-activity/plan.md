@@ -299,8 +299,9 @@ Input model: keyboard first. Mouse clicks only reach Claude Code in fullscreen r
 | Error | `Text` `▲` glyph, bold `Error` in `danger` on `surface` | Triangle `Svg`, bold `Error`, dashed `danger` border, `surface` fill | Close / exact |
 | Selected chip, focus ring | `underline` on the label | Border takes the kind `fg` (no ring can be drawn) | Close |
 | `+N more` | `Button`, `dimColor` | `text-2` text in a dashed `line-dashed` border | Approximate / exact |
+| Settings gear (not on the boards) | Plain `Button` `⚙` (U+2699) in `text-2`, or `dimColor` untinted, right-aligned at the end of the row beside Claude Code's `[-]`; opens the pane on `settings`, closes it when `settings` is already showing; no hotkey | Same, a text glyph rather than an `Svg` | Addition |
 | Mobile lead chip | None | No band on mobile. The `N active` chip, in a round `line` border with a `danger` `●` when anything is blocked, denied or errored, heads the pane instead (see Rich surfaces) | Moved |
-| One row, overflow | Row sized to `e.props.bodyColumns`, first row 2 cells shorter, blocked/denied/error first, rest folded into `+N more` | Same | Exact |
+| One row, overflow | Row sized to `e.props.bodyColumns`, chips leaving 2 cells for `+N more` and 2 for the gear, blocked/denied/error first, rest folded into `+N more` | Same | Exact |
 | Footer "16 active · Customize chips" | `$.ui.status`: `16 active · /session-activity` (U4) | Same | Close |
 
 Untinted chips (`chip_style: text`, or an ansi theme in the terminal) keep the theme-key colours and the inverse ` BLOCKED ` badge.
@@ -338,7 +339,7 @@ Untinted chips (`chip_style: text`, or an ansi theme in the terminal) keep the t
 
 | Design | Terminal and rich surfaces | Fidelity |
 | --- | --- | --- |
-| Settings page with left nav | Tab `2: Settings` in the pane (tabs `1: Activity`, `2: Settings`) | Approximate |
+| Settings page with left nav | Tab `2: Settings` in the pane (tabs `1: Activity`, `2: Settings`), reached from the band's `⚙` | Approximate |
 | Title and intro | Bold `Session activity chips`, then the board's paragraph | Exact |
 | Master switch | Label and description on the left, switch on the right | Exact |
 | Live preview + layout segmented control | The real band renderer drawn inside the tab, with `Chip row` / `Collapsed summary` segments; when chips are off, `Chips are hidden. Activity is still listed in the session tray.` | Exact |
@@ -369,15 +370,16 @@ Where a board description promises what the mod lacks, the pane keeps the accura
 ### Band (`AbovePrompt`) rules
 
 1. One chip row; the detail card (U2) adds rows above it only while a chip is selected.
-2. Width `e.props.bodyColumns`, first row 2 cells shorter. Respect `e.props.maxRows`; hide entirely while `e.props.hasSurvey` is true.
+2. Width `e.props.bodyColumns`; chips leave 2 cells for `+N more` and 2 for the settings gear. Respect `e.props.maxRows`; hide entirely while `e.props.hasSurvey` is true.
 3. Always include `await next(e)` first, so other mods' band content stays.
 4. Nothing recorded, or disabled: return `next(e)`.
 5. Chip buttons get a `hotkey` digit only when `chip_hotkeys` is on.
-6. The band exists on the terminal and desktop only, because Claude Code raises `AbovePrompt` on no other surface (`index.d.ts:10673`).
+6. The row ends with a `⚙` button, right-aligned so it sits just left of Claude Code's own `[-]` collapse mark, which takes the five columns past `e.props.bodyColumns` where a mod cannot draw. It opens the pane on tab `2: Settings`, and closes the pane when Settings is already showing. It has no hotkey, because digits and `o`, `m`, `x` are taken.
+7. The band exists on the terminal and desktop only, because Claude Code raises `AbovePrompt` on no other surface (`index.d.ts:10673`).
 
 ### Pane (`Pane`, id `session-activity`) rules
 
-1. Opened with `$.ui.open({ id: 'session-activity', title: 'Session activity', focus: true, closeOnEscape: true })` from `+N more`, `/session-activity` (registered with `immediate: true`), or the fallback of U2 (`rows: 10`, view `detail`).
+1. Opened with `$.ui.open({ id: 'session-activity', title: 'Session activity', focus: true, closeOnEscape: true })` from `+N more`, the band's `⚙` (view `settings`), `/session-activity` (registered with `immediate: true`), or the fallback of U2 (`rows: 10`, view `detail`).
 2. Views: `detail` (one item, popover content), `activity` (tab 1), `settings` (tab 2), kept in `$.state` as `paneView`.
 3. Opened only by user action, so it places at any width.
 4. On VS Code and mobile, which have no band, `/session-activity` and the status line counter are the way in.

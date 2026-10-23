@@ -7,6 +7,7 @@ import {
   type Finder,
   hoversOf,
   mountBand,
+  mountPane,
   session,
   stubEngine,
 } from './harness'
@@ -53,12 +54,12 @@ test('a wider band shows more chips', async ($, on) => {
   expect(wide).toBeGreaterThan(narrow)
 })
 
-test('the first row is two cells shorter than the band', async ($, on) => {
+test('the first row is four cells shorter than the band, leaving room for +N more and the gear', async ($, on) => {
   const clock = session(on)
   stubEngine(on)
   await loadSkills($, clock, ['aa', 'bb'])
-  expect((await row($, 15)).boxes).toHaveLength(2)
-  expect((await row($, 14)).boxes).toHaveLength(1)
+  expect((await row($, 17)).boxes).toHaveLength(2)
+  expect((await row($, 16)).boxes).toHaveLength(1)
 })
 
 test('max_chips caps the row', { options: { max_chips: 2 } }, async ($, on) => {
@@ -91,7 +92,7 @@ test(
       ['1', '1: ▤ hotel'],
       ['2', '2: ▤ golf'],
     ])
-    expect(buttons.at(-1)?.props.hotkey).toBe('0')
+    expect(buttons.find(b => b.key === 'more')?.props.hotkey).toBe('0')
   },
 )
 
@@ -664,7 +665,7 @@ for (const surface of BAND_SURFACES) {
       expect(summary?.props).toMatchObject({ columnGap: 'sm', paddingX: 'md' })
       const shown = (await band.findAll({ type: 'Text' })).map(t => t.text)
       if (surface === 'desktop') {
-        expect(shown.slice(-2)).toEqual(['│', '● 1 blocked'])
+        expect(shown.slice(-3)).toEqual(['│', '● 1 blocked', '\u2699'])
         const divider = (await band.findAll({ type: 'Text' })).find(t => t.text === '│')
         expect(divider?.props.color).toBe('#34373E')
         const icons = await band.findAll({ type: 'Svg' })
@@ -678,3 +679,34 @@ for (const surface of BAND_SURFACES) {
     },
   )
 }
+
+test('the band has a settings gear that opens the pane on the settings view and closes it again', async ($, on) => {
+  const clock = session(on)
+  const { opens, isOpen } = stubEngine(on)
+  await loadSkills($, clock)
+  const band = await mountBand($)
+  expect((await band.find({ key: 'settings-gear' }))?.text).toBe('\u2699')
+  await band.press({ key: 'settings-gear' })
+  expect(opens).toEqual([expect.objectContaining({ id: 'session-activity' })])
+  expect((await (await mountPane($)).findAll({ type: 'Button' })).map(b => b.key)).toContain(
+    'reset',
+  )
+  await (await mountBand($)).press({ key: 'settings-gear' })
+  expect(isOpen('session-activity')).toBe(false)
+})
+
+test(
+  'the gear switches an open activity pane to settings instead of closing it',
+  { options: { max_chips: 1 } },
+  async ($, on) => {
+    const clock = session(on)
+    const { isOpen } = stubEngine(on)
+    await loadSkills($, clock)
+    await (await mountBand($)).press({ key: 'more' })
+    await (await mountBand($)).press({ key: 'settings-gear' })
+    expect(isOpen('session-activity')).toBe(true)
+    expect((await (await mountPane($)).findAll({ type: 'Button' })).map(b => b.key)).toContain(
+      'reset',
+    )
+  },
+)

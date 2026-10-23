@@ -414,6 +414,11 @@ export const register: Register = (on, options) => {
           if (isUp && (await read($, paneView)) === 'activity') await $.ui.close({ id: PANE })
           else await openPane($, 'activity')
         },
+        settings: async () => {
+          const isUp = (await $.ui.panes()).some(pane => pane.id === PANE)
+          if (isUp && (await read($, paneView)) === 'settings') await $.ui.close({ id: PANE })
+          else await openPane($, 'settings')
+        },
         close: () => update($, selected, () => null),
         mute: async id => {
           await update($, selected, () => null)

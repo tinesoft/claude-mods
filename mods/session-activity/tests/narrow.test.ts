@@ -89,3 +89,22 @@ for (const columns of [20, 30]) {
     expect((await band.find({ key: 'more' }))?.text).toBe('+2 more')
   })
 }
+
+for (const columns of [20, 30]) {
+  test(`at ${columns} columns the chips, "+N more" and the gear all fit the band`, async ($, on) => {
+    session(on)
+    stubEngine(on)
+    for (const skill of [
+      'a-very-long-skill-name-one',
+      'a-very-long-skill-name-two',
+      'third-long-skill-name-here',
+    ]) {
+      await $.skill.prompt({ skill, text: '', frontmatter: {}, source: 'projectSettings' } as never)
+    }
+    const band = await mountBand($, 'terminal', columns)
+    const row = ((await band.drawn()) as { children: unknown[] }).children.at(-1)
+    expect(cellsAcross(row)).toBeLessThanOrEqual(columns - 2)
+    expect((await band.find({ key: 'more' }))?.text).toBe('+2 more')
+    expect((await band.find({ key: 'settings-gear' }))?.text).toBe('\u2699')
+  })
+}
