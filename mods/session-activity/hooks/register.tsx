@@ -74,12 +74,12 @@ async function probeSystem($: EngineInterface): Promise<Tone | null> {
 }
 
 async function refreshAppearance($: EngineInterface) {
-  const next = {
+  const current = {
     system: await probeSystem($),
     colorFgBg: parseColorFgBg(await $.env.get('COLORFGBG')) ?? null,
   }
   await update($, appearance, old =>
-    old.system === next.system && old.colorFgBg === next.colorFgBg ? old : next,
+    old.system === current.system && old.colorFgBg === current.colorFgBg ? old : current,
   )
 }
 
@@ -205,10 +205,10 @@ const drawsAnything = async ($: EngineInterface) =>
   (await isSupported($)) && (await $.session.surfaces()).length > 0
 
 /** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */
-function uiFor($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']>[0]): Ui {
-  const table = $.ui.resolve(e)
+function uiFor($: EngineInterface, event: Parameters<EngineInterface['ui']['resolve']>[0]): Ui {
+  const table = $.ui.resolve(event)
   const { Box, Text, Button } = table
-  return e.surface !== 'terminal' && 'Svg' in table
+  return event.surface !== 'terminal' && 'Svg' in table
     ? { Box, Text, Button, Svg: table.Svg }
     : { Box, Text, Button }
 }
@@ -442,7 +442,7 @@ export const register: Register = (on, options) => {
       filter: await read($, filter),
       on: {
         view: view => update($, paneView, () => view),
-        filter: next => update($, filter, () => next),
+        filter: value => update($, filter, () => value),
         select: id => update($, selected, old => (old === id ? null : id)),
         mute: id => toggleMuted($, options, id),
         copy: text => copyPath($, e.surface, text),
