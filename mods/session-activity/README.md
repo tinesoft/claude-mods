@@ -152,6 +152,43 @@ Chips belong to one conversation. `/clear` and `/resume` empty them; muting last
 
 ---
 
+## 🔒 Data, programs and permissions
+
+The mod makes no network calls and sends nothing anywhere. It reads session data to draw chips, and keeps that data in the session.
+
+**What it reads**
+
+- The events Claude Code raises: skills, subagents, MCP calls, tool permission checks, hooks, slash commands, and `/clear` and `/resume`. The conversation text is not stored; a chip keeps only a label (a command, a path, a server name) and a one-line reason.
+- Your settings, to tell which configured hooks match an event.
+- The rule and memory files Claude loads, to count their lines (`$.fs.read`). Contents are not kept.
+- The `COLORFGBG` environment variable, to guess whether the terminal is light or dark. No other variable and no credential is read.
+
+**What it stores**
+
+- The chip list lives in the session's state and goes with it. Your switches and muted chips are saved with `$.store`, on your machine, so they survive a restart. Nothing is uploaded.
+- `c` in the pane copies a path to the clipboard when you press it.
+
+**What it runs**
+
+Once a minute, to read the system light or dark setting, it runs one fixed command per platform, with a 1.5 second timeout. No argument comes from the conversation or from your files.
+
+| Platform | Command                                                                                            |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| macOS    | `defaults read -g AppleInterfaceStyle`                                                             |
+| Linux    | `gsettings get org.gnome.desktop.interface color-scheme`                                           |
+| Windows  | `reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize /v AppsUseLightTheme` |
+
+It starts no other program. If a command is missing, the mod falls back to `COLORFGBG` and then to the Claude Code theme.
+
+**What its hooks decide**
+
+- `tool.check` runs when Claude Code asks whether a tool call may run. The hook only watches: it calls `next`, records the verdict as a permission chip, and returns that same verdict. It never allows, denies or asks for itself, so the decision stays with you, your rules and your permission mode.
+- `tool.call`, `agent.spawn`, `skill.prompt`, `command.run` and `turn.complete` also pass their result through unchanged. The one exception is `turn.complete` with `text_summary` on, which, where nothing can be drawn (cloud sessions), adds a one-line activity summary beneath the answer.
+- `classic.*` observes the settings hooks that run, and returns what each one answered without changing it.
+- `/session-activity` is the only command the mod registers. It opens the pane, or prints a text summary where no pane can draw.
+
+---
+
 ## ⚠️ Limits
 
 - A hook chip is keyed by its full command when one configured command matches the event, and is one `<Event> hooks` chip when several match. Claude Code does not expose a hook's exit code to a mod, so a hook chip is running, ok or blocked and never shows an error. Hooks that plugins configure are not in your settings, so they show only when they block.
