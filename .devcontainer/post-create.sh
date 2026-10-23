@@ -37,7 +37,7 @@ echo "✅ Done"
 
 echo -e "\n📦 Installing PNPM dependencies..."
 if [ -f pnpm-lock.yaml ]; then
-  run_command "pnpm run ci"
+  run_command "pnpm install --frozen-lockfile"
 elif [ -f package.json ]; then
   run_command "pnpm install"
 fi
