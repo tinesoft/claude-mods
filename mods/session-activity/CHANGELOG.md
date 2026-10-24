@@ -1,3 +1,31 @@
+## 1.2.0 (2026-10-24)
+
+### 🚀 Features
+
+- **session-activity:** add a settings gear to the band ([985e130](https://github.com/tinesoft/claude-mods/commit/985e130))
+- **session-activity:** make permission chips optional, off by default ([3dc331e](https://github.com/tinesoft/claude-mods/commit/3dc331e))
+
+### 🩹 Fixes
+
+- **session-activity:** follow a system theme switch within five seconds ([8bbf480](https://github.com/tinesoft/claude-mods/commit/8bbf480))
+- **session-activity:** match the settings controls to the light artboard ([02d0ee4](https://github.com/tinesoft/claude-mods/commit/02d0ee4))
+- **session-activity:** redraw the chips when the system appearance changes ([5a980cb](https://github.com/tinesoft/claude-mods/commit/5a980cb))
+- **session-activity:** keep the settings marks square on desktop ([e51d599](https://github.com/tinesoft/claude-mods/commit/e51d599))
+- **session-activity:** fit the detail card in the desktop band ([43b8ca4](https://github.com/tinesoft/claude-mods/commit/43b8ca4))
+- **session-activity:** hide host MCP servers and record rules on desktop ([beacc51](https://github.com/tinesoft/claude-mods/commit/beacc51))
+- **session-activity:** open the detail card in the band on desktop ([f505160](https://github.com/tinesoft/claude-mods/commit/f505160))
+- **session-activity:** fade every fresh dot on time ([93fc045](https://github.com/tinesoft/claude-mods/commit/93fc045))
+- **session-activity:** redraw only when a drawn chip changes ([e32831e](https://github.com/tinesoft/claude-mods/commit/e32831e))
+- **session-activity:** spin only for running chips that are drawn ([ca59c13](https://github.com/tinesoft/claude-mods/commit/ca59c13))
+- **session-activity:** drop the doubled slash from slash command chips ([d99c96e](https://github.com/tinesoft/claude-mods/commit/d99c96e))
+- **session-activity:** return next(e) from the tool.check hook ([c3fa858](https://github.com/tinesoft/claude-mods/commit/c3fa858))
+- **session-activity:** rename bindings that reuse hook parameter names ([f78c5be](https://github.com/tinesoft/claude-mods/commit/f78c5be))
+- **session-activity:** label the card's close button Close ([42f8439](https://github.com/tinesoft/claude-mods/commit/42f8439))
+
+### ❤️ Thank You
+
+- Tine Kondo @tinesoft
+
 ## 1.1.0 (2026-10-22)
 
 ### 🚀 Features
