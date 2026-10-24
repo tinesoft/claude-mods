@@ -44,7 +44,7 @@ const PANE = 'session-activity'
 const COMMAND = 'session-activity'
 const STORE_OVERRIDES = 'overrides'
 const TOAST_MS = 4000
-const APPEARANCE_MS = 60_000
+const APPEARANCE_MS = 5_000
 const PROBE_TIMEOUT_MS = 1500
 const DETAIL_PANE_ROWS = 10
 
@@ -85,16 +85,14 @@ async function refreshAppearance($: EngineInterface) {
     system: await probeSystem($),
     colorFgBg: parseColorFgBg(await $.env.get('COLORFGBG')) ?? null,
   }
-  let changed = false
-  await update($, appearance, old => {
-    changed = old.system !== current.system || old.colorFgBg !== current.colorFgBg
-    return changed ? current : old
-  })
+  const old = await read($, appearance)
+  if (old.system === current.system && old.colorFgBg === current.colorFgBg) return
+  await update($, appearance, () => current)
   // A write from the timer leaves the band and pane drawn in the old tone on Desktop.
-  if (changed) $.ui.invalidate('ui.render')
+  $.ui.invalidate('ui.render')
 }
 
-/** Reads the system appearance off the render path, now and every minute. */
+/** Reads the system appearance off the render path, now and every five seconds. */
 function watchAppearance($: EngineInterface) {
   appearanceTimer?.cancel()
   appearanceTimer = $.clock.every(APPEARANCE_MS, () => refreshAppearance($))

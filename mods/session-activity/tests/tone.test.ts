@@ -80,7 +80,7 @@ test(
   },
 )
 
-test('the appearance is read again every minute and redraws on change', async ($, on) => {
+test('the appearance is read again within five seconds and redraws on change', async ($, on) => {
   const clock = session(on, {}, new Map(), 'auto')
   stubEngine(on)
   const answers = probes(on, { system: { defaults: { exitCode: 0, stdout: 'Dark' } } })
@@ -89,7 +89,7 @@ test('the appearance is read again every minute and redraws on change', async ($
   await load($)
   expect(await skillBg($)).toBe(DARK_SKILL)
   answers.system = { defaults: { exitCode: 1, stdout: '' } }
-  await clock.advance(60_000)
+  await clock.advance(5_000)
   expect(await skillBg($)).toBe(LIGHT_SKILL)
 })
 
@@ -105,6 +105,22 @@ test('a drawn band is told to redraw when the appearance changes, and only then'
   await clock.advance(60_000)
   expect(engine.invalidations()).toBe(settled)
   answers.system = { defaults: { exitCode: 1, stdout: '' } }
-  await clock.advance(60_000)
+  await clock.advance(5_000)
   expect(engine.invalidations()).toBe(settled + 1)
+})
+
+test('a check that finds the same appearance writes nothing, so Desktop does not redraw', async ($, on) => {
+  const clock = session(on, {}, new Map(), 'auto')
+  stubEngine(on)
+  probes(on, { system: { defaults: { exitCode: 0, stdout: 'Dark' } } })
+  let writes = 0
+  on('state.set', async ($, e, next) => {
+    if (e.key === 'appearance') writes++
+    return next(e)
+  })
+  await $.session.start({ cwd: '/repo', surface: 'desktop' } as never)
+  await clock.advance(0)
+  const settled = writes
+  await clock.advance(60_000)
+  expect(writes).toBe(settled)
 })

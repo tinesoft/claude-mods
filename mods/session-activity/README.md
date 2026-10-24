@@ -175,7 +175,7 @@ The mod makes no network calls and sends nothing anywhere. It reads session data
 
 **What it runs**
 
-Once a minute, to read the system light or dark setting, it runs one fixed command per platform, with a 1.5 second timeout. No argument comes from the conversation or from your files.
+Every five seconds, to read the system light or dark setting, it runs one fixed command per platform, with a 1.5 second timeout. No argument comes from the conversation or from your files.
 
 | Platform | Command                                                                                            |
 | -------- | -------------------------------------------------------------------------------------------------- |
@@ -204,7 +204,7 @@ It starts no other program. If a command is missing, the mod falls back to `COLO
 - Claude Code draws the band above the prompt only in the terminal and on Desktop. On VS Code and mobile, use the status line and `/session-activity`.
 - Background task chips never show as running, because no event reports a background shell exiting.
 - The ANSI themes cannot be told apart as light or dark, so chips fall back to coloured text there. Under the `auto` theme the tone is a guess from `COLORFGBG` or the system, and dark when neither is known; pin it with `chip_theme`.
-- The system appearance is read with `defaults` (macOS), `gsettings` (Linux) or `reg` (Windows) once a minute. Where none is available the guess stops at the Claude Code theme.
+- The system appearance is read with `defaults` (macOS), `gsettings` (Linux) or `reg` (Windows) every five seconds. Where none is available the guess stops at the Claude Code theme.
 - Where the design promises more than the mod can do, the pane keeps the accurate text: rules mean a file was loaded, memory covers writes only, checkpoints record nothing yet, and background tasks cannot be stopped from the chip.
 - When another mod also draws in the band, its content comes first in the row and this mod's chips are sized as if they had the row to themselves, so the row can wrap.
 
