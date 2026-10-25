@@ -16,7 +16,7 @@ import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
 import { type InboxAction, tabCounts } from '../src/pane-view'
 import { namespaced, recognise } from '../src/phases'
-import { INSTALL_ARGV, pluginLine, UPDATE_ARGV } from '../src/plugin'
+import { bareIsOurs, INSTALL_ARGV, pluginLine, UPDATE_ARGV } from '../src/plugin'
 import { type BandActions, type FeatureChoice, renderBand, spinFrameOf } from '../src/rail'
 import { linkTerms, Reply } from '../src/reply'
 import { markdownSummary } from '../src/summary'
@@ -377,7 +377,7 @@ export const register: Register = (on, options) => {
   })
 
   on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
-    const found = recognise(e.skill, { strict: false })
+    const found = recognise(e.skill, { bare: bareIsOurs(await pluginOf($)) })
     if (found?.kind !== 'phase' || found.phase !== 'review') return next(e)
     const req: RunRequest = { skill: found.skill, args: e.args ?? '', phase: 'review' }
     const verdict = await gateVerdict($, req)

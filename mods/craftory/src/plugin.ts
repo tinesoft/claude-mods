@@ -1,5 +1,5 @@
 import type { PluginStatus, SkillName } from '../types'
-import { INSTALL_ID, PLUGIN, TESTED_RANGE } from './phases'
+import { INSTALL_ID, KNOWN_SKILLS, PLUGIN, TESTED_RANGE } from './phases'
 
 export type CommandRow = { name: string; source: string; plugin?: string }
 
@@ -11,6 +11,8 @@ export const INSTALL_TIMEOUT_MS = 300_000
 export const PROBE_TIMEOUT_MS = 10_000
 
 const shortName = (command: string) => command.slice(command.indexOf(':') + 1)
+
+const lastSegment = (command: string) => command.slice(command.lastIndexOf(':') + 1)
 
 export function pluginStatus(args: {
   commands: readonly CommandRow[]
@@ -27,8 +29,20 @@ export function pluginStatus(args: {
     inRange: version === null ? null : inTestedRange(version),
     hasDuplicates: args.commands.some(c => c.plugin !== PLUGIN && skills.some(s => s === c.name)),
     skills,
+    shadowed: KNOWN_SKILLS.filter(skill =>
+      args.commands.some(c => c.plugin !== PLUGIN && lastSegment(c.name) === skill),
+    ),
   }
 }
+
+/**
+ * Whether a bare `/name` is Matt's skill: the plugin is installed and no other source owns the
+ * name. With the plugin missing, a bare `/code-review` can only be someone else's.
+ */
+export const bareIsOurs =
+  (status: PluginStatus) =>
+  (skill: string): boolean =>
+    status.kind === 'present' && !status.shadowed.some(s => s === skill)
 
 type Numbers = [number, number, number]
 const parseVersion = (text: string): { nums: Numbers; isPre: boolean } | undefined => {

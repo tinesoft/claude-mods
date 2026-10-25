@@ -150,7 +150,7 @@ const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } a
 const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
 
 export async function requestRun($: EngineInterface, skill: SkillName, args: string) {
-  const req = requestOf(skill, args) ?? { skill, args, phase: null }
+  const req = requestOf(namespaced(skill), args) ?? { skill, args, phase: null }
   if (await holdForGate($, req, await currentFlow($))) return
   await update($, openStepState, () => null)
   await $.command.run({ command: namespaced(skill), args })

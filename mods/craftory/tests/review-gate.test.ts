@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { featureWorld, startSession, ticketFile } from './harness'
+import { featureWorld, MATT_SKILLS, mattCommands, startSession, ticketFile } from './harness'
 
 const GATE = 'Review is gated: #43, #44, #45 not merged yet. Run anyway?'
 
@@ -60,4 +60,19 @@ test('with Build done, code-review runs without a question', async ($, on) => {
   await startSession($)
   expect(await skill($, 'mattpocock-skills:code-review')).toEqual({ result: 'ran' })
   expect(asked(w.calls)).toEqual([])
+})
+
+test("a built-in code-review is not Matt's: its bare use passes, while the namespaced name is still gated", async ($, on) => {
+  const w = featureWorld(on, {
+    ask: () => 'Run anyway',
+    commands: [
+      ...mattCommands(...MATT_SKILLS),
+      { name: 'code-review', description: 'built in', source: 'builtin' },
+    ],
+  })
+  await startSession($)
+  expect(await skill($, 'code-review')).toEqual({ result: 'ran' })
+  expect(asked(w.calls)).toEqual([])
+  expect(await skill($, 'mattpocock-skills:code-review')).toEqual({ result: 'ran' })
+  expect(asked(w.calls)).toEqual([GATE])
 })

@@ -8,6 +8,7 @@ const PRESENT: PluginStatus = {
   inRange: true,
   hasDuplicates: false,
   skills: [],
+  shadowed: [],
 }
 const repo = (setup: 'absent' | 'ok'): RepoSnapshot => ({
   config: { state: 'absent' },

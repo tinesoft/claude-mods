@@ -1,5 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import {
+  bareIsOurs,
   hasSkill,
   inTestedRange,
   installOutcome,
@@ -43,6 +44,7 @@ test('present with its skills, version from the CLI listing and the range verdic
     inRange: true,
     hasDuplicates: false,
     skills: ['to-spec', 'triage'],
+    shadowed: [],
   })
   const old = JSON.stringify([entry('mattpocock-skills@mattpocock', '1.2.9')])
   expect(pluginStatus({ commands: matt, listJson: old })).toMatchObject({
@@ -129,4 +131,21 @@ test('an install result is ok on exit 0, else the first line of what went wrong'
     ok: false,
     message: 'exit code 3',
   })
+})
+
+test("a skill name another source also owns is shadowed, so a bare use of it is not Matt's", () => {
+  const commands = [
+    row('mattpocock-skills:code-review', 'mattpocock-skills'),
+    row('mattpocock-skills:to-spec', 'mattpocock-skills'),
+    row('code-review'),
+    row('other:to-spec', 'other'),
+    row('mattpocock-skills:tdd', 'mattpocock-skills'),
+    row('unrelated'),
+  ]
+  const status = pluginStatus({ commands, listJson: null })
+  expect(status).toMatchObject({ shadowed: expect.arrayContaining(['code-review', 'to-spec']) })
+  expect(status.kind === 'present' && status.shadowed).toHaveLength(2)
+  expect(bareIsOurs(status)('tdd')).toBe(true)
+  expect(bareIsOurs(status)('code-review')).toBe(false)
+  expect(bareIsOurs({ kind: 'missing' })('tdd')).toBe(false)
 })

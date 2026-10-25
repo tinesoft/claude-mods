@@ -83,7 +83,7 @@ The first time Craftory runs in a repo without `docs/agents/`, the band offers *
 | 6   | Ship    | None: Claude uses `pr` on the draft PR      | pr                                             | The PR from the integration branch is ready for review                   | Off  |
 | 7   | Retro   | `/retro`                                    |                                                | `retro` ran after Ship                                                   | Off  |
 
-The rail shows commands short (`/to-spec`) and runs them namespaced (`/mattpocock-skills:to-spec`). A typed command is recognised in either form. Craftory works out each phase's state from evidence: the tracker, git, and which skills ran. It stores only the facts it cannot work out again.
+The rail shows commands short (`/to-spec`) and runs them namespaced (`/mattpocock-skills:to-spec`). A typed command is recognised in either form. The short form counts only when no built-in, project or other plugin command has the same name, so Craftory never gates a command that is not Matt's. The namespaced form is always Matt's. Craftory works out each phase's state from evidence: the tracker, git, and which skills ran. It stores only the facts it cannot work out again.
 
 A spec is an issue with `type: spec` in its front matter, or a body with the `to-spec` template's `## Problem Statement` and `## User Stories` headings. `to-spec` 1.3.1 applies no spec label.
 

@@ -135,11 +135,22 @@ for (const entry of Object.keys(ENTRIES) as EntryId[]) {
 register(s('setup-matt-pocock-skills'), skill => ({ kind: 'setup', skill }))
 register(s('wait-what'), skill => ({ kind: 'glossary', skill }))
 
-export function recognise(name: string, { strict = true } = {}): Recognised | undefined {
-  const bare = name.replace(/^\//, '')
-  const at = bare.indexOf(':')
-  if (at === -1 ? strict : bare.slice(0, at) !== PLUGIN) return undefined
-  return BY_SKILL.get(bare.slice(at + 1))?.(bare.slice(at + 1) as SkillName)
+export const KNOWN_SKILLS = [...BY_SKILL.keys()] as SkillName[]
+
+/**
+ * What a typed or model-invoked name means to Craftory. A namespaced `mattpocock-skills:x` is
+ * always ours. A bare name is ours only when `bare` says so: another source (a built-in, the
+ * project, another plugin) may own the name, and Craftory must not gate that.
+ */
+export function recognise(
+  name: string,
+  { bare }: { bare?: (skill: string) => boolean } = {},
+): Recognised | undefined {
+  const trimmed = name.replace(/^\//, '')
+  const at = trimmed.indexOf(':')
+  const skill = trimmed.slice(at + 1)
+  if (at === -1 ? bare?.(skill) !== true : trimmed.slice(0, at) !== PLUGIN) return undefined
+  return BY_SKILL.get(skill)?.(skill as SkillName)
 }
 
 export const namespaced = (skill: SkillName) => `${PLUGIN}:${skill}`

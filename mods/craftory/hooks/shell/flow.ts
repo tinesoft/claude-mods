@@ -67,6 +67,7 @@ import {
 import { termKey } from '../../src/glossary'
 import type { InboxAction } from '../../src/pane-view'
 import { recognise } from '../../src/phases'
+import { bareIsOurs } from '../../src/plugin'
 import { diffSignals, signalBasis, TOAST_MS, toastText } from '../../src/signals'
 import { statusLine } from '../../src/summary'
 import { SPIN_MS } from '../../src/theme'
@@ -94,6 +95,7 @@ import type {
 } from '../../types'
 import {
   glossaryTerms,
+  pluginOf,
   readText,
   remoteUrl,
   repoSnapshot,
@@ -512,7 +514,7 @@ export async function gatePrompt(
   e: { text: string; command?: { name: string; args: string } },
 ): Promise<string | undefined> {
   const typed = typedCommand(e)
-  const req = typed && requestOf(typed.name, typed.args)
+  const req = typed && requestOf(typed.name, typed.args, bareIsOurs(await pluginOf($)))
   if (req) {
     const verdict = await holdForGate($, req, await currentFlow($))
     if (verdict) return dropText(verdict)
@@ -533,7 +535,7 @@ export async function startContext(
   e: { text: string; command?: { name: string; args: string } },
 ): Promise<string[] | undefined> {
   const typed = typedCommand(e)
-  const req = typed && requestOf(typed.name, typed.args)
+  const req = typed && requestOf(typed.name, typed.args, bareIsOurs(await pluginOf($)))
   if (req?.phase !== 'build') return undefined
   const [record, git, repo] = await Promise.all([activeRecord($), gitOf($), repoSnapshot($)])
   if (record === null || record.integrationBranch === '') return undefined
@@ -613,8 +615,12 @@ export async function seatAgent(
   await settle($)
 }
 
-export function requestOf(name: string | undefined, args: string): RunRequest | undefined {
-  const found = name === undefined ? undefined : recognise(name, { strict: false })
+export function requestOf(
+  name: string | undefined,
+  args: string,
+  bare?: (skill: string) => boolean,
+): RunRequest | undefined {
+  const found = name === undefined ? undefined : recognise(name, { bare })
   return found?.kind === 'phase' ? { skill: found.skill, args, phase: found.phase } : undefined
 }
 

@@ -316,6 +316,8 @@ export type PluginStatus =
       inRange: boolean | null
       hasDuplicates: boolean
       skills: SkillName[]
+      /** Skills Craftory recognises whose bare name another source also owns (built-in, project, other plugin). */
+      shadowed: SkillName[]
     }
 
 export type InstallState =

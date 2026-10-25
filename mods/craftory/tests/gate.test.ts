@@ -5,6 +5,7 @@ import {
   allText,
   BAND_SURFACES,
   featureWorld,
+  mattCommands,
   mountBand,
   skillPrompt,
   startSession,
@@ -148,4 +149,34 @@ test('a gate that no longer holds is dropped from the band', async ($, on) => {
   await skillPrompt($, 'to-spec')
   await turnComplete($)
   expect(await allText(await mountBand($))).not.toContain('is gated')
+})
+
+test('a typed bare name that another source owns is not gated, while the namespaced name is', async ($, on) => {
+  featureWorld(on, {
+    files: {
+      '.craftory/features/42.json': '',
+      'docs/issues/42-export-invoices.md': '# unrelated\n',
+    },
+    store: { drafts: DRAFT },
+    commands: [
+      ...mattCommands('to-tickets', 'to-spec'),
+      { name: 'to-tickets', description: 'mine', source: 'user' },
+    ],
+  })
+  await startSession($)
+  expect((await submit($, '/to-tickets #42')).drop).toBeUndefined()
+  expect((await submit($, '/mattpocock-skills:to-tickets #42')).drop).toContain('Tickets is gated')
+})
+
+test('with the plugin missing a bare name is nobody Craftory knows', async ($, on) => {
+  featureWorld(on, {
+    files: {
+      '.craftory/features/42.json': '',
+      'docs/issues/42-export-invoices.md': '# unrelated\n',
+    },
+    store: { drafts: DRAFT },
+    commands: [],
+  })
+  await startSession($)
+  expect((await submit($, '/to-tickets #42')).drop).toBeUndefined()
 })
