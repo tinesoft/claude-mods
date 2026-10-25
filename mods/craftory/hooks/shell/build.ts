@@ -10,6 +10,8 @@ import {
   prunable,
   shortstatArgv,
   tipArgv,
+  branchCreateArgv,
+  isSafeRef,
   worktreeAddArgv,
   worktreeListArgv,
   worktreeRemoveArgv,
@@ -39,7 +41,20 @@ export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<
   if (listed === null || listed.exitCode !== 0) return { ok: false, reason: 'git is not available' }
   if (parseWorktreeList(listed.stdout).some(w => samePath(w.path, plan.path)))
     return { ok: true, isFresh: false, path }
+  if (!isSafeRef(plan.branch) || !isSafeRef(plan.base))
+    return {
+      ok: false,
+      reason: `${plan.base || 'the integration branch'} is not a safe branch name`,
+    }
   const hasBranch = (await sh($, tipArgv(plan.branch)))?.exitCode === 0
+  if (!hasBranch && (await sh($, tipArgv(plan.base)))?.exitCode !== 0) {
+    const made = await sh($, branchCreateArgv(plan.base, 'HEAD'))
+    if (made === null || made.exitCode !== 0)
+      return {
+        ok: false,
+        reason: `could not make the integration branch ${plan.base}: ${made?.stderr.trim() || 'git branch failed'}`,
+      }
+  }
   const added = await sh($, worktreeAddArgv(plan.branch, plan.path, plan.base, hasBranch))
   if (added === null || added.exitCode !== 0)
     return { ok: false, reason: added?.stderr.trim() || 'git worktree add failed' }

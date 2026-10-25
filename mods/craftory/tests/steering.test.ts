@@ -17,6 +17,7 @@ import {
   featureWorld,
   skillPrompt,
   startSession,
+  submit,
   ticketFile,
   turnComplete,
 } from './harness'
@@ -93,6 +94,54 @@ test('a spawn the engine refuses takes its fresh worktree away again', async ($,
     '--',
     '.worktrees/43-export-button',
   ])
+})
+
+test('an integration branch that does not exist yet is made from the checkout before the worktree is added', async ($, on) => {
+  const git = fakeGit({ missing: ['feat/csv'] })
+  const { w } = await building(on, $, { shell: git.shell })
+  const result = await start($, 43, 'Export button')
+  expect(result).toEqual({ model: 'sonnet', agentId: 'agent-tu43' })
+  const asked = w.ran.map(argv => argv.join(' '))
+  const made = asked.indexOf('git branch -- feat/csv HEAD')
+  const added = asked.findIndex(a => a.startsWith('git worktree add -b craftory/43'))
+  expect(made).toBeGreaterThanOrEqual(0)
+  expect(added).toBeGreaterThan(made)
+  expect(git.exists.has('feat/csv')).toBe(true)
+})
+
+test('an integration branch that already exists is left alone', async ($, on) => {
+  const git = fakeGit()
+  const { w } = await building(on, $, { shell: git.shell })
+  await start($, 43, 'Export button')
+  expect(w.ran.some(argv => argv[1] === 'branch' && argv[2] === '--')).toBe(false)
+})
+
+test('when the integration branch cannot be made the spawn is refused with what git said', async ($, on) => {
+  const git = fakeGit({ missing: ['feat/csv'] })
+  const { w } = await building(on, $, {
+    shell: argv =>
+      argv[1] === 'branch' && argv[2] === '--'
+        ? { exitCode: 128, stderr: 'fatal: not a valid object name: HEAD' }
+        : git.shell(argv, undefined),
+  })
+  const result = await start($, 43, 'Export button')
+  expect(result.deny).toContain('could not make the integration branch feat/csv')
+  expect(w.spawns).toHaveLength(0)
+})
+
+test('a typed implement-spec tells the model which branch to integrate on and where worktrees live', async ($, on) => {
+  const { w } = await building(on, $)
+  const result = await submit($, '/mattpocock-skills:implement-spec #42')
+  expect(result.context).toEqual([
+    'Craftory: use `feat/csv` as the integration branch (create it from `main` if it does not exist); implementer worktrees live under `.worktrees/`.',
+  ])
+  expect(w.submitted.at(-1)!.context).toHaveLength(1)
+})
+
+test('prompts that do not start Build carry no Craftory context', async ($, on) => {
+  await building(on, $)
+  expect((await submit($, '/mattpocock-skills:to-tickets #42')).context).toBeUndefined()
+  expect((await submit($, 'hello')).context).toBeUndefined()
 })
 
 test('when the worktree cannot be made the spawn is refused with what git said, and the card says so', async ($, on) => {

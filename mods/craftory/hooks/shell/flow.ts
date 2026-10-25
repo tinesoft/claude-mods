@@ -15,6 +15,7 @@ import {
   type FinishReason,
   finishRun,
   freshTokens,
+  integrationContext,
   isBuilding,
   markStopping,
   moveNotices,
@@ -525,6 +526,24 @@ export async function gatePrompt(
     }
   }
   return undefined
+}
+
+export async function startContext(
+  $: EngineInterface,
+  e: { text: string; command?: { name: string; args: string } },
+): Promise<string[] | undefined> {
+  const typed = typedCommand(e)
+  const req = typed && requestOf(typed.name, typed.args)
+  if (req?.phase !== 'build') return undefined
+  const [record, git, repo] = await Promise.all([activeRecord($), gitOf($), repoSnapshot($)])
+  if (record === null || record.integrationBranch === '') return undefined
+  return [
+    integrationContext({
+      branch: record.integrationBranch,
+      from: git?.branch ?? null,
+      folder: configOf(repo?.config).worktrees.folder,
+    }),
+  ]
 }
 
 export async function finishTurn($: EngineInterface, e: { answer: string; isAborted?: boolean }) {

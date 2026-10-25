@@ -38,7 +38,8 @@ export const fakeGit = (
       return exists.has(argv.at(-1)!) ? { exitCode: 0, stdout: 'tip1\n' } : { exitCode: 1 }
     if (b === 'branch' && argv[2] === '--') {
       created.push([...argv])
-      if (!exists.has(argv[4]!)) return { exitCode: 128, stderr: `fatal: not a valid object name` }
+      if (argv[4] !== 'HEAD' && !exists.has(argv[4]!))
+        return { exitCode: 128, stderr: 'fatal: not a valid object name' }
       exists.add(argv[3]!)
       return { exitCode: 0 }
     }

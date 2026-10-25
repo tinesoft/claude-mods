@@ -67,6 +67,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   const spawns: Record<string, unknown>[] = []
   const steps: { agentId?: string; index: number }[] = []
   const sent: { to: unknown; text: string }[] = []
+  const submitted: { text: string; context?: readonly string[] }[] = []
   const copied: { text: string; surface?: string }[] = []
   const registered: { name: string; immediate?: boolean }[] = []
   let commands = options.commands ?? []
@@ -144,7 +145,10 @@ export const world = (on: On, options: WorldOptions = {}) => {
   })
   on('skill.prompt', (_$, e) => ({ text: `body of ${e.skill}` }))
   on('turn.complete', (_$, e) => ({ text: e.answer }))
-  on('prompt.submit', (_$, e) => ({ text: e.text }))
+  on('prompt.submit', (_$, e) => {
+    submitted.push({ text: e.text, ...(e.context && { context: e.context }) })
+    return { text: e.text, ...(e.context && { context: e.context }) }
+  })
   on(
     'command.run',
     (_$, e) => (commandsRun.push({ command: e.command, args: e.args }), { text: 'ran' }),
@@ -225,6 +229,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
     spawns,
     steps,
     sent,
+    submitted,
     copied,
     registered,
     store,

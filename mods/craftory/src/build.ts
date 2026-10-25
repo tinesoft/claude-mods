@@ -146,6 +146,10 @@ export function queueReason(
   )
 }
 
+export const integrationContext = (args: { branch: string; from: string | null; folder: string }) =>
+  `Craftory: use \`${args.branch}\` as the integration branch (create it from \`${args.from ?? 'the current branch'}\` if it does not exist); ` +
+  `implementer worktrees live under \`${withSlash(args.folder)}\`.`
+
 export const pausedReason = (ticket: IssueRef) =>
   `Build is paused in Craftory. Do not start ${ticket}; wait until the user resumes it, and do not call Agent for ${ticket} before then.`
 

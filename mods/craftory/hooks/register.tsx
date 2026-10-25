@@ -66,6 +66,7 @@ import {
   seatAgent,
   settle,
   skillStarted,
+  startContext,
   switchFeature,
   togglePause,
   touchesTracker,
@@ -275,7 +276,9 @@ export const register: Register = (on, options) => {
 
   on('prompt.submit', async ($, e, next) => {
     const drop = await gatePrompt($, e)
-    return drop === undefined ? next(e) : { drop }
+    if (drop !== undefined) return { drop }
+    const context = await startContext($, e)
+    return next(context === undefined ? e : { ...e, context: [...(e.context ?? []), ...context] })
   })
 
   on('turn.complete', async ($, e, next) => {
