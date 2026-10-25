@@ -289,6 +289,40 @@ async function saveFeature($: EngineInterface, record: FeatureRecord): Promise<F
   return merged
 }
 
+const MAX_SAVES = 5
+
+/**
+ * Writes the session's copy of a record to disk. The copy lives in the atom, which serialises
+ * every change, and a save is a join with the disk copy, so a write that raced another save
+ * is repeated until the atom holds nothing the last write lacked.
+ */
+async function persistFeature(
+  $: EngineInterface,
+  spec: IssueRef,
+): Promise<FeatureRecord | undefined> {
+  let last: FeatureRecord | undefined
+  for (let attempt = 0; attempt < MAX_SAVES; attempt++) {
+    const mine = (await read($, featuresState))[spec]
+    if (mine === undefined) return last
+    const saved = await saveFeature($, mine)
+    await update($, featuresState, held => ({
+      ...held,
+      [spec]: mergeFeature(held[spec] ?? null, saved),
+    }))
+    last = (await read($, featuresState))[spec]
+    if (last !== undefined && serialiseFeature(last) === serialiseFeature(saved)) return last
+  }
+  return last
+}
+
+async function adoptRecord($: EngineInterface, record: FeatureRecord) {
+  await update($, featuresState, held => ({
+    ...held,
+    [record.spec]: mergeFeature(held[record.spec] ?? null, record),
+  }))
+  return (await persistFeature($, record.spec)) ?? record
+}
+
 async function recordChange($: EngineInterface, key: FeatureKey, change: FeatureChange) {
   const feature = featureOf(key, await read($, featuresState), await read($, draftsState))
   if (feature === null) return
@@ -298,8 +332,12 @@ async function recordChange($: EngineInterface, key: FeatureKey, change: Feature
     await persistDrafts($)
     return
   }
-  const saved = await saveFeature($, applyChange(feature.record, change))
-  await update($, featuresState, held => ({ ...held, [saved.spec]: saved }))
+  const { spec } = feature.record
+  await update($, featuresState, held => ({
+    ...held,
+    [spec]: applyChange(held[spec] ?? feature.record, change),
+  }))
+  await persistFeature($, spec)
 }
 
 async function startDraft($: EngineInterface, phase: PhaseId): Promise<FeatureKey> {
@@ -330,12 +368,11 @@ async function bindDrafts($: EngineInterface) {
     const spec = bindSpec(draft, tracker, bound)
     if (spec === undefined) continue
     const config = configOf(repo?.config)
-    const record = await saveFeature(
+    const record = await adoptRecord(
       $,
       promote(draft, spec, integrationBranchFor(config, spec.title)),
     )
     bound.add(spec.ref)
-    await update($, featuresState, held => ({ ...held, [record.spec]: record }))
     await update($, draftsState, held =>
       Object.fromEntries(Object.entries(held).filter(([id]) => id !== draft.draftId)),
     )
@@ -491,7 +528,7 @@ export async function enterFromIssue(
     await persistDrafts($)
     await update($, activeState, () => draftKey(draft.draftId))
   } else {
-    const record = await saveFeature(
+    const record = await adoptRecord(
       $,
       enteredRecord({
         issue,
@@ -499,7 +536,6 @@ export async function enterFromIssue(
         integrationBranch: integrationBranchFor(config, issue.title),
       }),
     )
-    await update($, featuresState, held => ({ ...held, [record.spec]: record }))
     await update($, activeState, () => specKey(record.spec))
     await $.store.set(STORE_LAST_ACTIVE, specKey(record.spec))
   }

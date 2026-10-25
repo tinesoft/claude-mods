@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { building, call, fakeGit, READY, start } from './build-harness'
-import { featureJson, featureWorld, startSession } from './harness'
+import { featureJson, featureWorld, mountBand, startSession, texts, turnComplete } from './harness'
 
 const agent = (outcome: string, extra: Record<string, unknown> = {}) => ({
   ticket: '#43',
@@ -61,4 +61,20 @@ test('a record whose agent is still running in this process is left running by a
   await startSession($)
   const record = JSON.parse(w.files.get('.craftory/features/42.json')!)
   expect(record.agents['#43'].outcome).toBe('running')
+})
+
+test('two agents finishing at once both reach the record on disk and the card', async ($, on) => {
+  const { w } = await building(on, $)
+  await Promise.all([start($, 43, 'Export button'), start($, 44, 'Ledger tax')])
+  const disk = () => JSON.parse(w.files.get('.craftory/features/42.json')!).agents
+  expect(Object.keys(disk()).sort()).toEqual(['#43', '#44'])
+  await Promise.all([
+    turnComplete($, { agentId: 'agent-tu43' }),
+    turnComplete($, { agentId: 'agent-tu44' }),
+  ])
+  expect(Object.values<{ outcome: string }>(disk()).map(a => a.outcome)).toEqual(['done', 'done'])
+  const band = await mountBand($, 'terminal', 200, 60)
+  await band.press({ key: 'step-build' })
+  const words = await texts(await mountBand($, 'terminal', 200, 60))
+  expect(words.filter(word => word === '[Done]')).toHaveLength(2)
 })
