@@ -279,9 +279,9 @@ Not yet observed on a live client: the band and pane on a terminal or Desktop, l
 
 **M5 · Pane, Settings, glossary · first release**
 
-- [ ] Tabs 1–5 complete; Settings writes every value to the file in DESIGN.md's table and reloads on change
-- [ ] Glossary editing round-trips; underline and hover on rich surfaces; "Used in last reply" on the terminal; drift scan
-- [ ] GitLab and Other templates; Inbox with triage roles and entry phase
+- [x] Tabs 1–5 complete; Settings writes every value to the file in DESIGN.md's table and reloads on change
+- [x] Glossary editing round-trips; underline and hover on rich surfaces; "Used in last reply" on the terminal; drift scan
+- [x] GitLab and Other templates; Inbox with triage roles and entry phase
 - [ ] Desktop, VS Code and mobile checked in light and dark; README with screenshots; release `craftory@1.0.0`
 
 **M6 · Optional**

@@ -2,6 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import { DEFAULT_LABELS } from '../src/agents-md'
 import { DEFAULT_CONFIG } from '../src/config'
+import { TOKENS } from '../src/theme'
 import { ALL_ROWS, pathOf, SECTIONS, type SettingsFacts, type SettingsRow } from '../src/sections'
 import { UPSTREAM_FIXTURES as up } from './upstream-fixtures'
 import {
@@ -218,4 +219,11 @@ test('the plugin status and the rail switch head the tab', async ($, on) => {
   const { pane } = await settings(on, $)
   expect(await allText(pane)).toContain('mattpocock-skills 1.3.1 installed · tested with 1.3.x')
   expect(await pane.find({ key: 'set-pref-rail' })).toBeDefined()
+})
+
+test('desktop draws the switches as Svg tracks in the tone’s colours', async ($, on) => {
+  const dark = await settings(on, $, 'local', { theme: 'dark' }, 'desktop', 'automation')
+  const svgs = await dark.pane.findAll({ type: 'Svg' })
+  expect(svgs.length).toBeGreaterThanOrEqual(6)
+  expect(String(svgs[0]!.props.source)).toContain(TOKENS.dark.switchOn)
 })
