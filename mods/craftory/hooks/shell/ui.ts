@@ -22,17 +22,11 @@ import { termKeysIn } from '../../src/reply'
 import { resolveTone, type Tone } from '../../src/theme'
 import { TRACKERS } from '../../src/tracker'
 import type { PaneTab, PhaseId, PrefOverrides, SkillName } from '../../types'
-import {
-  currentFlow,
-  featuresOf,
-  holdForGate,
-  readContext,
-  refreshGit,
-  requestOf,
-  trackerKindOf,
-  trackerOf,
-} from './flow'
+import { featuresOf } from './features'
+import { currentFlow, holdForGate, requestOf } from './flow'
 import { glossaryTerms, repoSnapshot } from './repo'
+import { readContext, refreshGit } from './sync'
+import { trackerKindOf, trackerOf } from './tracker'
 
 const APPEARANCE_MS = 5_000
 

@@ -37,7 +37,8 @@ import {
 } from '../../src/sections'
 import type { SettingsArgs } from '../../src/settings'
 import type { AgentSetup, GlossaryDoc, PluginStatus, RepoSnapshot, TermDraft } from '../../types'
-import { refreshTracker, settle } from './flow'
+import { settle } from './flow'
+import { refreshTracker } from './sync'
 import {
   applyWrites,
   glossaryTerms,

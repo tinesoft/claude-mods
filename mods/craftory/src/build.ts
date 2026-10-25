@@ -336,7 +336,7 @@ export function finishRun(
   return { ledger: { ...ledger, runs: { ...ledger.runs, [agentId]: finished } }, run: finished }
 }
 
-const isoOf = (ms: Millis): IsoTime => new Date(ms).toISOString()
+export const isoOf = (ms: Millis): IsoTime => new Date(ms).toISOString()
 
 export function recordOf(run: AgentRun): AgentRecord {
   const isOver =

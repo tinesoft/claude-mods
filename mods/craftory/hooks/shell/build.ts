@@ -27,7 +27,10 @@ import {
   worktreesView,
 } from '../../src/git'
 import type { GitSnapshot, SeatPlan } from '../../types'
-import { cleanupInputs, featuresOf, gitOf, ledgerOf, refreshGit } from './flow'
+import { featuresOf } from './features'
+import { cleanupInputs, gitOf } from './git'
+import { ledgerOf } from './ledger'
+import { refreshGit } from './sync'
 import { exists, repoSnapshot, sh } from './repo'
 
 const REMOVE_ANYWAY = 'Remove anyway'

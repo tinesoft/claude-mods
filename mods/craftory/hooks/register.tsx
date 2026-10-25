@@ -34,47 +34,41 @@ import {
   worktreesViewOf,
 } from './shell/build'
 import {
-  activeKey,
-  activeRecord,
-  allowGate,
   countStep,
-  currentFlow,
-  dismissedOf,
-  dismissNotice,
-  draftsOf,
-  dropNotice,
-  enterFromIssue,
-  featuresOf,
   finishAgent,
-  finishTurn,
-  forgetSeat,
-  gatePrompt,
-  gateVerdict,
-  markStopDelivered,
-  gitOf,
-  hasAgentRuns,
-  heldNotices,
-  loadFeatures,
-  dropNotices,
-  pendingSeat,
   planSpawn,
   raiseBudget,
-  markDone,
-  refreshGit,
-  refreshTracker,
-  runOf,
-  scheduleGit,
-  scheduleRefresh,
   seatAgent,
+  stopStaleAgents,
+  togglePause,
+} from './shell/agents'
+import { activeKey, activeRecord, draftsOf, featuresOf, loadFeatures } from './shell/features'
+import {
+  allowGate,
+  currentFlow,
+  dropNotice,
+  dropNotices,
+  enterFromIssue,
+  finishTurn,
+  gatePrompt,
+  gateVerdict,
+  markDone,
   settle,
   skillStarted,
   startContext,
-  stopStaleAgents,
   switchFeature,
-  togglePause,
-  touchesTracker,
-  trackerOf,
 } from './shell/flow'
+import { gitOf } from './shell/git'
+import { forgetSeat, hasAgentRuns, markStopDelivered, pendingSeat, runOf } from './shell/ledger'
+import { dismissedOf, dismissNotice, heldNotices } from './shell/notices'
+import {
+  refreshGit,
+  refreshTracker,
+  scheduleGit,
+  scheduleRefresh,
+  touchesTracker,
+} from './shell/sync'
+import { trackerOf } from './shell/tracker'
 import {
   detectPlugin,
   glossaryTerms,
@@ -293,6 +287,7 @@ export const register: Register = (on, options) => {
     }
     await noteReplyTerms($, e.answer)
     await finishTurn($, e)
+    scheduleRefresh($)
     return result
   })
 

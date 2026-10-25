@@ -63,3 +63,8 @@ export async function readTracker(
   }
   return spec.parse(ctx, results)
 }
+
+/** The spec a ticket belongs to, when the tracker is rich enough to say. */
+export function parentOf(tracker: TrackerSnapshot | null, ref: string): IssueRef | null {
+  return (tracker?.rich ? tracker.issues.find(i => i.ref === ref)?.parent : null) ?? null
+}
