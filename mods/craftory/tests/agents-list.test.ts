@@ -75,12 +75,12 @@ for (const surface of BAND_SURFACES) {
           expect(fill?.props, ref).toMatchObject({ width, backgroundColor: colour(role) })
         }
         const over = paint('danger', tone)
-        expect((await card.find({ key: 'agent-status-#45' }))?.props).toMatchObject({
+        expect((await card.find({ key: 'badge-#45' }))?.props).toMatchObject({
           backgroundColor: over.bg,
           borderColor: over.bd,
         })
         const near = paint('hook', tone)
-        expect((await card.find({ key: 'agent-status-#44' }))?.props).toMatchObject({
+        expect((await card.find({ key: 'badge-#44' }))?.props).toMatchObject({
           backgroundColor: near.bg,
           borderColor: near.bd,
         })

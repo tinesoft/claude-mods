@@ -1,4 +1,4 @@
-import type { Ui } from '../src/rail'
+import type { Ui } from '../src/ui'
 
 export type Node = {
   type: string

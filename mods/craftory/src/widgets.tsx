@@ -1,14 +1,8 @@
+import type { RenderSurface } from 'claude-code'
 import type { Tone } from '../types'
-import { isRich, type Ui } from './rail'
-import { switchSvg, SWITCH_SIZE } from './icons'
-import { SPACE, TOKENS } from './theme'
-
-export const inkOf = (tone: Tone | undefined, key: 'ink' | 'ink2' | 'text2' | 'muted') =>
-  tone === undefined
-    ? key === 'ink' || key === 'ink2'
-      ? {}
-      : { dimColor: true }
-    : { color: TOKENS[tone][key] }
+import { hexOr, lockSvg, switchSvg, SWITCH_SIZE } from './icons'
+import { paint, type Role, SPACE, TOKENS, TRIPLES } from './theme'
+import { Icon, inkOf, isRich, roleInk, withTint, type Ui } from './ui'
 
 export const Eyebrow = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => (
   <ui.Text
@@ -185,6 +179,119 @@ export const Field = ({
           {hint}
         </Text>
       )}
+    </Box>
+  )
+}
+
+/** A status word: bordered and tinted where the surface is rich, `[word]` where it is not. */
+export const Badge = ({
+  ui,
+  tone,
+  role,
+  text,
+  id,
+}: Common & {
+  role: Role
+  text: string
+}) => {
+  const { Box, Text } = ui
+  const colours = paint(role, tone)
+  if (!isRich(ui) || tone === undefined) {
+    return (
+      <Text bold {...roleInk(role, tone)}>
+        {`[${text}]`}
+      </Text>
+    )
+  }
+  return (
+    <Box
+      key={`badge-${id}`}
+      paddingX={SPACE.chipPadX}
+      borderStyle="round"
+      {...(colours.bd !== undefined && { borderColor: colours.bd })}
+      backgroundColor={colours.bg ?? TOKENS[tone].fill}
+    >
+      <Text bold color={colours.fg}>
+        {text}
+      </Text>
+    </Box>
+  )
+}
+
+/** A bordered button on rich surfaces, `[ label ]` elsewhere; `primary` fills it with the inverse ink. */
+export const CardButton = ({
+  ui,
+  tone,
+  id,
+  label,
+  primary = false,
+  onPress,
+}: Common & {
+  label: string
+  primary?: boolean
+  onPress: (surface: RenderSurface) => void
+}) => {
+  const { Box, Button, Text } = ui
+  if (!isRich(ui) || tone === undefined) {
+    return (
+      <Button key={id} plain onPress={press => onPress(press.surface)}>
+        <Text bold={primary} {...inkOf(tone, 'ink')}>{`[ ${label} ]`}</Text>
+      </Button>
+    )
+  }
+  const t = TOKENS[tone]
+  return (
+    <Box
+      key={`${id}-box`}
+      paddingX={SPACE.buttonPadX}
+      borderStyle="round"
+      borderColor={primary ? t.inverseBg : t.line}
+      backgroundColor={primary ? t.inverseBg : t.surface}
+    >
+      <Button key={id} plain onPress={press => onPress(press.surface)}>
+        <Text color={primary ? t.onInk : t.ink}>{label}</Text>
+      </Button>
+    </Box>
+  )
+}
+
+/** An amber note: a lock on rich surfaces when `lock` is set, `!` elsewhere. */
+export const HookNote = ({
+  ui,
+  tone,
+  id,
+  text,
+  lock = false,
+}: Common & {
+  text: string
+  lock?: boolean
+}) => {
+  const { Box, Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  return (
+    <Box
+      key={id}
+      flexDirection="row"
+      columnGap={SPACE.gateGap}
+      paddingX={SPACE.gatePadX}
+      {...(tone !== undefined && {
+        borderStyle: 'round' as const,
+        borderColor: TRIPLES.hook[tone].bd,
+        backgroundColor: TRIPLES.hook[tone].bg,
+      })}
+    >
+      {rich && lock ? (
+        <Icon ui={ui} svg={lockSvg(hexOr(TRIPLES.hook[tone].fg))} alt="" />
+      ) : (
+        <Text {...roleInk('hook', tone)}>{'!'}</Text>
+      )}
+      <Text
+        wrap="wrap"
+        {...roleInk('hook', tone)}
+        {...withTint(rich ? TRIPLES.hook[tone].bg : undefined)}
+      >
+        {text}
+      </Text>
     </Box>
   )
 }

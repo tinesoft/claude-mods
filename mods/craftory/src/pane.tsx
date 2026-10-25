@@ -13,10 +13,12 @@ import {
   type TicketsView,
 } from './pane-view'
 import type { NoticeAction, NoticeView } from './notices'
-import { CardButton, isRich, NoticeRow, PaneRail, type BandActions, type Ui } from './rail'
+import { NoticeRow } from './notice-row'
+import { StepStrip, type BandActions } from './rail'
 import { SettingsTab, type SettingsArgs } from './settings'
 import { paint, SPACE, STEP_LOOKS, TOKENS, type Role } from './theme'
-import { inkOf } from './widgets'
+import { inkOf, isRich, type Ui } from './ui'
+import { Badge, CardButton } from './widgets'
 
 export type PaneActions = {
   tab: (tab: PaneTab) => void
@@ -296,14 +298,11 @@ const FlowTab = ({
         <NoticeRow key={notice.id} ui={ui} tone={tone} notice={notice} on={on.notice} />
       ))}
       {surface === 'mobile' && (
-        <PaneRail
-          ui={ui}
-          tone={tone}
-          ascii={ascii}
-          spinFrame={spinFrame}
-          flow={flow}
-          waiting={waiting}
-          on={on.rail}
+        <StepStrip
+          id="pane-rail"
+          wrap
+          args={{ ui, tone, ascii, spinFrame, flow, waiting, open: null, on: on.rail }}
+          fits={() => false}
         />
       )}
       <Text {...inkOf(tone, 'text2')}>
@@ -358,37 +357,6 @@ const STATUS_ROLE: Record<TicketRowView['status'], Role> = {
   blocked: 'muted',
   human: 'hook',
   open: 'neutral',
-}
-
-const Badge = ({
-  ui,
-  tone,
-  role,
-  text,
-  id,
-}: {
-  ui: Ui
-  tone: Tone | undefined
-  role: Role
-  text: string
-  id: string
-}) => {
-  const { Box, Text } = ui
-  const colours = paint(role, tone)
-  if (!isRich(ui) || tone === undefined) return <Text bold color={colours.fg}>{`[${text}]`}</Text>
-  return (
-    <Box
-      key={`badge-${id}`}
-      paddingX={SPACE.chipPadX}
-      borderStyle="round"
-      {...(colours.bd !== undefined && { borderColor: colours.bd })}
-      backgroundColor={colours.bg ?? TOKENS[tone].fill}
-    >
-      <Text bold color={colours.fg}>
-        {text}
-      </Text>
-    </Box>
-  )
 }
 
 const InboxRow = ({

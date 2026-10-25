@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { DEFAULT_CONFIG } from '../src/config'
 import { deriveFlow } from '../src/evidence'
-import { phaseCard } from '../src/rail'
+import { phaseCard } from '../src/card-model'
 import type { Feature, PhaseId, TrackerKind, TrackerSnapshot } from '../types'
 import { featureJson, featureWorld, mountBand, startSession, texts } from './harness'
 

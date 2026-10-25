@@ -1,6 +1,6 @@
 import type { PluginStatus } from '../types'
 import type { Flow } from './evidence'
-import { chipText, stepMeta } from './rail'
+import { chipText, stepMeta } from './card-model'
 import { PHASES, PLUGIN, TESTED_RANGE } from './phases'
 import { STEP_LOOKS } from './theme'
 

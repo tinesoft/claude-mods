@@ -7,9 +7,9 @@ import {
   type SettingsFacts,
   type SettingsRow,
 } from './sections'
-import { CardButton, isRich, type Ui } from './rail'
 import { paint, SPACE, TOKENS } from './theme'
-import { Eyebrow, Field, inkOf, Segments, SwitchRow } from './widgets'
+import { inkOf, isRich, type Ui } from './ui'
+import { CardButton, Eyebrow, Field, Segments, SwitchRow } from './widgets'
 
 export type GlossaryEdit = {
   terms: readonly Term[]

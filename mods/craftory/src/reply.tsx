@@ -2,9 +2,8 @@ import type { ElementTable, RenderSurface } from 'claude-code'
 import type { Term, Tone } from '../types'
 import { termKey } from './glossary'
 import { findWord, skippedRanges, type Match } from './prose'
-import type { Ui } from './rail'
 import { paint, SPACE, TOKENS } from './theme'
-import { inkOf } from './widgets'
+import { inkOf, type Ui } from './ui'
 
 /** Markdown draws only http, https and file links; the host never resolves, a press consumes it. */
 const HREF = 'https://craftory.invalid/term/'
