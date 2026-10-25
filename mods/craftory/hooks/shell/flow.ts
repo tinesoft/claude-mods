@@ -880,6 +880,16 @@ export async function countStep(
   await settle($)
 }
 
+/** The active feature's phase marked done by the person: saved on its record, or on its draft. */ export async function markDone(
+  $: EngineInterface,
+  phase: PhaseId,
+) {
+  const key = await read($, activeState)
+  if (key === null) return
+  await recordChange($, key, { kind: 'mark-done', phase, at: isoOf(await $.clock.now()) })
+  await settle($)
+}
+
 /** One more `tokenBudget` step for a ticket, stored in the feature record so a restart keeps it. */ export async function raiseBudget(
   $: EngineInterface,
   ticket: IssueRef,

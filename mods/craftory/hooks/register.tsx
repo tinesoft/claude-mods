@@ -63,6 +63,7 @@ import {
   pendingSeat,
   planSpawn,
   raiseBudget,
+  markDone,
   refreshGit,
   refreshTracker,
   runOf,
@@ -239,6 +240,7 @@ const bandActions = ($: EngineInterface): BandActions => ({
   diagnose: () => {
     void $.command.run({ command: namespaced('diagnosing-bugs' as SkillName), args: '' })
   },
+  markDone: phase => void markDone($, phase),
   writePr: () => void requestRun($, 'pr' as SkillName, ''),
 })
 

@@ -50,6 +50,8 @@ export type Step = {
   artifact: string | null
   /** Why a not-done phase is not done; feeds the gate text. */
   blockers: string[]
+  /** The card offers Mark done: the phase is open and nothing else could show it done. */
+  canMarkDone: boolean
 }
 
 export type TicketStatus = 'merged' | 'ready' | 'blocked' | 'human' | 'open'
@@ -88,6 +90,8 @@ export type Facts = {
   pr: PullRequest | null
   /** Agents still working for this feature. */
   liveAgents: number
+  /** The tracker holds issues and a pull request to read: false on GitLab and Other. */
+  hasTrackerEvidence: boolean
 }
 
 export type Evidence =
@@ -168,7 +172,7 @@ const lastMergeAt = (f: Facts): number =>
  * pull request from the integration branch being ready for review; Retro is `retro` after Ship.
  * A phase a person marks done is done.
  */
-export const EVIDENCE: Record<PhaseId, Rule> = {
+const RULES: Record<PhaseId, Rule> = {
   align: f => {
     const mark = f.marks.align
     const artifact = mark?.artifacts?.join(' · ') ?? null
@@ -239,6 +243,23 @@ export const EVIDENCE: Record<PhaseId, Rule> = {
   },
 }
 
+/** Whether a person's mark can stand in for the evidence of `phase` on this tracker. */
+export const canMark = (f: Facts, phase: PhaseId): boolean =>
+  PHASES[phase].markDone === 'always' || !f.hasTrackerEvidence
+
+/** The rules, with a person's mark standing in wherever the phase's `markDone` allows it. */
+export const EVIDENCE = Object.fromEntries(
+  PHASE_ORDER.map((phase): [PhaseId, Rule] => [
+    phase,
+    f => {
+      const evidence = RULES[phase](f)
+      return !evidence.done && canMark(f, phase) && f.marks[phase]?.markedDoneAt !== undefined
+        ? { done: true, artifact: evidence.artifact ?? null }
+        : evidence
+    },
+  ]),
+) as Record<PhaseId, Rule>
+
 const buildProgress = (f: Facts): string | null => {
   const work = f.tickets.filter(t => t.status !== 'human')
   return work.length === 0
@@ -290,6 +311,7 @@ export function factsOf({ feature, tracker, running, build }: FlowInput): Facts 
     runningPhase: live,
     pr: tracker?.rich ? tracker.pr : null,
     liveAgents: Object.values(build?.runs ?? {}).filter(r => r.status === 'running').length,
+    hasTrackerEvidence: tracker?.rich ?? true,
   }
 }
 
@@ -300,6 +322,9 @@ const skipReason = (input: FlowInput, phase: PhaseId): SkipReason | undefined =>
   const entry = feature.kind === 'draft' ? feature.draft.entry : feature.record.entry
   return PHASE_ORDER.indexOf(phase) < PHASE_ORDER.indexOf(entry) ? 'entry' : undefined
 }
+
+/** A mark is offered while the phase waits; a running, failed or skipped phase has more pressing buttons. */
+const OPEN_FOR_MARK: ReadonlySet<StepState['kind']> = new Set(['todo', 'next', 'gated'])
 
 export function deriveFlow(input: FlowInput): Flow {
   const { feature, config, running } = input
@@ -367,6 +392,7 @@ export function deriveFlow(input: FlowInput): Flow {
     args: phase === 'tickets' || phase === 'build' ? specRef : '',
     artifact: evidence[phase].artifact ?? null,
     blockers: blockersOf(phase),
+    canMarkDone: canMark(facts, phase) && OPEN_FOR_MARK.has(states[phase].kind),
   }))
   return {
     feature,

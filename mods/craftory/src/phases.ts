@@ -22,6 +22,12 @@ export type PhaseSpec = {
   startedBy?: string
   artifactLabel: string
   pipelineDesc: string
+  /**
+   * When a person may mark the phase done. `always`: nothing on the tracker can show it.
+   * `untracked`: Local and GitHub hold a real issue as evidence, so only GitLab and Other
+   * (links, no issues) take a mark.
+   */
+  markDone: 'always' | 'untracked'
 }
 
 const s = (name: string) => name as SkillName
@@ -36,6 +42,7 @@ export const PHASES = {
     why: 'Interviews you about the plan until every branch is resolved, and writes the answers back to the docs.',
     artifactLabel: 'Updated',
     pipelineDesc: 'Interview until the plan has no open branches; answer design questions first.',
+    markDone: 'always',
   },
   spec: {
     n: 2,
@@ -46,6 +53,7 @@ export const PHASES = {
     why: 'Turns the conversation into a spec with user stories, decisions and an out-of-scope list, then publishes it.',
     artifactLabel: 'Written',
     pipelineDesc: 'Publish the plan as a spec on the tracker.',
+    markDone: 'untracked',
   },
   tickets: {
     n: 3,
@@ -56,6 +64,7 @@ export const PHASES = {
     why: 'Splits the spec into thin vertical slices with blocking edges between them.',
     artifactLabel: 'Created',
     pipelineDesc: 'Thin vertical slices with blocking edges.',
+    markDone: 'untracked',
   },
   build: {
     n: 4,
@@ -66,6 +75,7 @@ export const PHASES = {
     why: 'Runs every unblocked ticket in parallel on one integration branch, one subagent per ticket.',
     artifactLabel: 'Integration branch',
     pipelineDesc: 'Red-green-refactor per ticket.',
+    markDone: 'untracked',
   },
   review: {
     n: 5,
@@ -77,6 +87,7 @@ export const PHASES = {
     startedBy: 'Runs as the end of Build.',
     artifactLabel: 'Will check against',
     pipelineDesc: 'Diff checked against standards and the spec.',
+    markDone: 'always',
   },
   ship: {
     n: 6,
@@ -88,6 +99,7 @@ export const PHASES = {
     startedBy: 'The agent uses pr on the draft PR that Build opened.',
     artifactLabel: 'Will mark ready',
     pipelineDesc: 'Rewrite the draft PR body, then mark it ready.',
+    markDone: 'always',
   },
   retro: {
     n: 7,
@@ -98,6 +110,7 @@ export const PHASES = {
     why: 'Suggests ranked improvements to your skills, glossary and steering file.',
     artifactLabel: 'Runs',
     pipelineDesc: 'Ranked improvements for skills, glossary and steering file.',
+    markDone: 'always',
   },
 } as const satisfies Record<PhaseId, PhaseSpec>
 

@@ -45,6 +45,7 @@ const on: BandActions = {
   raiseBudget: ticket => void calls.push(`raise ${ticket}`),
   diagnose: () => void calls.push('diagnose'),
   writePr: () => void calls.push('write-pr'),
+  markDone: phase => void calls.push(`mark-done ${phase}`),
 }
 
 const args = (over: Partial<BandArgs> = {}): BandArgs => ({

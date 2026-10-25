@@ -239,7 +239,10 @@ export type CardView = {
   gate: string | null
   /** The primary button: its label, and what it runs. Null when nothing is typed for the phase. */
   primary: { label: string; phase: PhaseId | 'triage' } | null
-  secondary: { id: string; label: string; action: 'open-tickets' | 'diagnose' | 'pr' }[]
+  secondary: (
+    | { id: string; label: string; action: 'open-tickets' | 'diagnose' | 'pr' }
+    | { id: string; label: string; action: 'mark-done'; phase: PhaseId }
+  )[]
   /** Build's live Agents list; null on every other card and with Settings › live agents off. */
   agents: AgentsView | null
 }
@@ -284,6 +287,10 @@ function secondaryOf(step: Step, specRef: string | null, isDone: boolean): Secon
   return []
 }
 
+const markDoneButton = (phase: PhaseId): Secondary => [
+  { id: 'mark-done', label: 'Mark done', action: 'mark-done', phase },
+]
+
 export function phaseCard(
   step: Step,
   flow: Flow,
@@ -320,7 +327,10 @@ export function phaseCard(
       command === null
         ? null
         : { label: isDone ? `Re-run ${command}` : command, phase: step.phase },
-    secondary: secondaryOf(step, specRef, isDone),
+    secondary: [
+      ...secondaryOf(step, specRef, isDone),
+      ...(step.canMarkDone ? markDoneButton(step.phase) : []),
+    ],
     agents: step.phase === 'build' ? agents : null,
   }
 }
@@ -463,6 +473,8 @@ export type BandActions = {
   diagnose: () => void
   /** Ship's secondary button: `/mattpocock-skills:pr` rewrites the PR body. */
   writePr: () => void
+  /** The card's Mark done: the phase counts as done though no evidence shows it. */
+  markDone: (phase: PhaseId) => void
 }
 
 export type BandArgs = {
@@ -1299,6 +1311,7 @@ export const DetailCard = ({
     | 'raiseBudget'
     | 'diagnose'
     | 'writePr'
+    | 'markDone'
   >
   ascii?: boolean
 }) => {
@@ -1413,6 +1426,7 @@ export const DetailCard = ({
               onPress={() => {
                 if (button.action === 'diagnose') on.diagnose()
                 else if (button.action === 'pr') on.writePr()
+                else if (button.action === 'mark-done') on.markDone(button.phase)
                 else on.openTickets()
               }}
             />
