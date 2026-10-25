@@ -105,20 +105,20 @@ test('an installed version outside the range offers Update, which runs the updat
   ])
 })
 
-test('Not now hides the plugin notice and is remembered in the store', async ($, on) => {
+test('Not now hides the plugin notice for this session only', async ($, on) => {
   const w = world(on)
   await startSession($)
   await (await mountBand($)).press({ key: 'notice-not-now' })
   const band = await mountBand($)
   expect(await allText(band)).not.toContain('Craftory needs')
   expect(w.installs()).toEqual([])
-  expect(w.store.get('dismissed')).toEqual(['plugin'])
+  expect(w.store.has('dismissed')).toBe(false)
 })
 
-test('a dismissal from an earlier session still hides the notice', async ($, on) => {
+test('a dismissal left in the store by an older build does not hide the notice', async ($, on) => {
   world(on, { store: { dismissed: ['plugin'] } })
   await startSession($)
-  expect(await allText(await mountBand($))).not.toContain('Craftory needs')
+  expect(await allText(await mountBand($))).toContain('Craftory needs')
 })
 
 test('first run says what was found and opens Settings on Set up Craftory', async ($, on) => {

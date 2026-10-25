@@ -153,15 +153,6 @@ export const SPACE = {
 
 const CLAUDE_THEME = /^(light|dark)(-daltonized|-ansi)?$/
 
-/** The last field of `COLORFGBG` is the background colour index: 0-6 and 8 are dark, 7 and 9-15 light. */
-export const parseColorFgBg = (value: string | undefined): Tone | undefined => {
-  const last = value?.split(';').at(-1)?.trim()
-  if (last === undefined || !/^\d{1,2}$/.test(last)) return undefined
-  const index = Number(last)
-  if (index > 15) return undefined
-  return index <= 6 || index === 8 ? 'dark' : 'light'
-}
-
 export type ToneInput = {
   theme: ThemeChoice
   /** The Claude Code `theme` setting. */
@@ -169,23 +160,26 @@ export type ToneInput = {
   surface: RenderSurface
   /** The tone `COLORFGBG` names, when the terminal sets it. */
   colorFgBg: Tone | undefined
+  /** The tone the operating system appearance names, probed off the render path. */
+  system: Tone | undefined
 }
 
 /**
  * The tone to draw in, or undefined for the terminal's own colours. Claude Code's `auto` theme
  * answers an OSC 11 query mods cannot see, so the terminal falls back to `COLORFGBG`. An ANSI
- * theme keeps the terminal's palette. Other surfaces follow the Claude Code theme.
+ * theme keeps the terminal's palette. Other surfaces follow the OS appearance, then the Claude Code theme.
  */
 export function resolveTone({
   theme,
   claudeTheme,
   surface,
   colorFgBg,
+  system,
 }: ToneInput): Tone | undefined {
   if (theme !== 'auto') return theme
   const match = typeof claudeTheme === 'string' ? CLAUDE_THEME.exec(claudeTheme) : null
   const isAnsi = match?.[2] === '-ansi'
   const claude = match && !isAnsi ? (match[1] as Tone) : undefined
-  if (surface !== 'terminal') return claude ?? 'light'
-  return isAnsi ? undefined : (claude ?? colorFgBg ?? 'dark')
+  if (surface !== 'terminal') return system ?? claude ?? 'light'
+  return isAnsi ? undefined : (claude ?? colorFgBg ?? system ?? 'dark')
 }

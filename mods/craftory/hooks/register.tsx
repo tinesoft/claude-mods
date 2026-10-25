@@ -8,7 +8,7 @@
  * Hooks are `($, e, next)` and return `next(e)`'s result unless they deliberately answer.
  */
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderSurface } from 'claude-code'
+import type { EngineInterface, Register, RenderSurface, Timer } from 'claude-code'
 
 import {
   configOf,
@@ -43,7 +43,7 @@ import {
   type SetupSignals,
 } from '../src/agents-md'
 import { GITIGNORE, isShared, isWritable, type FileWrite, type WritableContext } from '../src/files'
-import { derivedNotices, parseDismissed, type NoticeAction } from '../src/notices'
+import { derivedNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
 import { namespaced } from '../src/phases'
 import {
@@ -58,13 +58,15 @@ import {
   UPDATE_ARGV,
 } from '../src/plugin'
 import { renderBand, type Ui } from '../src/rail'
-import { parseColorFgBg, resolveTone, type Tone } from '../src/theme'
+import { parseColorFgBg, SYSTEM_PROBES } from '../src/appearance'
+import { resolveTone, type Tone } from '../src/theme'
 import { parseGlossary } from '../src/glossary'
 import type { FeatureRecord, InstallState, PaneTab, RepoSnapshot } from '../types'
 
 const PANE = 'craftory'
 const COMMAND = 'craftory'
-const STORE_DISMISSED = 'dismissed'
+const APPEARANCE_MS = 5_000
+const APPEARANCE_PROBE_TIMEOUT_MS = 1500
 
 // ─── Atoms (one owner each, listed with the code that writes them) ──────────────────────
 //
@@ -75,7 +77,8 @@ const STORE_DISMISSED = 'dismissed'
 // plugin      detectPlugin (session.start, after an install)
 // install     installPlugin (notice buttons)
 // prefs       session.start
-// dismissed   Not now (notice button), session.start
+// dismissed   Not now (notice button); the session only
+// appearance  watchAppearance (every five seconds)
 // paneTab     openPane
 // setupNote   writeSetup (pane button)
 
@@ -87,6 +90,12 @@ const pluginState = atom({ plugin: 'craftory', key: 'plugin' } as const, { kind:
 const installState = atom({ plugin: 'craftory', key: 'install' } as const, { kind: 'idle' })
 const prefsState = atom({ plugin: 'craftory', key: 'prefs' } as const, null)
 const dismissedState = atom({ plugin: 'craftory', key: 'dismissed' } as const, [])
+const appearanceState = atom({ plugin: 'craftory', key: 'appearance' } as const, {
+  system: null,
+  colorFgBg: null,
+})
+
+let appearanceTimer: Timer | undefined
 const paneTabState = atom({ plugin: 'craftory', key: 'paneTab' } as const, 'flow')
 const setupNoteState = atom({ plugin: 'craftory', key: 'setupNote' } as const, null)
 
@@ -291,6 +300,37 @@ function uiFor($: EngineInterface, event: Parameters<EngineInterface['ui']['reso
     : { Box, Text, Button }
 }
 
+async function probeSystem($: EngineInterface): Promise<Tone | null> {
+  for (const probe of SYSTEM_PROBES) {
+    try {
+      const result = await $.process.run(probe.argv, { timeoutMs: APPEARANCE_PROBE_TIMEOUT_MS })
+      const tone = probe.read(result)
+      if (tone !== undefined) return tone
+    } catch {
+      // The command is not installed here, or this surface cannot run commands.
+    }
+  }
+  return null
+}
+
+async function refreshAppearance($: EngineInterface) {
+  const current = {
+    system: await probeSystem($),
+    colorFgBg: parseColorFgBg(await $.env.get('COLORFGBG')) ?? null,
+  }
+  const old = await read($, appearanceState)
+  if (old.system === current.system && old.colorFgBg === current.colorFgBg) return
+  await update($, appearanceState, () => current)
+  $.ui.invalidate('ui.render')
+}
+
+/** Reads the system appearance off the render path, now and every five seconds. */
+function watchAppearance($: EngineInterface) {
+  appearanceTimer?.cancel()
+  appearanceTimer = $.clock.every(APPEARANCE_MS, () => refreshAppearance($))
+  $.clock.after(0, () => refreshAppearance($))
+}
+
 async function toneOf(
   $: EngineInterface,
   options: Readonly<Record<string, unknown>>,
@@ -298,11 +338,13 @@ async function toneOf(
 ): Promise<Tone | undefined> {
   const theme = (await $.config.list()).find(row => row.key === 'theme')
   const prefs = resolvePrefs(options, await read($, prefsState))
+  const { system, colorFgBg } = await read($, appearanceState)
   return resolveTone({
     theme: prefs.theme,
     claudeTheme: theme?.value,
     surface,
-    colorFgBg: parseColorFgBg(await $.env.get('COLORFGBG')),
+    colorFgBg: colorFgBg ?? undefined,
+    system: system ?? undefined,
   })
 }
 
@@ -318,12 +360,7 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
     case 'update':
       return installPlugin($, UPDATE_ARGV)
     case 'not-now': {
-      const dismissed = [
-        ...(await read($, dismissedState)).filter(k => k !== action.key),
-        action.key,
-      ]
-      await update($, dismissedState, () => dismissed)
-      await $.store.set(STORE_DISMISSED, dismissed)
+      await update($, dismissedState, held => [...held.filter(k => k !== action.key), action.key])
       $.ui.invalidate('ui.render')
       return
     }
@@ -352,12 +389,9 @@ export const register: Register = (on, options) => {
       immediate: true,
     })
     await update($, prefsState, () => parsePrefOverrides(null))
-    const [prefs, dismissed] = await Promise.all([
-      $.store.get(STORE_PREFS),
-      $.store.get(STORE_DISMISSED),
-    ])
-    await update($, prefsState, () => parsePrefOverrides(prefs))
-    await update($, dismissedState, () => parseDismissed(dismissed))
+    const prefs = parsePrefOverrides(await $.store.get(STORE_PREFS))
+    await update($, prefsState, () => prefs)
+    watchAppearance($)
     if (!(await isSupported($))) {
       $.ui.toast(`Craftory needs Claude Code ${ENGINE_FLOOR} or later. Run claude update.`)
     }

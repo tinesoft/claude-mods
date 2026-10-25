@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { paint, parseColorFgBg, resolveTone, TOKENS, TRIPLES } from '../src/theme'
+import { paint, resolveTone, TOKENS, TRIPLES } from '../src/theme'
 
 test('the tokens are the session-activity palette in both tones', () => {
   expect(TOKENS.light).toMatchObject({
@@ -32,6 +32,7 @@ test('the tone follows the pref, then the Claude Code theme, then the terminal',
     claudeTheme: 'dark',
     surface: 'terminal',
     colorFgBg: undefined,
+    system: undefined,
   } as const
   expect(resolveTone({ ...base, theme: 'light' })).toBe('light')
   expect(resolveTone(base)).toBe('dark')
@@ -43,9 +44,17 @@ test('the tone follows the pref, then the Claude Code theme, then the terminal',
   expect(resolveTone({ ...base, surface: 'desktop', claudeTheme: 'dark-ansi' })).toBe('light')
 })
 
-test('COLORFGBG names the background by its last field', () => {
-  expect(parseColorFgBg('15;0')).toBe('dark')
-  expect(parseColorFgBg('0;15')).toBe('light')
-  expect(parseColorFgBg('0;default;7')).toBe('light')
-  for (const bad of [undefined, '', 'x', '1;99']) expect(parseColorFgBg(bad)).toBeUndefined()
+test('the OS appearance decides where the terminal and the app say nothing, as in session-activity', () => {
+  const base = {
+    theme: 'auto',
+    claudeTheme: 'auto',
+    surface: 'terminal',
+    colorFgBg: undefined,
+    system: 'light',
+  } as const
+  expect(resolveTone(base)).toBe('light')
+  expect(resolveTone({ ...base, colorFgBg: 'dark' })).toBe('dark')
+  expect(resolveTone({ ...base, system: 'dark', surface: 'desktop', claudeTheme: 'light' })).toBe(
+    'dark',
+  )
 })

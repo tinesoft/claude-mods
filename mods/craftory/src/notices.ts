@@ -1,7 +1,7 @@
 /**
  * Band notices computed from facts, never stored: plugin missing or out of range, installing,
  * restart needed, install failed, first run and no feature in flight. `dismissed` hides the
- * "Not now" ones. Event notices (gates, budget, drift) arrive with later milestones.
+ * "Not now" ones for the session. Event notices (gates, budget, drift) arrive with later milestones.
  */
 import type { InstallState, NoticeKey, PluginStatus, RepoSnapshot, SkillName } from '../types'
 import { PLUGIN, TESTED_RANGE } from './phases'
@@ -26,12 +26,6 @@ export type NoticeView = {
   replacesRail: boolean
   isBusy?: true
 }
-
-const NOTICE_KEYS: readonly NoticeKey[] = ['plugin', 'first-run', 'no-feature', 'duplicates']
-
-/** `$.store.get` is unknown data: keep the keys that are notices. */
-export const parseDismissed = (stored: unknown): NoticeKey[] =>
-  Array.isArray(stored) ? NOTICE_KEYS.filter(k => stored.includes(k)) : []
 
 const NEEDS = `Craftory needs ${PLUGIN} ${TESTED_RANGE.label}`
 

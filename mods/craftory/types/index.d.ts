@@ -448,6 +448,8 @@ declare module 'claude-code' {
       plugin: PluginStatus
       install: InstallState
       prefs: PrefOverrides | null
+      /** Probed off the render path every five seconds, as session-activity does. */
+      appearance: { system: Tone | null; colorFgBg: Tone | null }
 
       // Session facts
       active: FeatureKey | null
