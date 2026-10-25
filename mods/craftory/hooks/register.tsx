@@ -13,13 +13,11 @@ import {
   read,
   type Register,
   type RenderSurface,
-  type Timer,
   update,
 } from 'claude-code'
 import {
   AGENT_DOCS,
   DEFAULT_DOCS,
-  DEFAULT_LABELS,
   draftSetup,
   ensureGitignore,
   firstRunText,
@@ -28,72 +26,19 @@ import {
   type SetupSignals,
 } from '../src/agents-md'
 import {
-  addPending,
-  addQueued,
   agentRows,
   type AgentsView,
   agentsView,
-  budgetFor,
-  budgetK,
-  budgetState,
-  cleanupPlan,
-  conflictText,
-  decideSpawn,
-  dropPending,
-  EMPTY_LEDGER,
-  type FinishReason,
-  finishRun,
-  freshTokens,
-  isBuilding,
   type KeepWhy,
-  markStopping,
-  moveNotices,
-  patchRun,
-  pauseText,
-  recordOf,
-  recordUsage,
   samePath,
-  seated,
-  type SpawnDecision,
   stoppedAnswer,
   stoppedStep,
-  stopText,
-  tddStepOf,
   withoutIsolation,
 } from '../src/build'
-import {
-  CONFIG_PATH,
-  configOf,
-  configWrite,
-  integrationBranchFor,
-  parseConfig,
-  patchConfig,
-} from '../src/config'
-import { driftDiffArgv, findDrift, retroSuggestions } from '../src/drift'
+import { CONFIG_PATH, configOf, configWrite, parseConfig, patchConfig } from '../src/config'
 import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
-import { deriveFlow, type Flow, waitingForTriage } from '../src/evidence'
-import {
-  applyChange,
-  applyDraftChange,
-  bindSpec,
-  draftKey,
-  enteredRecord,
-  type FeatureChange,
-  featureOf,
-  featurePath,
-  FEATURES_DIR,
-  isFeatureKey,
-  mergeFeature,
-  newDraft,
-  parseDrafts,
-  parseFeature,
-  pickActive,
-  promote,
-  serialiseFeature,
-  specKey,
-  STORE_DRAFTS,
-  STORE_LAST_ACTIVE,
-} from '../src/features'
+import { type Flow, waitingForTriage } from '../src/evidence'
+import { draftKey, specKey } from '../src/features'
 import {
   diffSummary,
   type FileWrite,
@@ -101,13 +46,10 @@ import {
   isShared,
   type WritableContext,
 } from '../src/files'
-import { checkRun, consumePass, dropText, issuePass, type RunRequest } from '../src/gates'
+import type { RunRequest } from '../src/gates'
 import {
-  assembleGit,
   basesOf,
   diffLine,
-  gitStep2,
-  parseRemote,
   parseShortstat,
   parseWorktreeList,
   prunable,
@@ -145,30 +87,65 @@ import {
   type SettingsRow,
 } from '../src/sections'
 import type { SettingsArgs } from '../src/settings'
-import { diffSignals, signalBasis, TOAST_MS, toastText } from '../src/signals'
-import { markdownSummary, statusLine } from '../src/summary'
-import { SPIN_MS } from '../src/theme'
-import { type Read, type ReadContext, type ReadResult, readTracker, TRACKERS } from '../src/tracker'
+import { markdownSummary } from '../src/summary'
+import { TRACKERS } from '../src/tracker'
 import type {
   AgentId,
-  AgentRun,
   AgentSetup,
-  EventNotice,
-  FeatureKey,
-  FeatureRecord,
   GitSnapshot,
   GlossaryDoc,
-  IsoTime,
-  IssueRef,
   PaneTab,
   PhaseId,
   PluginStatus,
   RepoSnapshot,
-  Running,
   SeatPlan,
   SkillName,
   TermDraft,
 } from '../types'
+import {
+  activeKey,
+  activeRecord,
+  allowGate,
+  cleanupInputs,
+  countStep,
+  currentFlow,
+  dismissedOf,
+  dismissNotice,
+  draftsOf,
+  dropNotice,
+  enterFromIssue,
+  featuresOf,
+  finishAgent,
+  finishTurn,
+  forgetSeat,
+  gatePrompt,
+  gateVerdict,
+  gitOf,
+  hasAgentRuns,
+  heldNotices,
+  holdForGate,
+  ledgerOf,
+  loadFeatures,
+  noticeOf,
+  pendingSeat,
+  planSpawn,
+  raiseBudget,
+  readContext,
+  refreshGit,
+  refreshTracker,
+  requestOf,
+  runOf,
+  scheduleGit,
+  scheduleRefresh,
+  seatAgent,
+  settle,
+  skillStarted,
+  switchFeature,
+  togglePause,
+  touchesTracker,
+  trackerKindOf,
+  trackerOf,
+} from './shell/flow'
 import {
   applyWrites,
   detectPlugin,
@@ -180,10 +157,9 @@ import {
   pluginOf,
   readSetupFiles,
   readText,
-  remoteUrl,
   repoSnapshot,
+  sh,
   writableContext,
-  writeRepoFile,
 } from './shell/repo'
 import {
   loadPrefs,
@@ -199,10 +175,6 @@ const PANE = 'craftory'
 
 const COMMAND = 'craftory'
 
-const REFRESH_DEBOUNCE_MS = 800
-
-const TRACKER_TIMEOUT_MS = 20_000
-
 const REMOVE_ANYWAY = 'Remove anyway'
 
 const KEEP_IT = 'Keep it'
@@ -217,35 +189,9 @@ const DIAGNOSE_REASON =
 const keptReason = (path: string, why: KeepWhy) =>
   `Craftory keeps ${path}: ${why === 'running' ? 'an agent is still working in it' : `its agent ${why === 'failed' ? 'failed' : why === 'over-budget' ? 'ran out of token budget' : 'was stopped'}, and the user decides what happens to its work`}. Do not remove it. Clean up the other worktrees and leave this one.`
 
-const featuresState = atom({ plugin: 'craftory', key: 'features' } as const, {})
-
-const draftsState = atom({ plugin: 'craftory', key: 'drafts' } as const, {})
-
-const activeState = atom({ plugin: 'craftory', key: 'active' } as const, null)
-
-const dismissedState = atom({ plugin: 'craftory', key: 'dismissed' } as const, [])
-
-let spinner: Timer | undefined
-
-let refreshTimer: Timer | undefined
-
 const paneTabState = atom({ plugin: 'craftory', key: 'paneTab' } as const, 'flow')
 
 const setupNoteState = atom({ plugin: 'craftory', key: 'setupNote' } as const, null)
-
-const trackerState = atom({ plugin: 'craftory', key: 'tracker' } as const, null)
-
-const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
-
-const passesState = atom({ plugin: 'craftory', key: 'passes' } as const, [])
-
-const noticesState = atom({ plugin: 'craftory', key: 'notices' } as const, [])
-
-const signalsState = atom({ plugin: 'craftory', key: 'signals' } as const, null)
-
-const buildState = atom({ plugin: 'craftory', key: 'build' } as const, EMPTY_LEDGER)
-
-const gitState = atom({ plugin: 'craftory', key: 'git' } as const, null)
 
 const diffsState = atom({ plugin: 'craftory', key: 'diffs' } as const, {})
 
@@ -278,25 +224,6 @@ const glossaryQueryState = atom({ plugin: 'craftory', key: 'glossaryQuery' } as 
 const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } as const, [])
 
 const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
-
-async function loadFeatures($: EngineInterface) {
-  const entries = await $.fs.list(FEATURES_DIR).catch(() => [])
-  const records = await Promise.all(
-    entries
-      .filter(entry => entry.kind === 'file' && entry.name.endsWith('.json'))
-      .map(async entry => parseFeature((await readText($, `${FEATURES_DIR}${entry.name}`)) ?? '')),
-  )
-  const features: Record<string, FeatureRecord> = {}
-  for (const loaded of records)
-    if (loaded.state === 'ok') features[loaded.value.spec] = loaded.value
-  const drafts = parseDrafts(await $.store.get(STORE_DRAFTS))
-  const last = await $.store.get(STORE_LAST_ACTIVE)
-  await update($, featuresState, () => features)
-  await update($, draftsState, () => drafts)
-  await update($, activeState, () =>
-    pickActive({ features, drafts, git: null, lastActive: isFeatureKey(last) ? last : null }),
-  )
-}
 
 const WRITE_IT = 'Write'
 
@@ -690,268 +617,6 @@ async function copyGlossaryPath($: EngineInterface, surface: RenderSurface) {
   )
 }
 
-const isoOf = (ms: number): IsoTime => new Date(ms).toISOString()
-
-async function currentFlow($: EngineInterface): Promise<Flow | null> {
-  const [repo, features, drafts, active, tracker, running, build] = await Promise.all([
-    repoSnapshot($),
-    read($, featuresState),
-    read($, draftsState),
-    read($, activeState),
-    read($, trackerState),
-    read($, runningState),
-    read($, buildState),
-  ])
-  const feature = featureOf(active, features, drafts)
-  if (feature === null) return null
-  return deriveFlow({ feature, config: configOf(repo?.config), tracker, running, build })
-}
-
-/** The tracker kind named in `docs/agents/issue-tracker.md`; Local until setup says otherwise. */
-const trackerKindOf = (repo: RepoSnapshot | null) =>
-  repo?.setup.state === 'ok' ? repo.setup.value.tracker.kind : 'local'
-
-async function readContext($: EngineInterface, repo: RepoSnapshot): Promise<ReadContext> {
-  const [features, active] = await Promise.all([read($, featuresState), read($, activeState)])
-  const record = active?.startsWith('spec:') ? features[active.slice(5)] : undefined
-  return {
-    config: configOf(repo.config),
-    labels: (repo.setup.state === 'ok' ? repo.setup.value.triage : null) ?? DEFAULT_LABELS,
-    now: await $.clock.now(),
-    focus: {
-      specs: Object.values(features).map(f => f.spec),
-      branch: record?.integrationBranch || null,
-    },
-    remoteWeb: (await read($, gitState))?.remote?.webUrl ?? null,
-    ...(repo.setup.state === 'ok' &&
-      repo.setup.value.tracker.kind === 'other' && {
-        otherDescription: repo.setup.value.tracker.description,
-      }),
-  }
-}
-
-/** One executor for every tracker's reads: the filesystem for Local, `gh` for GitHub. */
-const executeReads = ($: EngineInterface) => (reads: readonly Read[]) =>
-  Promise.all(
-    reads.map(async (item): Promise<ReadResult> => {
-      switch (item.kind) {
-        case 'list': {
-          const entries = await $.fs.list(item.dir).catch(() => null)
-          return {
-            kind: 'list',
-            entries:
-              entries?.map(e => ({
-                name: e.name,
-                kind: e.kind === 'file' || e.kind === 'dir' ? e.kind : 'other',
-                mtimeMs: e.mtimeMs,
-              })) ?? null,
-          }
-        }
-        case 'read':
-          return { kind: 'read', text: await readText($, item.path) }
-        case 'run': {
-          const result = await $.process
-            .run(item.argv, { timeoutMs: TRACKER_TIMEOUT_MS })
-            .catch(() => ({ exitCode: 1, stdout: '' }))
-          return { kind: 'run', argv: item.argv, exitCode: result.exitCode, stdout: result.stdout }
-        }
-        default: {
-          const _exhaustive: never = item
-          return _exhaustive
-        }
-      }
-    }),
-  )
-
-async function refreshTracker($: EngineInterface) {
-  const repo = await repoSnapshot($)
-  if (repo === null) return
-  const spec = TRACKERS[trackerKindOf(repo)]
-  if (spec === undefined) return
-  const snapshot = await readTracker(spec, await readContext($, repo), executeReads($))
-  await update($, trackerState, () => snapshot)
-  await bindDrafts($)
-  await cleanupMerged($)
-  await settle($)
-}
-
-/** Reads the tracker a moment after the last change, so a burst of tool calls costs one read. */
-function scheduleRefresh($: EngineInterface) {
-  refreshTimer?.cancel()
-  refreshTimer = $.clock.after(REFRESH_DEBOUNCE_MS, () => void refreshTracker($))
-}
-
-/** A tool call that may have changed the tracker: a write under the issues folder, `gh`, `git push`. */
-async function touchesTracker(
-  $: EngineInterface,
-  tool: { name: string; command?: string; path?: string },
-) {
-  const repo = await repoSnapshot($)
-  const kind = trackerKindOf(repo)
-  if (repo === null) return false
-  return TRACKERS[kind]?.touches(await readContext($, repo), tool) === true
-}
-
-async function persistDrafts($: EngineInterface) {
-  await $.store.set(STORE_DRAFTS, await read($, draftsState))
-}
-
-/** The one place a feature record is written: merged with what is on disk, so two sessions converge. */
-async function saveFeature($: EngineInterface, record: FeatureRecord): Promise<FeatureRecord> {
-  const path = featurePath(record.spec)
-  const raw = await readText($, path)
-  const disk = raw === null ? null : parseFeature(raw)
-  const merged = mergeFeature(disk?.state === 'ok' ? disk.value : null, record)
-  const after = serialiseFeature(merged)
-  if (after !== raw) await writeRepoFile($, { path, before: raw, after }, await writableContext($))
-  return merged
-}
-
-/** Applies one change to the active feature: a record is saved, a draft goes to the store. */
-async function recordChange($: EngineInterface, key: FeatureKey, change: FeatureChange) {
-  const feature = featureOf(key, await read($, featuresState), await read($, draftsState))
-  if (feature === null) return
-  if (feature.kind === 'draft') {
-    const next = applyDraftChange(feature.draft, change)
-    await update($, draftsState, held => ({ ...held, [next.draftId]: next }))
-    await persistDrafts($)
-    return
-  }
-  const saved = await saveFeature($, applyChange(feature.record, change))
-  await update($, featuresState, held => ({ ...held, [saved.spec]: saved }))
-}
-
-/** A feature that starts from a command with none in flight is a draft until its spec exists. */
-async function startDraft($: EngineInterface, phase: PhaseId): Promise<FeatureKey> {
-  const now = await $.clock.now()
-  const draft = newDraft({
-    draftId: `d${now}`,
-    title: 'New feature',
-    entry: phase,
-    enteredFrom: null,
-    at: isoOf(now),
-  })
-  await update($, draftsState, held => ({ ...held, [draft.draftId]: draft }))
-  await persistDrafts($)
-  const key = draftKey(draft.draftId)
-  await update($, activeState, () => key)
-  return key
-}
-
-/** A draft whose spec now exists becomes a record on disk, and the active feature follows it. */
-async function bindDrafts($: EngineInterface) {
-  const [tracker, repo, drafts] = await Promise.all([
-    read($, trackerState),
-    repoSnapshot($),
-    read($, draftsState),
-  ])
-  if (!tracker?.rich) return
-  const bound = new Set(Object.keys(await read($, featuresState)))
-  for (const draft of Object.values(drafts)) {
-    const spec = bindSpec(draft, tracker, bound)
-    if (spec === undefined) continue
-    const config = configOf(repo?.config)
-    const record = await saveFeature(
-      $,
-      promote(draft, spec, integrationBranchFor(config, spec.title)),
-    )
-    bound.add(spec.ref)
-    await update($, featuresState, held => ({ ...held, [record.spec]: record }))
-    await update($, draftsState, held =>
-      Object.fromEntries(Object.entries(held).filter(([id]) => id !== draft.draftId)),
-    )
-    const from = draftKey(draft.draftId)
-    await update($, activeState, key => (key === from ? specKey(record.spec) : key))
-    await update($, runningState, run =>
-      run?.feature === from ? { ...run, feature: specKey(record.spec) } : run,
-    )
-    await persistDrafts($)
-  }
-}
-
-async function addNotice($: EngineInterface, notice: EventNotice) {
-  await update($, noticesState, held => [...held.filter(n => n.id !== notice.id), notice])
-}
-
-/**
- * Everything that follows from a changed fact: the status line, the spinner, the toasts and the
- * redraw. The toast basis is first taken only once the tracker has been read, so a restart seeds
- * it and announces nothing that was already there.
- */
-async function settle($: EngineInterface) {
-  const flow = await currentFlow($)
-  $.ui.status(statusLine(flow))
-  const isRunning = flow?.steps.some(s => s.state.kind === 'running') === true
-  if (isRunning && spinner === undefined) {
-    spinner = $.clock.every(SPIN_MS, () => $.ui.invalidate('ui.render'))
-  } else if (!isRunning && spinner !== undefined) {
-    spinner.cancel()
-    spinner = undefined
-  }
-  const held = await read($, noticesState)
-  const stale = new Set(
-    held.flatMap(n =>
-      n.kind === 'gate' && flow?.steps.find(s => s.phase === n.phase)?.state.kind !== 'gated'
-        ? [n.id]
-        : [],
-    ),
-  )
-  if (stale.size > 0) await update($, noticesState, list => list.filter(n => !stale.has(n.id)))
-  const tracker = await read($, trackerState)
-  if (tracker !== null) {
-    const next = signalBasis({
-      features: await read($, featuresState),
-      drafts: await read($, draftsState),
-      tracker,
-      notices: await read($, noticesState),
-    })
-    const signals = diffSignals(await read($, signalsState), next)
-    await update($, signalsState, () => next)
-    for (const signal of signals) {
-      $.ui.toast(toastText(signal), { timeoutMs: TOAST_MS })
-      if (signal.kind === 'spec-published') {
-        await addNotice($, {
-          kind: 'spec-published',
-          id: `spec-${signal.spec}`,
-          spec: signal.spec,
-          stories: signal.stories,
-        })
-      }
-    }
-  }
-  $.ui.invalidate('ui.render')
-}
-
-/** A typed or pressed command as a gate sees it; undefined for anything that is not a Matt phase. */
-function requestOf(name: string | undefined, args: string): RunRequest | undefined {
-  const found = name === undefined ? undefined : recognise(name, { strict: false })
-  return found?.kind === 'phase' ? { skill: found.skill, args, phase: found.phase } : undefined
-}
-
-/** The command a `prompt.submit` runs: the engine's parse, else the typed `/name args` line. */
-function typedCommand(e: { text: string; command?: { name: string; args: string } }) {
-  if (e.command !== undefined) return { name: e.command.name, args: e.command.args }
-  const match = /^\/(\S+)(?:\s+([\s\S]*))?$/.exec(e.text.trim())
-  return match ? { name: match[1]!, args: (match[2] ?? '').trim() } : undefined
-}
-
-async function holdForGate($: EngineInterface, req: RunRequest, flow: Flow | null) {
-  const now = await $.clock.now()
-  const verdict = checkRun(req, flow, await read($, passesState), now)
-  if (verdict.kind === 'go') return undefined
-  await addNotice($, {
-    kind: 'gate',
-    id: `gate-${verdict.phase}`,
-    phase: verdict.phase,
-    by: verdict.by,
-    reason: verdict.reason,
-    skill: req.skill,
-    args: req.args,
-  })
-  await settle($)
-  return verdict
-}
-
 /** A rail press or a notice button: the same gate as a typed command, then the namespaced command. */
 async function requestRun($: EngineInterface, skill: SkillName, args: string) {
   const req = requestOf(skill, args) ?? { skill, args, phase: null }
@@ -960,47 +625,7 @@ async function requestRun($: EngineInterface, skill: SkillName, args: string) {
   await $.command.run({ command: namespaced(skill), args })
 }
 
-const GIT_MS = 15_000
-
 const SETUP_MS = 600_000
-
-const GIT_DEBOUNCE_MS = 1_500
-
-/** The integration tip last announced to each agent, so a moved tip is told once. */
-const told = new Map<string, string>()
-
-let gitTimer: Timer | undefined
-
-type Shell = { exitCode: number; stdout: string; stderr: string }
-
-/** One command; null when it cannot start, which every caller treats as a failed command. */
-const sh = (
-  $: EngineInterface,
-  argv: readonly string[],
-  init?: { cwd?: string; timeoutMs?: number },
-): Promise<Shell | null> => $.process.run(argv, { timeoutMs: GIT_MS, ...init }).catch(() => null)
-
-async function activeRecord($: EngineInterface): Promise<FeatureRecord | null> {
-  const feature = featureOf(
-    await read($, activeState),
-    await read($, featuresState),
-    await read($, draftsState),
-  )
-  return feature?.kind === 'specced' ? feature.record : null
-}
-
-/** The feature a ticket belongs to: its spec is the ticket's parent in the tracker. */
-async function featureOfTicket($: EngineInterface, ticket: string): Promise<FeatureRecord | null> {
-  const tracker = await read($, trackerState)
-  const parent = tracker?.rich ? tracker.issues.find(i => i.ref === ticket)?.parent : null
-  return parent ? ((await read($, featuresState))[parent] ?? null) : null
-}
-
-async function persistRun($: EngineInterface, run: AgentRun) {
-  const record = (await featureOfTicket($, run.ticket)) ?? (await activeRecord($))
-  if (record !== null)
-    await recordChange($, specKey(record.spec), { kind: 'agent', record: recordOf(run) })
-}
 
 type Seat = { ok: true; isFresh: boolean; path: string } | { ok: false; reason: string }
 
@@ -1031,193 +656,17 @@ async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
   return { ok: true, isFresh: true, path }
 }
 
-async function refreshGit($: EngineInterface) {
-  const [repo, features, tracker, ledger] = await Promise.all([
-    repoSnapshot($),
-    read($, featuresState),
-    read($, trackerState),
-    read($, buildState),
-  ])
-  const config = configOf(repo?.config)
-  const listed = await sh($, worktreeListArgv)
-  if (listed === null || listed.exitCode !== 0) return
-  const entries = parseWorktreeList(listed.stdout)
-  const main = entries[0]
-  if (main === undefined) return
-  const records = Object.values(features)
-  const integrationBranches = [...new Set(records.map(r => r.integrationBranch).filter(Boolean))]
-  const runs = new Map<string, string>()
-  for (const run of Object.values(ledger.runs)) {
-    const parent = tracker?.rich ? tracker.issues.find(i => i.ref === run.ticket)?.parent : null
-    const integration = parent ? features[parent]?.integrationBranch : undefined
-    if (integration) runs.set(run.branch, integration)
-  }
-  const bases = basesOf({
-    entries,
-    main: main.branch,
-    records,
-    runs,
-    ticketBranch: config.worktrees.ticketBranch,
-  })
-  const asked = gitStep2({ entries, bases, integrationBranches })
-  const answers = await Promise.all(asked.map(argv => sh($, argv)))
-  const results = new Map<string, string>()
-  asked.forEach((argv, i) => {
-    const answer = answers[i]
-    if (answer?.exitCode === 0) results.set(argv.join(' '), answer.stdout)
-  })
-  const live = Object.values(ledger.runs).filter(r => r.status === 'running')
-  const snapshot = assembleGit({
-    root: main.path,
-    branch: main.branch,
-    remote: parseRemote(await remoteUrl($)),
-    entries,
-    bases,
-    results,
-    config: configOf(repo?.config),
-    integrationBranches,
-    runningPaths: new Set(
-      entries.filter(e => live.some(r => samePath(e.path, r.worktree))).map(e => e.path),
-    ),
-    now: await $.clock.now(),
-  })
-  await update($, gitState, () => snapshot)
-  await afterGit($, snapshot, config.worktrees.rebaseOnMove)
-  $.ui.invalidate('ui.render')
-}
-
-/** What a new look at git asks of the running agents: merge the moved tip, or stop on a conflict. */
-async function afterGit($: EngineInterface, snapshot: GitSnapshot, rebaseOnMove: boolean) {
-  const ledger = await read($, buildState)
-  for (const run of Object.values(ledger.runs)) {
-    if (run.status !== 'running' || run.isStopping) continue
-    const w = snapshot.worktrees.find(x => samePath(x.path, run.worktree))
-    if (w?.isRebasing) {
-      await update($, buildState, held => markStopping(held, run.agentId))
-      await $.session.send({ to: { agentId: run.agentId }, text: conflictText(run.ticket) })
-      await addNotice($, {
-        kind: 'rebase-conflict',
-        id: `conflict-${run.ticket}`,
-        ticket: run.ticket,
-        worktree: run.worktree,
-      })
-      await settle($)
-      continue
-    }
-    if (!rebaseOnMove) continue
-    const integration = (await featureOfTicket($, run.ticket))?.integrationBranch
-    const tip = integration === undefined ? undefined : snapshot.tips[integration]
-    if (integration === undefined || !tip || told.get(run.agentId) === tip) continue
-    const [note] = moveNotices(
-      { ...ledger, runs: { [run.agentId]: run } },
-      snapshot.worktrees,
-      integration,
-    )
-    if (note === undefined) continue
-    told.set(run.agentId, tip)
-    await $.session.send({ to: { agentId: note.agentId }, text: note.text })
-  }
-}
-
-/** Reads git a moment after the last git command an agent ran, so a burst costs one read. */
-function scheduleGit($: EngineInterface) {
-  gitTimer?.cancel()
-  gitTimer = $.clock.after(GIT_DEBOUNCE_MS, () => void refreshGit($))
-}
-
-async function cleanupInputs($: EngineInterface) {
-  const [repo, features, tracker, ledger, git] = await Promise.all([
-    repoSnapshot($),
-    read($, featuresState),
-    read($, trackerState),
-    read($, buildState),
-    read($, gitState),
-  ])
-  const merged = new Set(
-    tracker?.rich
-      ? tracker.issues
-          .filter(i => i.status === 'done' || i.status === 'closed')
-          .map(i => i.ref as string)
-      : [],
-  )
-  const plan = cleanupPlan({
-    records: Object.values(features).flatMap(f => Object.values(f.agents)),
-    merged,
-    config: configOf(repo?.config),
-    running: new Set(
-      Object.values(ledger.runs)
-        .filter(r => r.status === 'running')
-        .map(r => r.worktree),
-    ),
-  })
-  return { plan, git }
-}
-
-/** Removes the worktrees of merged tickets (removeAfterMerge). A dirty one refuses, which is right. */
-async function cleanupMerged($: EngineInterface) {
-  const { plan, git } = await cleanupInputs($)
-  if (git === null) return
-  const gone = plan.remove.filter(p => git.worktrees.some(w => samePath(w.path, p)))
-  for (const path of gone) await sh($, worktreeRemoveArgv(path))
-  if (gone.length > 0) await refreshGit($)
-}
-
 /** Worktrees a `git worktree remove` must not touch: running, failed, over-budget or stopped ones. */
 async function keptWorktrees($: EngineInterface): Promise<{ path: string; why: KeepWhy }[]> {
   const { plan } = await cleanupInputs($)
   return plan.keep.filter(k => k.why !== 'unmerged')
 }
 
-async function countStep(
-  $: EngineInterface,
-  agentId: AgentId,
-  result: {
-    answer: string
-    usage: {
-      input_tokens: number
-      output_tokens: number
-      cache_creation_input_tokens: number
-    } | null
-  },
-) {
-  const at = await $.clock.now()
-  const tdd = tddStepOf(result.answer)
-  const seen: { crossed: 'near' | 'over' | null; run: AgentRun | null } = {
-    crossed: null,
-    run: null,
-  }
-  await update($, buildState, ledger => {
-    const used = recordUsage(
-      ledger,
-      agentId,
-      result.usage === null ? 0 : freshTokens(result.usage),
-      at,
-    )
-    seen.crossed = used.crossed
-    seen.run = used.run
-    return tdd === null ? used.ledger : patchRun(used.ledger, agentId, { tddStep: tdd })
-  })
-  const { crossed, run } = seen
-  if (run === null) return
-  if (crossed === null) return $.ui.invalidate('ui.render')
-  if (crossed === 'over') {
-    await $.session.send({ to: { agentId }, text: stopText(run.ticket, run.budget) })
-    await addNotice($, {
-      kind: 'budget',
-      id: `budget-${run.ticket}`,
-      ticket: run.ticket,
-      budget: run.budget,
-    })
-  }
-  await persistRun($, run)
-  await settle($)
-}
-
 /** The Worktrees tab: every worktree git lists, with what Craftory knows about it. */
 async function worktreesViewOf($: EngineInterface): Promise<WorktreesView | null> {
   const [git, features, repo, diffs] = await Promise.all([
-    read($, gitState),
-    read($, featuresState),
+    gitOf($),
+    featuresOf($),
     repoSnapshot($),
     read($, diffsState),
   ])
@@ -1256,7 +705,7 @@ async function toggleDiff($: EngineInterface, path: string) {
     )
     return $.ui.invalidate('ui.render')
   }
-  const git = await read($, gitState)
+  const git = await gitOf($)
   const base = git === null ? undefined : (await currentBases($, git))[path]
   const result =
     base === undefined || row.branch === null ? null : await sh($, shortstatArgv(base, row.branch))
@@ -1267,7 +716,7 @@ async function toggleDiff($: EngineInterface, path: string) {
 }
 
 async function currentBases($: EngineInterface, git: GitSnapshot) {
-  const [features, repo] = await Promise.all([read($, featuresState), repoSnapshot($)])
+  const [features, repo] = await Promise.all([featuresOf($), repoSnapshot($)])
   return basesOf({
     entries: git.worktrees.map(w => ({
       path: w.path,
@@ -1315,7 +764,7 @@ async function removeWorktree($: EngineInterface, path: string) {
 
 /** Prune N stale: the stale worktrees Craftory does not keep, removed without force. */
 async function pruneStale($: EngineInterface) {
-  const git = await read($, gitState)
+  const git = await gitOf($)
   if (git === null) return
   const stale = prunable(
     git,
@@ -1327,27 +776,12 @@ async function pruneStale($: EngineInterface) {
   await refreshGit($)
 }
 
-/** Pause all stops new implementers and asks the running ones to report after their step; again resumes. */
-async function togglePause($: EngineInterface) {
-  const isPausing = !(await read($, buildState)).isPaused
-  await update($, buildState, ledger => ({ ...ledger, isPaused: isPausing }))
-  if (isPausing) {
-    const ledger = await read($, buildState)
-    for (const run of Object.values(ledger.runs))
-      if (run.status === 'running')
-        await $.session.send({ to: { agentId: run.agentId }, text: pauseText })
-  } else {
-    $.ui.toast('Build resumed · ask Claude to start the queued tickets')
-  }
-  await settle($)
-}
-
 /** The Agents list for the Build card, from the ledger, the stored records and the last look at git. */
 async function agentsViewOf($: EngineInterface, flow: Flow | null): Promise<AgentsView | null> {
   const [repo, ledger, git, note] = await Promise.all([
     repoSnapshot($),
-    read($, buildState),
-    read($, gitState),
+    ledgerOf($),
+    gitOf($),
     read($, steeringNoteState),
   ])
   const config = configOf(repo?.config)
@@ -1368,61 +802,10 @@ async function agentsViewOf($: EngineInterface, flow: Flow | null): Promise<Agen
   return agentsView({ rows, config, isPaused: ledger.isPaused, note })
 }
 
-/** One more `tokenBudget` step for a ticket, stored in the feature record so a restart keeps it. */
-async function raiseBudget($: EngineInterface, ticket: IssueRef) {
-  const record = await featureOfTicket($, ticket)
-  const old = record?.agents[ticket]
-  if (record === null || old === undefined) return
-  const step = configOf((await repoSnapshot($))?.config).worktrees.tokenBudget
-  const budget = old.budget + step
-  await recordChange($, specKey(record.spec), { kind: 'agent', record: { ...old, budget } })
-  await update($, buildState, ledger => ({
-    ...ledger,
-    runs: Object.fromEntries(
-      Object.entries(ledger.runs).map(([id, run]) => [
-        id,
-        run.ticket === ticket && run.status === 'running'
-          ? { ...run, budget, budgetState: budgetState(run.tokens, budget) }
-          : run,
-      ]),
-    ),
-  }))
-  $.ui.toast(`Budget for ${ticket} raised to ${budgetK(budget)} · run it again to continue`)
-}
-
-async function finishAgent($: EngineInterface, agentId: AgentId, reason: FinishReason) {
-  const paused = (await read($, buildState)).isPaused
-  const at = await $.clock.now()
-  const done: { run: AgentRun | null } = { run: null }
-  await update($, buildState, ledger => {
-    const finished = finishRun(
-      ledger,
-      agentId,
-      paused && reason === 'answer' ? 'aborted' : reason,
-      at,
-    )
-    done.run = finished.run
-    return finished.ledger
-  })
-  if (done.run === null) return
-  await persistRun($, done.run)
-  await refreshGit($)
-  await refreshTracker($)
-}
-
 async function openPane($: EngineInterface, tab: PaneTab) {
   await update($, paneTabState, () => tab)
   if (tab === 'worktrees') await refreshGit($)
   await $.ui.open({ id: PANE, title: 'Craftory', focus: true, closeOnEscape: true })
-}
-
-async function noticeOf($: EngineInterface, id: string) {
-  return (await read($, noticesState)).find(n => n.id === id)
-}
-
-async function dropNotice($: EngineInterface, id: string) {
-  await update($, noticesState, held => held.filter(n => n.id !== id))
-  await settle($)
 }
 
 async function onNotice($: EngineInterface, action: NoticeAction) {
@@ -1432,21 +815,15 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
     case 'update':
       return installPlugin($, UPDATE_ARGV)
     case 'not-now':
-      await update($, dismissedState, held => [...held.filter(k => k !== action.key), action.key])
-      $.ui.invalidate('ui.render')
-      return
+      return dismissNotice($, action.key)
     case 'setup':
       await openPane($, 'settings')
       return
     case 'run':
       return requestRun($, action.skill, action.args)
     case 'run-anyway': {
-      const notice = await noticeOf($, action.id)
-      if (notice?.kind !== 'gate') return
-      const req = { skill: notice.skill, args: notice.args, phase: notice.phase }
-      const now = await $.clock.now()
-      await update($, passesState, held => issuePass(held, req, now))
-      await dropNotice($, notice.id)
+      const notice = await allowGate($, action.id)
+      if (notice === undefined) return
       await $.command.run({ command: namespaced(notice.skill), args: notice.args })
       return
     }
@@ -1503,8 +880,8 @@ async function glossaryViewOf($: EngineInterface) {
 async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
   const [repo, tracker, features] = await Promise.all([
     repoSnapshot($),
-    read($, trackerState),
-    read($, featuresState),
+    trackerOf($),
+    featuresOf($),
   ])
   const spec = TRACKERS[trackerKindOf(repo)]
   return ticketsView({
@@ -1519,40 +896,9 @@ async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
 
 /** Start feature on a ready-for-agent issue: it enters at `phase` and the earlier phases are skipped. */
 async function startFromIssue($: EngineInterface, action: Extract<InboxAction, { kind: 'start' }>) {
-  const tracker = await read($, trackerState)
-  const issue = tracker?.rich ? tracker.issues.find(i => i.ref === action.ref) : undefined
-  if (issue === undefined) return
-  const repo = await repoSnapshot($)
-  const config = configOf(repo?.config)
-  const now = await $.clock.now()
-  if (action.phase === 'align') {
-    const draft = newDraft({
-      draftId: `d${now}`,
-      title: issue.title,
-      entry: 'align',
-      enteredFrom: issue.ref,
-      at: isoOf(now),
-    })
-    await update($, draftsState, held => ({ ...held, [draft.draftId]: draft }))
-    await persistDrafts($)
-    await update($, activeState, () => draftKey(draft.draftId))
-  } else {
-    const record = await saveFeature(
-      $,
-      enteredRecord({
-        issue,
-        phase: action.phase,
-        integrationBranch: integrationBranchFor(config, issue.title),
-      }),
-    )
-    await update($, featuresState, held => ({ ...held, [record.spec]: record }))
-    await update($, activeState, () => specKey(record.spec))
-    await $.store.set(STORE_LAST_ACTIVE, specKey(record.spec))
-  }
-  await settle($)
-  const step = (await currentFlow($))?.steps.find(s => s.phase === action.phase)
+  const step = await enterFromIssue($, action)
   if (step?.command)
-    await requestRun($, step.command, action.phase === 'align' ? issue.ref : step.args)
+    await requestRun($, step.command, action.phase === 'align' ? action.ref : step.args)
 }
 
 async function openFolder($: EngineInterface, folder: string, surface: RenderSurface) {
@@ -1635,46 +981,13 @@ async function settingsArgs(
   }
 }
 
-/**
- * The avoid-words of the glossary, found in what the integration branch adds over its base.
- * Run when Review starts and before Ship; each finding becomes a notice and, once, a toast.
- */
-async function scanDrift($: EngineInterface) {
-  const [git, record, terms, repo] = await Promise.all([
-    read($, gitState),
-    activeRecord($),
-    glossaryTerms($),
-    repoSnapshot($),
-  ])
-  const integration = record?.integrationBranch
-  const base = git?.branch
-  if (!integration || !base || integration === base || !terms.some(t => t.avoid.length > 0)) return
-  const diff = await sh($, driftDiffArgv(base, integration))
-  if (diff === null || diff.exitCode !== 0) return
-  const glossary =
-    repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary
-  for (const f of findDrift(diff.stdout, terms, [glossary, 'CONTEXT.md']).slice(0, 3))
-    await addNotice($, {
-      kind: 'drift',
-      id: `drift-${termKey(f.term)}-${termKey(f.avoided)}`,
-      avoided: f.avoided,
-      term: f.term,
-      count: f.count,
-    })
-  await settle($)
-}
-
 const isSupported = async ($: EngineInterface) => meetsFloor((await $.session.version()).base)
 
 const drawsAnything = async ($: EngineInterface) =>
   (await isSupported($)) && (await $.session.surfaces()).length > 0
 
 async function featureChoices($: EngineInterface): Promise<FeatureChoice[]> {
-  const [features, drafts, active] = await Promise.all([
-    read($, featuresState),
-    read($, draftsState),
-    read($, activeState),
-  ])
+  const [features, drafts, active] = await Promise.all([featuresOf($), draftsOf($), activeKey($)])
   return [
     ...Object.values(features).map(f => ({
       key: specKey(f.spec),
@@ -1718,11 +1031,9 @@ const bandActions = ($: EngineInterface): BandActions => ({
   },
   switchFeature: key => {
     void (async () => {
-      await update($, activeState, () => key)
       await update($, isPickingFeatureState, () => false)
       await update($, openStepState, () => null)
-      await $.store.set(STORE_LAST_ACTIVE, key)
-      await settle($)
+      await switchFeature($, key)
     })()
   },
   notice: action => void onNotice($, action),
@@ -1770,46 +1081,13 @@ export const register: Register = (on, options) => {
   })
 
   on('skill.prompt', async ($, e, next) => {
-    const found = recognise(e.skill)
-    if (found?.kind === 'phase' || found?.kind === 'entry') {
-      const now = await $.clock.now()
-      const phase = found.kind === 'phase' ? found.phase : null
-      let key = await read($, activeState)
-      if (key === null && (phase === 'align' || phase === 'spec')) key = await startDraft($, phase)
-      await update($, runningState, (): Running => ({
-        phase,
-        entry: found.kind === 'entry' ? found.entry : null,
-        skill: found.skill,
-        args: '',
-        feature: key,
-        startedAt: now,
-        isAwaitingUser: false,
-        progress: null,
-      }))
-      if (key !== null && phase !== null)
-        await recordChange($, key, { kind: 'ran', phase, at: isoOf(now) })
-      await settle($)
-      if (phase === 'review' || phase === 'ship') await scanDrift($)
-    }
+    await skillStarted($, e.skill)
     return next(e)
   })
 
   on('prompt.submit', async ($, e, next) => {
-    const typed = typedCommand(e)
-    const req = typed && requestOf(typed.name, typed.args)
-    if (req) {
-      const verdict = await holdForGate($, req, await currentFlow($))
-      if (verdict) return { drop: dropText(verdict) }
-      const now = await $.clock.now()
-      await update($, passesState, held => consumePass(held, req, now))
-    } else if (typed === undefined) {
-      const running = await read($, runningState)
-      if (running?.isAwaitingUser) {
-        await update($, runningState, held => held && { ...held, isAwaitingUser: false })
-        await settle($)
-      }
-    }
-    return next(e)
+    const drop = await gatePrompt($, e)
+    return drop === undefined ? next(e) : { drop }
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -1820,30 +1098,7 @@ export const register: Register = (on, options) => {
     }
     const terms = await glossaryTerms($)
     await update($, lastReplyTermsState, () => termKeysIn(e.answer, terms))
-    const running = await read($, runningState)
-    if (running !== null && !running.isAwaitingUser) {
-      const grillAsksNext = running.phase === 'align' && !e.isAborted
-      if (grillAsksNext) {
-        await update($, runningState, held => held && { ...held, isAwaitingUser: true })
-      } else {
-        await update($, runningState, () => null)
-        if (running.feature !== null && running.phase !== null) {
-          await recordChange($, running.feature, {
-            kind: 'ended',
-            phase: running.phase,
-            at: isoOf(await $.clock.now()),
-          })
-        }
-        if (running.phase === 'retro' && !e.isAborted) {
-          await addNotice($, {
-            kind: 'retro-ready',
-            id: `retro-${await $.clock.now()}`,
-            suggestions: retroSuggestions(e.answer),
-          })
-        }
-      }
-    }
-    await refreshTracker($)
+    await finishTurn($, e)
     return result
   })
 
@@ -1856,50 +1111,24 @@ export const register: Register = (on, options) => {
     }
     if (await touchesTracker($, tool)) scheduleRefresh($)
     if (e.tool === 'Bash' && /\bgit\b/.test(tool.command ?? '')) {
-      const ledger = await read($, buildState)
-      if (Object.keys(ledger.runs).length > 0) scheduleGit($)
+      if (await hasAgentRuns($)) scheduleGit($)
     }
     return result
   })
 
   on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
     if (e.agentId !== undefined) return next(e)
-    const [flow, repo, record] = await Promise.all([
-      currentFlow($),
-      repoSnapshot($),
-      activeRecord($),
-    ])
-    if (flow === null || record === null) return next(e)
-    const at = await $.clock.now()
-    const decided: { value: SpawnDecision } = { value: { kind: 'pass' } }
-    await update($, buildState, ledger => {
-      const decision = decideSpawn({
-        call: {
-          toolUseId: e.tool_use_id,
-          description: e.description,
-          prompt: e.prompt,
-          ...(e.name !== undefined && { name: e.name }),
-          ...(e.isolation !== undefined && { isolation: e.isolation }),
-        },
-        ledger,
-        config: configOf(repo?.config),
-        isBuildRunning: isBuilding(flow),
-        tickets: flow.tickets,
-        integrationBranch: record.integrationBranch,
-      })
-      decided.value = decision
-      if (decision.kind === 'steer') return addPending(ledger, e.tool_use_id, decision.plan, at)
-      if (decision.kind === 'deny' && decision.isQueued) return addQueued(ledger, decision.ticket)
-      return ledger
+    const decision = await planSpawn($, {
+      toolUseId: e.tool_use_id,
+      description: e.description,
+      prompt: e.prompt,
+      ...(e.name !== undefined && { name: e.name }),
+      ...(e.isolation !== undefined && { isolation: e.isolation }),
     })
-    const decision = decided.value
     if (decision.kind === 'pass') return next(e)
-    if (decision.kind === 'deny') {
-      await settle($)
-      return { deny: decision.reason }
-    }
+    if (decision.kind === 'deny') return { deny: decision.reason }
     // On success the spawn already moved the seat to a run; only a refused or failed call is forgotten.
-    const forget = () => update($, buildState, ledger => dropPending(ledger, e.tool_use_id))
+    const forget = () => forgetSeat($, e.tool_use_id)
     try {
       const result = await next({ ...withoutIsolation(e), name: decision.name })
       if (result.deny !== undefined || result.isError === true) await forget()
@@ -1914,7 +1143,7 @@ export const register: Register = (on, options) => {
   // and its worktree pair exactly. The engine refuses `cwd` together with `isolation: 'worktree'`,
   // so the call lost `isolation` above, and a spawn that fails removes the worktree made for it.
   on('agent.spawn', async ($, e, next) => {
-    const seat = (await read($, buildState)).pending[e.tool_use_id]
+    const seat = await pendingSeat($, e.tool_use_id)
     if (seat === undefined) return next(e)
     const { plan } = seat
     const placed = await seatWorktree($, plan)
@@ -1941,16 +1170,7 @@ export const register: Register = (on, options) => {
       await undo()
       return result
     }
-    const repo = await repoSnapshot($)
-    const old = (await featureOfTicket($, plan.ticket))?.agents[plan.ticket]
-    const budget = budgetFor(configOf(repo?.config), old)
-    const at = await $.clock.now()
-    const agentId = result.agentId as AgentId
-    await update($, buildState, ledger => seated(ledger, e.tool_use_id, agentId, budget, at))
-    const run = (await read($, buildState)).runs[agentId]
-    if (run !== undefined) await persistRun($, run)
-    await refreshGit($)
-    await settle($)
+    await seatAgent($, e.tool_use_id, plan, result.agentId as AgentId)
     return result
   })
 
@@ -1958,7 +1178,7 @@ export const register: Register = (on, options) => {
   // once; its Agent call then returns that text. This is the hard stop at the budget.
   on('turn.step', async function* ($, e, next) {
     const agentId = e.agentId as AgentId | undefined
-    const run = agentId === undefined ? undefined : (await read($, buildState)).runs[agentId]
+    const run = await runOf($, agentId)
     if (agentId === undefined || run === undefined || run.status !== 'running')
       return yield* next(e)
     if (run.isStopping) {
@@ -1974,12 +1194,7 @@ export const register: Register = (on, options) => {
     const found = recognise(e.skill, { strict: false })
     if (found?.kind !== 'phase' || found.phase !== 'review') return next(e)
     const req: RunRequest = { skill: found.skill, args: e.args ?? '', phase: 'review' }
-    const verdict = checkRun(
-      req,
-      await currentFlow($),
-      await read($, passesState),
-      await $.clock.now(),
-    )
+    const verdict = await gateVerdict($, req)
     if (verdict.kind === 'go') return next(e)
     const answer = await $.ui
       .ask(verdict.text, [RUN_ANYWAY, DIAGNOSE_FIRST])
@@ -2013,11 +1228,9 @@ export const register: Register = (on, options) => {
         steering: repo?.steering.file ?? null,
         hasTriageSkill: hasSkill(plugin, 'triage'),
       }),
-      dismissed: await read($, dismissedState),
+      dismissed: await dismissedOf($),
     })
-    const events = derived.some(n => n.replacesRail)
-      ? []
-      : eventNotices(await read($, noticesState))
+    const events = derived.some(n => n.replacesRail) ? [] : eventNotices(await heldNotices($))
     if (flow === null && derived.length === 0 && events.length === 0) return below
     return renderBand({
       ui: uiFor($, e),
@@ -2031,7 +1244,7 @@ export const register: Register = (on, options) => {
       layout: prefs.railLayout,
       flow,
       config: configOf(repo?.config),
-      waiting: waitingForTriage(await read($, trackerState)),
+      waiting: waitingForTriage(await trackerOf($)),
       agents: await agentsViewOf($, flow),
       notices: [...events, ...derived],
       open: await read($, openStepState),
@@ -2068,7 +1281,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const [flow, git, glossary, resolved] = await Promise.all([
       currentFlow($),
-      read($, gitState),
+      gitOf($),
       glossaryViewOf($),
       resolvedPrefs($, options),
     ])
@@ -2084,7 +1297,7 @@ export const register: Register = (on, options) => {
       tab: await read($, paneTabState),
       pluginLine: pluginLine(await pluginOf($)),
       flow,
-      waiting: waitingForTriage(await read($, trackerState)),
+      waiting: waitingForTriage(await trackerOf($)),
       counts: tabCounts({
         flow,
         tickets,

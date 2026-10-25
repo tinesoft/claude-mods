@@ -59,8 +59,9 @@ export function exists($: EngineInterface, path: string): Promise<boolean> {
   return $.fs.exists(path).catch(() => false)
 }
 
-/** `git remote get-url origin`; the desktop and mobile surfaces run no commands, so null there. */
-export function remoteUrl($: EngineInterface): Promise<string | null> {
+export /** `git remote get-url origin`; the desktop and mobile surfaces run no commands, so null there. */ function remoteUrl(
+  $: EngineInterface,
+): Promise<string | null> {
   return $.process
     .run(['git', 'remote', 'get-url', 'origin'], { timeoutMs: PROBE_TIMEOUT_MS })
     .then(r => (r.exitCode === 0 ? r.stdout.trim() : null))
@@ -143,12 +144,11 @@ export async function writableContext($: EngineInterface, steering?: WritableCon
 
 type WriteResult = { ok: true } | { ok: false; reason: string }
 
-/**
+export /**
  * The only `$.fs.write` call. Refuses a path outside the allowlist (a programming error the
  * engine test catches) and, for files shared with other writers, a file that changed since the
  * write was planned.
- */
-export async function writeRepoFile(
+ */ async function writeRepoFile(
   $: EngineInterface,
   op: FileWrite,
   ctx: WritableContext,
@@ -180,4 +180,16 @@ export async function applyWrites(
 export async function glossaryTerms($: EngineInterface) {
   const repo = await repoSnapshot($)
   return repo?.glossary.state === 'ok' ? termsOf(repo.glossary.value) : []
+}
+
+const GIT_MS = 15_000
+
+type Shell = { exitCode: number; stdout: string; stderr: string }
+
+/** One command; null when it cannot start, which every caller treats as a failed command. */ export function sh(
+  $: EngineInterface,
+  argv: readonly string[],
+  init?: { cwd?: string; timeoutMs?: number },
+): Promise<Shell | null> {
+  return $.process.run(argv, { timeoutMs: GIT_MS, ...init }).catch(() => null)
 }
