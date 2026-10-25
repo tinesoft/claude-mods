@@ -283,6 +283,15 @@ test('worktree removals are found in a shell line, in any spelling', () => {
   expect(
     removalTargets('cd /repo && git -C /repo worktree remove a && git worktree remove -f b'),
   ).toEqual(['a', 'b'])
+  expect(removalTargets('git -C .worktrees/44-a worktree remove .')).toEqual(['.worktrees/44-a'])
+  expect(removalTargets('git -C "/repo/.worktrees/44-a" worktree remove --force ./')).toEqual([
+    '/repo/.worktrees/44-a',
+  ])
+  expect(removalTargets('rm -rf .worktrees/44-a')).toEqual(['.worktrees/44-a'])
+  expect(removalTargets('echo done; rm -r "/repo/.worktrees/44-a/" b')).toEqual([
+    '/repo/.worktrees/44-a/',
+    'b',
+  ])
   expect(removalTargets('git worktree list')).toEqual([])
   expect(removalTargets('echo remove')).toEqual([])
 })

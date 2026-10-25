@@ -229,6 +229,29 @@ test('the record on disk shows over-budget with the worktree kept, and the Bash 
   expect(other.deny).toBeUndefined()
 })
 
+test('the Bash guard also catches git -C <kept> worktree remove . and rm -rf <kept>', async ($, on) => {
+  await building(on, $, { usage: () => OVER })
+  await start($, 44, 'Ledger tax')
+  await step($, 'agent-tu44', 0)
+  for (const command of [
+    'git -C .worktrees/44-ledger-tax worktree remove .',
+    'git -C /repo/.worktrees/44-ledger-tax worktree remove --force .',
+    'rm -rf .worktrees/44-ledger-tax',
+    'cd /repo && rm -rf /repo/.worktrees/44-ledger-tax/',
+  ]) {
+    const denied = await call($, { tool: 'Bash', tool_use_id: 'b1', command })
+    expect(denied.deny, command).toContain('Craftory keeps .worktrees/44-ledger-tax')
+  }
+  for (const command of [
+    'rm -rf .worktrees/99-other',
+    'rm -rf .worktrees/44-ledger-tax/node_modules',
+  ])
+    expect(
+      (await call($, { tool: 'Bash', tool_use_id: 'b2', command })).deny,
+      command,
+    ).toBeUndefined()
+})
+
 test('a finished agent is written as done, and its worktree is not defended', async ($, on) => {
   const { w } = await building(on, $)
   await start($, 43, 'Export button')

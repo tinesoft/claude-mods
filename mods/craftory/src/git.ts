@@ -283,18 +283,32 @@ export const prunable = (git: GitSnapshot, kept: readonly string[]): Worktree[] 
 
 const unquote = (word: string) => word.replace(/^["']|["']$/g, '')
 
+const cwdOnly = (target: string) => target === '.' || target === './'
+
+/**
+ * The paths a shell line removes: `git worktree remove <path>` (with `-C <dir>`, where `.`
+ * means that directory) and `rm <path>`. Best effort: it reads words, not a shell, so
+ * variables, globs and a preceding `cd` are not followed.
+ */
 export function removalTargets(command: string): string[] {
   const targets: string[] = []
   for (const segment of command.split(/&&|\|\||[;|\n]/)) {
     const words = segment.trim().split(/\s+/)
+    const operands = (from: number) =>
+      words
+        .slice(from)
+        .filter(w => !w.startsWith('-'))
+        .map(unquote)
+    if (words[0] === 'rm') {
+      targets.push(...operands(1))
+      continue
+    }
     const at = words.findIndex((w, i) => w === 'worktree' && words[i + 1] === 'remove')
     if (at === -1 || !words.slice(0, at).includes('git')) continue
-    targets.push(
-      ...words
-        .slice(at + 2)
-        .filter(w => !w.startsWith('-'))
-        .map(unquote),
-    )
+    const dir = words.findIndex(w => w === '-C')
+    const base =
+      dir !== -1 && dir < at && words[dir + 1] !== undefined ? unquote(words[dir + 1]!) : null
+    targets.push(...operands(at + 2).map(t => (base !== null && cwdOnly(t) ? base : t)))
   }
   return targets
 }

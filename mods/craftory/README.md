@@ -122,7 +122,7 @@ Craftory asks in the band, so it gates a typed command only where a band is draw
 - Each agent has a token budget, 80k by default, counted as input, cache-creation and output tokens. The bar turns amber at 80%. At 100% Craftory stops the agent and ends its turn with a note: the agent's next step is answered without a request, and the note goes to Claude as the Agent result, saying the ticket ran out of budget, that its worktree is kept, and not to restart it. The ticket is marked over budget. An agent that finishes by itself on the step that crossed the budget is marked done. The card offers **Raise budget** and **Diagnose**.
 - When the integration branch moves, Craftory tells the running agents to merge it. It never rebases a worktree under an agent. A merge conflict stops the agent the same way, with a note about the conflict, and the band offers **Resolve**.
 - An agent recorded as running by a session that has since ended is marked stopped when the next session starts, so its worktree is kept as stopped work and not defended as a running agent.
-- Craftory refuses a `git worktree remove` on a worktree it keeps (running, failed, stopped or over budget).
+- Craftory refuses a `git worktree remove` or an `rm` of a worktree it keeps (running, failed, stopped or over budget). The check reads the command's words and is best-effort. It does not follow variables, globs or a preceding `cd`.
 
 The Build card lists every agent with its ticket, status, TDD step when the agent reports one, token bar, time, worktree, branch, `+added −removed` lines and commits. **Pause all** stops new spawns and sends the running agents a message to finish their current step, commit and report. **Open panel** opens the Worktrees tab.
 
@@ -216,7 +216,7 @@ It starts no other program. The `setup` command is the one in `.craftory/config.
 - `tool.call` on `Agent` gives a Build implementer its name and drops `isolation`, or refuses it when the queue is full, the ticket is blocked, or the ticket is for a human. Other Agent calls pass through.
 - `agent.spawn` points a Build implementer at its worktree with `cwd`.
 - `turn.step` ends an agent's step only after that agent passed its token budget or stopped on a merge conflict.
-- `tool.call` on `Skill` asks before a gated `code-review`. `tool.call` on `Bash` refuses `git worktree remove` on a kept worktree.
+- `tool.call` on `Skill` asks before a gated `code-review`. `tool.call` on `Bash` refuses `git worktree remove` and `rm` of a kept worktree, best-effort.
 - `skill.prompt`, `turn.complete`, the other `tool.call`s and `ui.render` pass their result through unchanged. On Desktop and mobile, `ui.render` on `AssistantMessage` adds glossary links to the drawing only. The stored reply never changes.
 - `/craftory` is the only command the mod registers.
 
@@ -224,6 +224,7 @@ It starts no other program. The `setup` command is the one in `.craftory/config.
 
 ## ⚠️ Limits
 
+- The kept-worktree guard on Bash is best-effort. A command that builds the path with a variable, a glob or a `cd` is not caught.
 - VS Code draws nothing: Claude Code 2.1.302 attaches no surface for a mod there.
 - Where an organization manages Claude Code, `skill.prompt` hooks do not reach user plugins, so phases started by a skill are seen only through typed commands and the tracker.
 - A toast cannot carry a button, so each toast's action sits in the band or the pane.
