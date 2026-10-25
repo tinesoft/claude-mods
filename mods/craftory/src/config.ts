@@ -7,7 +7,7 @@ import type {
   PrefOverrides,
   Prefs,
 } from '../types'
-import type { FileWrite } from './files'
+import { type FileWrite, normalise } from './files'
 import { isSafeRef } from './git'
 import { PHASE_ORDER, PHASES } from './phases'
 
@@ -130,6 +130,10 @@ export function parseConfig(raw: string | null): Loaded<CraftoryConfig> {
     if (isSafeRef(sample)) continue
     problems.push(`worktrees.${key}: not a safe branch name, using the default`)
     value.worktrees[key] = DEFAULT_CONFIG.worktrees[key]
+  }
+  if (normalise(value.worktrees.folder) === undefined) {
+    problems.push('worktrees.folder: must be a relative folder inside the repo, using the default')
+    value.worktrees.folder = DEFAULT_CONFIG.worktrees.folder
   }
   const text = problems.join('; ')
   return { state: 'ok', value, raw, ...(text && { problem: text }) }

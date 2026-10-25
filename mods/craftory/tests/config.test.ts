@@ -150,3 +150,15 @@ test('a committed branch template that git would read as an option falls back to
   expect(loaded.value.worktrees.ticketBranch).toBe('ok/{ticket}-{slug}')
   expect(loaded.problem).toContain('worktrees.integrationBranch: not a safe branch name')
 })
+
+test('a worktree folder that leaves the repo falls back to the default with a note', () => {
+  for (const folder of ['/tmp/wt', '../wt', 'a/../../wt', 'C:\\wt']) {
+    const loaded = parseConfig(JSON.stringify({ worktrees: { folder } }))
+    expect(loaded.state, folder).toBe('ok')
+    if (loaded.state !== 'ok') continue
+    expect(loaded.value.worktrees.folder, folder).toBe(DEFAULT_CONFIG.worktrees.folder)
+    expect(loaded.problem, folder).toContain('worktrees.folder')
+  }
+  const fine = parseConfig(JSON.stringify({ worktrees: { folder: '.trees/' } }))
+  expect(fine.state === 'ok' && fine.value.worktrees.folder).toBe('.trees/')
+})

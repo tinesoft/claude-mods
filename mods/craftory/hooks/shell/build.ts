@@ -18,6 +18,7 @@ import {
   shortstatArgv,
   tipArgv,
   branchCreateArgv,
+  cdCommand,
   isSafeRef,
   worktreeAddArgv,
   worktreeListArgv,
@@ -182,11 +183,12 @@ async function currentBases($: EngineInterface, git: GitSnapshot) {
   path: string,
   surface: RenderSurface,
 ) {
-  const copied = await $.ui.copy({ text: `cd ${path}`, surface }).catch(() => ({ isCopied: false }))
+  const line = cdCommand(path)
+  const copied = await $.ui.copy({ text: line, surface }).catch(() => ({ isCopied: false }))
   $.ui.toast(
     copied.isCopied
-      ? `Copied cd ${path} · paste it in a terminal`
-      : `Could not copy · run cd ${path} in a terminal`,
+      ? `Copied ${line} · paste it in a terminal`
+      : `Could not copy · run ${line} in a terminal`,
   )
 }
 

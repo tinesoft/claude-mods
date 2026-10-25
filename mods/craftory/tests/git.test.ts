@@ -24,6 +24,7 @@ import {
   syncText,
   ticketOfBranch,
   tipArgv,
+  cdCommand,
   isSafeRef,
   worktreeAddArgv,
   worktreesView,
@@ -432,4 +433,9 @@ test('a branch name git would read as an option or reject is not a safe ref', ()
     'end.',
   ])
     expect(isSafeRef(bad), JSON.stringify(bad)).toBe(false)
+})
+
+test('the cd line is one shell word, whatever the path holds', () => {
+  expect(cdCommand('/repo/.worktrees/44-a')).toBe("cd '/repo/.worktrees/44-a'")
+  expect(cdCommand("/my repo/it's; rm -rf ~/$HOME")).toBe("cd '/my repo/it'\\''s; rm -rf ~/$HOME'")
 })

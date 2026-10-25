@@ -65,6 +65,9 @@ export const isSafeRef = (ref: string): boolean =>
   !hasUnsafeChar(ref) &&
   ref.split('/').every(part => !part.startsWith('.') && !part.endsWith('.lock'))
 
+/** `cd '<path>'` for a shell: a path with spaces, quotes or `$` is one word. */
+export const cdCommand = (path: string) => `cd '${path.replaceAll("'", "'\\''")}'`
+
 export const worktreePruneArgv = ['git', 'worktree', 'prune'] as const
 
 export type WorktreeEntry = { path: string; branch: string | null; head: string; isMain: boolean }

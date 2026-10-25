@@ -82,8 +82,10 @@ test('Open terminal copies the cd line and says so, because a mod cannot open a 
   const { w } = await withWorktrees(on, $)
   const pane = await openTab($)
   await pane.press({ key: 'wt-terminal-.worktrees/44-ledger-tax' })
-  expect(w.copied.map(c => c.text)).toEqual(['cd /repo/.worktrees/44-ledger-tax'])
-  expect(w.toasts.at(-1)).toBe('Copied cd /repo/.worktrees/44-ledger-tax · paste it in a terminal')
+  expect(w.copied.map(c => c.text)).toEqual(["cd '/repo/.worktrees/44-ledger-tax'"])
+  expect(w.toasts.at(-1)).toBe(
+    "Copied cd '/repo/.worktrees/44-ledger-tax' · paste it in a terminal",
+  )
 })
 
 test('Remove on a stale worktree runs git without asking; the checkout and integration have no Remove', async ($, on) => {
