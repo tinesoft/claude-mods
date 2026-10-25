@@ -153,6 +153,27 @@ export async function loadFeatures($: EngineInterface) {
   )
 }
 
+/**
+ * A record still marked running with no live run in this session belongs to a session that
+ * ended without closing it. `stopped` outranks `running` in the merge order, so this sticks.
+ */
+export async function stopStaleAgents($: EngineInterface) {
+  const [features, ledger] = await Promise.all([read($, featuresState), read($, buildState)])
+  const live = new Set(
+    Object.values(ledger.runs)
+      .filter(run => run.status === 'running')
+      .map(run => run.ticket),
+  )
+  const at = isoOf(await $.clock.now())
+  for (const record of Object.values(features))
+    for (const agent of Object.values(record.agents))
+      if (agent.outcome === 'running' && !live.has(agent.ticket))
+        await recordChange($, specKey(record.spec), {
+          kind: 'agent',
+          record: { ...agent, outcome: 'stopped', endedAt: at },
+        })
+}
+
 const isoOf = (ms: number): IsoTime => new Date(ms).toISOString()
 
 export async function currentFlow($: EngineInterface): Promise<Flow | null> {

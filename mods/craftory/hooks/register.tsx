@@ -67,6 +67,7 @@ import {
   settle,
   skillStarted,
   startContext,
+  stopStaleAgents,
   switchFeature,
   togglePause,
   touchesTracker,
@@ -255,6 +256,7 @@ export const register: Register = (on, options) => {
       $.ui.toast(`Craftory needs Claude Code ${ENGINE_FLOOR} or later. Run claude update.`)
     }
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($)])
+    await stopStaleAgents($)
     await rememberGlossaryAtStart($)
     await refreshTracker($)
     await refreshGit($)

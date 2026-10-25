@@ -121,6 +121,7 @@ Craftory asks in the band, so it gates a typed command only where a band is draw
 - Tickets that are blocked or ready for a human never get an agent.
 - Each agent has a token budget, 80k by default, counted as input, cache-creation and output tokens. The bar turns amber at 80%. At 100% Craftory tells the agent to stop and report, ends its next step, marks the ticket over budget and keeps the worktree. The card offers **Raise budget** and **Diagnose**.
 - When the integration branch moves, Craftory tells the running agents to merge it. It never rebases a worktree under an agent. A merge conflict stops the agent and the band offers **Resolve**.
+- An agent recorded as running by a session that has since ended is marked stopped when the next session starts, so its worktree is kept as stopped work and not defended as a running agent.
 - Craftory refuses a `git worktree remove` on a worktree it keeps (running, failed, stopped or over budget).
 
 The Build card lists every agent with its ticket, status, TDD step when the agent reports one, token bar, time, worktree, branch, `+added −removed` lines and commits. **Pause all** stops new spawns and asks the running agents to stop after their current step. **Open panel** opens the Worktrees tab.
