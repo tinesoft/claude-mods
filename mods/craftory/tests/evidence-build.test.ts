@@ -156,7 +156,7 @@ test('Build runs with progress from merged tickets, and while agents work after 
         tokens: 1,
         budget: 80_000,
         budgetState: 'ok',
-        isStopping: false,
+        stop: null,
         status: 'running',
         tddStep: null,
         startedAt: 1,

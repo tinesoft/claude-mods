@@ -34,7 +34,7 @@ export const TOASTS: { [K in Signal['kind']]: (signal: Extract<Signal, { kind: K
     `Spec ${s.spec} published${s.stories ? ` · ${s.stories} user stories` : ''}`,
   gate: s => `${PHASES[s.phase].label} is gated · ${s.reason}`,
   budget: s => `Agent ${s.ticket} hit its ${budgetK(s.budget)} budget · worktree kept`,
-  'rebase-conflict': s => `Rebase conflict in ${s.worktree} · agent paused`,
+  'rebase-conflict': s => `Rebase conflict in ${s.worktree} · agent stopped`,
   drift: s => driftText(s),
   'retro-ready': s => retroText(s.suggestions),
 }

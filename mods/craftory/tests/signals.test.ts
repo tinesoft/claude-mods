@@ -53,7 +53,7 @@ test('a budget hit and a rebase conflict are each announced once, in the design 
   const signals = diffSignals(before, after)
   expect(signals.map(toastText)).toEqual([
     'Agent #44 hit its 80k budget · worktree kept',
-    'Rebase conflict in .worktrees/45-date-filter · agent paused',
+    'Rebase conflict in .worktrees/45-date-filter · agent stopped',
   ])
   expect(diffSignals(after, after)).toEqual([])
   expect(diffSignals(null, after)).toEqual([])

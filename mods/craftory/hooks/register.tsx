@@ -49,6 +49,7 @@ import {
   forgetSeat,
   gatePrompt,
   gateVerdict,
+  markStopDelivered,
   gitOf,
   hasAgentRuns,
   heldNotices,
@@ -373,7 +374,8 @@ export const register: Register = (on, options) => {
     const run = await runOf($, agentId)
     if (agentId === undefined || run === undefined || run.status !== 'running')
       return yield* next(e)
-    if (run.isStopping) {
+    if (run.stop !== null) {
+      await markStopDelivered($, agentId)
       yield { kind: 'text', index: 0, text: stoppedAnswer(run) }
       return stoppedStep(e.turnId, e.index, run)
     }

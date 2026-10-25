@@ -8,6 +8,7 @@ import {
   budgetState,
   cleanupPlan,
   decideSpawn,
+  deliverStop,
   dropPending,
   EMPTY_LEDGER,
   elapsedText,
@@ -254,7 +255,7 @@ test('each threshold is crossed once, and over marks the run stopping', () => {
   expect(ledger.runs[agent(44)]).toMatchObject({
     tokens: 80_500,
     budgetState: 'over',
-    isStopping: true,
+    stop: { cause: 'budget', isDelivered: false },
   })
 })
 
@@ -276,10 +277,15 @@ test('finishing maps the reason and the stopping flag to a status, and a record'
   expect(finishRun(base, agent(44), 'answer', 9).run?.status).toBe('done')
   expect(finishRun(base, agent(44), 'error', 9).run?.status).toBe('failed')
   expect(finishRun(base, agent(44), 'aborted', 9).run?.status).toBe('stopped')
-  const over = finishRun(recordUsage(base, agent(44), 90_000, 5).ledger, agent(44), 'answer', 9)
-  expect(over.run?.status).toBe('stopped')
-  expect(recordOf(over.run!)).toMatchObject({ outcome: 'over-budget', tokens: 90_000 })
-  expect(finishRun(over.ledger, agent(44), 'answer', 10).run).toBeNull()
+  const crossed = recordUsage(base, agent(44), 90_000, 5).ledger
+  const ownAnswer = finishRun(crossed, agent(44), 'answer', 9)
+  expect(ownAnswer.run?.status).toBe('done')
+  expect(recordOf(ownAnswer.run!)).toMatchObject({ outcome: 'done', tokens: 90_000 })
+  const hardStopped = finishRun(deliverStop(crossed, agent(44)), agent(44), 'answer', 9)
+  expect(hardStopped.run?.status).toBe('stopped')
+  expect(recordOf(hardStopped.run!)).toMatchObject({ outcome: 'over-budget', tokens: 90_000 })
+  expect(finishRun(crossed, agent(44), 'aborted', 9).run?.status).toBe('stopped')
+  expect(finishRun(hardStopped.ledger, agent(44), 'answer', 10).run).toBeNull()
 })
 
 const record = (n: number, outcome: AgentRecord['outcome']): AgentRecord => ({

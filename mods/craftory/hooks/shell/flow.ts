@@ -8,8 +8,8 @@ import {
   budgetK,
   budgetState,
   cleanupPlan,
-  conflictText,
   decideSpawn,
+  deliverStop,
   dropPending,
   EMPTY_LEDGER,
   type FinishReason,
@@ -26,7 +26,6 @@ import {
   samePath,
   seated,
   type SpawnDecision,
-  stopText,
   tddStepOf,
 } from '../../src/build'
 import { configOf, integrationBranchFor } from '../../src/config'
@@ -791,11 +790,10 @@ export async function refreshGit($: EngineInterface) {
 async function afterGit($: EngineInterface, snapshot: GitSnapshot, rebaseOnMove: boolean) {
   const ledger = await read($, buildState)
   for (const run of Object.values(ledger.runs)) {
-    if (run.status !== 'running' || run.isStopping) continue
+    if (run.status !== 'running' || run.stop !== null) continue
     const w = snapshot.worktrees.find(x => samePath(x.path, run.worktree))
     if (w?.isRebasing) {
-      await update($, buildState, held => markStopping(held, run.agentId))
-      await $.session.send({ to: { agentId: run.agentId }, text: conflictText(run.ticket) })
+      await update($, buildState, held => markStopping(held, run.agentId, 'conflict'))
       await addNotice($, {
         kind: 'rebase-conflict',
         id: `conflict-${run.ticket}`,
@@ -894,7 +892,6 @@ export async function countStep(
   if (run === null) return
   if (crossed === null) return $.ui.invalidate('ui.render')
   if (crossed === 'over') {
-    await $.session.send({ to: { agentId }, text: stopText(run.ticket, run.budget) })
     await addNotice($, {
       kind: 'budget',
       id: `budget-${run.ticket}`,
@@ -904,6 +901,10 @@ export async function countStep(
   }
   await persistRun($, run)
   await settle($)
+}
+
+export async function markStopDelivered($: EngineInterface, agentId: AgentId) {
+  await update($, buildState, ledger => deliverStop(ledger, agentId))
 }
 
 export async function togglePause($: EngineInterface) {

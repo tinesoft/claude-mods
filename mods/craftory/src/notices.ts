@@ -220,7 +220,7 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
       return {
         id: notice.id,
         role: 'hook',
-        text: `Rebase conflict in ${notice.worktree} · agent paused`,
+        text: `Rebase conflict in ${notice.worktree} · agent stopped`,
         replacesRail: false,
         actions: [
           {

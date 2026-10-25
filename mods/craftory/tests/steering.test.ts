@@ -158,22 +158,41 @@ test('when the worktree cannot be made the spawn is refused with what git said, 
   expect(w.spawns).toHaveLength(0)
 })
 
-test('at 100% the agent gets one stop message and its next step is answered without a request', async ($, on) => {
+test("at 100% the agent's next step is answered without a request, and the answer tells the parent what happened and what to do", async ($, on) => {
   const { w } = await building(on, $, {
     usage: e => (e.index === 0 ? OVER : SMALL),
   })
   await start($, 44, 'Ledger tax')
   const first = await step($, 'agent-tu44', 0)
   expect(first.result.usage).not.toBeNull()
-  expect(w.sent).toHaveLength(1)
-  expect(w.sent[0]!.text).toContain('#44 reached its 80k token budget. Stop now.')
   const second = await step($, 'agent-tu44', 1)
   expect(w.steps).toEqual([{ agentId: 'agent-tu44', index: 0 }])
   expect(second.result.answer).toBe(
-    'Stopped by Craftory: #44 is over its 80k token budget. The worktree is kept.',
+    'Stopped by Craftory: #44 reached its 80k token budget and was ended before it finished. ' +
+      'Its worktree .worktrees/44-ledger-tax is kept with what it committed. ' +
+      'Do not restart #44 or remove the worktree. Tell the user it ran out of budget, which the Craftory band lets them raise, and carry on with the other tickets.',
   )
   expect(second.chunks).toEqual([{ kind: 'text', index: 0, text: second.result.answer }])
-  expect(w.sent).toHaveLength(1)
+  expect(w.sent).toEqual([])
+})
+
+test('an agent that finishes on the very step that crossed its budget is done, not stopped', async ($, on) => {
+  const { w } = await building(on, $, { usage: () => OVER })
+  await start($, 44, 'Ledger tax')
+  await step($, 'agent-tu44', 0)
+  await turnComplete($, { agentId: 'agent-tu44' })
+  const record = JSON.parse(w.files.get('.craftory/features/42.json')!)
+  expect(record.agents['#44']).toMatchObject({ outcome: 'done', tokens: 80_000 })
+})
+
+test('an agent the hard stop ended stays over budget when its turn completes', async ($, on) => {
+  const { w } = await building(on, $, { usage: e => (e.index === 0 ? OVER : SMALL) })
+  await start($, 44, 'Ledger tax')
+  await step($, 'agent-tu44', 0)
+  await step($, 'agent-tu44', 1)
+  await turnComplete($, { agentId: 'agent-tu44' })
+  const record = JSON.parse(w.files.get('.craftory/features/42.json')!)
+  expect(record.agents['#44']).toMatchObject({ outcome: 'over-budget' })
 })
 
 test('cache reads do not count against the budget, and 80% crosses nothing to stop', async ($, on) => {

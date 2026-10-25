@@ -267,6 +267,8 @@ export type Running = {
 
 export type BudgetState = 'ok' | 'near' | 'over'
 
+export type StopCause = 'budget' | 'conflict'
+
 export type SeatPlan = {
   ticket: IssueRef
   name: string
@@ -291,7 +293,8 @@ export type AgentRun = {
   tokens: number
   budget: number
   budgetState: BudgetState
-  isStopping: boolean
+  /** Set when Craftory ends the agent at its next step; `isDelivered` once that step was answered. */
+  stop: { cause: StopCause; isDelivered: boolean } | null
   status: 'running' | 'done' | 'failed' | 'stopped'
   tddStep: string | null
   startedAt: Millis

@@ -9,6 +9,7 @@ import type {
   IsoTime,
   Millis,
   SeatPlan,
+  StopCause,
   Worktree,
 } from '../types'
 import { slugify, ticketBranchFor } from './config'
@@ -259,7 +260,7 @@ export function seated(
     tokens: 0,
     budget,
     budgetState: 'ok',
-    isStopping: false,
+    stop: null,
     status: 'running',
     tddStep: null,
     startedAt: at,
@@ -288,7 +289,7 @@ export function recordUsage(
     ...run,
     tokens: total,
     budgetState: state,
-    isStopping: run.isStopping || state === 'over',
+    stop: run.stop ?? (state === 'over' ? { cause: 'budget', isDelivered: false } : null),
     lastAt: at,
   }
   return { ledger: { ...ledger, runs: { ...ledger.runs, [agentId]: next } }, crossed, run: next }
@@ -328,7 +329,7 @@ export function finishRun(
   const status: AgentRun['status'] =
     reason === 'refusal' || reason === 'error'
       ? 'failed'
-      : reason === 'aborted' || run.isStopping
+      : reason === 'aborted' || run.stop?.isDelivered === true
         ? 'stopped'
         : 'done'
   const finished: AgentRun = { ...run, status, lastAt: at }
@@ -353,24 +354,48 @@ export function recordOf(run: AgentRun): AgentRecord {
   }
 }
 
-export const stopText = (ticket: IssueRef, budget: number) =>
-  `Craftory: ${ticket} reached its ${budgetK(budget)} token budget. Stop now. ` +
-  'Do not start new work. Report what is done, what is left and the state of the tests, then end.'
-
 export const pauseText =
   'Craftory: the user paused Build. Finish the step you are on, commit, report where you stopped, then end.'
 
-export const conflictText = (ticket: IssueRef) =>
-  `Craftory: ${ticket} stopped on a merge conflict after the integration branch moved. Do not continue. ` +
-  'Report which files conflict and what you were doing, then end. The user resolves it.'
+export const markStopping = (
+  ledger: BuildLedger,
+  agentId: AgentId,
+  cause: StopCause,
+): BuildLedger => patchRun(ledger, agentId, { stop: { cause, isDelivered: false } })
 
-export const markStopping = (ledger: BuildLedger, agentId: AgentId): BuildLedger =>
-  patchRun(ledger, agentId, { isStopping: true })
+export const deliverStop = (ledger: BuildLedger, agentId: AgentId): BuildLedger => {
+  const stop = ledger.runs[agentId]?.stop
+  return stop ? patchRun(ledger, agentId, { stop: { ...stop, isDelivered: true } }) : ledger
+}
 
-export const stoppedAnswer = (run: AgentRun) =>
-  run.budgetState === 'over'
-    ? `Stopped by Craftory: ${run.ticket} is over its ${budgetK(run.budget)} token budget. The worktree is kept.`
-    : `Stopped by Craftory: ${run.ticket} was paused. The worktree is kept.`
+const keptNote = (run: AgentRun) => `Its worktree ${run.worktree} is kept`
+
+/**
+ * What the parent model reads as the Agent result once Craftory has ended an agent at its next
+ * step. The agent itself never takes another turn, so nothing sent to it would be read.
+ */
+export const stoppedAnswer = (run: AgentRun): string => {
+  const { ticket } = run
+  const cause = run.stop?.cause ?? 'budget'
+  switch (cause) {
+    case 'conflict':
+      return (
+        `Stopped by Craftory: ${ticket} stopped on a merge conflict after the integration branch moved, and was ended. ` +
+        `${keptNote(run)}. Do not restart ${ticket}, merge, or remove the worktree. ` +
+        'Tell the user which files conflict and that they resolve it, then carry on with the other tickets.'
+      )
+    case 'budget':
+      return (
+        `Stopped by Craftory: ${ticket} reached its ${budgetK(run.budget)} token budget and was ended before it finished. ` +
+        `${keptNote(run)} with what it committed. Do not restart ${ticket} or remove the worktree. ` +
+        'Tell the user it ran out of budget, which the Craftory band lets them raise, and carry on with the other tickets.'
+      )
+    default: {
+      const _exhaustive: never = cause
+      return _exhaustive
+    }
+  }
+}
 
 export const stoppedStep = (turnId: string, index: number, run: AgentRun) => ({
   turnId,
@@ -388,7 +413,7 @@ export function moveNotices(
 ): { agentId: AgentId; text: string }[] {
   return liveRuns(ledger).flatMap(run => {
     const behind = worktrees.find(w => samePath(w.path, run.worktree))?.behind ?? 0
-    if (behind === 0 || run.isStopping) return []
+    if (behind === 0 || run.stop !== null) return []
     return [
       {
         agentId: run.agentId,
@@ -527,7 +552,7 @@ export function agentRows(args: {
       const status: RowStatus =
         run.budgetState === 'over'
           ? 'over'
-          : run.isStopping
+          : run.stop !== null
             ? 'stopped'
             : run.budgetState === 'near'
               ? 'near'

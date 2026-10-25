@@ -119,12 +119,12 @@ Craftory asks in the band, so it gates a typed command only where a band is draw
 - It gives the implementer its own worktree, `.worktrees/<ticket>-<slug>`, on the branch `craftory/<ticket>-<slug>`, cut from the integration branch. When you start Build with a typed or rail command, Craftory tells Claude which branch to integrate on and where the worktrees live. If that branch does not exist when the first implementer starts, Craftory creates it from your checkout's `HEAD`. It copies the files listed in `copy` and runs the `setup` command there. `copy` takes relative paths inside the repo and never `.git`. Craftory skips any other entry and says so on the card. The first time a `setup` command other than the built-in `pnpm install --frozen-lockfile` is about to run on your machine, Craftory asks **Run** or **Skip**, and remembers a **Run**. After a **Skip**, or when nobody can answer, the agent starts without the setup and the card says so.
 - At most `maxParallel` implementers run at once. Craftory refuses an extra spawn with a reason that names the running tickets and asks Claude to start the ticket after one of them returns.
 - Tickets that are blocked or ready for a human never get an agent.
-- Each agent has a token budget, 80k by default, counted as input, cache-creation and output tokens. The bar turns amber at 80%. At 100% Craftory tells the agent to stop and report, ends its next step, marks the ticket over budget and keeps the worktree. The card offers **Raise budget** and **Diagnose**.
-- When the integration branch moves, Craftory tells the running agents to merge it. It never rebases a worktree under an agent. A merge conflict stops the agent and the band offers **Resolve**.
+- Each agent has a token budget, 80k by default, counted as input, cache-creation and output tokens. The bar turns amber at 80%. At 100% Craftory stops the agent and ends its turn with a note: the agent's next step is answered without a request, and the note goes to Claude as the Agent result, saying the ticket ran out of budget, that its worktree is kept, and not to restart it. The ticket is marked over budget. An agent that finishes by itself on the step that crossed the budget is marked done. The card offers **Raise budget** and **Diagnose**.
+- When the integration branch moves, Craftory tells the running agents to merge it. It never rebases a worktree under an agent. A merge conflict stops the agent the same way, with a note about the conflict, and the band offers **Resolve**.
 - An agent recorded as running by a session that has since ended is marked stopped when the next session starts, so its worktree is kept as stopped work and not defended as a running agent.
 - Craftory refuses a `git worktree remove` on a worktree it keeps (running, failed, stopped or over budget).
 
-The Build card lists every agent with its ticket, status, TDD step when the agent reports one, token bar, time, worktree, branch, `+added −removed` lines and commits. **Pause all** stops new spawns and asks the running agents to stop after their current step. **Open panel** opens the Worktrees tab.
+The Build card lists every agent with its ticket, status, TDD step when the agent reports one, token bar, time, worktree, branch, `+added −removed` lines and commits. **Pause all** stops new spawns and sends the running agents a message to finish their current step, commit and report. **Open panel** opens the Worktrees tab.
 
 ### The pane
 
@@ -215,7 +215,7 @@ It starts no other program. The `setup` command is the one in `.craftory/config.
 - `prompt.submit` drops a gated command, where a band can show **Run anyway**. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder. It answers nothing else.
 - `tool.call` on `Agent` gives a Build implementer its name and drops `isolation`, or refuses it when the queue is full, the ticket is blocked, or the ticket is for a human. Other Agent calls pass through.
 - `agent.spawn` points a Build implementer at its worktree with `cwd`.
-- `turn.step` ends an agent's step only after that agent passed its token budget.
+- `turn.step` ends an agent's step only after that agent passed its token budget or stopped on a merge conflict.
 - `tool.call` on `Skill` asks before a gated `code-review`. `tool.call` on `Bash` refuses `git worktree remove` on a kept worktree.
 - `skill.prompt`, `turn.complete`, the other `tool.call`s and `ui.render` pass their result through unchanged. On Desktop and mobile, `ui.render` on `AssistantMessage` adds glossary links to the drawing only. The stored reply never changes.
 - `/craftory` is the only command the mod registers.
