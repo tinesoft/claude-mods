@@ -18,9 +18,27 @@ import {
   type SpawnDecision,
 } from '../../src/build'
 import type { Flow } from '../../src/evidence'
-import type { AgentId, AgentRun, CraftoryConfig, IssueRef, Millis } from '../../types'
+import type { AgentId, AgentRun, BuildLedger, CraftoryConfig, IssueRef, Millis } from '../../types'
 
 const buildState = atom({ plugin: 'craftory', key: 'build' } as const, EMPTY_LEDGER)
+
+/**
+ * `update` hands its function the held ledger and takes the next one back, with no way out for
+ * what the step decided. The box carries that out; it is written once, inside the one update.
+ */
+async function updateWith<T>(
+  $: EngineInterface,
+  initial: T,
+  step: (ledger: BuildLedger) => readonly [BuildLedger, T],
+): Promise<T> {
+  const out = { value: initial }
+  await update($, buildState, ledger => {
+    const [next, value] = step(ledger)
+    out.value = value
+    return next
+  })
+  return out.value
+}
 
 export function ledgerOf($: EngineInterface) {
   return read($, buildState)
@@ -62,8 +80,7 @@ export async function bookSpawn(
   },
 ): Promise<SpawnDecision> {
   const { call, flow, config, integrationBranch, at } = args
-  const decided: { value: SpawnDecision } = { value: { kind: 'pass' } }
-  await update($, buildState, ledger => {
+  return updateWith<SpawnDecision>($, { kind: 'pass' }, ledger => {
     const decision = decideSpawn({
       call,
       ledger,
@@ -72,12 +89,12 @@ export async function bookSpawn(
       tickets: flow.tickets,
       integrationBranch,
     })
-    decided.value = decision
-    if (decision.kind === 'steer') return addPending(ledger, call.toolUseId, decision.plan, at)
-    if (decision.kind === 'deny' && decision.isQueued) return addQueued(ledger, decision.ticket)
-    return ledger
+    if (decision.kind === 'steer')
+      return [addPending(ledger, call.toolUseId, decision.plan, at), decision]
+    if (decision.kind === 'deny' && decision.isQueued)
+      return [addQueued(ledger, decision.ticket), decision]
+    return [ledger, decision]
   })
-  return decided.value
 }
 
 export async function seatRun(
@@ -94,19 +111,18 @@ export async function countTokens(
   agentId: AgentId,
   step: { tokens: number; tddStep: string | null; at: Millis },
 ) {
-  const seen: { crossed: 'near' | 'over' | null; run: AgentRun | null } = {
-    crossed: null,
-    run: null,
-  }
-  await update($, buildState, ledger => {
-    const used = recordUsage(ledger, agentId, step.tokens, step.at)
-    seen.crossed = used.crossed
-    seen.run = used.run
-    return step.tddStep === null
-      ? used.ledger
-      : patchRun(used.ledger, agentId, { tddStep: step.tddStep })
-  })
-  return seen
+  return updateWith<{ crossed: 'near' | 'over' | null; run: AgentRun | null }>(
+    $,
+    { crossed: null, run: null },
+    ledger => {
+      const used = recordUsage(ledger, agentId, step.tokens, step.at)
+      const next =
+        step.tddStep === null
+          ? used.ledger
+          : patchRun(used.ledger, agentId, { tddStep: step.tddStep })
+      return [next, { crossed: used.crossed, run: used.run }]
+    },
+  )
 }
 
 export async function endRun(
@@ -116,18 +132,15 @@ export async function endRun(
   at: Millis,
 ): Promise<AgentRun | null> {
   const paused = (await read($, buildState)).isPaused
-  const done: { run: AgentRun | null } = { run: null }
-  await update($, buildState, ledger => {
+  return updateWith<AgentRun | null>($, null, ledger => {
     const finished = finishRun(
       ledger,
       agentId,
       paused && reason === 'answer' ? 'aborted' : reason,
       at,
     )
-    done.run = finished.run
-    return finished.ledger
+    return [finished.ledger, finished.run]
   })
-  return done.run
 }
 
 export async function setPaused($: EngineInterface, isPaused: boolean) {
