@@ -1,0 +1,37 @@
+{
+  "name": "craftory",
+  "displayName": "Craftory",
+  "version": "0.1.0",
+  "description": "A phase rail above the prompt that guides a feature from idea to merged PR (Align, Spec, Tickets, Build, Review, Ship, Retro) with Matt Pocock's skills.",
+  "author": {
+    "name": "tinesoft",
+    "url": "https://github.com/tinesoft"
+  },
+  "homepage": "https://github.com/tinesoft/claude-mods/tree/main/mods/craftory",
+  "repository": "https://github.com/tinesoft/claude-mods",
+  "license": "MIT",
+  "keywords": ["mod", "workflow", "ui"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "rail": {
+      "type": "boolean",
+      "title": "Phase rail",
+      "description": "Show the phase rail above the prompt",
+      "default": true
+    },
+    "rail_layout": {
+      "type": "string",
+      "title": "Rail layout",
+      "description": "A row of phases, or one summary chip",
+      "options": ["row", "summary"],
+      "default": "row"
+    },
+    "theme": {
+      "type": "string",
+      "title": "Theme",
+      "description": "Light or dark colours; auto follows the Claude Code theme",
+      "options": ["auto", "light", "dark"],
+      "default": "auto"
+    }
+  }
+}

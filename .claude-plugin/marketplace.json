@@ -10,6 +10,13 @@
       "description": "Chips above the prompt for each skill, subagent, MCP server, permission decision, hook and rule that activated this session. Press one to see why.",
       "category": "productivity",
       "tags": ["mod", "observability", "ui"]
+    },
+    {
+      "name": "craftory",
+      "source": "./mods/craftory",
+      "description": "A phase rail above the prompt that guides a feature from idea to merged PR (Align, Spec, Tickets, Build, Review, Ship, Retro) with Matt Pocock's skills.",
+      "category": "productivity",
+      "tags": ["mod", "workflow", "ui"]
     }
   ]
 }
