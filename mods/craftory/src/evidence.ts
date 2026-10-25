@@ -11,12 +11,15 @@
  *   5. next: the first enabled phase after the last done one, when it is still todo
  */
 import type {
+  AgentRecord,
+  BuildLedger,
   CraftoryConfig,
   Feature,
   Issue,
   IssueRef,
   PhaseId,
   PhaseMark,
+  PullRequest,
   Running,
   SkillName,
   TrackerSnapshot,
@@ -70,6 +73,8 @@ export type FlowInput = {
   config: CraftoryConfig
   tracker: TrackerSnapshot | null
   running: Running | null
+  /** The live Build ledger: agents still working keep Build running after the skill's turn ends. */
+  build?: BuildLedger | null
 }
 
 export type Facts = {
@@ -79,9 +84,16 @@ export type Facts = {
   marks: Partial<Record<PhaseId, PhaseMark>>
   /** The phase the observed skill is working on for this feature. */
   runningPhase: PhaseId | null
+  /** The pull request from the feature's integration branch, when the tracker has one. */
+  pr: PullRequest | null
+  /** Agents still working for this feature. */
+  liveAgents: number
 }
 
-export type Evidence = { done: true; artifact: string | null } | { done: false; blockers: string[] }
+export type Evidence =
+  | { done: true; artifact: string | null }
+  /** `artifact` on a phase not yet done is what it works on, such as the integration branch. */
+  | { done: false; blockers: string[]; artifact?: string | null }
 
 export type Rule = (facts: Facts) => Evidence
 
@@ -127,10 +139,34 @@ const laterStarted = (f: Facts, phase: PhaseId) =>
     p => f.marks[p]?.ranAt !== undefined || f.runningPhase === p,
   )
 
+const integrationBranchOf = (f: Facts): string | null =>
+  f.feature.kind === 'specced' ? f.feature.record.integrationBranch || null : null
+
+const listRefs = (rows: readonly TicketRow[]) => {
+  const refs = rows.map(r => r.issue.ref)
+  return refs.length > 3
+    ? `${refs.slice(0, 3).join(', ')} and ${refs.length - 3} more`
+    : refs.join(', ')
+}
+
+const agentsOf = (f: Facts): AgentRecord[] =>
+  f.feature.kind === 'specced' ? Object.values(f.feature.record.agents) : []
+
+/** When the newest implementer finished, as milliseconds; 0 with none. */
+const lastMergeAt = (f: Facts): number =>
+  Math.max(
+    0,
+    ...agentsOf(f)
+      .filter(a => a.outcome === 'done' && a.endedAt !== undefined)
+      .map(a => Date.parse(a.endedAt!)),
+  )
+
 /**
  * One rule per phase, `Record<PhaseId, Rule>` so a new phase without a rule fails the build.
- * Rules read tracker state and the feature's marks, never skill text. Build onward are not
- * tracked yet (M4).
+ * Rules read tracker state, the feature's marks and its agent records, never skill text.
+ * Review is Build's close-out (`code-review` ended after the last ticket merged); Ship is the
+ * pull request from the integration branch being ready for review; Retro is `retro` after Ship.
+ * A phase a person marks done is done.
  */
 export const EVIDENCE: Record<PhaseId, Rule> = {
   align: f => {
@@ -156,13 +192,73 @@ export const EVIDENCE: Record<PhaseId, Rule> = {
       return { done: false, blockers: ['the tickets have no blocking edges'] }
     return { done: true, artifact: ticketsLine(f.tickets) }
   },
-  build: () => ({ done: false, blockers: ['not tracked yet'] }),
-  review: () => ({ done: false, blockers: ['not tracked yet'] }),
-  ship: () => ({ done: false, blockers: ['not tracked yet'] }),
-  retro: () => ({ done: false, blockers: ['not tracked yet'] }),
+  build: f => {
+    const branch = integrationBranchOf(f)
+    const work = f.tickets.filter(t => t.status !== 'human')
+    if (work.length === 0)
+      return { done: false, blockers: ['no tickets to build'], artifact: branch }
+    const open = work.filter(t => t.status !== 'merged')
+    if (open.length === 0) return { done: true, artifact: branch }
+    return { done: false, blockers: [`${listRefs(open)} not merged yet`], artifact: branch }
+  },
+  review: f => {
+    const mark = f.marks.review
+    const branch = integrationBranchOf(f)
+    if (mark?.markedDoneAt !== undefined) return { done: true, artifact: branch }
+    const build = EVIDENCE.build(f)
+    if (!build.done) return { done: false, blockers: ['Build is not done'] }
+    if (mark?.ranAt === undefined)
+      return { done: false, blockers: ['code-review has not run on the integration branch'] }
+    if (mark.endedAt === undefined)
+      return { done: false, blockers: ['the review has not finished'] }
+    // A ticket merged after the review ended means the diff changed under it.
+    if (lastMergeAt(f) > Date.parse(mark.endedAt))
+      return { done: false, blockers: ['a ticket merged after the last review'] }
+    return { done: true, artifact: branch }
+  },
+  ship: f => {
+    if (f.marks.ship?.markedDoneAt !== undefined) return { done: true, artifact: f.pr?.url ?? null }
+    const pr = f.pr
+    if (pr === null) return { done: false, blockers: ['no pull request yet'] }
+    if (pr.state === 'closed') return { done: false, blockers: ['the pull request was closed'] }
+    if (pr.state === 'open' && pr.isDraft)
+      return {
+        done: false,
+        blockers: ['the pull request is still a draft'],
+        artifact: `${pr.ref} (draft)`,
+      }
+    return { done: true, artifact: pr.url }
+  },
+  retro: f => {
+    const mark = f.marks.retro
+    if (mark?.markedDoneAt !== undefined) return { done: true, artifact: null }
+    if (!EVIDENCE.ship(f).done) return { done: false, blockers: ['Ship is not done'] }
+    if (mark?.ranAt === undefined) return { done: false, blockers: ['not run yet'] }
+    if (mark.endedAt === undefined) return { done: false, blockers: ['the retro has not finished'] }
+    return { done: true, artifact: null }
+  },
 }
 
-export function factsOf({ feature, tracker, running }: FlowInput): Facts {
+const buildProgress = (f: Facts): string | null => {
+  const work = f.tickets.filter(t => t.status !== 'human')
+  return work.length === 0
+    ? null
+    : `${work.filter(t => t.status === 'merged').length}/${work.length}`
+}
+
+/** An agent that failed or ran out of budget and whose ticket is still unmerged needs the user. */
+function buildAttention(f: Facts): StepState | undefined {
+  const merged = new Set(
+    f.tickets.filter(t => t.status === 'merged').map(t => t.issue.ref as string),
+  )
+  const open = agentsOf(f).filter(a => !merged.has(a.ticket))
+  const over = open.find(a => a.outcome === 'over-budget' && a.tokens >= a.budget)
+  if (over !== undefined) return { kind: 'over-budget', ticket: over.ticket, budget: over.budget }
+  const failed = open.find(a => a.outcome === 'failed')
+  return failed === undefined ? undefined : { kind: 'failed', meta: `${failed.ticket} failed` }
+}
+
+export function factsOf({ feature, tracker, running, build }: FlowInput): Facts {
   const issues = tracker?.rich ? tracker.issues : []
   const specRef = feature.kind === 'specced' ? feature.record.spec : null
   const byRef = new Map(issues.map(i => [i.ref as string, i]))
@@ -181,6 +277,8 @@ export function factsOf({ feature, tracker, running }: FlowInput): Facts {
     })),
     marks: feature.kind === 'draft' ? feature.draft.marks : feature.record.marks,
     runningPhase: live,
+    pr: tracker?.rich ? tracker.pr : null,
+    liveAgents: Object.values(build?.runs ?? {}).filter(r => r.status === 'running').length,
   }
 }
 
@@ -203,12 +301,18 @@ export function deriveFlow(input: FlowInput): Flow {
   const kindOf = (phase: PhaseId): StepState => {
     const why = skipReason(input, phase)
     if (why !== undefined) return { kind: 'skipped', why }
+    const e = evidence[phase]
+    if (phase === 'build' && !e.done) {
+      const attention = buildAttention(facts)
+      if (attention !== undefined) return attention
+    }
+    const progress = phase === 'build' ? buildProgress(facts) : null
     if (live !== null && live.phase === phase) {
       return live.isAwaitingUser
         ? { kind: 'needs-you', meta: live.progress ?? 'waiting on you' }
-        : { kind: 'running', progress: live.progress }
+        : { kind: 'running', progress: live.progress ?? progress }
     }
-    const e = evidence[phase]
+    if (phase === 'build' && !e.done && facts.liveAgents > 0) return { kind: 'running', progress }
     if (e.done) return { kind: 'done', artifact: e.artifact }
     return { kind: 'todo' }
   }
@@ -219,8 +323,12 @@ export function deriveFlow(input: FlowInput): Flow {
   const on = (p: PhaseId) => states[p].kind !== 'skipped'
   const blockersOf = (p: PhaseId) => {
     const e = evidence[p]
-    if (states[p].kind === 'running' || states[p].kind === 'needs-you')
+    const state = states[p]
+    if (state.kind === 'running' || state.kind === 'needs-you')
       return [`${PHASES[p].label} is still running`]
+    if (state.kind === 'over-budget')
+      return [`${state.ticket} hit its ${Math.round(state.budget / 1000)}k token budget`]
+    if (state.kind === 'failed') return [state.meta]
     return e.done ? [] : e.blockers
   }
 
@@ -243,7 +351,7 @@ export function deriveFlow(input: FlowInput): Flow {
     state: states[phase],
     command: config.phases[phase].command ?? null,
     args: phase === 'tickets' || phase === 'build' ? specRef : '',
-    artifact: evidence[phase].done ? evidence[phase].artifact : null,
+    artifact: evidence[phase].artifact ?? null,
     blockers: blockersOf(phase),
   }))
   return {
