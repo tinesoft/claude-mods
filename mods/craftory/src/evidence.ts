@@ -12,8 +12,10 @@ import type {
   SkillName,
   TrackerSnapshot,
 } from '../types'
+import { budgetK } from './build'
 import { isSkipped } from './features'
 import { PHASE_ORDER, PHASES, predecessor } from './phases'
+import { byNumber } from './tracker/refs'
 
 export type SkipReason = 'off' | 'feature' | 'entry'
 
@@ -91,8 +93,6 @@ const ticketStatus = (issue: Issue, byRef: ReadonlyMap<string, Issue>): TicketSt
   if (open.length > 0) return 'blocked'
   return issue.role === 'ready-for-agent' || issue.role === null ? 'ready' : 'open'
 }
-
-const byNumber = (a: Issue, b: Issue) => Number(a.ref.slice(1)) - Number(b.ref.slice(1))
 
 const count = (rows: readonly TicketRow[], status: TicketStatus) =>
   rows.filter(r => r.status === status).length
@@ -323,7 +323,7 @@ export function deriveFlow(input: FlowInput): Flow {
     if (state.kind === 'running' || state.kind === 'needs-you')
       return [`${PHASES[p].label} is still running`]
     if (state.kind === 'over-budget')
-      return [`${state.ticket} hit its ${Math.round(state.budget / 1000)}k token budget`]
+      return [`${state.ticket} hit its ${budgetK(state.budget)} token budget`]
     if (state.kind === 'failed') return [state.meta]
     return e.done ? [] : e.blockers
   }

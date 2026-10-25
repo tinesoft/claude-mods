@@ -13,7 +13,8 @@ import type {
   TriageRole,
 } from '../types'
 import { DEFAULT_LABELS } from './agents-md'
-import { AGENT_DOCS, CONFIG_FILE, normalise } from './files'
+import { budgetK } from './build'
+import { AGENT_DOCS, CONFIG_FILE, normalise, withSlash } from './files'
 import { PHASE_ORDER, PHASES } from './phases'
 import { otherNote } from './tracker/links'
 
@@ -115,8 +116,6 @@ const line = (
 
 export const pathCheck = (text: string) =>
   normalise(text) === undefined ? 'Use a path inside the repo, such as docs/issues/' : null
-
-const withSlash = (path: string) => (path.endsWith('/') ? path : `${path}/`)
 
 const listOf = (text: string) =>
   text
@@ -455,12 +454,7 @@ const WORKTREE_ROWS: readonly SettingsRow[] = [
     hint: 'Amber at 80%. At 100% the agent stops and reports; its worktree is kept.',
     file: 'config',
     control: 'choice',
-    options: f =>
-      numbers(
-        [40_000, 80_000, 120_000, 200_000],
-        n => `${Math.round(n / 1000)}k`,
-        wt(f.config).tokenBudget,
-      ),
+    options: f => numbers([40_000, 80_000, 120_000, 200_000], budgetK, wt(f.config).tokenBudget),
     read: f => String(wt(f.config).tokenBudget),
     write: value => ({ config: { worktrees: { tokenBudget: Number(value) } } }),
   },

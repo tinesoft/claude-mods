@@ -1,7 +1,7 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
 import {
   AGENT_DOCS,
-  DEFAULT_DOCS,
+  docsOf,
   ensureGitignore,
   readSetup,
   remoteHostOf,
@@ -34,6 +34,12 @@ const installState = atom({ plugin: 'craftory', key: 'install' } as const, { kin
 
 export function repoSnapshot($: EngineInterface) {
   return read($, repoState)
+}
+
+/** The snapshot with the config and docs layout read from it, defaulted while the repo is unread. */
+export async function repoFacts($: EngineInterface) {
+  const repo = await read($, repoState)
+  return { repo, config: configOf(repo?.config), docs: docsOf(repo?.setup) }
 }
 
 export function pluginOf($: EngineInterface) {
@@ -76,9 +82,8 @@ export async function loadRepo($: EngineInterface) {
   const [configText, files] = await Promise.all([readText($, CONFIG_PATH), readSetupFiles($)])
   const config = parseConfig(configText)
   const setup = readSetup(files)
-  const glossaryPath = setup.state === 'ok' ? setup.value.docs.glossary : DEFAULT_DOCS.glossary
   const [glossaryText, hasContextMd, hasScratch, url, at] = await Promise.all([
-    readText($, glossaryPath),
+    readText($, docsOf(setup).glossary),
     exists($, 'CONTEXT.md'),
     exists($, '.scratch'),
     remoteUrl($),
@@ -125,11 +130,10 @@ export async function installPlugin($: EngineInterface, argv: readonly string[])
 }
 
 export async function writableContext($: EngineInterface, steering?: WritableContext['steering']) {
-  const repo = await repoSnapshot($)
-  const config = configOf(repo?.config)
+  const { repo, config, docs } = await repoFacts($)
   return {
     steering: repo?.steering.file ?? steering ?? null,
-    docs: repo?.setup.state === 'ok' ? repo.setup.value.docs : DEFAULT_DOCS,
+    docs,
     issuesFolder: config.tracker.local.folder,
   } satisfies WritableContext
 }

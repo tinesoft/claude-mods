@@ -10,7 +10,6 @@ import {
   type SpawnDecision,
   tddStepOf,
 } from '../../src/build'
-import { configOf } from '../../src/config'
 import { specKey } from '../../src/features'
 import type { AgentId, IssueRef, SeatPlan } from '../../types'
 import { activeRecord, featureOfTicket, featuresOf, recordChange, recordRun } from './features'
@@ -25,7 +24,7 @@ import {
   setPaused,
 } from './ledger'
 import { addNotice } from './notices'
-import { repoSnapshot } from './repo'
+import { repoFacts } from './repo'
 import { refreshGit, scheduleGit, scheduleRefresh } from './sync'
 
 /**
@@ -50,12 +49,16 @@ export async function stopStaleAgents($: EngineInterface) {
 }
 
 export async function planSpawn($: EngineInterface, call: AgentCall): Promise<SpawnDecision> {
-  const [flow, repo, record] = await Promise.all([currentFlow($), repoSnapshot($), activeRecord($)])
+  const [flow, { config }, record] = await Promise.all([
+    currentFlow($),
+    repoFacts($),
+    activeRecord($),
+  ])
   if (flow === null || record === null) return { kind: 'pass' }
   const decision = await bookSpawn($, {
     call,
     flow,
-    config: configOf(repo?.config),
+    config,
     integrationBranch: record.integrationBranch,
     at: await $.clock.now(),
   })
@@ -69,9 +72,9 @@ export async function seatAgent(
   plan: SeatPlan,
   agentId: AgentId,
 ) {
-  const repo = await repoSnapshot($)
+  const { config } = await repoFacts($)
   const old = (await featureOfTicket($, plan.ticket))?.agents[plan.ticket]
-  const budget = budgetFor(configOf(repo?.config), old)
+  const budget = budgetFor(config, old)
   const run = await seatRun($, { toolUseId, agentId, budget, at: await $.clock.now() })
   if (run !== undefined) await recordRun($, run)
   await refreshGit($)
@@ -133,7 +136,7 @@ export async function raiseBudget($: EngineInterface, ticket: IssueRef) {
   const record = await featureOfTicket($, ticket)
   const old = record?.agents[ticket]
   if (record === null || old === undefined) return
-  const step = configOf((await repoSnapshot($))?.config).worktrees.tokenBudget
+  const step = (await repoFacts($)).config.worktrees.tokenBudget
   const budget = old.budget + step
   await recordChange($, specKey(record.spec), { kind: 'agent', record: { ...old, budget } })
   await raiseBudgetOf($, ticket, budget)

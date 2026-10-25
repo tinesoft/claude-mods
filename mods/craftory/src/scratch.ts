@@ -1,4 +1,4 @@
-import type { FileWrite } from './files'
+import { withSlash, type FileWrite } from './files'
 
 export type ScratchFile = { path: string; text: string }
 
@@ -46,7 +46,7 @@ export function planScratchImport(args: {
   folder: string
 }): ScratchPlan {
   const { files, taken } = args
-  const folder = args.folder.endsWith('/') ? args.folder : `${args.folder}/`
+  const folder = withSlash(args.folder)
   let next = Math.max(0, ...taken) + 1
   const items: ScratchItem[] = []
   const writes: FileWrite[] = []

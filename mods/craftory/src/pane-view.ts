@@ -15,6 +15,7 @@ import { budgetK } from './build'
 import type { Flow, SkipReason, TicketStatus } from './evidence'
 import { PHASES } from './phases'
 import { termKey, termsOf } from './glossary'
+import { byNumber } from './tracker/refs'
 import type { Term } from '../types'
 
 export const TABS: readonly { id: PaneTab; hotkey: string; title: string }[] = [
@@ -145,8 +146,6 @@ export const STATUS_LABELS: Record<TicketStatus, string> = {
 }
 
 const INBOX_ROLES: readonly TriageRole[] = ['needs-triage', 'ready-for-agent', 'ready-for-human']
-
-const byNumber = (a: Issue, b: Issue) => Number(a.ref.slice(1)) - Number(b.ref.slice(1))
 
 function inboxRow(issue: Issue, role: TriageRole, enterAt: EnterAt): InboxRowView {
   const bug = issue.isBug ? ' · bug' : ''

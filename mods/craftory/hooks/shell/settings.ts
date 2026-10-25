@@ -38,10 +38,11 @@ import {
   pluginOf,
   readSetupFiles,
   readText,
+  repoFacts,
   repoSnapshot,
   writableContext,
 } from './repo'
-import { openPane, paneTabOf, resetPrefs, resolvedPrefs, savePrefs } from './ui'
+import { copyWithToast, openPane, paneTabOf, resetPrefs, resolvedPrefs, savePrefs } from './ui'
 
 const setupNoteState = atom({ plugin: 'craftory', key: 'setupNote' } as const, null)
 
@@ -89,13 +90,13 @@ async function settingsFacts(
   $: EngineInterface,
   options: Readonly<Record<string, unknown>>,
 ): Promise<SettingsFacts & { isDraft: boolean }> {
-  const [repo, prefs, current] = await Promise.all([
-    repoSnapshot($),
+  const [{ config }, prefs, current] = await Promise.all([
+    repoFacts($),
     resolvedPrefs($, options),
     currentSetup($),
   ])
   return {
-    config: configOf(repo?.config),
+    config,
     setup: current.setup,
     isDraft: current.isDraft,
     prefs,
@@ -191,8 +192,8 @@ async function settingsContext($: EngineInterface, setup: AgentSetup, issuesFold
 }
 
 async function commitChange($: EngineInterface, change: SettingsChange) {
-  const [repo, current, files, configText] = await Promise.all([
-    repoSnapshot($),
+  const [{ repo, config: oldConfig }, current, files, configText] = await Promise.all([
+    repoFacts($),
     currentSetup($),
     readSetupFiles($),
     readText($, CONFIG_PATH),
@@ -207,7 +208,7 @@ async function commitChange($: EngineInterface, change: SettingsChange) {
     current,
     files,
     configText,
-    oldConfig: configOf(repo?.config),
+    oldConfig,
   })
   if (change.setup && current.isDraft) await update($, setupDraftState, () => nextSetup)
   const ctx = await settingsContext($, nextSetup, nextConfig.tracker.local.folder)
@@ -316,7 +317,7 @@ async function scratchPlan($: EngineInterface, folder: string) {
 
 async function importScratch($: EngineInterface) {
   const { setup } = await currentSetup($)
-  const config = configOf((await repoSnapshot($))?.config)
+  const { config } = await repoFacts($)
   const folder = config.tracker.local.folder
   const plan = await scratchPlan($, folder)
   if (plan.items.length === 0) return say($, 'Nothing to import from .scratch/.')
@@ -366,7 +367,7 @@ async function changeGlossary(
     await update($, termErrorState, () => TERM_ERRORS[next])
     return $.ui.invalidate('ui.render')
   }
-  const config = configOf((await repoSnapshot($))?.config)
+  const { config } = await repoFacts($)
   const result = await commitWrites(
     $,
     [{ path, before: raw, after: serialiseGlossary(next) }],
@@ -441,13 +442,11 @@ async function importContext($: EngineInterface) {
 }
 
 async function copyGlossaryPath($: EngineInterface, surface: RenderSurface) {
-  const { setup } = await currentSetup($)
-  const copied = await $.ui
-    .copy({ text: setup.docs.glossary, surface })
-    .catch(() => ({ isCopied: false }))
-  $.ui.toast(
-    copied.isCopied ? `Copied ${setup.docs.glossary}` : `The glossary is ${setup.docs.glossary}`,
-  )
+  const { glossary } = (await currentSetup($)).setup.docs
+  return copyWithToast($, glossary, surface, {
+    ok: `Copied ${glossary}`,
+    fail: `The glossary is ${glossary}`,
+  })
 }
 
 export async function jumpToTerm($: EngineInterface, name: string) {
@@ -519,7 +518,7 @@ export async function settingsArgs(
             doc === null ? 'unknown-term' : deleteTerm(doc, termKey(name)),
           ),
         importContext: () => void importContext($),
-        copyPath: () => void copyGlossaryPath($, 'desktop'),
+        copyPath: surface => void copyGlossaryPath($, surface),
       },
     },
   }

@@ -1,12 +1,11 @@
 import { atom, type EngineInterface, read, type Timer, update } from 'claude-code'
 import { integrationContext, isoOf } from '../../src/build'
-import { configOf, integrationBranchFor } from '../../src/config'
+import { integrationBranchFor } from '../../src/config'
 import { driftDiffArgv, findDrift, retroSuggestions } from '../../src/drift'
 import { deriveFlow, type Flow } from '../../src/evidence'
 import { enteredRecord, featureOf, specKey } from '../../src/features'
 import { dropText, type RunRequest } from '../../src/gates'
 import { termKey } from '../../src/glossary'
-import { DEFAULT_DOCS } from '../../src/agents-md'
 import type { InboxAction } from '../../src/pane-view'
 import { recognise } from '../../src/phases'
 import { bareIsOurs } from '../../src/plugin'
@@ -37,7 +36,7 @@ import {
   pruneGateNotices,
   removeNotices,
 } from './notices'
-import { glossaryTerms, pluginOf, repoSnapshot, sh } from './repo'
+import { glossaryTerms, pluginOf, repoFacts, sh } from './repo'
 import { trackerOf } from './tracker'
 
 const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
@@ -45,8 +44,8 @@ const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
 let spinner: Timer | undefined
 
 export async function currentFlow($: EngineInterface): Promise<Flow | null> {
-  const [repo, features, drafts, active, tracker, running, build] = await Promise.all([
-    repoSnapshot($),
+  const [{ config }, features, drafts, active, tracker, running, build] = await Promise.all([
+    repoFacts($),
     featuresOf($),
     draftsOf($),
     activeKey($),
@@ -56,7 +55,7 @@ export async function currentFlow($: EngineInterface): Promise<Flow | null> {
   ])
   const feature = featureOf(active, features, drafts)
   if (feature === null) return null
-  return deriveFlow({ feature, config: configOf(repo?.config), tracker, running, build })
+  return deriveFlow({ feature, config, tracker, running, build })
 }
 
 /**
@@ -174,13 +173,13 @@ export async function startContext(
   const typed = typedCommand(e)
   const req = typed && requestOf(typed.name, typed.args, bareIsOurs(await pluginOf($)))
   if (req?.phase !== 'build') return undefined
-  const [record, git, repo] = await Promise.all([activeRecord($), gitOf($), repoSnapshot($)])
+  const [record, git, { config }] = await Promise.all([activeRecord($), gitOf($), repoFacts($)])
   if (record === null || record.integrationBranch === '') return undefined
   return [
     integrationContext({
       branch: record.integrationBranch,
       from: git?.branch ?? null,
-      folder: configOf(repo?.config).worktrees.folder,
+      folder: config.worktrees.folder,
     }),
   ]
 }
@@ -200,7 +199,7 @@ export async function enterFromIssue(
   if (action.phase === 'align') {
     await createDraft($, { title: issue.title, entry: 'align', enteredFrom: issue.ref })
   } else {
-    const config = configOf((await repoSnapshot($))?.config)
+    const { config } = await repoFacts($)
     const record = await adoptRecord(
       $,
       enteredRecord({
@@ -220,7 +219,7 @@ export async function enterFromIssue(
 export async function bindDrafts($: EngineInterface) {
   const tracker = await trackerOf($)
   if (!tracker?.rich) return
-  const config = configOf((await repoSnapshot($))?.config)
+  const { config } = await repoFacts($)
   const moved = await promoteDrafts($, tracker, title => integrationBranchFor(config, title))
   for (const { from, to } of moved)
     await update($, runningState, run => (run?.feature === from ? { ...run, feature: to } : run))
@@ -283,20 +282,18 @@ export async function markDone($: EngineInterface, phase: PhaseId) {
 }
 
 async function scanDrift($: EngineInterface) {
-  const [git, record, terms, repo] = await Promise.all([
+  const [git, record, terms, { docs }] = await Promise.all([
     gitOf($),
     activeRecord($),
     glossaryTerms($),
-    repoSnapshot($),
+    repoFacts($),
   ])
   const integration = record?.integrationBranch
   const base = git?.branch
   if (!integration || !base || integration === base || !terms.some(t => t.avoid.length > 0)) return
   const diff = await sh($, driftDiffArgv(base, integration))
   if (diff === null || diff.exitCode !== 0) return
-  const glossary =
-    repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary
-  for (const f of findDrift(diff.stdout, terms, [glossary, 'CONTEXT.md']).slice(0, 3))
+  for (const f of findDrift(diff.stdout, terms, [docs.glossary, 'CONTEXT.md']).slice(0, 3))
     await addNotice($, {
       kind: 'drift',
       id: `drift-${termKey(f.term)}-${termKey(f.avoided)}`,

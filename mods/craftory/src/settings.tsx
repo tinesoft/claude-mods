@@ -1,3 +1,4 @@
+import type { RenderSurface } from 'claude-code'
 import type { SettingsSection, Term, TermDraft, Tone } from '../types'
 import {
   HELPERS,
@@ -35,7 +36,7 @@ export type SettingsActions = {
     edit: (name: string) => void
     remove: (name: string) => void
     importContext: () => void
-    copyPath: () => void
+    copyPath: (surface: RenderSurface) => void
   }
 }
 
@@ -265,7 +266,7 @@ const GlossarySection = ({
               tone={tone}
               id="gl-copy-path"
               label={`Copy ${glossary.path}`}
-              onPress={() => on.term.copyPath()}
+              onPress={surface => on.term.copyPath(surface)}
             />
           </Box>
         </Box>

@@ -1,6 +1,5 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
 import { cleanupPlan, samePath } from '../../src/build'
-import { configOf } from '../../src/config'
 import {
   assembleGit,
   basesOf,
@@ -13,7 +12,7 @@ import { parentOf } from '../../src/tracker'
 import type { GitSnapshot } from '../../types'
 import { featuresOf } from './features'
 import { ledgerOf } from './ledger'
-import { remoteUrl, repoSnapshot, sh } from './repo'
+import { remoteUrl, repoFacts, sh } from './repo'
 import { trackerOf } from './tracker'
 
 const gitState = atom({ plugin: 'craftory', key: 'git' } as const, null)
@@ -24,13 +23,12 @@ export function gitOf($: EngineInterface) {
 
 /** Reads the worktrees and branches into the snapshot; null when git is not there to ask. */
 export async function loadGit($: EngineInterface): Promise<GitSnapshot | null> {
-  const [repo, features, tracker, ledger] = await Promise.all([
-    repoSnapshot($),
+  const [{ config }, features, tracker, ledger] = await Promise.all([
+    repoFacts($),
     featuresOf($),
     trackerOf($),
     ledgerOf($),
   ])
-  const config = configOf(repo?.config)
   const listed = await sh($, worktreeListArgv)
   if (listed === null || listed.exitCode !== 0) return null
   const entries = parseWorktreeList(listed.stdout)
@@ -78,8 +76,8 @@ export async function loadGit($: EngineInterface): Promise<GitSnapshot | null> {
 }
 
 export async function cleanupInputs($: EngineInterface) {
-  const [repo, features, tracker, ledger, git] = await Promise.all([
-    repoSnapshot($),
+  const [{ config }, features, tracker, ledger, git] = await Promise.all([
+    repoFacts($),
     featuresOf($),
     trackerOf($),
     ledgerOf($),
@@ -95,7 +93,7 @@ export async function cleanupInputs($: EngineInterface) {
   const plan = cleanupPlan({
     records: Object.values(features).flatMap(f => Object.values(f.agents)),
     merged,
-    config: configOf(repo?.config),
+    config,
     running: new Set(
       Object.values(ledger.runs)
         .filter(r => r.status === 'running')

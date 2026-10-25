@@ -6,6 +6,7 @@ import {
   bindSpec,
   draftKey,
   enteredRecord,
+  featureChoices,
   featureOf,
   isSkipped,
   featurePath,
@@ -19,6 +20,7 @@ import {
   specKey,
   type FeatureChange,
 } from '../src/features'
+import { parentOf } from '../src/tracker'
 import type {
   AgentRecord,
   DraftFeature,
@@ -323,6 +325,28 @@ test('a draft ignores changes that need a spec', () => {
   })
   expect(same).toEqual(draft)
   expect(applyDraftChange(draft, { kind: 'agent', record: agent() })).toEqual(draft)
+})
+
+test('the picker lists features then drafts and marks only the active one', () => {
+  const features = { '#42': A }
+  const drafts = { d1: draft }
+  expect(featureChoices(features, drafts, specKey(ref(42)))).toEqual([
+    { key: specKey(ref(42)), title: A.title, isActive: true },
+    { key: draftKey('d1'), title: 'CSV export', isActive: false },
+  ])
+  expect(featureChoices(features, drafts, draftKey('d1')).map(c => c.isActive)).toEqual([
+    false,
+    true,
+  ])
+  expect(featureChoices({}, {}, null)).toEqual([])
+})
+
+test('a ticket belongs to the spec its tracker issue names, and to none without a rich tracker', () => {
+  const child = { ...spec(43, T, 'ticket'), parent: ref(42) }
+  expect(parentOf(tracker([spec(42, T), child]), '#43')).toBe('#42')
+  expect(parentOf(tracker([spec(42, T)]), '#42')).toBeNull()
+  expect(parentOf(tracker([child]), '#99')).toBeNull()
+  expect(parentOf(null, '#43')).toBeNull()
 })
 
 test('the active feature is the one on this branch, else the last used, else the busiest', () => {

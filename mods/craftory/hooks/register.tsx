@@ -4,12 +4,17 @@
  * command and offer Run anyway, and the build queue denies a spawn instead of holding it.
  */
 import type { EngineInterface, Register, RenderSurface } from 'claude-code'
-import { DEFAULT_DOCS, firstRunText } from '../src/agents-md'
-import { type KeepWhy, samePath, stoppedAnswer, stoppedStep, withoutIsolation } from '../src/build'
-import { configOf } from '../src/config'
+import { firstRunText } from '../src/agents-md'
+import {
+  KEEP_REASONS,
+  type KeepWhy,
+  samePath,
+  stoppedAnswer,
+  stoppedStep,
+  withoutIsolation,
+} from '../src/build'
 import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
 import { waitingForTriage } from '../src/evidence'
-import { draftKey, specKey } from '../src/features'
 import type { RunRequest } from '../src/gates'
 import { removalTargets, worktreeRemoveArgv } from '../src/git'
 import type { Action } from '../src/action'
@@ -18,7 +23,8 @@ import { renderPane } from '../src/pane'
 import { type InboxAction, tabCounts } from '../src/pane-view'
 import { namespaced, recognise, SKILLS } from '../src/phases'
 import { bareIsOurs, INSTALL_ARGV, pluginLine, UPDATE_ARGV } from '../src/plugin'
-import { type BandActions, type FeatureChoice, renderBand, spinFrameOf } from '../src/rail'
+import { featureChoices } from '../src/features'
+import { type BandActions, renderBand, spinFrameOf } from '../src/rail'
 import { linkTerms, Reply } from '../src/reply'
 import { markdownSummary } from '../src/summary'
 import type { AgentId } from '../types'
@@ -76,13 +82,14 @@ import {
   installPlugin,
   loadRepo,
   pluginOf,
-  repoSnapshot,
+  repoFacts,
   sh,
 } from './shell/repo'
 import { jumpToTerm, settingsArgs, signalsOf } from './shell/settings'
 import {
   closeCard,
   closeRailPopups,
+  copyWithToast,
   glossaryQueryOf,
   glossaryViewOf,
   isPickingFeatureOf,
@@ -115,7 +122,7 @@ const DIAGNOSE_REASON =
   'The user chose to diagnose first, so code-review does not run yet. Tell them what is failing in Build and run the mattpocock-skills:diagnosing-bugs skill on it.'
 
 const keptReason = (path: string, why: KeepWhy) =>
-  `Craftory keeps ${path}: ${why === 'running' ? 'an agent is still working in it' : `its agent ${why === 'failed' ? 'failed' : why === 'over-budget' ? 'ran out of token budget' : 'was stopped'}, and the user decides what happens to its work`}. Do not remove it. Clean up the other worktrees and leave this one.`
+  `Craftory keeps ${path}: ${KEEP_REASONS[why]}. Do not remove it. Clean up the other worktrees and leave this one.`
 
 async function dispatch($: EngineInterface, action: Action) {
   switch (action.kind) {
@@ -183,16 +190,18 @@ async function startFromIssue($: EngineInterface, action: Extract<InboxAction, {
     await requestRun($, step.command, action.phase === 'align' ? action.ref : step.args)
 }
 
-async function openFolder($: EngineInterface, folder: string, surface: RenderSurface) {
-  const copied = await $.ui.copy({ text: folder, surface }).catch(() => ({ isCopied: false }))
-  $.ui.toast(copied.isCopied ? `Copied ${folder}` : `Could not copy · the folder is ${folder}`)
+function openFolder($: EngineInterface, folder: string, surface: RenderSurface) {
+  return copyWithToast($, folder, surface, {
+    ok: `Copied ${folder}`,
+    fail: `Could not copy · the folder is ${folder}`,
+  })
 }
 
 /** Tracker and git reads run subprocesses and the network, so session start does not wait for them. */
 async function refreshAtStart($: EngineInterface) {
   await refreshTracker($)
   await refreshGit($)
-  if (configOf((await repoSnapshot($))?.config).worktrees.pruneStale) await pruneStale($)
+  if ((await repoFacts($)).config.worktrees.pruneStale) await pruneStale($)
   await settle($)
 }
 
@@ -204,22 +213,6 @@ const canAskInBand = async ($: EngineInterface) =>
 
 const drawsAnything = async ($: EngineInterface) =>
   (await isSupported($)) && (await $.session.surfaces()).length > 0
-
-async function featureChoices($: EngineInterface): Promise<FeatureChoice[]> {
-  const [features, drafts, active] = await Promise.all([featuresOf($), draftsOf($), activeKey($)])
-  return [
-    ...Object.values(features).map(f => ({
-      key: specKey(f.spec),
-      title: f.title || f.spec,
-      isActive: specKey(f.spec) === active,
-    })),
-    ...Object.values(drafts).map(d => ({
-      key: draftKey(d.draftId),
-      title: d.title,
-      isActive: draftKey(d.draftId) === active,
-    })),
-  ]
-}
 
 const bandActions = ($: EngineInterface): BandActions => ({
   step: (phase, fitsCard) => void pressStep($, phase, fitsCard),
@@ -401,7 +394,11 @@ export const register: Register = (on, options) => {
     if (e.props.hasSurvey || !(await isSupported($))) return below
     const prefs = await resolvedPrefs($, options)
     if (!prefs.rail) return below
-    const [repo, plugin, flow] = await Promise.all([repoSnapshot($), pluginOf($), currentFlow($)])
+    const [{ repo, config }, plugin, flow] = await Promise.all([
+      repoFacts($),
+      pluginOf($),
+      currentFlow($),
+    ])
     const derived = derivedNotices({
       plugin,
       install: await installOf($),
@@ -423,12 +420,12 @@ export const register: Register = (on, options) => {
       below,
       layout: prefs.railLayout,
       flow,
-      config: configOf(repo?.config),
+      config,
       waiting: waitingForTriage(await trackerOf($)),
       agents: await agentsViewOf($, flow),
       notices: [...events, ...derived],
       open: await openStepOf($),
-      features: await featureChoices($),
+      features: featureChoices(await featuresOf($), await draftsOf($), await activeKey($)),
       isPickingFeature: await isPickingFeatureOf($),
       on: bandActions($),
     })
@@ -437,8 +434,8 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     if (e.surface === 'terminal' || e.props.isSummary === true || !(await isSupported($)))
       return next(e)
-    const repo = await repoSnapshot($)
-    if (!configOf(repo?.config).automation.underlineTerms) return next(e)
+    const { config, docs } = await repoFacts($)
+    if (!config.automation.underlineTerms) return next(e)
     const linked = linkTerms(e.props.text, await glossaryTerms($))
     if (linked.found.length === 0) return next(e)
     const table = $.ui.resolve(e)
@@ -448,7 +445,7 @@ export const register: Register = (on, options) => {
         tone={await toneOf($, options, e.surface)}
         surface={e.surface}
         linked={linked}
-        path={repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary}
+        path={docs.glossary}
         on={{
           ask: term =>
             void $.command.run({ command: namespaced(SKILLS.waitWhat), args: term.name }),

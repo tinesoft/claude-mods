@@ -11,7 +11,7 @@ import { bindDrafts, settle } from './flow'
 import { cleanupInputs, gitOf, loadGit } from './git'
 import { ledgerOf, stopForConflict } from './ledger'
 import { addNotice } from './notices'
-import { repoSnapshot, sh } from './repo'
+import { repoFacts, repoSnapshot, sh } from './repo'
 import { loadTracker, trackerKindOf } from './tracker'
 
 const REFRESH_DEBOUNCE_MS = 800
@@ -71,8 +71,7 @@ export async function touchesTracker(
 export async function refreshGit($: EngineInterface) {
   const snapshot = await loadGit($)
   if (snapshot === null) return
-  const repo = await repoSnapshot($)
-  await afterGit($, snapshot, configOf(repo?.config).worktrees.rebaseOnMove)
+  await afterGit($, snapshot, (await repoFacts($)).config.worktrees.rebaseOnMove)
   $.ui.invalidate('ui.render')
 }
 

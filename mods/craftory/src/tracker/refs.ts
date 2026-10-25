@@ -19,3 +19,6 @@ export const isSpecBody = (body: string) =>
   /^## Problem Statement\b/m.test(body) && /^## User Stories\b/m.test(body)
 
 export const storiesIn = (body: string): number => body.match(/^\s*\d+\.\s+As an?\b/gm)?.length ?? 0
+
+export const byNumber = (a: { ref: IssueRef }, b: { ref: IssueRef }) =>
+  Number(a.ref.slice(1)) - Number(b.ref.slice(1))

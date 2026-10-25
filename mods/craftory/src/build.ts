@@ -14,7 +14,8 @@ import type {
 } from '../types'
 import { slugify, ticketBranchFor } from './config'
 import type { Flow, TicketRow } from './evidence'
-import { normalise } from './files'
+import { normalise, withSlash } from './files'
+import { byNumber } from './tracker/refs'
 
 export const EMPTY_LEDGER: BuildLedger = { pending: {}, runs: {}, queued: [], isPaused: false }
 
@@ -70,8 +71,6 @@ function sortCopy(entries: readonly string[]): { copy: string[]; rejectedCopy: s
   }
   return { copy, rejectedCopy }
 }
-
-const withSlash = (folder: string) => (folder.endsWith('/') ? folder : `${folder}/`)
 
 export function seatPlan(args: {
   config: CraftoryConfig
@@ -448,6 +447,16 @@ export const samePath = (absolute: string, relative: string) => {
 
 export type KeepWhy = 'running' | 'unmerged' | 'failed' | 'over-budget' | 'stopped'
 
+const USER_DECIDES = ', and the user decides what happens to its work'
+
+export const KEEP_REASONS: Record<KeepWhy, string> = {
+  running: 'an agent is still working in it',
+  unmerged: `its work is not merged yet${USER_DECIDES}`,
+  failed: `its agent failed${USER_DECIDES}`,
+  'over-budget': `its agent ran out of token budget${USER_DECIDES}`,
+  stopped: `its agent was stopped${USER_DECIDES}`,
+}
+
 export function cleanupPlan(args: {
   records: readonly AgentRecord[]
   merged: ReadonlySet<string>
@@ -520,101 +529,100 @@ export function agentRows(args: {
   now: Millis
 }): AgentRow[] {
   const { tickets, ledger, records, worktrees, config, integrationBranch, now } = args
-  const byNumber = [...tickets].sort(
-    (a, b) => Number(a.issue.ref.slice(1)) - Number(b.issue.ref.slice(1)),
-  )
-  return byNumber.map((row): AgentRow => {
-    const ref = row.issue.ref
-    const run = runOf(ledger, ref)
-    const record = records[ref]
-    const base: Omit<AgentRow, 'status'> = {
-      ref,
-      title: row.issue.title,
-      step: null,
-      tokens: 0,
-      budget: budgetFor(config, record),
-      elapsedMs: null,
-      worktree: null,
-      branch: null,
-      added: null,
-      deleted: null,
-      commits: null,
-      note: null,
-    }
-    const withGit = (path: string): Partial<AgentRow> => {
-      const w = worktrees.find(x => samePath(x.path, path))
-      if (w === undefined) return {}
-      return {
-        added: w.added,
-        deleted: w.deleted,
-        commits: [
-          plural(w.commits, 'commit'),
-          ...(w.behind > 0 ? [`${w.behind} behind`] : []),
-        ].join(' · '),
+  return [...tickets]
+    .sort((a, b) => byNumber(a.issue, b.issue))
+    .map((row): AgentRow => {
+      const ref = row.issue.ref
+      const run = runOf(ledger, ref)
+      const record = records[ref]
+      const base: Omit<AgentRow, 'status'> = {
+        ref,
+        title: row.issue.title,
+        step: null,
+        tokens: 0,
+        budget: budgetFor(config, record),
+        elapsedMs: null,
+        worktree: null,
+        branch: null,
+        added: null,
+        deleted: null,
+        commits: null,
+        note: null,
       }
-    }
-    if (row.status === 'merged') {
-      const kept = record !== undefined && worktrees.some(w => samePath(w.path, record.worktree))
+      const withGit = (path: string): Partial<AgentRow> => {
+        const w = worktrees.find(x => samePath(x.path, path))
+        if (w === undefined) return {}
+        return {
+          added: w.added,
+          deleted: w.deleted,
+          commits: [
+            plural(w.commits, 'commit'),
+            ...(w.behind > 0 ? [`${w.behind} behind`] : []),
+          ].join(' · '),
+        }
+      }
+      if (row.status === 'merged') {
+        const kept = record !== undefined && worktrees.some(w => samePath(w.path, record.worktree))
+        return {
+          ...base,
+          status: 'merged',
+          tokens: record?.tokens ?? 0,
+          elapsedMs: elapsedOf(record),
+          note: `merged into ${integrationBranch} · worktree ${kept ? 'kept' : 'removed'}`,
+        }
+      }
+      if (run?.status === 'running') {
+        const status: RowStatus =
+          run.budgetState === 'over'
+            ? 'over'
+            : run.stop !== null
+              ? 'stopped'
+              : run.budgetState === 'near'
+                ? 'near'
+                : 'running'
+        return {
+          ...base,
+          status,
+          step: run.tddStep,
+          tokens: run.tokens,
+          budget: run.budget,
+          elapsedMs: now - run.startedAt,
+          worktree: run.worktree,
+          branch: run.branch,
+          ...withGit(run.worktree),
+        }
+      }
+      if (record !== undefined) {
+        return {
+          ...base,
+          status: recordRowStatus(record),
+          tokens: record.tokens,
+          elapsedMs: elapsedOf(record),
+          worktree: record.worktree,
+          branch: record.branch,
+          note:
+            record.outcome === 'over-budget' && record.tokens < record.budget
+              ? `budget raised to ${budgetK(record.budget)} · run it again to continue`
+              : null,
+          ...withGit(record.worktree),
+        }
+      }
+      if (row.status === 'human') {
+        return { ...base, status: 'needs-you', note: 'ready-for-human · not for agents' }
+      }
+      if (row.status === 'blocked') {
+        return { ...base, status: 'queued', note: `waits for ${row.blockedBy.join(', ')}` }
+      }
       return {
         ...base,
-        status: 'merged',
-        tokens: record?.tokens ?? 0,
-        elapsedMs: elapsedOf(record),
-        note: `merged into ${integrationBranch} · worktree ${kept ? 'kept' : 'removed'}`,
+        status: 'queued',
+        note: ledger.isPaused
+          ? 'paused'
+          : ledger.queued.includes(ref)
+            ? 'waits for a free slot'
+            : 'ready to start',
       }
-    }
-    if (run?.status === 'running') {
-      const status: RowStatus =
-        run.budgetState === 'over'
-          ? 'over'
-          : run.stop !== null
-            ? 'stopped'
-            : run.budgetState === 'near'
-              ? 'near'
-              : 'running'
-      return {
-        ...base,
-        status,
-        step: run.tddStep,
-        tokens: run.tokens,
-        budget: run.budget,
-        elapsedMs: now - run.startedAt,
-        worktree: run.worktree,
-        branch: run.branch,
-        ...withGit(run.worktree),
-      }
-    }
-    if (record !== undefined) {
-      return {
-        ...base,
-        status: recordRowStatus(record),
-        tokens: record.tokens,
-        elapsedMs: elapsedOf(record),
-        worktree: record.worktree,
-        branch: record.branch,
-        note:
-          record.outcome === 'over-budget' && record.tokens < record.budget
-            ? `budget raised to ${budgetK(record.budget)} · run it again to continue`
-            : null,
-        ...withGit(record.worktree),
-      }
-    }
-    if (row.status === 'human') {
-      return { ...base, status: 'needs-you', note: 'ready-for-human · not for agents' }
-    }
-    if (row.status === 'blocked') {
-      return { ...base, status: 'queued', note: `waits for ${row.blockedBy.join(', ')}` }
-    }
-    return {
-      ...base,
-      status: 'queued',
-      note: ledger.isPaused
-        ? 'paused'
-        : ledger.queued.includes(ref)
-          ? 'waits for a free slot'
-          : 'ready to start',
-    }
-  })
+    })
 }
 
 const elapsedOf = (record: AgentRecord | undefined): number | null => {

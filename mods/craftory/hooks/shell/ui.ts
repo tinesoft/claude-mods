@@ -10,9 +10,8 @@ import {
   type Timer,
   update,
 } from 'claude-code'
-import { DEFAULT_DOCS } from '../../src/agents-md'
 import { parseColorFgBg, SYSTEM_PROBES } from '../../src/appearance'
-import { configOf, parsePrefOverrides, resolvePrefs, STORE_PREFS } from '../../src/config'
+import { parsePrefOverrides, resolvePrefs, STORE_PREFS } from '../../src/config'
 import type { Flow } from '../../src/evidence'
 import { termKey } from '../../src/glossary'
 import { glossaryView, ticketsView } from '../../src/pane-view'
@@ -24,7 +23,7 @@ import { TRACKERS } from '../../src/tracker'
 import type { PaneTab, PhaseId, PrefOverrides, SkillName } from '../../types'
 import { featuresOf } from './features'
 import { currentFlow, holdForGate, requestOf } from './flow'
-import { glossaryTerms, repoSnapshot } from './repo'
+import { glossaryTerms, repoFacts } from './repo'
 import { readContext, refreshGit } from './sync'
 import { trackerKindOf, trackerOf } from './tracker'
 
@@ -197,6 +196,17 @@ export async function noteReplyTerms($: EngineInterface, answer: string) {
   await update($, lastReplyTermsState, () => termKeysIn(answer, terms))
 }
 
+/** Copies to the clipboard of the surface the press came from, and says how it went. */
+export async function copyWithToast(
+  $: EngineInterface,
+  text: string,
+  surface: RenderSurface,
+  words: { ok: string; fail: string },
+) {
+  const copied = await $.ui.copy({ text, surface }).catch(() => ({ isCopied: false }))
+  $.ui.toast(copied.isCopied ? words.ok : words.fail)
+}
+
 export async function openPane($: EngineInterface, tab: PaneTab) {
   await update($, paneTabState, () => tab)
   if (tab === 'worktrees') await refreshGit($)
@@ -204,10 +214,10 @@ export async function openPane($: EngineInterface, tab: PaneTab) {
 }
 
 export async function glossaryViewOf($: EngineInterface) {
-  const repo = await repoSnapshot($)
+  const { repo, docs } = await repoFacts($)
   return glossaryView({
     doc: repo?.glossary,
-    path: repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary,
+    path: docs.glossary,
     query: await read($, glossaryQueryState),
     used: await read($, lastReplyTermsState),
     atStart: await read($, glossaryAtStartState),
@@ -215,8 +225,8 @@ export async function glossaryViewOf($: EngineInterface) {
 }
 
 export async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
-  const [repo, tracker, features] = await Promise.all([
-    repoSnapshot($),
+  const [{ repo, config }, tracker, features] = await Promise.all([
+    repoFacts($),
     trackerOf($),
     featuresOf($),
   ])
@@ -224,7 +234,7 @@ export async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
   return ticketsView({
     flow,
     tracker,
-    config: configOf(repo?.config),
+    config,
     header:
       repo === null || spec === undefined ? 'Tracker' : spec.header(await readContext($, repo)),
     featureSpecs: new Set(Object.keys(features)),

@@ -17,6 +17,7 @@ import { DetailCard, type CardActions } from './card'
 import type { Flow, Step } from './evidence'
 import { hexOr, inboxSvg, OFF_TRACK, spinnerSvg, stepSvg } from './icons'
 import { NoticeRow } from './notice-row'
+import type { FeatureChoice } from './features'
 import type { NoticeView } from './notices'
 import { PHASES } from './phases'
 import {
@@ -40,8 +41,6 @@ const glyphOf = (step: Step, frame: number, ascii: boolean) => {
     return (ascii ? SPINNER_ASCII : SPINNER)[frame % SPINNER.length]!
   return ascii ? look.ascii : look.glyph
 }
-
-export type FeatureChoice = { key: FeatureKey; title: string; isActive: boolean }
 
 export type BandActions = CardActions & {
   step: (phase: PhaseId, fitsCard: boolean) => void

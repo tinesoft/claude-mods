@@ -1,7 +1,7 @@
 import type { Space } from 'claude-code'
 import type { CraftoryConfig, PhaseId, SkillName } from '../types'
 import type { Action } from './action'
-import { hasMeterLine, hasWorktreeLine, type AgentRow, type AgentsView } from './build'
+import { budgetK, hasMeterLine, hasWorktreeLine, type AgentRow, type AgentsView } from './build'
 import type { Flow, Step } from './evidence'
 import { PHASE_ORDER, PHASES, type PhaseSpec } from './phases'
 import { across, down, type Role, SPACE, STEP_LOOKS } from './theme'
@@ -25,7 +25,7 @@ export function stepMeta(step: Step, flow: Flow): string | null {
     case 'failed':
       return s.meta
     case 'over-budget':
-      return `${s.ticket} · ${Math.round(s.budget / 1000)}k`
+      return `${s.ticket} · ${budgetK(s.budget)}`
     case 'next':
       return flow.feature.kind === 'specced' &&
         flow.feature.record.entry === step.phase &&

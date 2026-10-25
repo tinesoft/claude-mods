@@ -24,6 +24,8 @@ export const GITIGNORE = '.gitignore'
 export const CONFIG_FILE = '.craftory/config.json'
 export const FEATURES_DIR = '.craftory/features/'
 
+export const withSlash = (path: string) => (path.endsWith('/') ? path : `${path}/`)
+
 export function normalise(path: string): string | undefined {
   if (path.includes('\\') || path.startsWith('/') || /^[A-Za-z]:/.test(path)) return undefined
   const parts = path.split('/').filter(part => part !== '' && part !== '.')

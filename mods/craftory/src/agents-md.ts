@@ -25,6 +25,10 @@ export const DEFAULT_LABELS: TriageLabels = {
 
 export const DEFAULT_DOCS: DocsLayout = { glossary: 'GLOSSARY.md', adr: 'docs/adr/' }
 
+/** The docs layout a read setup names, or the upstream default while there is none. */
+export const docsOf = (setup: Loaded<AgentSetup> | undefined): DocsLayout =>
+  setup?.state === 'ok' ? setup.value.docs : DEFAULT_DOCS
+
 const ROLES = Object.keys(DEFAULT_LABELS) as TriageRole[]
 
 export type SetupFiles = {

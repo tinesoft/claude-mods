@@ -525,3 +525,25 @@ export function parseDrafts(stored: unknown): Record<string, DraftFeature> {
     }),
   )
 }
+
+export type FeatureChoice = { key: FeatureKey; title: string; isActive: boolean }
+
+/** Every feature and draft the picker can switch to, the active one marked. */
+export function featureChoices(
+  features: Readonly<Record<string, FeatureRecord>>,
+  drafts: Readonly<Record<string, DraftFeature>>,
+  active: FeatureKey | null,
+): FeatureChoice[] {
+  return [
+    ...Object.values(features).map(f => ({
+      key: specKey(f.spec),
+      title: f.title || f.spec,
+      isActive: specKey(f.spec) === active,
+    })),
+    ...Object.values(drafts).map(d => ({
+      key: draftKey(d.draftId),
+      title: d.title,
+      isActive: draftKey(d.draftId) === active,
+    })),
+  ]
+}

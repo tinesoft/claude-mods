@@ -7,7 +7,7 @@ import {
   samePath,
   splitArgv,
 } from '../../src/build'
-import { configOf, DEFAULT_CONFIG } from '../../src/config'
+import { DEFAULT_CONFIG } from '../../src/config'
 import type { Flow } from '../../src/evidence'
 import {
   basesOf,
@@ -31,7 +31,8 @@ import { featuresOf } from './features'
 import { cleanupInputs, gitOf } from './git'
 import { ledgerOf } from './ledger'
 import { refreshGit } from './sync'
-import { exists, repoSnapshot, sh } from './repo'
+import { copyWithToast } from './ui'
+import { exists, repoFacts, sh } from './repo'
 
 const REMOVE_ANYWAY = 'Remove anyway'
 
@@ -116,29 +117,18 @@ export async function keptWorktrees($: EngineInterface): Promise<{ path: string;
 }
 
 export async function worktreesViewOf($: EngineInterface): Promise<WorktreesView | null> {
-  const [git, features, repo, diffs] = await Promise.all([
+  const [git, features, { config }, diffs] = await Promise.all([
     gitOf($),
     featuresOf($),
-    repoSnapshot($),
+    repoFacts($),
     read($, diffsState),
   ])
   if (git === null) return null
-  const config = configOf(repo?.config)
   const records = Object.values(features)
   return worktreesView({
     git,
     records,
-    bases: basesOf({
-      entries: git.worktrees.map(w => ({
-        path: w.path,
-        branch: w.branch,
-        isMain: w.role === 'checkout',
-      })),
-      main: git.branch,
-      records,
-      runs: new Map(),
-      ticketBranch: config.worktrees.ticketBranch,
-    }),
+    bases: await currentBases($, git),
     kept: await keptWorktrees($),
     diffs,
     folder: config.worktrees.folder,
@@ -167,7 +157,7 @@ export async function toggleDiff($: EngineInterface, path: string) {
 }
 
 async function currentBases($: EngineInterface, git: GitSnapshot) {
-  const [features, repo] = await Promise.all([featuresOf($), repoSnapshot($)])
+  const [features, { config }] = await Promise.all([featuresOf($), repoFacts($)])
   return basesOf({
     entries: git.worktrees.map(w => ({
       path: w.path,
@@ -177,19 +167,17 @@ async function currentBases($: EngineInterface, git: GitSnapshot) {
     main: git.branch,
     records: Object.values(features),
     runs: new Map(),
-    ticketBranch: configOf(repo?.config).worktrees.ticketBranch,
+    ticketBranch: config.worktrees.ticketBranch,
   })
 }
 
 /** A mod cannot open a terminal, so the row copies `cd <path>` for the user to paste. */
-export async function copyTerminal($: EngineInterface, path: string, surface: RenderSurface) {
+export function copyTerminal($: EngineInterface, path: string, surface: RenderSurface) {
   const line = cdCommand(path)
-  const copied = await $.ui.copy({ text: line, surface }).catch(() => ({ isCopied: false }))
-  $.ui.toast(
-    copied.isCopied
-      ? `Copied ${line} · paste it in a terminal`
-      : `Could not copy · run ${line} in a terminal`,
-  )
+  return copyWithToast($, line, surface, {
+    ok: `Copied ${line} · paste it in a terminal`,
+    fail: `Could not copy · run ${line} in a terminal`,
+  })
 }
 
 export async function removeWorktree($: EngineInterface, path: string) {
@@ -234,13 +222,12 @@ export async function agentsViewOf(
   $: EngineInterface,
   flow: Flow | null,
 ): Promise<AgentsView | null> {
-  const [repo, ledger, git, note] = await Promise.all([
-    repoSnapshot($),
+  const [{ config }, ledger, git, note] = await Promise.all([
+    repoFacts($),
     ledgerOf($),
     gitOf($),
     read($, steeringNoteState),
   ])
-  const config = configOf(repo?.config)
   if (flow === null || !config.automation.liveAgents || flow.tickets.length === 0) return null
   const build = flow.steps.find(s => s.phase === 'build')?.state.kind
   if (build === 'todo' || build === 'next' || build === 'gated' || build === 'skipped') return null
