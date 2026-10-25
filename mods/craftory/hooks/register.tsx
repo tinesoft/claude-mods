@@ -160,7 +160,7 @@ import {
   termsOf,
   type GlossaryEditError,
 } from '../src/glossary'
-import { termKeysIn } from '../src/reply'
+import { linkTerms, Reply, termKeysIn } from '../src/reply'
 import { planScratchImport, scratchSummary, type ScratchFile } from '../src/scratch'
 import type {
   AgentId,
@@ -2206,6 +2206,30 @@ export const register: Register = (on, options) => {
       isPickingFeature: await read($, isPickingFeatureState),
       on: bandActions($),
     })
+  })
+
+  on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
+    if (e.surface === 'terminal' || e.props.isSummary === true || !(await isSupported($)))
+      return next(e)
+    const repo = await read($, repoState)
+    if (!configOf(repo?.config).automation.underlineTerms) return next(e)
+    const linked = linkTerms(e.props.text, await glossaryTerms($))
+    if (linked.found.length === 0) return next(e)
+    const table = $.ui.resolve(e)
+    return (
+      <Reply
+        ui={{ ...uiFor($, e), Markdown: table.Markdown }}
+        tone={await toneOf($, options, e.surface)}
+        surface={e.surface}
+        linked={linked}
+        path={repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary}
+        on={{
+          ask: term =>
+            void $.command.run({ command: namespaced('wait-what' as SkillName), args: term.name }),
+          edit: term => void jumpToTerm($, term.name),
+        }}
+      />
+    )
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {

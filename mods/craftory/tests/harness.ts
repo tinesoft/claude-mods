@@ -387,3 +387,11 @@ export const turnComplete = ($: Engine, extra: Record<string, unknown> = {}) =>
   } as never)
 
 export const submit = ($: Engine, text: string) => $.prompt.submit({ text } as never)
+
+export const mountReply = <S extends RenderSurface>($: Engine, surface: S, text: string) =>
+  $.ui.mount({
+    plugin: 'craftory',
+    surface,
+    component: 'AssistantMessage',
+    props: { text, isFirstOfReply: true },
+  })
