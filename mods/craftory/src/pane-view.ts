@@ -1,8 +1,3 @@
-/**
- * What each pane tab says, as plain data. `pane.tsx` draws these views and `register.tsx` builds
- * them from the atoms, so the words are testable without an engine and one rule names a state
- * once (the Flow tab reads the same `Flow` as the rail).
- */
 import type {
   CraftoryConfig,
   EnterAt,
@@ -22,8 +17,6 @@ import { PHASES } from './phases'
 import { termKey, termsOf } from './glossary'
 import type { Term } from '../types'
 
-// ─── Tabs ───────────────────────────────────────────────────────────────────────────────
-
 export const TABS: readonly { id: PaneTab; hotkey: string; title: string }[] = [
   { id: 'flow', hotkey: '1', title: 'Flow' },
   { id: 'tickets', hotkey: '2', title: 'Tickets' },
@@ -32,7 +25,6 @@ export const TABS: readonly { id: PaneTab; hotkey: string; title: string }[] = [
   { id: 'settings', hotkey: '5', title: 'Settings' },
 ]
 
-/** The number beside each tab title; absent where the tab has nothing to count yet. */
 export type TabCounts = Partial<Record<PaneTab, string>>
 
 export function tabCounts(args: {
@@ -50,13 +42,10 @@ export function tabCounts(args: {
   }
 }
 
-// ─── Flow ───────────────────────────────────────────────────────────────────────────────
-
 export type FlowRowView = {
   phase: PhaseId
   n: number
   label: string
-  /** `/to-spec`, or the helper Review and Ship are reached through. */
   command: string
   state: Flow['steps'][number]['state']['kind']
   result: string
@@ -109,9 +98,6 @@ export function flowRows(flow: Flow): FlowRowView[] {
   })
 }
 
-// ─── Tickets ────────────────────────────────────────────────────────────────────────────
-
-/** Where a ready-for-agent issue enters the flow, from Settings › Entry points. */
 export function enterPhaseOf(issue: Pick<Issue, 'isBug'>, enterAt: EnterAt): PhaseId {
   if (enterAt === 'tickets') return 'tickets'
   return enterAt === 'bugs-build-else-align' && issue.isBug ? 'build' : 'align'
@@ -126,7 +112,6 @@ export type InboxRowView = {
   role: TriageRole
   note: string
   action: InboxAction | null
-  /** The button's text: `/triage #51` or `Start feature`. */
   label: string | null
 }
 
@@ -136,24 +121,18 @@ export type TicketRowView = {
   status: TicketStatus
   statusLabel: string
   blockedBy: IssueRef[]
-  /** `/implement #44`, only on a ticket an agent can take now. */
   command: string | null
 }
 
 export type TicketsView = {
   header: string
-  /** The folder Open folder copies; null for a tracker that has none. */
   folder: string | null
-  /** False when Settings turns triage off. */
   showInbox: boolean
   inbox: InboxRowView[]
-  /** Specs and tickets, when the tracker can be read. */
   specLabel: string | null
   tickets: TicketRowView[]
   runAll: string | null
-  /** Links and the user's own note, for a tracker Craftory only links to. */
   links: { items: TrackerLink[]; note: string | null } | null
-  /** Inbox plus tickets: the number on the tab. */
   count: number
 }
 
@@ -206,7 +185,6 @@ export function ticketsView(args: {
   tracker: TrackerSnapshot | null
   config: CraftoryConfig
   header: string
-  /** Specs that already have a feature: their issue is not an inbox item any more. */
   featureSpecs: ReadonlySet<string>
 }): TicketsView {
   const { flow, tracker, config, header, featureSpecs } = args
@@ -258,13 +236,9 @@ export function ticketsView(args: {
   }
 }
 
-// ─── Glossary ───────────────────────────────────────────────────────────────────────────
-
 export type GlossaryView = {
-  /** Terms after the search. */
   terms: (Term & { isNew: boolean })[]
   total: number
-  /** `GLOSSARY.md · 3 added this session`, or what is missing. */
   summary: string
   used: Term[]
   hasFile: boolean

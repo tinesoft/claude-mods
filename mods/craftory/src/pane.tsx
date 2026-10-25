@@ -1,7 +1,3 @@
-/**
- * The pane body: the tab row, then one of the five tabs. Plain args and callbacks in, a tree out
- * (nothing here touches `$`); `register.tsx` builds the views from the atoms.
- */
 import type { RenderSurface } from 'claude-code'
 import type { IssueRef, PaneTab, Tone } from '../types'
 import type { Flow } from './evidence'
@@ -23,7 +19,6 @@ import { inkOf } from './widgets'
 
 export type PaneActions = {
   tab: (tab: PaneTab) => void
-  /** The diff line toggles under the row. */
   diff: (path: string) => void
   openTerminal: (path: string, surface: RenderSurface) => void
   remove: (path: string) => void
@@ -49,7 +44,6 @@ export type PaneArgs = {
   waiting: number
   counts: TabCounts
   tickets: TicketsView
-  /** The Worktrees tab's rows; null before git has been read. */
   worktrees: WorktreesView | null
   glossary: GlossaryView
   query: string
@@ -216,8 +210,6 @@ const WorktreesTab = ({
     </Box>
   )
 }
-
-// ─── Tabs ───────────────────────────────────────────────────────────────────────────────
 
 const TabRow = ({
   ui,

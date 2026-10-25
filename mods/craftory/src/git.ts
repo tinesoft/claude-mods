@@ -1,9 +1,3 @@
-/**
- * git argv builders and parsers for what Craftory needs to know: worktrees and how they sit
- * against their base, the size of each diff, the branches merged into an integration branch and
- * whether a worktree stopped on conflicts. `$.process.run` runs git with repo hooks off, so none
- * of these trigger the repo's own hooks. The shell runs the argv; everything here is data.
- */
 import type {
   CraftoryConfig,
   FeatureRecord,
@@ -32,7 +26,6 @@ export const lastCommitArgv = (branch: string) =>
   ['git', 'log', '-1', '--format=%ct', branch] as const
 export const statusArgv = (path: string) => ['git', '-C', path, 'status', '--porcelain'] as const
 
-/** `git worktree add -b <branch> <path> <base>`; an existing branch is checked out as it is. */
 export const worktreeAddArgv = (
   branch: string,
   path: string,
@@ -47,8 +40,6 @@ export const worktreeRemoveArgv = (path: string, force = false) =>
   ['git', 'worktree', 'remove', ...(force ? ['--force'] : []), path] as const
 
 export const worktreePruneArgv = ['git', 'worktree', 'prune'] as const
-
-// ─── Parsers ────────────────────────────────────────────────────────────────────────────
 
 export type WorktreeEntry = { path: string; branch: string | null; head: string; isMain: boolean }
 
@@ -76,7 +67,6 @@ export function parseWorktreeList(porcelain: string): WorktreeEntry[] {
   return entries
 }
 
-/** `https://github.com/acme/billing.git`, `git@gitlab.com:acme/billing.git` to a Remote. */
 export function parseRemote(url: string | null): Remote | null {
   const text = url?.trim()
   const host = remoteHostOf(text ?? null)
@@ -97,7 +87,6 @@ export function parseAheadBehind(stdout: string): { behind: number; ahead: numbe
   }
 }
 
-/** ` 4 files changed, 142 insertions(+), 18 deletions(-)`; an empty diff is all zeros. */
 export function parseShortstat(stdout: string): { files: number; added: number; deleted: number } {
   const count = (pattern: RegExp) => Number(pattern.exec(stdout)?.[1] ?? 0)
   return {
@@ -107,7 +96,6 @@ export function parseShortstat(stdout: string): { files: number; added: number; 
   }
 }
 
-/** The line the Diff button shows: `4 files changed · +142 −18`. */
 export function diffLine(stat: { files: number; added: number; deleted: number }): string {
   if (stat.files === 0) return 'no changes against the base'
   return `${stat.files} file${stat.files === 1 ? '' : 's'} changed · +${stat.added} −${stat.deleted}`
@@ -115,24 +103,19 @@ export function diffLine(stat: { files: number; added: number; deleted: number }
 
 const UNMERGED = new Set(['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'])
 
-/** Whether `git status --porcelain` shows a merge or rebase stopped on conflicts. */
 export const hasConflict = (porcelain: string): boolean =>
   porcelain.split('\n').some(line => UNMERGED.has(line.slice(0, 2)))
 
-/** Parsed `git branch --merged` output. */
 export const parseBranches = (stdout: string): string[] =>
   stdout
     .split('\n')
     .map(line => line.trim().replace(/^\*\s*/, ''))
     .filter(Boolean)
 
-// ─── Roles ──────────────────────────────────────────────────────────────────────────────
-
 export const STALE_MS = 5 * 24 * 60 * 60 * 1000
 
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-/** The ticket a branch made from `worktrees.ticketBranch` belongs to, or null. */
 export function ticketOfBranch(branch: string | null, template: string): IssueRef | null {
   if (branch === null) return null
   const pattern = escape(template)
@@ -147,11 +130,6 @@ const underFolder = (path: string, folder: string) => {
   return path.includes(`/${dir}/`)
 }
 
-/**
- * Role per worktree: the main checkout; the integration branch of any feature; an agent's
- * (its branch fits the ticket template); stale (under the folder, no commit for five days, no
- * running agent); anything else.
- */
 export function classifyWorktree(args: {
   path: string
   branch: string | null
@@ -174,15 +152,8 @@ export function classifyWorktree(args: {
   return { role: ticket === null ? 'other' : 'agent', ticket }
 }
 
-// ─── Refresh: two rounds of git, then one assembly ──────────────────────────────────────
-
 const key = (argv: readonly string[]) => argv.join(' ')
 
-/**
- * The argv a full refresh needs after the worktree list: the last commit of every branch, the
- * merged set and tip of each integration branch, and for each worktree with a base its
- * ahead/behind and shortstat, plus the status of every linked worktree for conflicts.
- */
 export function gitStep2(args: {
   entries: readonly WorktreeEntry[]
   bases: Readonly<Record<string, string>>
@@ -210,7 +181,6 @@ export function assembleGit(args: {
   remote: Remote | null
   entries: readonly WorktreeEntry[]
   bases: Readonly<Record<string, string>>
-  /** Stdout by `argv.join(' ')`; a command that failed is absent. */
   results: ReadonlyMap<string, string>
   config: CraftoryConfig
   integrationBranches: readonly string[]
@@ -269,7 +239,6 @@ export function assembleGit(args: {
   }
 }
 
-/** `4 ahead of main · 1 behind`, `clean`, or `no commits in 6 days` for a stale one. */
 export function syncText(w: Worktree, base: string | null, now: Millis): string {
   if (w.role === 'stale' && w.lastCommitAt !== null) {
     const days = Math.floor((now - w.lastCommitAt) / 86_400_000)
@@ -283,15 +252,11 @@ export function syncText(w: Worktree, base: string | null, now: Millis): string 
   return parts.length > 0 ? parts.join(' · ') : base === null ? 'your checkout' : 'in sync'
 }
 
-/** Worktrees a Prune removes: stale ones, never one Craftory keeps for a failed or over-budget agent. */
 export const prunable = (git: GitSnapshot, kept: readonly string[]): Worktree[] =>
   git.worktrees.filter(w => w.role === 'stale' && !kept.some(k => samePath(w.path, k)))
 
-// ─── Reading a command ──────────────────────────────────────────────────────────────────
-
 const unquote = (word: string) => word.replace(/^["']|["']$/g, '')
 
-/** The paths a `git worktree remove` in a shell command line names, one per segment. */
 export function removalTargets(command: string): string[] {
   const targets: string[] = []
   for (const segment of command.split(/&&|\|\||[;|\n]/)) {
@@ -308,13 +273,6 @@ export function removalTargets(command: string): string[] {
   return targets
 }
 
-// ─── The base each worktree is measured against ─────────────────────────────────────────
-
-/**
- * Per worktree path, the branch its ahead/behind and diff are taken against: the integration
- * worktree against the checkout's branch, an agent's against its feature's integration branch.
- * `runs` maps a live agent's branch to its integration branch, for agents with no record yet.
- */
 export function basesOf(args: {
   entries: readonly { path: string; branch: string | null; isMain: boolean }[]
   main: string | null
@@ -340,8 +298,6 @@ export function basesOf(args: {
   return bases
 }
 
-// ─── The Worktrees tab ──────────────────────────────────────────────────────────────────
-
 export type WorktreeKind = 'checkout' | 'integration' | 'agent' | 'kept' | 'stale' | 'other'
 
 export const WORKTREE_LABELS: Record<WorktreeKind, string> = {
@@ -355,7 +311,6 @@ export const WORKTREE_LABELS: Record<WorktreeKind, string> = {
 
 export type WorktreeRowView = {
   path: string
-  /** The path as the row shows it: under the repo root it is relative. */
   shown: string
   branch: string | null
   kind: WorktreeKind
@@ -363,9 +318,7 @@ export type WorktreeRowView = {
   link: string | null
   added: number | null
   deleted: number | null
-  /** The Diff line, once the Diff button has been pressed. */
   diff: string | null
-  /** Running or kept: Remove asks first. */
   isProtected: boolean
   canDiff: boolean
   canRemove: boolean
@@ -381,7 +334,6 @@ export function worktreesView(args: {
   git: GitSnapshot
   records: readonly FeatureRecord[]
   bases: Readonly<Record<string, string>>
-  /** Worktrees Craftory keeps, with why (running, failed, over budget, stopped). */
   kept: readonly { path: string; why: string }[]
   diffs: Readonly<Record<string, string>>
   folder: string

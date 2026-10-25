@@ -1,9 +1,3 @@
-/**
- * The Settings registry. Every control is one row of `SECTIONS`: its control, its label, how it
- * reads its value from the facts and which file its write lands in. The pane draws from this
- * table and the "writes each value to its file" test walks the same table, so a control cannot
- * exist without a declared home for its value.
- */
 import type {
   AgentSetup,
   ConfigPatch,
@@ -23,7 +17,6 @@ import { AGENT_DOCS, CONFIG_FILE, normalise } from './files'
 import { PHASE_ORDER, PHASES } from './phases'
 import { otherNote } from './tracker/links'
 
-/** Where a row's value ends up. `prefs` is `$.store`, personal to the person. */
 export type SettingsFile = 'config' | 'tracker' | 'triage' | 'domain' | 'steering' | 'prefs'
 
 export type SettingsFacts = {
@@ -32,7 +25,6 @@ export type SettingsFacts = {
   prefs: Prefs
 }
 
-/** What a control changes: any mix of the shared config, the agent docs and personal prefs. */
 export type SettingsChange = {
   config?: ConfigPatch
   setup?: (current: AgentSetup) => AgentSetup
@@ -47,9 +39,7 @@ type RowBase = {
   hint?: string
   file: SettingsFile
   visible?: (facts: SettingsFacts) => boolean
-  /** Drawn in the tab header instead of its section. */
   header?: true
-  /** Said under a control whose value is stored but not acted on yet. */
   inactive?: string
 }
 
@@ -73,7 +63,6 @@ export type SettingsRow = RowBase &
         placeholder?: string
         rows?: number
         allowEmpty?: true
-        /** A message when the text cannot be saved. */
         check?: (text: string) => string | null
       }
   )
@@ -83,11 +72,8 @@ export type SectionDef = {
   title: string
   blurb: (facts: SettingsFacts) => string
   rows: readonly SettingsRow[]
-  /** The glossary section draws its own term list and form. */
   custom?: 'glossary'
 }
-
-// ─── Row builders ───────────────────────────────────────────────────────────────────────
 
 const NOT_ACTIVE = 'Stored for a later release; it changes nothing yet.'
 
@@ -138,11 +124,8 @@ const listOf = (text: string) =>
     .map(s => s.trim())
     .filter(Boolean)
 
-/** The current value is always offered, so a hand-edited 50000 does not vanish from the choices. */
 const numbers = (steps: readonly number[], show: (n: number) => string, current: number) =>
   [...new Set([...steps, current])].sort((a, b) => a - b).map((n): Choice => [String(n), show(n)])
-
-// ─── Setup rows ─────────────────────────────────────────────────────────────────────────
 
 const TRACKER_KINDS: readonly Choice[] = [
   ['local', 'Local Markdown'],
@@ -153,7 +136,6 @@ const TRACKER_KINDS: readonly Choice[] = [
 
 const kindOf = (f: SettingsFacts) => f.setup.tracker.kind
 
-/** A kind change keeps what carries over: the PRs flag between GitHub and GitLab. */
 export function trackerOfKind(kind: TrackerKind, old: TrackerSetup): TrackerSetup {
   const prs = 'prsAsRequests' in old && old.prsAsRequests
   switch (kind) {
@@ -328,8 +310,6 @@ const DOCS_ROWS: readonly SettingsRow[] = [
   },
 ]
 
-// ─── Entry points ───────────────────────────────────────────────────────────────────────
-
 const ENTER_AT: readonly (readonly [EnterAt, string])[] = [
   ['align', 'Enter at Align'],
   ['bugs-build-else-align', 'Bugs enter at Build, the rest at Align'],
@@ -373,8 +353,6 @@ const ENTRY_ROWS: readonly SettingsRow[] = [
     }),
   },
 ]
-
-// ─── Pipeline ───────────────────────────────────────────────────────────────────────────
 
 const commandHint = (phase: PhaseId) => {
   const spec = PHASES[phase]
@@ -427,12 +405,9 @@ const phaseRows = (phase: PhaseId): SettingsRow[] => {
 
 const PIPELINE_ROWS = PHASE_ORDER.flatMap(phaseRows)
 
-/** The helpers each phase's agents reach for, shown read-only. */
 export const HELPERS = PHASE_ORDER.flatMap(p =>
   PHASES[p].helpers.length > 0 ? [{ phase: PHASES[p].label, skills: PHASES[p].helpers }] : [],
 )
-
-// ─── Worktrees and automation ───────────────────────────────────────────────────────────
 
 const wt = (c: CraftoryConfig) => c.worktrees
 
@@ -587,8 +562,6 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
   ),
 ]
 
-// ─── Personal ───────────────────────────────────────────────────────────────────────────
-
 const pref = (patch: PrefOverrides): SettingsChange => ({ prefs: patch })
 
 const PERSONAL_ROWS: readonly SettingsRow[] = [
@@ -637,8 +610,6 @@ const PERSONAL_ROWS: readonly SettingsRow[] = [
     write: on => pref({ ascii: on }),
   },
 ]
-
-// ─── The registry ───────────────────────────────────────────────────────────────────────
 
 export const SECTIONS: readonly SectionDef[] = [
   {
@@ -701,7 +672,6 @@ export const ALL_ROWS: readonly SettingsRow[] = SECTIONS.flatMap(s => s.rows)
 
 export const rowOf = (id: string): SettingsRow | undefined => ALL_ROWS.find(r => r.id === id)
 
-/** The files a row's value lands in, as repo paths (or `$.store` for personal prefs). */
 export function pathOf(file: SettingsFile, setup: AgentSetup): string {
   switch (file) {
     case 'config':
@@ -726,7 +696,6 @@ export function pathOf(file: SettingsFile, setup: AgentSetup): string {
 export const visibleRows = (section: SectionDef, facts: SettingsFacts): SettingsRow[] =>
   section.rows.filter(r => r.visible?.(facts) !== false)
 
-/** What a text row will save, or why it cannot be saved. */
 export function checkText(row: SettingsRow & { control: 'text' }, text: string): string | null {
   if (text.trim() === '' && row.allowEmpty !== true) return `${row.label} needs a value`
   return row.check?.(text.trim()) ?? null

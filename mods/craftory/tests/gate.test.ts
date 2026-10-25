@@ -21,7 +21,6 @@ const DRAFT = {
   },
 }
 
-/** A feature still in Align: no spec yet, so Tickets is gated by Spec. */
 const gatedWorld = (on: Parameters<typeof world>[0]) =>
   featureWorld(on, {
     files: {

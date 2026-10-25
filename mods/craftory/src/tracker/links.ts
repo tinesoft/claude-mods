@@ -1,8 +1,3 @@
-/**
- * GitLab and Other trackers (plan decision 11): the Tickets tab shows links, not issues. Nothing
- * is read from the tracker itself, so each kind plans no reads and `parse` builds the links from
- * what Settings stored: the instance and project for GitLab, the user's own paragraph for Other.
- */
 import type { TrackerLink, TrackerSnapshot } from '../../types'
 import type { ReadContext, TrackerSpec } from './index'
 
@@ -11,13 +6,11 @@ const hostOf = (url: string) => {
   return match ? match[1]! : url
 }
 
-/** `gitlab.com` and `https://gitlab.com/` both give `https://gitlab.com`. */
 export const instanceUrl = (instance: string): string => {
   const trimmed = instance.trim().replace(/\/+$/, '')
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 }
 
-/** The project's GitLab pages; empty until a project path is known. */
 export function gitlabLinks(args: {
   instance: string
   project: string
@@ -42,7 +35,6 @@ export function gitlabLinks(args: {
 
 const URL_IN_TEXT = /https?:\/\/[^\s)>\]"'`]+/gi
 
-/** Every distinct link in the user's description, labelled by its host. */
 export function otherLinks(description: string): TrackerLink[] {
   const urls = [...new Set(description.match(URL_IN_TEXT) ?? [])].map(u =>
     u.replace(/[.,;:]+$/, ''),
@@ -50,7 +42,6 @@ export function otherLinks(description: string): TrackerLink[] {
   return urls.map(url => ({ label: hostOf(url), url }))
 }
 
-/** The paragraph a user wrote under the `# Issue tracker: Other` heading, or null. */
 export function otherNote(description: string): string | null {
   const body = description.replace(/^# .*\n?/m, '').trim()
   return body === '' ? null : body

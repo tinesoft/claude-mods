@@ -1,8 +1,3 @@
-/**
- * The repo paths Craftory may write (plan "Files Craftory reads and writes"), as a predicate
- * the shell's single `writeRepoFile` checks before every `$.fs.write`. The engine tests assert
- * against the same predicate, so the list and the check cannot drift.
- */
 import type { DocsLayout, SteeringFile } from '../types'
 
 export type WritableContext = {
@@ -11,7 +6,6 @@ export type WritableContext = {
   issuesFolder: string
 }
 
-/** A planned write. `before` is the text it was planned against; null means the file was absent. */
 export type FileWrite = { path: string; before: string | null; after: string }
 
 export const AGENT_DOCS = {
@@ -24,7 +18,6 @@ export const GITIGNORE = '.gitignore'
 export const CONFIG_FILE = '.craftory/config.json'
 export const FEATURES_DIR = '.craftory/features/'
 
-/** Repo-relative form of a path, or undefined for one that leaves the repo or is not plain. */
 export function normalise(path: string): string | undefined {
   if (path.includes('\\') || path.startsWith('/') || /^[A-Za-z]:/.test(path)) return undefined
   const parts = path.split('/').filter(part => part !== '' && part !== '.')
@@ -57,16 +50,11 @@ export function isWritable(path: string, ctx: WritableContext): boolean {
   )
 }
 
-/**
- * Files other people or Matt's skills also write. A write to one is refused when the file
- * changed since it was planned (compare-and-swap). `.craftory/*` files merge on write instead.
- */
 export function isShared(path: string, ctx: WritableContext): boolean {
   const clean = normalise(path)
   return clean !== undefined && !clean.startsWith('.craftory/') && isWritable(clean, ctx)
 }
 
-/** Lines added and removed, counting each distinct line, and the first line that was added. */
 export function diffSummary(before: string | null, after: string): string {
   const lines = (text: string | null) => (text === null ? [] : text.split(/\r?\n/))
   const old = lines(before)

@@ -1,4 +1,3 @@
-/** 16x16 stroke icons for Desktop; the terminal has no `Svg` and draws a glyph instead. */
 const XMLNS = 'xmlns="http://www.w3.org/2000/svg"'
 
 const NEUTRAL = '#8B909A'

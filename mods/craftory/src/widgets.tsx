@@ -1,8 +1,3 @@
-/**
- * Small controls the pane tabs share: a switch row, a row of choices, a text field. Each one
- * takes `onChange: undefined` to draw read-only (mobile has no text field and Settings there
- * only shows values), so a tab never branches on the surface itself.
- */
 import type { Tone } from '../types'
 import { isRich, type Ui } from './rail'
 import { switchSvg, SWITCH_SIZE } from './icons'
@@ -84,7 +79,6 @@ export const SwitchRow = ({
 
 export type Choice = readonly [value: string, label: string]
 
-/** Choices side by side: bold and underlined for the pick in the terminal, a raised pick on rich surfaces. */
 export const Segments = ({
   ui,
   tone,
@@ -94,7 +88,6 @@ export const Segments = ({
   current,
   onPick,
 }: Common & {
-  /** The key prefix of each choice's Button: `set-<id>-<value>`. */
   prefix?: string
   choices: readonly Choice[]
   current: string
@@ -146,7 +139,6 @@ export const Segments = ({
   )
 }
 
-/** A labelled text field saved on Enter; read-only text where the surface draws no field. */
 export const Field = ({
   ui,
   tone,
@@ -164,7 +156,6 @@ export const Field = ({
   value: string
   placeholder?: string
   rows?: number
-  /** Every change of the text, for a form whose button saves several fields at once. */
   onInput?: (text: string) => void
   onSubmit: ((text: string) => void) | undefined
 }) => {

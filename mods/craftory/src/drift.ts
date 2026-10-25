@@ -1,8 +1,3 @@
-/**
- * Glossary drift: words a term says to avoid, found in the lines a diff adds. Only added lines
- * count (the code that is about to ship), whole words only, and anything in an inline code span
- * is left alone. The glossary file itself is skipped, since it lists the avoid-words by design.
- */
 import type { Term } from '../types'
 import { findWord, skippedRanges } from './prose'
 
@@ -52,7 +47,6 @@ export function findDrift(
 export const driftText = (f: Pick<DriftFinding, 'avoided' | 'count'>) =>
   `Glossary drift · the diff says "${f.avoided}" ${f.count} ${f.count === 1 ? 'time' : 'times'}`
 
-/** The count of ranked suggestions in a retro's answer: its numbered list, or null when it has none. */
 export function retroSuggestions(answer: string): number | null {
   const n = answer.match(/^\s*\d+[.)]\s+\S/gm)?.length ?? 0
   return n > 0 ? n : null

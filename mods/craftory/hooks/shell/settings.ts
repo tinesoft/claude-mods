@@ -1,11 +1,3 @@
-/**
- * The Settings tab and the writes behind it: the setup draft, the files asked about this
- * session, the term form, the `.scratch/` import and the glossary edits. This module owns the
- * `setupDraft`, `askedFiles`, `setupNote`, `settingsSection`, `termDraft` and `termError` atoms
- * and is the only code that reads or updates them.
- *
- * Every file write goes through repo.ts, which refuses a path outside the allowlist.
- */
 import { atom, type EngineInterface, read, type RenderSurface, update } from 'claude-code'
 import {
   AGENT_DOCS,
@@ -97,7 +89,6 @@ export const signalsOf = (repo: RepoSnapshot | null, plugin: PluginStatus): Setu
   hasTriageSkill: hasSkill(plugin, 'triage'),
 })
 
-/** The setup Settings shows: what is on disk, else the person's edits to the repo-signal pre-fill. */
 async function currentSetup($: EngineInterface): Promise<{ setup: AgentSetup; isDraft: boolean }> {
   const [repo, plugin, draft] = await Promise.all([
     repoSnapshot($),
@@ -125,10 +116,6 @@ async function settingsFacts(
   }
 }
 
-/**
- * The first write to a file other people share, in a session, asks with a short diff summary.
- * An ask that cannot be shown (`-p`) allows: Craftory guides and does not gate.
- */
 async function confirmFirstWrites(
   $: EngineInterface,
   writes: readonly FileWrite[],
@@ -147,7 +134,6 @@ async function confirmFirstWrites(
   return true
 }
 
-/** Asks where needed, writes, reloads the facts, and says what happened in one line. */
 async function commitWrites(
   $: EngineInterface,
   writes: readonly FileWrite[],
@@ -175,7 +161,6 @@ async function settingsContext($: EngineInterface, setup: AgentSetup, issuesFold
   } satisfies WritableContext
 }
 
-/** Applies one Settings change to its files: config.json, the agent docs, or `$.store`. */
 async function commitChange($: EngineInterface, change: SettingsChange) {
   const [repo, current, files, configText] = await Promise.all([
     repoSnapshot($),
@@ -255,7 +240,6 @@ async function applySetting($: EngineInterface, row: SettingsRow, value: string 
   if (change !== undefined) await commitChange($, change)
 }
 
-/** Save setup: exactly what `/setup-matt-pocock-skills` would write for the answers on screen. */
 async function saveSetup($: EngineInterface) {
   try {
     const [files, configText, current] = await Promise.all([
@@ -338,7 +322,6 @@ async function scratchPlan($: EngineInterface, folder: string) {
   return planScratchImport({ files: await readScratch($), taken, folder })
 }
 
-/** Offered only for a Local tracker with a `.scratch/` folder; writes after the person confirms. */
 async function importScratch($: EngineInterface) {
   const { setup } = await currentSetup($)
   const config = configOf((await repoSnapshot($))?.config)
@@ -375,7 +358,6 @@ const TERM_ERRORS: Record<GlossaryEditError, string> = {
 
 const EMPTY_DRAFT: TermDraft = { name: '', definition: '', avoid: '', editing: null }
 
-/** One glossary edit: read the file, edit the raw slices, write once through the shared guard. */
 async function changeGlossary(
   $: EngineInterface,
   edit: (doc: GlossaryDoc | null) => GlossaryDoc | GlossaryEditError,
@@ -442,7 +424,6 @@ async function editTermInForm($: EngineInterface, name: string) {
   $.ui.invalidate('ui.render')
 }
 
-/** Terms in CONTEXT.md (the glossary's older name) that GLOSSARY.md does not have yet. */
 async function importContext($: EngineInterface) {
   const imported = parseGlossary(await readText($, 'CONTEXT.md'))
   if (imported.state !== 'ok') return say($, 'CONTEXT.md has no terms to import.')

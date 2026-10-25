@@ -3,14 +3,11 @@ import { featureWorld, skillPrompt, startSession, ticketFile, type WorldOptions 
 
 type Shell = NonNullable<WorldOptions['shell']>
 
-/** A repo that answers git the way the seat needs: worktrees appear when `worktree add` runs. */
 export const fakeGit = (
   over: {
     behind?: (branch: string) => number
     status?: (path: string) => string
-    /** Worktrees that exist before any agent starts. */
     extra?: { path: string; branch: string }[]
-    /** Seconds since the epoch of each branch's last commit. */
     committed?: Record<string, number>
     stat?: string
   } = {},
@@ -86,7 +83,6 @@ export const agentCall = (n: number, title: string, extra: Record<string, unknow
 
 export const call = ($: Engine, input: Record<string, unknown>) => $.tool.call(input as never)
 
-/** An Agent call as the engine runs it: the tool.call first, then the spawn it made. */
 export const start = async ($: Engine, n: number, title: string) => {
   const called = await call($, agentCall(n, title))
   return called.deny === undefined ? spawn($, n) : called
@@ -104,7 +100,6 @@ export const spawn = ($: Engine, n: number) =>
     fork: false,
   } as never)
 
-/** Drives one subagent step through the plugin and returns what it answered and streamed. */
 export const step = async ($: Engine, agentId: string, index: number) => {
   const stream = $.turn.step({
     turnId: 't',

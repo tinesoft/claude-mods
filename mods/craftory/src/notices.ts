@@ -1,8 +1,3 @@
-/**
- * Band notices computed from facts, never stored: plugin missing or out of range, installing,
- * restart needed, install failed, first run and no feature in flight. `dismissed` hides the
- * "Not now" ones for the session. Event notices (gates, budget, rebase conflicts) are stored; drift and retro arrive with M5.
- */
 import type {
   EventNotice,
   InstallState,
@@ -21,15 +16,15 @@ export type NoticeAction =
   | { kind: 'install' }
   | { kind: 'update' }
   | { kind: 'not-now'; key: NoticeKey }
-  | { kind: 'setup' } // opens the Settings tab
+  | { kind: 'setup' }
   | { kind: 'run'; skill: SkillName; args: string }
   | { kind: 'run-anyway'; id: string }
   | { kind: 'diagnose'; id: string }
   | { kind: 'raise-budget'; id: string }
-  | { kind: 'resolve'; id: string } // opens the Worktrees tab
-  | { kind: 'rename'; id: string } // opens Settings › Glossary on the drifting term
-  | { kind: 'review-retro'; id: string } // opens the Flow tab on the Retro result
-  | { kind: 'open-tickets' } // opens the pane on the Tickets tab
+  | { kind: 'resolve'; id: string }
+  | { kind: 'rename'; id: string }
+  | { kind: 'review-retro'; id: string }
+  | { kind: 'open-tickets' }
   | { kind: 'dismiss'; id: string }
 
 export type NoticeButton = { id: string; label: string; action: NoticeAction; primary?: true }
@@ -37,10 +32,8 @@ export type NoticeButton = { id: string; label: string; action: NoticeAction; pr
 export type NoticeView = {
   id: string
   role: Role
-  /** The `mattpocock-skills` part of the text is set in mono on rich surfaces. */
   text: string
   actions: NoticeButton[]
-  /** Replaces the rail instead of sitting above it. */
   replacesRail: boolean
   isBusy?: true
 }
@@ -87,7 +80,6 @@ function installNotice(install: InstallState, needsPlugin: boolean): NoticeView 
         isBusy: true,
       }
     case 'restart':
-      // Shown only while the plugin is still not loaded; once it is, the notice is stale.
       return needsPlugin
         ? {
             id: 'restart',
@@ -116,10 +108,6 @@ function installNotice(install: InstallState, needsPlugin: boolean): NoticeView 
   }
 }
 
-/**
- * The notices to draw, highest priority only: an install in flight or failed, then the plugin,
- * then first run, then no feature. A dismissed plugin notice falls through to the next.
- */
 export function derivedNotices(args: {
   plugin: PluginStatus
   install: InstallState
@@ -173,7 +161,6 @@ const dismiss = (id: string): NoticeButton => ({
   action: { kind: 'dismiss', id },
 })
 
-/** The band row of a stored event notice. */
 export function eventNotice(notice: EventNotice): NoticeView | undefined {
   switch (notice.kind) {
     case 'gate':
@@ -284,6 +271,5 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
   }
 }
 
-/** The two newest event notices, oldest first. */
 export const eventNotices = (notices: readonly EventNotice[]): NoticeView[] =>
   notices.slice(-2).flatMap(n => eventNotice(n) ?? [])

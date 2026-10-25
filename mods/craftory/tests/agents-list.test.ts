@@ -25,7 +25,6 @@ const TOKENS_BY_AGENT: Record<string, number> = {
   'agent-tu45': 80_000,
 }
 
-/** Three agents at 79%, 80% and 100% of an 80k budget, as the engine would report them. */
 const atThresholds = async (
   on: Parameters<typeof building>[0],
   $: Engine,

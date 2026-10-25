@@ -19,47 +19,33 @@ export const mattCommands = (...skills: string[]): CommandInfo[] =>
   }))
 
 export type WorldOptions = {
-  /** Repo files by relative path; `fs.write` adds to it. */
   files?: Record<string, string>
-  /** Commands `$.command.list()` reports. */
   commands?: CommandInfo[]
-  /** The stdout of `git remote get-url origin`; absent means no remote. */
   remote?: string
-  /** `claude plugin list --json` rows. */
   plugins?: unknown[]
-  /** The exit code and stderr of `claude plugin install`. */
   install?: { exitCode: number; stderr: string }
   theme?: string
   surfaces?: readonly RenderSurface[]
   version?: string
   store?: Record<string, unknown>
-  /** What `gh` prints, by argv; absent means `gh` is not installed. */
   gh?: (argv: readonly string[]) => { exitCode: number; stdout: string } | undefined
-  /** The mock clock's start, in milliseconds. */
   now?: number
-  /** What git, cp and the setup command answer, by argv and cwd; absent means "not found". */
   shell?: (
     argv: readonly string[],
     cwd: string | undefined,
   ) => { exitCode: number; stdout?: string; stderr?: string } | undefined
-  /** The label `$.ui.ask` resolves to for a question; absent or undefined rejects, as in `-p`. */
   ask?: (question: string) => string | undefined
-  /** What the engine answers an `agent.spawn` that reaches it. */
   spawn?: (e: { tool_use_id: string; cwd?: string }) => { agentId: string } | { deny: string }
-  /** The usage a subagent's `turn.step` reports when it reaches the engine. */
   usage?: (e: { agentId?: string; index: number }) => {
     input_tokens: number
     output_tokens: number
     cache_creation_input_tokens: number
     cache_read_input_tokens: number
   }
-  /** The visible text of a subagent's step; absent means none. */
   answer?: (e: { agentId?: string; index: number }) => string
-  /** From its `onRead`th read on, `path` reads as `text`: someone else edited it meanwhile. */
   racy?: { path: string; onRead: number; text: string }
 }
 
-/** The world beneath Craftory: a repo in memory, the commands it ran, and what it drew. */
 export const world = (on: On, options: WorldOptions = {}) => {
   const files = new Map(Object.entries(options.files ?? {}))
   /** A relative path reaches the hooks resolved against the session's folder, which is the plugin's here. */
@@ -245,7 +231,6 @@ export const world = (on: On, options: WorldOptions = {}) => {
     setCommands: (next: CommandInfo[]) => {
       commands = next
     },
-    /** Argv of the commands that changed the machine rather than read it. */
     installs: () => ran.filter(argv => argv[1] === 'plugin' && argv[2] !== 'list'),
   }
 }
@@ -304,7 +289,6 @@ export type Finder = { findAll: (q: ElementQuery) => Promise<FoundElement[]> }
 export const texts = async (drawing: Finder) =>
   (await drawing.findAll({ type: 'Text' })).map(t => t.text)
 
-/** All the text a drawing shows, joined, for "does it say this" checks. */
 export const allText = async (drawing: Finder) => (await texts(drawing)).join(' ')
 
 export const IN_RANGE = [
@@ -348,7 +332,6 @@ export const ticketFile = (title: string, blockedBy: number[] = []) =>
     blockedBy.length > 0 ? `blocked-by: [${blockedBy.join(', ')}]\n` : ''
   }---\n# ${title}\n`
 
-/** A repo with Craftory set up and one feature with its spec; `tickets` adds three more. */
 export const featureRepo = (tickets = true, feature = featureJson()): Record<string, string> => ({
   ...SETUP_FILES,
   '.craftory/features/42.json': feature,

@@ -1,15 +1,3 @@
-/**
- * Facts to Flow: the one place a phase's state is decided (plan "Phase evidence"). Nothing
- * here is stored. The rail, card, gates, status line and summary all read `Flow`, so an
- * evidence rule exists once.
- *
- * Layers, in order:
- *   1. skipped (off in Settings, skipped for the feature, before the phase it entered at)
- *   2. running or needs-you, from the skill the session observed
- *   3. done, from EVIDENCE[phase]
- *   4. gated: a todo phase whose nearest enabled predecessor has its gate on and is not done
- *   5. next: the first enabled phase after the last done one, when it is still todo
- */
 import type {
   AgentRecord,
   BuildLedger,
@@ -42,15 +30,10 @@ export type StepState =
 export type Step = {
   phase: PhaseId
   state: StepState
-  /** The command this phase submits for this feature (the config choice), or null (Review, Ship). */
   command: SkillName | null
-  /** What the rail submits after the command: the spec ref for to-tickets and implement-spec. */
   args: string
-  /** The artifact line on the card, from evidence or the feature's marks. */
   artifact: string | null
-  /** Why a not-done phase is not done; feeds the gate text. */
   blockers: string[]
-  /** The card offers Mark done: the phase is open and nothing else could show it done. */
   canMarkDone: boolean
 }
 
@@ -61,9 +44,9 @@ export type TicketRow = { issue: Issue; status: TicketStatus; blockedBy: IssueRe
 export type Flow = {
   feature: Feature
   title: string
-  steps: Step[] // always PHASE_ORDER, one per phase
+  steps: Step[]
   next: PhaseId | null
-  current: PhaseId | null // running or needs-you
+  current: PhaseId | null
   doneCount: number
   enabledCount: number
   spec: Issue | null
@@ -75,7 +58,6 @@ export type FlowInput = {
   config: CraftoryConfig
   tracker: TrackerSnapshot | null
   running: Running | null
-  /** The live Build ledger: agents still working keep Build running after the skill's turn ends. */
   build?: BuildLedger | null
 }
 
@@ -84,19 +66,14 @@ export type Facts = {
   spec: Issue | null
   tickets: TicketRow[]
   marks: Partial<Record<PhaseId, PhaseMark>>
-  /** The phase the observed skill is working on for this feature. */
   runningPhase: PhaseId | null
-  /** The pull request from the feature's integration branch, when the tracker has one. */
   pr: PullRequest | null
-  /** Agents still working for this feature. */
   liveAgents: number
-  /** The tracker holds issues and a pull request to read: false on GitLab and Other. */
   hasTrackerEvidence: boolean
 }
 
 export type Evidence =
   | { done: true; artifact: string | null }
-  /** `artifact` on a phase not yet done is what it works on, such as the integration branch. */
   | { done: false; blockers: string[]; artifact?: string | null }
 
 export type Rule = (facts: Facts) => Evidence
@@ -119,7 +96,6 @@ const byNumber = (a: Issue, b: Issue) => Number(a.ref.slice(1)) - Number(b.ref.s
 const count = (rows: readonly TicketRow[], status: TicketStatus) =>
   rows.filter(r => r.status === status).length
 
-/** `#43 to #47 · 1 ready, 4 blocked`, the Tickets card's artifact line. */
 export function ticketsLine(rows: readonly TicketRow[]): string {
   const refs = rows.map(r => r.issue).sort(byNumber)
   const span = refs.length > 1 ? `${refs[0]!.ref} to ${refs.at(-1)!.ref}` : refs[0]!.ref
@@ -156,7 +132,6 @@ const listRefs = (rows: readonly TicketRow[]) => {
 const agentsOf = (f: Facts): AgentRecord[] =>
   f.feature.kind === 'specced' ? Object.values(f.feature.record.agents) : []
 
-/** When the newest implementer finished, as milliseconds; 0 with none. */
 const lastMergeAt = (f: Facts): number =>
   Math.max(
     0,
@@ -165,13 +140,6 @@ const lastMergeAt = (f: Facts): number =>
       .map(a => Date.parse(a.endedAt!)),
   )
 
-/**
- * One rule per phase, `Record<PhaseId, Rule>` so a new phase without a rule fails the build.
- * Rules read tracker state, the feature's marks and its agent records, never skill text.
- * Review is Build's close-out (`code-review` ended after the last ticket merged); Ship is the
- * pull request from the integration branch being ready for review; Retro is `retro` after Ship.
- * A phase a person marks done is done.
- */
 const RULES: Record<PhaseId, Rule> = {
   align: f => {
     const mark = f.marks.align
@@ -186,7 +154,6 @@ const RULES: Record<PhaseId, Rule> = {
   },
   spec: f => {
     if (f.spec !== null) return { done: true, artifact: f.spec.location }
-    // A specced feature has its spec by construction, even before the tracker has been read.
     if (f.feature.kind === 'specced') return { done: true, artifact: f.feature.record.spec }
     return { done: false, blockers: ['no spec has been published yet'] }
   },
@@ -215,7 +182,6 @@ const RULES: Record<PhaseId, Rule> = {
       return { done: false, blockers: ['code-review has not run on the integration branch'] }
     if (mark.endedAt === undefined)
       return { done: false, blockers: ['the review has not finished'] }
-    // A ticket merged after the review ended means the diff changed under it.
     if (lastMergeAt(f) > Date.parse(mark.endedAt))
       return { done: false, blockers: ['a ticket merged after the last review'] }
     return { done: true, artifact: branch }
@@ -243,11 +209,9 @@ const RULES: Record<PhaseId, Rule> = {
   },
 }
 
-/** Whether a person's mark can stand in for the evidence of `phase` on this tracker. */
 export const canMark = (f: Facts, phase: PhaseId): boolean =>
   PHASES[phase].markDone === 'always' || !f.hasTrackerEvidence
 
-/** The rules, with a person's mark standing in wherever the phase's `markDone` allows it. */
 export const EVIDENCE = Object.fromEntries(
   PHASE_ORDER.map((phase): [PhaseId, Rule] => [
     phase,
@@ -267,7 +231,6 @@ const buildProgress = (f: Facts): string | null => {
     : `${work.filter(t => t.status === 'merged').length}/${work.length}`
 }
 
-/** An agent that failed or ran out of budget and whose ticket is still unmerged needs the user. */
 function buildAttention(f: Facts): StepState | undefined {
   const merged = new Set(
     f.tickets.filter(t => t.status === 'merged').map(t => t.issue.ref as string),
@@ -279,10 +242,6 @@ function buildAttention(f: Facts): StepState | undefined {
   return failed === undefined ? undefined : { kind: 'failed', meta: `${failed.ticket} failed` }
 }
 
-/**
- * A feature that entered at Build from an issue (a ready-for-agent bug) has no spec and no
- * tickets: the issue is the one unit of work, so it stands in as its own ticket.
- */
 export const isSelfEntry = (feature: Feature): boolean =>
   feature.kind === 'specced' &&
   feature.record.entry === 'build' &&
@@ -323,7 +282,6 @@ const skipReason = (input: FlowInput, phase: PhaseId): SkipReason | undefined =>
   return PHASE_ORDER.indexOf(phase) < PHASE_ORDER.indexOf(entry) ? 'entry' : undefined
 }
 
-/** A mark is offered while the phase waits; a running, failed or skipped phase has more pressing buttons. */
 const OPEN_FOR_MARK: ReadonlySet<StepState['kind']> = new Set(['todo', 'next', 'gated'])
 
 export function deriveFlow(input: FlowInput): Flow {
@@ -411,7 +369,6 @@ export function deriveFlow(input: FlowInput): Flow {
   }
 }
 
-/** Issues outside every feature that wait for triage: the number on the rail's Inbox button. */
 export const waitingForTriage = (tracker: TrackerSnapshot | null): number =>
   tracker?.rich
     ? tracker.issues.filter(i => i.kind === 'issue' && i.role === 'needs-triage').length

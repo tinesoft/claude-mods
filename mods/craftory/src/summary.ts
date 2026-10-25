@@ -1,14 +1,9 @@
-/**
- * Text where nothing draws, and the status line. `/craftory` replies with the active feature as
- * a Markdown list on a session with no surface (cloud); the status line is a single entry.
- */
 import type { PluginStatus } from '../types'
 import type { Flow } from './evidence'
 import { chipText, stepMeta } from './rail'
 import { PHASES, PLUGIN, TESTED_RANGE } from './phases'
 import { STEP_LOOKS } from './theme'
 
-/** `Export invoices as CSV · Build 2/5 · /craftory`; undefined when there is no feature to name. */
 export const statusLine = (flow: Flow | null): string | undefined =>
   flow === null ? undefined : `${chipText(flow)} · /craftory`
 

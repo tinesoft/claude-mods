@@ -1,13 +1,7 @@
 /**
- * Every hook of Craftory is registered here; every `$` call lives in hooks/ (this file and
- * hooks/shell/); src/ is pure data in, data out. A hook that needs state calls the module that
- * owns it: an atom is read and updated only in the shell module that declares it.
- *
  * Ask in a hook, never hold: a hook has 10 s of its own time and the clock stops only during
  * `next` and `$` calls, so a hook cannot wait on a band press. Gates therefore drop the
  * command and offer Run anyway, and the build queue denies a spawn instead of holding it.
- *
- * Hooks are `($, e, next)` and return `next(e)`'s result unless they deliberately answer.
  */
 import type { EngineInterface, Register, RenderSurface } from 'claude-code'
 import { DEFAULT_DOCS, firstRunText } from '../src/agents-md'
@@ -183,7 +177,6 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
   }
 }
 
-/** Start feature on a ready-for-agent issue: it enters at `phase` and the earlier phases are skipped. */
 async function startFromIssue($: EngineInterface, action: Extract<InboxAction, { kind: 'start' }>) {
   const step = await enterFromIssue($, action)
   if (step?.command)
@@ -321,7 +314,6 @@ export const register: Register = (on, options) => {
     })
     if (decision.kind === 'pass') return next(e)
     if (decision.kind === 'deny') return { deny: decision.reason }
-    // On success the spawn already moved the seat to a run; only a refused or failed call is forgotten.
     const forget = () => forgetSeat($, e.tool_use_id)
     try {
       const result = await next({ ...withoutIsolation(e), name: decision.name })
@@ -333,9 +325,6 @@ export const register: Register = (on, options) => {
     }
   })
 
-  // The seat goes through `cwd`: `agent.spawn` shares the Agent call's `tool_use_id`, so the ticket
-  // and its worktree pair exactly. The engine refuses `cwd` together with `isolation: 'worktree'`,
-  // so the call lost `isolation` above, and a spawn that fails removes the worktree made for it.
   on('agent.spawn', async ($, e, next) => {
     const seat = await pendingSeat($, e.tool_use_id)
     if (seat === undefined) return next(e)

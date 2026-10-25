@@ -1,23 +1,3 @@
-/**
- * Local Markdown tracker (plan decision 12): `docs/issues/<n>-<slug>.md`, global numbering.
- * Craftory reads it; Matt's skills write it, following the issue-tracker.md Craftory wrote.
- *
- * A file carries Craftory's front matter, or upstream's `Status:` and `Blocked by:` lines
- * (`**Status:** ready-for-agent`, as `to-tickets` writes them), or both; front matter wins.
- *
- *   ---
- *   type: spec | ticket            (absent: a spec by its headings, else an issue)
- *   status: needs-triage | ready-for-agent | in-progress | done | closed | ...
- *   parent: 42
- *   blocked-by: [43, 44]           (`blocked_by` and `blocked-by: 43, 44` also read)
- *   labels: [bug]
- *   created: 2026-10-24
- *   ---
- *   # Title
- *
- * `to-spec` 1.3.1 applies no `spec` label, so a spec is told apart by `type: spec` or by the
- * template headings `## Problem Statement` and `## User Stories`.
- */
 import type { Issue, IssueKind, IssueRef, IssueStatus, TriageLabels, TriageRole } from '../../types'
 import type { FsListing, ReadResult, TrackerSpec } from './index'
 import { isSpecBody, parseIssueRef, storiesIn } from './refs'
@@ -26,7 +6,6 @@ export type FrontMatter = Record<string, string | string[]>
 
 const KEY = /^([A-Za-z][\w-]*):[ \t]*(.*?)[ \t]*$/
 
-/** Only the subset above: `key: value`, `key: [a, b]`, `key: a, b`. No nesting. */
 export function parseFrontMatter(text: string): { data: FrontMatter; body: string } | null {
   const lines = (text.startsWith('\uFEFF') ? text.slice(1) : text).split('\n')
   if (lines[0]?.trim() !== '---') return null
@@ -55,7 +34,6 @@ const asList = (value: string | string[] | undefined): string[] =>
 const asText = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value.join(', ') : (value ?? '')
 
-/** `<n>-<slug>.md` gives n, or undefined for a file that does not follow the layout. */
 export const numberOf = (name: string): number | undefined => {
   const match = /^(\d+)-.*\.md$/.exec(name)
   return match ? Number(match[1]) : undefined
@@ -86,7 +64,6 @@ function statusOf(
   return { status: role === 'wontfix' ? 'closed' : 'open', role }
 }
 
-/** A date-only `created` means the whole day: end of day, so a spec made today binds to a draft from today. */
 function createdAtOf(created: string, mtimeMs: number | null): number | null {
   const parsed = Date.parse(created)
   if (!Number.isNaN(parsed))
@@ -94,11 +71,6 @@ function createdAtOf(created: string, mtimeMs: number | null): number | null {
   return mtimeMs
 }
 
-/**
- * `42-export-invoices-as-csv.md` and its text give an Issue. Title from the first `# ` line
- * (a leading `NN: ` dropped), else the slug. Status maps through `labels`, so a repo that
- * renamed `ready-for-agent` to `afk` still works.
- */
 export function parseIssueFile(args: {
   folder: string
   name: string
@@ -156,7 +128,6 @@ const folderOf = (folder: string) => (folder.endsWith('/') ? folder : `${folder}
 
 const NEWEST_FIRST = 500
 
-/** Issue files in a listing, highest number first, capped. */
 const issueFiles = (entries: readonly FsListing[] | null) =>
   (entries ?? [])
     .filter(e => e.kind === 'file' && numberOf(e.name) !== undefined)

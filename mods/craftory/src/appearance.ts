@@ -11,11 +11,9 @@ export const parseColorFgBg = (value: string | undefined): Tone | undefined => {
 
 export type Probe = {
   argv: readonly string[]
-  /** The tone the command's result names, or undefined when it says nothing about it. */
   read: (result: { exitCode: number; stdout: string }) => Tone | undefined
 }
 
-/** Tried in order; the first to name a tone wins. A binary that is not installed rejects and is skipped. */
 export const SYSTEM_PROBES: readonly Probe[] = [
   {
     argv: ['defaults', 'read', '-g', 'AppleInterfaceStyle'],

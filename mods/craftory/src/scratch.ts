@@ -1,12 +1,3 @@
-/**
- * Import from `.scratch/`, the layout upstream's Local Markdown template describes:
- *
- *   .scratch/<feature-slug>/spec.md
- *   .scratch/<feature-slug>/issues/<NN>-<slug>.md      (`Status:` and `Blocked by: NN` lines)
- *
- * The plan copies each file to `<folder><n>-<slug>.md` under Craftory's global numbering, with
- * front matter in front of the untouched original text. Nothing is moved or deleted.
- */
 import type { FileWrite } from './files'
 
 export type ScratchFile = { path: string; text: string }
@@ -38,7 +29,6 @@ const frontMatter = (fields: Record<string, string | undefined>) =>
     .flatMap(([k, v]) => (v === undefined || v === '' ? [] : [`${k}: ${v}`]))
     .join('\n')}\n---\n`
 
-/** Which feature folder a path belongs to, and what it is inside it. */
 function classify(path: string) {
   const parts = path.replace(/^\.scratch\//, '').split('/')
   const feature = parts[0]
@@ -52,7 +42,6 @@ function classify(path: string) {
 
 export function planScratchImport(args: {
   files: readonly ScratchFile[]
-  /** Numbers already used in the issues folder. */
   taken: readonly number[]
   folder: string
 }): ScratchPlan {
@@ -106,7 +95,6 @@ export function planScratchImport(args: {
   return { items, writes }
 }
 
-/** `#51 to #54 · 4 issues`, for the confirm question and the done note. */
 export function scratchSummary(plan: ScratchPlan): string {
   const first = plan.items[0]
   const last = plan.items.at(-1)

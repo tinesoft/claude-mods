@@ -1,8 +1,3 @@
-/**
- * `.craftory/config.json` (shared, committed) and personal prefs (`$.store` over userConfig).
- * The two never mix: a shared value is never overridden per person, and a personal value
- * never lands in the repo.
- */
 import type {
   ConfigPatch,
   CraftoryConfig,
@@ -18,7 +13,6 @@ import { PHASE_ORDER, PHASES } from './phases'
 export const CONFIG_PATH = '.craftory/config.json'
 export const STORE_PREFS = 'prefs'
 
-/** Derived from PHASES so a new phase gets a default without a second list. */
 export const DEFAULT_CONFIG: CraftoryConfig = {
   version: 1,
   entry: {
@@ -72,7 +66,6 @@ const RANGES: Record<string, readonly [number, number]> = {
   'worktrees.tokenBudget': [10_000, 1_000_000],
 }
 
-/** Walks the defaults: a leaf takes the raw value when its type matches, else the default. */
 function overlay(defaults: unknown, raw: unknown, path: string, problems: string[]): unknown {
   if (isRecord(defaults)) {
     const source = isRecord(raw) ? raw : {}
@@ -102,10 +95,6 @@ function overlay(defaults: unknown, raw: unknown, path: string, problems: string
   return raw
 }
 
-/**
- * The boundary parse. A bad value falls back to its default and is named in the problem; the
- * file still loads (guide, never gate). Unknown keys are ignored here and kept by `patchConfig`.
- */
 export function parseConfig(raw: string | null): Loaded<CraftoryConfig> {
   if (raw === null) return { state: 'absent' }
   let json: unknown
@@ -143,17 +132,12 @@ function assign(base: Json, patch: Json): Json {
   return base
 }
 
-/**
- * Applies a Settings change to the raw text, keeping unknown keys, key order and two-space
- * indentation. Throws on text that is not JSON: callers patch only a file that loaded.
- */
 export function patchConfig(raw: string | null, patch: ConfigPatch): string {
   const base: unknown = raw === null ? structuredClone(DEFAULT_CONFIG) : JSON.parse(raw)
   if (!isRecord(base)) throw new TypeError('config.json is not an object')
   return `${JSON.stringify(assign(base, patch as Json), null, 2)}\n`
 }
 
-/** First-run write of the defaults. An existing file is never rewritten by setup. */
 export const configWrite = (raw: string | null): FileWrite[] =>
   raw === null ? [{ path: CONFIG_PATH, before: null, after: patchConfig(null, {}) }] : []
 
@@ -163,9 +147,6 @@ export const configOf = (loaded: Loaded<CraftoryConfig> | undefined): CraftoryCo
 export const isPhaseOn = (config: CraftoryConfig, skipped: readonly PhaseId[], phase: PhaseId) =>
   config.phases[phase].enabled && !skipped.includes(phase)
 
-// ─── Personal prefs ─────────────────────────────────────────────────────────────────────
-
-/** userConfig (`options` of `register`) supplies defaults; `$.store` overrides win. */
 export function resolvePrefs(
   options: Readonly<Record<string, unknown>>,
   overrides: PrefOverrides | null,
@@ -179,7 +160,6 @@ export function resolvePrefs(
   }
 }
 
-/** `$.store.get(STORE_PREFS)` is unknown data: keep only known keys with valid values. */
 export function parsePrefOverrides(stored: unknown): PrefOverrides {
   if (!isRecord(stored)) return {}
   const { rail, railLayout, theme, ascii } = stored
@@ -190,8 +170,6 @@ export function parsePrefOverrides(stored: unknown): PrefOverrides {
     ...(typeof ascii === 'boolean' && { ascii }),
   }
 }
-
-// ─── Branch name templates ──────────────────────────────────────────────────────────────
 
 export function slugify(title: string, maxWords = 6, maxChars = 48): string {
   const words = title
@@ -210,11 +188,9 @@ export function slugify(title: string, maxWords = 6, maxChars = 48): string {
   return slug
 }
 
-/** `feat/{spec-slug}` + `Export invoices as CSV` gives `feat/export-invoices-as-csv`. */
 export const integrationBranchFor = (config: CraftoryConfig, specTitle: string) =>
   config.worktrees.integrationBranch.replace('{spec-slug}', slugify(specTitle))
 
-/** `craftory/{ticket}-{slug}` + `#44` gives `craftory/44-ledger-lines-include-tax`. */
 export const ticketBranchFor = (config: CraftoryConfig, ticket: string, title: string) =>
   config.worktrees.ticketBranch
     .replace('{ticket}', ticket.replace(/^#/, ''))

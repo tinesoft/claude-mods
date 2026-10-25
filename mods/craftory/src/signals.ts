@@ -1,8 +1,4 @@
 /**
- * Toasts are derived, not fired from hooks (graft 1). `SignalBasis` is computed from the same
- * facts as the Flow; `diffSignals` says what changed between two of them. The first basis after
- * a session starts only seeds, so a restart does not announce what was already there.
- *
  * A toast carries no action in 2.1.302: the action (Open, Run anyway) lives on the band notice.
  */
 import type {
@@ -33,7 +29,6 @@ export type Signal =
 
 export const TOAST_MS = 4000
 
-/** One text per signal kind. A `Record` so a new kind without a toast fails the build. */
 export const TOASTS: { [K in Signal['kind']]: (signal: Extract<Signal, { kind: K }>) => string } = {
   'spec-published': s =>
     `Spec ${s.spec} published${s.stories ? ` · ${s.stories} user stories` : ''}`,
@@ -101,7 +96,6 @@ export function signalBasis(args: {
   }
 }
 
-/** What is new in `next`. A null `prev` is the first look: it only seeds. */
 export function diffSignals(prev: SignalBasis | null, next: SignalBasis): Signal[] {
   if (prev === null) return []
   return [

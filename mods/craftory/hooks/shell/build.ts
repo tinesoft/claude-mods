@@ -1,8 +1,3 @@
-/**
- * The worktrees Build works in: making a seat, the Worktrees tab and the Agents list. This
- * module owns the `diffs` and `steeringNote` atoms; the agent ledger and the git snapshot are
- * read through flow.ts.
- */
 import { atom, type EngineInterface, read, type RenderSurface, update } from 'claude-code'
 import { agentRows, type AgentsView, agentsView, type KeepWhy, samePath } from '../../src/build'
 import { configOf } from '../../src/config'
@@ -37,11 +32,7 @@ const SETUP_MS = 600_000
 
 type Seat = { ok: true; isFresh: boolean; path: string } | { ok: false; reason: string }
 
-/**
- * Makes the worktree an implementer will work in: `git worktree add -b <branch> <path> <base>`,
- * the files to copy, then the setup command in it. A worktree that is already there (a retry of
- * a kept one) is reused as it is.
- */ export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
+export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
   const root = await $.session.cwd()
   const path = `${root}/${plan.path}`
   const listed = await sh($, worktreeListArgv)
@@ -63,16 +54,12 @@ type Seat = { ok: true; isFresh: boolean; path: string } | { ok: false; reason: 
   return { ok: true, isFresh: true, path }
 }
 
-/** Worktrees a `git worktree remove` must not touch: running, failed, over-budget or stopped ones. */ export async function keptWorktrees(
-  $: EngineInterface,
-): Promise<{ path: string; why: KeepWhy }[]> {
+export async function keptWorktrees($: EngineInterface): Promise<{ path: string; why: KeepWhy }[]> {
   const { plan } = await cleanupInputs($)
   return plan.keep.filter(k => k.why !== 'unmerged')
 }
 
-/** The Worktrees tab: every worktree git lists, with what Craftory knows about it. */ export async function worktreesViewOf(
-  $: EngineInterface,
-): Promise<WorktreesView | null> {
+export async function worktreesViewOf($: EngineInterface): Promise<WorktreesView | null> {
   const [git, features, repo, diffs] = await Promise.all([
     gitOf($),
     featuresOf($),
@@ -103,10 +90,7 @@ type Seat = { ok: true; isFresh: boolean; path: string } | { ok: false; reason: 
   })
 }
 
-/** Diff toggles the shortstat line under a row. */ export async function toggleDiff(
-  $: EngineInterface,
-  path: string,
-) {
+export async function toggleDiff($: EngineInterface, path: string) {
   const view = await worktreesViewOf($)
   const row = view?.rows.find(r => r.path === path)
   if (row === undefined) return
@@ -154,10 +138,7 @@ async function currentBases($: EngineInterface, git: GitSnapshot) {
   )
 }
 
-/** Remove refuses a running or kept worktree unless the user confirms; only then is it forced. */ export async function removeWorktree(
-  $: EngineInterface,
-  path: string,
-) {
+export async function removeWorktree($: EngineInterface, path: string) {
   const row = (await worktreesViewOf($))?.rows.find(r => r.path === path)
   if (row === undefined || !row.canRemove) return
   if (row.isProtected) {
@@ -178,9 +159,7 @@ async function currentBases($: EngineInterface, git: GitSnapshot) {
   await refreshGit($)
 }
 
-/** Prune N stale: the stale worktrees Craftory does not keep, removed without force. */ export async function pruneStale(
-  $: EngineInterface,
-) {
+export async function pruneStale($: EngineInterface) {
   const git = await gitOf($)
   if (git === null) return
   const stale = prunable(
@@ -193,10 +172,7 @@ async function currentBases($: EngineInterface, git: GitSnapshot) {
   await refreshGit($)
 }
 
-/** The Agents list for the Build card, from the ledger, the stored records and the last look at git. */ export function setSteeringNote(
-  $: EngineInterface,
-  note: string | null,
-) {
+export function setSteeringNote($: EngineInterface, note: string | null) {
   return update($, steeringNoteState, () => note)
 }
 
@@ -213,7 +189,6 @@ export async function agentsViewOf(
   const config = configOf(repo?.config)
   if (flow === null || !config.automation.liveAgents || flow.tickets.length === 0) return null
   const build = flow.steps.find(s => s.phase === 'build')?.state.kind
-  // Before any agent exists the list would only repeat the tickets.
   if (build === 'todo' || build === 'next' || build === 'gated' || build === 'skipped') return null
   const record = flow.feature.kind === 'specced' ? flow.feature.record : null
   const rows = agentRows({

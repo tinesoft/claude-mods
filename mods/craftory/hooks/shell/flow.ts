@@ -1,11 +1,3 @@
-/**
- * The facts about the work in flight, and the loop that turns them into what the person sees.
- * This module owns the tracker, features, drafts, active, running, passes, notices, signals,
- * dismissed, build (the agent ledger) and git atoms, and is the only code that reads or updates
- * them. Other modules call the accessors and the operations below.
- *
- * `settle` is the reconcile step: whatever changes a fact ends in it, and it redraws.
- */
 import { atom, type EngineInterface, read, type Timer, update } from 'claude-code'
 import { DEFAULT_DOCS, DEFAULT_LABELS } from '../../src/agents-md'
 import {
@@ -175,9 +167,8 @@ export async function currentFlow($: EngineInterface): Promise<Flow | null> {
   return deriveFlow({ feature, config: configOf(repo?.config), tracker, running, build })
 }
 
-/** The tracker kind named in `docs/agents/issue-tracker.md`; Local until setup says otherwise. */ export const trackerKindOf =
-  (repo: RepoSnapshot | null) =>
-    repo?.setup.state === 'ok' ? repo.setup.value.tracker.kind : 'local'
+export const trackerKindOf = (repo: RepoSnapshot | null) =>
+  repo?.setup.state === 'ok' ? repo.setup.value.tracker.kind : 'local'
 
 export async function readContext($: EngineInterface, repo: RepoSnapshot): Promise<ReadContext> {
   const [features, active] = await Promise.all([read($, featuresState), read($, activeState)])
@@ -198,7 +189,6 @@ export async function readContext($: EngineInterface, repo: RepoSnapshot): Promi
   }
 }
 
-/** One executor for every tracker's reads: the filesystem for Local, `gh` for GitHub. */
 function executeReads($: EngineInterface, reads: readonly Read[]) {
   return Promise.all(
     reads.map(async (item): Promise<ReadResult> => {
@@ -246,14 +236,12 @@ export async function refreshTracker($: EngineInterface) {
   await settle($)
 }
 
-/** Reads the tracker a moment after the last change, so a burst of tool calls costs one read. */ export function scheduleRefresh(
-  $: EngineInterface,
-) {
+export function scheduleRefresh($: EngineInterface) {
   refreshTimer?.cancel()
   refreshTimer = $.clock.after(REFRESH_DEBOUNCE_MS, () => void refreshTracker($))
 }
 
-/** A tool call that may have changed the tracker: a write under the issues folder, `gh`, `git push`. */ export async function touchesTracker(
+export async function touchesTracker(
   $: EngineInterface,
   tool: { name: string; command?: string; path?: string },
 ) {
@@ -267,7 +255,6 @@ async function persistDrafts($: EngineInterface) {
   await $.store.set(STORE_DRAFTS, await read($, draftsState))
 }
 
-/** The one place a feature record is written: merged with what is on disk, so two sessions converge. */
 async function saveFeature($: EngineInterface, record: FeatureRecord): Promise<FeatureRecord> {
   const path = featurePath(record.spec)
   const raw = await readText($, path)
@@ -278,7 +265,6 @@ async function saveFeature($: EngineInterface, record: FeatureRecord): Promise<F
   return merged
 }
 
-/** Applies one change to the active feature: a record is saved, a draft goes to the store. */
 async function recordChange($: EngineInterface, key: FeatureKey, change: FeatureChange) {
   const feature = featureOf(key, await read($, featuresState), await read($, draftsState))
   if (feature === null) return
@@ -292,7 +278,6 @@ async function recordChange($: EngineInterface, key: FeatureKey, change: Feature
   await update($, featuresState, held => ({ ...held, [saved.spec]: saved }))
 }
 
-/** A feature that starts from a command with none in flight is a draft until its spec exists. */
 async function startDraft($: EngineInterface, phase: PhaseId): Promise<FeatureKey> {
   const now = await $.clock.now()
   const draft = newDraft({
@@ -309,7 +294,6 @@ async function startDraft($: EngineInterface, phase: PhaseId): Promise<FeatureKe
   return key
 }
 
-/** A draft whose spec now exists becomes a record on disk, and the active feature follows it. */
 async function bindDrafts($: EngineInterface) {
   const [tracker, repo, drafts] = await Promise.all([
     read($, trackerState),
@@ -344,11 +328,7 @@ async function addNotice($: EngineInterface, notice: EventNotice) {
   await update($, noticesState, held => [...held.filter(n => n.id !== notice.id), notice])
 }
 
-/**
- * Everything that follows from a changed fact: the status line, the spinner, the toasts and the
- * redraw. The toast basis is first taken only once the tracker has been read, so a restart seeds
- * it and announces nothing that was already there.
- */ export async function settle($: EngineInterface) {
+export async function settle($: EngineInterface) {
   const flow = await currentFlow($)
   $.ui.status(statusLine(flow))
   const isRunning = flow?.steps.some(s => s.state.kind === 'running') === true
@@ -445,10 +425,7 @@ export async function dismissNotice($: EngineInterface, key: NoticeKey) {
   $.ui.invalidate('ui.render')
 }
 
-/** Run anyway: lets the held command through once. Gives back the gate notice, if it is still there. */ export async function allowGate(
-  $: EngineInterface,
-  id: string,
-) {
+export async function allowGate($: EngineInterface, id: string) {
   const notice = await noticeOf($, id)
   if (notice?.kind !== 'gate') return undefined
   const req = { skill: notice.skill, args: notice.args, phase: notice.phase }
@@ -468,7 +445,7 @@ export async function switchFeature($: EngineInterface, key: FeatureKey) {
   await settle($)
 }
 
-/** A ready-for-agent issue becomes a feature that enters at `action.phase`; gives back that step. */ export async function enterFromIssue(
+export async function enterFromIssue(
   $: EngineInterface,
   action: Extract<InboxAction, { kind: 'start' }>,
 ) {
@@ -506,10 +483,7 @@ export async function switchFeature($: EngineInterface, key: FeatureKey) {
   return (await currentFlow($))?.steps.find(s => s.phase === action.phase)
 }
 
-/** The skill a phase or entry command started: the feature it belongs to, and what is running. */ export async function skillStarted(
-  $: EngineInterface,
-  skill: string,
-) {
+export async function skillStarted($: EngineInterface, skill: string) {
   const found = recognise(skill)
   if (found?.kind !== 'phase' && found?.kind !== 'entry') return
   const now = await $.clock.now()
@@ -532,7 +506,7 @@ export async function switchFeature($: EngineInterface, key: FeatureKey) {
   if (phase === 'review' || phase === 'ship') await scanDrift($)
 }
 
-/** Holds a typed Matt command at a gate; gives back the text that replaces the prompt. */ export async function gatePrompt(
+export async function gatePrompt(
   $: EngineInterface,
   e: { text: string; command?: { name: string; args: string } },
 ): Promise<string | undefined> {
@@ -553,10 +527,7 @@ export async function switchFeature($: EngineInterface, key: FeatureKey) {
   return undefined
 }
 
-/** The main agent's turn ended: the running skill is done (or waits for the user), then a fresh read. */ export async function finishTurn(
-  $: EngineInterface,
-  e: { answer: string; isAborted?: boolean },
-) {
+export async function finishTurn($: EngineInterface, e: { answer: string; isAborted?: boolean }) {
   const running = await read($, runningState)
   if (running !== null && !running.isAwaitingUser) {
     const grillAsksNext = running.phase === 'align' && !e.isAborted
@@ -583,10 +554,7 @@ export async function switchFeature($: EngineInterface, key: FeatureKey) {
   await refreshTracker($)
 }
 
-/** Decides an Agent call against the Build queue; a steered call is remembered as a pending seat. */ export async function planSpawn(
-  $: EngineInterface,
-  call: AgentCall,
-): Promise<SpawnDecision> {
+export async function planSpawn($: EngineInterface, call: AgentCall): Promise<SpawnDecision> {
   const [flow, repo, record] = await Promise.all([currentFlow($), repoSnapshot($), activeRecord($)])
   if (flow === null || record === null) return { kind: 'pass' }
   const at = await $.clock.now()
@@ -609,7 +577,7 @@ export async function switchFeature($: EngineInterface, key: FeatureKey) {
   return decided.value
 }
 
-/** The engine started the agent: its pending seat becomes a run with a budget. */ export async function seatAgent(
+export async function seatAgent(
   $: EngineInterface,
   toolUseId: string,
   plan: SeatPlan,
@@ -626,15 +594,11 @@ export async function switchFeature($: EngineInterface, key: FeatureKey) {
   await settle($)
 }
 
-/** A typed or pressed command as a gate sees it; undefined for anything that is not a Matt phase. */ export function requestOf(
-  name: string | undefined,
-  args: string,
-): RunRequest | undefined {
+export function requestOf(name: string | undefined, args: string): RunRequest | undefined {
   const found = name === undefined ? undefined : recognise(name, { strict: false })
   return found?.kind === 'phase' ? { skill: found.skill, args, phase: found.phase } : undefined
 }
 
-/** The command a `prompt.submit` runs: the engine's parse, else the typed `/name args` line. */
 function typedCommand(e: { text: string; command?: { name: string; args: string } }) {
   if (e.command !== undefined) return { name: e.command.name, args: e.command.args }
   const match = /^\/(\S+)(?:\s+([\s\S]*))?$/.exec(e.text.trim())
@@ -660,7 +624,6 @@ export async function holdForGate($: EngineInterface, req: RunRequest, flow: Flo
 
 const GIT_DEBOUNCE_MS = 1_500
 
-/** The integration tip last announced to each agent, so a moved tip is told once. */
 const told = new Map<string, string>()
 
 let gitTimer: Timer | undefined
@@ -674,7 +637,6 @@ export async function activeRecord($: EngineInterface): Promise<FeatureRecord | 
   return feature?.kind === 'specced' ? feature.record : null
 }
 
-/** The feature a ticket belongs to: its spec is the ticket's parent in the tracker. */
 async function featureOfTicket($: EngineInterface, ticket: string): Promise<FeatureRecord | null> {
   const tracker = await read($, trackerState)
   const parent = tracker?.rich ? tracker.issues.find(i => i.ref === ticket)?.parent : null
@@ -742,7 +704,6 @@ export async function refreshGit($: EngineInterface) {
   $.ui.invalidate('ui.render')
 }
 
-/** What a new look at git asks of the running agents: merge the moved tip, or stop on a conflict. */
 async function afterGit($: EngineInterface, snapshot: GitSnapshot, rebaseOnMove: boolean) {
   const ledger = await read($, buildState)
   for (const run of Object.values(ledger.runs)) {
@@ -775,9 +736,7 @@ async function afterGit($: EngineInterface, snapshot: GitSnapshot, rebaseOnMove:
   }
 }
 
-/** Reads git a moment after the last git command an agent ran, so a burst costs one read. */ export function scheduleGit(
-  $: EngineInterface,
-) {
+export function scheduleGit($: EngineInterface) {
   gitTimer?.cancel()
   gitTimer = $.clock.after(GIT_DEBOUNCE_MS, () => void refreshGit($))
 }
@@ -810,7 +769,6 @@ export async function cleanupInputs($: EngineInterface) {
   return { plan, git }
 }
 
-/** Removes the worktrees of merged tickets (removeAfterMerge). A dirty one refuses, which is right. */
 async function cleanupMerged($: EngineInterface) {
   const { plan, git } = await cleanupInputs($)
   if (git === null) return
@@ -864,9 +822,7 @@ export async function countStep(
   await settle($)
 }
 
-/** Pause all stops new implementers and asks the running ones to report after their step; again resumes. */ export async function togglePause(
-  $: EngineInterface,
-) {
+export async function togglePause($: EngineInterface) {
   const isPausing = !(await read($, buildState)).isPaused
   await update($, buildState, ledger => ({ ...ledger, isPaused: isPausing }))
   if (isPausing) {
@@ -880,20 +836,14 @@ export async function countStep(
   await settle($)
 }
 
-/** The active feature's phase marked done by the person: saved on its record, or on its draft. */ export async function markDone(
-  $: EngineInterface,
-  phase: PhaseId,
-) {
+export async function markDone($: EngineInterface, phase: PhaseId) {
   const key = await read($, activeState)
   if (key === null) return
   await recordChange($, key, { kind: 'mark-done', phase, at: isoOf(await $.clock.now()) })
   await settle($)
 }
 
-/** One more `tokenBudget` step for a ticket, stored in the feature record so a restart keeps it. */ export async function raiseBudget(
-  $: EngineInterface,
-  ticket: IssueRef,
-) {
+export async function raiseBudget($: EngineInterface, ticket: IssueRef) {
   const record = await featureOfTicket($, ticket)
   const old = record?.agents[ticket]
   if (record === null || old === undefined) return
@@ -943,10 +893,6 @@ export async function dropNotice($: EngineInterface, id: string) {
   await settle($)
 }
 
-/**
- * The avoid-words of the glossary, found in what the integration branch adds over its base.
- * Run when Review starts and before Ship; each finding becomes a notice and, once, a toast.
- */
 async function scanDrift($: EngineInterface) {
   const [git, record, terms, repo] = await Promise.all([
     read($, gitState),

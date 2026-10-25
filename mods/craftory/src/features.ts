@@ -1,12 +1,3 @@
-/**
- * Feature records: (de)serialise `.craftory/features/<n>.json`, merge concurrent writers,
- * draft to specced promotion, and the pure transitions every hook uses to change a feature.
- *
- * A record stores only facts that cannot be re-derived from the tracker or git. Each fact is
- * monotone (set once, or only grows), so `mergeFeature` is a join: commutative, idempotent, and
- * a crash between read and write loses nothing a re-run cannot restore. The one exception is
- * `unskip`, which is applied after the merge; a stale writer can bring the skip back.
- */
 import type {
   AgentOutcome,
   AgentRecord,
@@ -50,7 +41,6 @@ const max = (a: string | undefined, b: string | undefined) =>
   a === undefined ? b : b === undefined ? a : a >= b ? a : b
 const maxRef = (a: IssueRef | null, b: IssueRef | null) =>
   a === null ? b : b === null ? a : a >= b ? a : b
-/** Sorted, so a join does not depend on which writer came first. */
 const union = (a: readonly string[] = [], b: readonly string[] = []) =>
   [...new Set([...a, ...b])].sort()
 const inPhaseOrder = (phases: Iterable<PhaseId>) => PHASE_ORDER.filter(p => new Set(phases).has(p))
@@ -101,7 +91,6 @@ function parseAgent(key: string, value: unknown): AgentRecord | undefined {
   }
 }
 
-/** Bad entries are dropped and named in `problem`; only a missing spec or non-JSON is invalid. */
 export function parseFeature(raw: string): Loaded<FeatureRecord> {
   let json: unknown
   try {
@@ -138,7 +127,6 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
   return { state: 'ok', value, raw, ...(problems.length > 0 && { problem: problems.join('; ') }) }
 }
 
-/** Stable key order and two-space indent so diffs in PRs stay small. Trailing newline. */
 export function serialiseFeature(record: FeatureRecord): string {
   const marks = Object.fromEntries(
     PHASE_ORDER.flatMap(p => {
@@ -210,7 +198,6 @@ const mergeMark = (a: PhaseMark = {}, b: PhaseMark = {}): PhaseMark => {
   }
 }
 
-/** Newer attempt wins; the same attempt keeps the larger count and the later outcome. */
 function mergeAgent(a: AgentRecord, b: AgentRecord): AgentRecord {
   if (a.startedAt !== b.startedAt) return a.startedAt > b.startedAt ? a : b
   const [first, second] =
@@ -227,12 +214,6 @@ function mergeAgent(a: AgentRecord, b: AgentRecord): AgentRecord {
 const earlierPhase = (a: PhaseId, b: PhaseId) =>
   PHASE_ORDER.indexOf(a) <= PHASE_ORDER.indexOf(b) ? a : b
 
-/**
- * Join of two records for the same spec. Per field: marks keep the earliest `ranAt` and
- * `markedDoneAt`, the latest `endedAt` and the union of artifacts; agents keep the newer attempt
- * per ticket; skipped is a union. Fields set once at creation (title, branch, entry, pr) take the
- * greater value, so the join stays commutative.
- */
 export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): FeatureRecord {
   if (disk === null) return mine
   const marks: Partial<Record<PhaseId, PhaseMark>> = {}
@@ -257,8 +238,6 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
     agents,
   }
 }
-
-// ─── Transitions ────────────────────────────────────────────────────────────────────────
 
 export type FeatureChange =
   | { kind: 'ran'; phase: PhaseId; at: IsoTime }
@@ -293,7 +272,6 @@ function changeMarks(marks: Marks, change: FeatureChange): Marks {
   }
 }
 
-/** Applies one change. Running it twice yields the same record. */
 export function applyChange(record: FeatureRecord, change: FeatureChange): FeatureRecord {
   switch (change.kind) {
     case 'ran':
@@ -323,7 +301,6 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
   }
 }
 
-/** The same marks on a draft; skips, agents and the PR cannot happen before a spec. */
 export function applyDraftChange(draft: DraftFeature, change: FeatureChange): DraftFeature {
   return { ...draft, marks: changeMarks(draft.marks, change) }
 }
@@ -345,10 +322,6 @@ export function newDraft(args: {
   }
 }
 
-/**
- * The spec a draft produced: the earliest spec issue created at or after the draft's Spec
- * `ranAt` and not already bound to another feature. Undefined until it exists.
- */
 export function bindSpec(
   draft: DraftFeature,
   tracker: TrackerSnapshot,
@@ -366,7 +339,6 @@ export function bindSpec(
     )[0]
 }
 
-/** Draft and its spec: the first record written to disk. Marks carry over. */
 export function promote(
   draft: DraftFeature,
   spec: Issue,
@@ -386,10 +358,6 @@ export function promote(
   }
 }
 
-/**
- * A ready-for-agent issue started as a feature at `phase`: the issue is the feature's spec
- * reference, and the phases before the entry are skipped for this feature.
- */
 export function enteredRecord(args: {
   issue: Pick<Issue, 'ref' | 'title'>
   phase: PhaseId
@@ -419,11 +387,6 @@ const touchedAt = (record: FeatureRecord) =>
     ...Object.values(record.agents).flatMap(a => [Date.parse(a.startedAt)]),
   )
 
-/**
- * Which feature this session works on at start: the record whose integration branch is the
- * checked-out branch, else the stored last active key when it still exists, else the most
- * recently touched record, else the newest draft, else null (the "Start a feature" notice).
- */
 export function pickActive(args: {
   features: Readonly<Record<string, FeatureRecord>>
   drafts: Readonly<Record<string, DraftFeature>>
@@ -461,7 +424,6 @@ export function featureOf(
 export const markOf = (feature: Feature, phase: PhaseId): PhaseMark =>
   (feature.kind === 'draft' ? feature.draft.marks : feature.record.marks)[phase] ?? {}
 
-/** `$.store.get(STORE_DRAFTS)` is unknown data: keep the drafts that parse, by draft id. */
 export function parseDrafts(stored: unknown): Record<string, DraftFeature> {
   if (!isRecord(stored)) return {}
   return Object.fromEntries(

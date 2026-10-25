@@ -1,12 +1,3 @@
-/**
- * GitHub through the `gh` CLI (plan decision 11, rich). Builders return argv and parsers take
- * stdout, so the `gh` JSON shapes stay in this file.
- *
- * `to-spec` 1.3.1 applies no `spec` label (it applies `ready-for-agent`), so a spec is told
- * apart by its template headings; the configured spec label still counts when a team uses one.
- * A ticket is a sub-issue of its spec, else an issue whose body says `Part of #<spec>`.
- * Blocking edges are GitHub's native dependencies, else `Blocked by:` lines in the body.
- */
 import type {
   Issue,
   IssueRef,
@@ -79,7 +70,6 @@ function parseArrays(stdout: string): unknown[] | undefined {
   }
 }
 
-/** `Blocked by: #43, #44` and `Part of #42` lines in a body. */
 export function bodyEdges(body: string): { blockedBy: IssueRef[]; parent: IssueRef | null } {
   const head = body.split('\n').slice(0, 40).join('\n')
   const blocked = /^(?:\*\*)?Blocked by:(?:\*\*)?[ \t]*(.*)$/im.exec(head)?.[1] ?? ''
@@ -143,7 +133,6 @@ const numbersIn = (stdout: string): number[] =>
     isRecord(row) && typeof row.number === 'number' ? [row.number] : [],
   )
 
-/** The sub-issues endpoint names children; each becomes a ticket of the spec. */
 export function applySubIssues(issues: Issue[], spec: IssueRef, stdout: string): Issue[] {
   const children = new Set(numbersIn(stdout).map(n => `#${n}`))
   return issues.map(i =>
@@ -151,7 +140,6 @@ export function applySubIssues(issues: Issue[], spec: IssueRef, stdout: string):
   )
 }
 
-/** The dependencies endpoint replaces the body's `Blocked by:` line for that issue. */
 export function applyDependencies(issues: Issue[], issue: IssueRef, stdout: string): Issue[] {
   const blockers = numbersIn(stdout).flatMap(n => parseIssueRef(String(n)) ?? [])
   return issues.map(i => (i.ref === issue ? { ...i, blockedBy: blockers } : i))
@@ -183,7 +171,6 @@ const runs = (results: readonly ReadResult[]) => results.flatMap(r => (r.kind ==
 const issueNumber = (argv: readonly string[]) =>
   /\/issues\/(\d+)\/(?:sub_issues|dependencies)/.exec(argv[2] ?? '')?.[1]
 
-/** The children a spec has so far: sub-issues first, then bodies that say `Part of`. */
 function childrenOf(issues: readonly Issue[], results: readonly ReadResult[]): IssueRef[] {
   const found = new Set<IssueRef>()
   for (const r of runs(results)) {

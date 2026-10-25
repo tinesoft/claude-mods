@@ -1,21 +1,3 @@
-/**
- * GLOSSARY.md, lossless. Upstream format (mattpocock-skills GLOSSARY.md):
- *
- *   # <title>
- *   ## Language
- *   **Term**:
- *   Definition, possibly several lines.
- *   _Avoid_: a, b
- *   ## Relationships
- *   - An **X** holds many **Y**
- *   ## Flagged ambiguities
- *   - "x" was used for ... Resolved: ...
- *
- * The document is a list of raw slices that together cover every byte of the file, so
- * serialising an unedited document returns the input exactly. An edit replaces the raw of one
- * term slice (plus one blank separator for add and delete). Anything the parser does not
- * recognise stays a `text` slice, so hand-written prose survives.
- */
 import type { GlossaryDoc, GlossarySlice, Loaded, Term } from '../types'
 
 export const termKey = (name: string) => name.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -117,7 +99,6 @@ export const relationshipsOf = (doc: GlossaryDoc) =>
 export const ambiguitiesOf = (doc: GlossaryDoc) =>
   doc.slices.flatMap(s => (s.kind === 'ambiguity' ? [s.text] : []))
 
-/** Upstream's block: name line, definition, and an `_Avoid_` line only when there are words to avoid. */
 export function renderTerm(term: Term, eol: '\n' | '\r\n' = '\n'): string {
   const lines = [`**${term.name.trim()}**:`, ...term.definition.trim().split(/\r?\n/)]
   if (term.avoid.length > 0) lines.push(`_Avoid_: ${term.avoid.join(', ')}`)
@@ -157,10 +138,6 @@ function splitAfterHeading(
   return undefined
 }
 
-/**
- * Appends after the last term of `## Language`, or after that heading when it has no terms, or
- * as a new section at the end. A null or empty document becomes `# Glossary` plus the section.
- */
 export function addTerm(doc: GlossaryDoc | null, term: Term): GlossaryDoc | GlossaryEditError {
   const key = termKey(term.name)
   if (key === '') return 'empty-name'
@@ -198,7 +175,6 @@ export function addTerm(doc: GlossaryDoc | null, term: Term): GlossaryDoc | Glos
   return { slices }
 }
 
-/** Replaces one term slice's raw with the rendered merge; a rename keeps its position. */
 export function editTerm(
   doc: GlossaryDoc,
   key: string,
@@ -219,7 +195,6 @@ export function editTerm(
   return { slices }
 }
 
-/** Removes one term slice and one adjoining blank separator. */
 export function deleteTerm(doc: GlossaryDoc, key: string): GlossaryDoc | GlossaryEditError {
   const at = doc.slices.findIndex(s => s.kind === 'term' && termKey(s.term.name) === key)
   if (at === -1) return 'unknown-term'

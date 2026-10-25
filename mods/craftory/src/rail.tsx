@@ -1,9 +1,3 @@
-/**
- * The AbovePrompt band. Row order, top to bottom: other mods' row (`below`, always its own
- * row), event notices, the feature picker, the detail card, then the rail, the collapsed
- * summary chip, or the derived notice that replaces both. Plain args and callbacks in, a tree
- * out (session-activity's `renderBand` contract); nothing here touches `$`.
- */
 import type { Color, ElementTable, RenderElement, RenderSurface, Space } from 'claude-code'
 import type {
   CraftoryConfig,
@@ -73,12 +67,6 @@ const TITLE_MAX = 24
 const PROMPT_ROWS = 6
 const ICON_PX = 14
 
-// ─── Paint ──────────────────────────────────────────────────────────────────────────────
-
-/**
- * Text colour for a role. The terminal keeps its own colours for neutral and dims the quiet
- * roles; a known tone pins the design's tokens.
- */
 const roleInk = (role: Role, tone: Tone | undefined) => {
   if (tone === undefined) {
     if (role === 'muted') return { dimColor: true }
@@ -111,9 +99,6 @@ const Icon = ({
   return Svg && <Svg source={svg} alt={alt} width={px} height={px} />
 }
 
-// ─── Step text ──────────────────────────────────────────────────────────────────────────
-
-/** Step label meta: `#42`, `5`, `1/5`, `Q6 of ~14`, `#44 · 80k`, or the issue a triaged feature entered from. */
 export function stepMeta(step: Step, flow: Flow): string | null {
   const s = step.state
   switch (s.kind) {
@@ -154,7 +139,6 @@ const glyphOf = (step: Step, frame: number, ascii: boolean) => {
   return ascii ? look.ascii : look.glyph
 }
 
-/** The phase the collapsed chip names: what runs, else what is next, else the last done. */
 export function focusStep(flow: Flow): Step {
   const pick = (phase: PhaseId | null) => flow.steps.find(s => s.phase === phase)
   return (
@@ -165,14 +149,11 @@ export function focusStep(flow: Flow): Step {
   )
 }
 
-/** `Export invoices as CSV · Build 2/5`. */
 export function chipText(flow: Flow): string {
   const step = focusStep(flow)
   const meta = stepMeta(step, flow)
   return `${clip(flow.title, TITLE_MAX)} · ${PHASES[step.phase].label}${meta ? ` ${meta}` : ''}`
 }
-
-// ─── Fitting ────────────────────────────────────────────────────────────────────────────
 
 const RICH_STEP_EXTRA = 4
 const GEAR_RESERVE = 3
@@ -189,10 +170,6 @@ const stepWidth = (step: Step, flow: Flow, rich: boolean) => {
 
 const MIN_TITLE = 8
 
-/**
- * Whether the seven steps, triage button and gear fit `columns` with at least a short title
- * (the title takes what is left, up to 24), else the chip.
- */
 export function fitRail(args: {
   flow: Flow
   columns: number
@@ -203,7 +180,6 @@ export function fitRail(args: {
   const { flow, columns, rich, waiting, features } = args
   const steps = flow.steps.reduce((sum, s) => sum + stepWidth(s, flow, rich), 0)
   const connectors = flow.steps.length - 1
-  // Triage, divider, one group per step and the title sit one gap apart, then the gear.
   const items = flow.steps.length + 3
   const triage =
     'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0) + (rich ? RICH_STEP_EXTRA : 0)
@@ -225,7 +201,6 @@ const CARD_SPACE = {
 
 const DENSITIES = ['roomy', 'compact'] as const satisfies readonly CardDensity[]
 
-/** What the card says, before any surface draws it. */
 export type CardView = {
   kicker: string
   role: Role
@@ -237,13 +212,11 @@ export type CardView = {
   artifactLabel: string | null
   artifact: string | null
   gate: string | null
-  /** The primary button: its label, and what it runs. Null when nothing is typed for the phase. */
   primary: { label: string; phase: PhaseId | 'triage' } | null
   secondary: (
     | { id: string; label: string; action: 'open-tickets' | 'diagnose' | 'pr' }
     | { id: string; label: string; action: 'mark-done'; phase: PhaseId }
   )[]
-  /** Build's live Agents list; null on every other card and with Settings › live agents off. */
   agents: AgentsView | null
 }
 
@@ -270,10 +243,6 @@ export function triageCard(waiting: number): CardView {
 
 type Secondary = CardView['secondary']
 
-/**
- * Spec and Tickets open the panel; a Build that failed or ran out of budget offers
- * diagnosing-bugs instead of moving on; Ship, once there is a pull request, offers `pr`.
- */
 function secondaryOf(step: Step, specRef: string | null, isDone: boolean): Secondary {
   const kind = step.state.kind
   if (step.phase === 'spec' && isDone && specRef !== null)
@@ -338,23 +307,21 @@ export function phaseCard(
 const agentLines = (row: AgentRow) =>
   1 + (hasMeterLine(row) ? 1 : 0) + (hasWorktreeLine(row) ? 1 : 0)
 
-/** Terminal rows the Agents list takes: head, one block per row, the cap line, the note, the foot. */
 export const agentsRows = (view: AgentsView) =>
   2 +
   view.rows.reduce((sum, row) => sum + agentLines(row), 0) +
   (view.more > 0 ? 1 : 0) +
   (view.note === null ? 0 : 1)
 
-/** Terminal rows the card takes: border, padding, its parts and the gaps between them. */
 export function cardRows(card: CardView, columns: number, density: CardDensity): number {
   const space = CARD_SPACE[density]
   const inner = Math.max(10, columns - 2 - 2 * across(space.padX))
   const lines = (text: string | null) =>
     text === null ? 0 : Math.max(1, Math.ceil(text.length / inner))
   const parts = [
-    1 + 1 + down(SPACE.lineGap), // kicker and title
+    1 + 1 + down(SPACE.lineGap),
     lines(card.why),
-    1, // command row
+    1,
     card.helpers.length > 0 ? 1 : 0,
     card.artifact === null ? 0 : 1,
     card.agents === null ? 0 : agentsRows(card.agents),
@@ -375,7 +342,6 @@ const DESKTOP_PT = {
   border: 2,
   header: 36,
   whyLine: 20,
-  /** The proportional font fits about 1.25 characters per code-font cell. */
   whyPerCell: 1.2,
   row: 28,
   gateLine: 20,
@@ -425,7 +391,6 @@ export function cardPoints(card: CardView, columns: number, density: CardDensity
   )
 }
 
-/** The densest card that fits the band, or undefined when the pane should show it instead. */
 export function fitCard(args: {
   card: CardView
   columns: number
@@ -447,16 +412,11 @@ export function fitCard(args: {
   )
 }
 
-// ─── Args ───────────────────────────────────────────────────────────────────────────────
-
-/** One feature in the switcher. */
 export type FeatureChoice = { key: FeatureKey; title: string; isActive: boolean }
 
 export type BandActions = {
-  /** A step was pressed; `fitsCard` says whether the card has room in the band. */
   step: (phase: PhaseId, fitsCard: boolean) => void
   triage: (fitsCard: boolean) => void
-  /** The summary chip opens the pane. */
   summary: () => void
   gear: () => void
   run: (phase: PhaseId | 'triage') => void
@@ -465,15 +425,11 @@ export type BandActions = {
   pickFeature: () => void
   switchFeature: (key: FeatureKey) => void
   notice: (action: NoticeAction) => void
-  /** The Agents list footer: stop every running agent after its step, or let Build go on. */
   pauseAll: () => void
-  /** The Agents list footer: the pane on its Worktrees tab. */
   openPanel: () => void
   raiseBudget: (ticket: IssueRef) => void
   diagnose: () => void
-  /** Ship's secondary button: `/mattpocock-skills:pr` rewrites the PR body. */
   writePr: () => void
-  /** The card's Mark done: the phase counts as done though no evidence shows it. */
   markDone: (phase: PhaseId) => void
 }
 
@@ -484,15 +440,12 @@ export type BandArgs = {
   maxRows: number
   tone: Tone | undefined
   ascii: boolean
-  /** `floor(now / SPIN_MS)`: the spinner frame, so a redraw alone moves it. */
   spinFrame: number
   below: RenderElement | undefined
   layout: RailLayout
-  /** Null when no feature is in flight. */
   flow: Flow | null
   config: CraftoryConfig
   waiting: number
-  /** Build's Agents list for the card; null when there is none to draw. */
   agents: AgentsView | null
   notices: readonly NoticeView[]
   open: PhaseId | 'triage' | null
@@ -502,8 +455,6 @@ export type BandArgs = {
 }
 
 export const spinFrameOf = (now: number) => Math.floor(now / SPIN_MS)
-
-// ─── Notices (unchanged from M2, plus the event rows) ───────────────────────────────────
 
 const NOTICE_GLYPH: Record<Role, string> = {
   hook: '!',
@@ -605,8 +556,6 @@ export const NoticeRow = ({ ui, tone, notice, on }: NoticeArgs) => {
     </Box>
   )
 }
-
-// ─── Rail ───────────────────────────────────────────────────────────────────────────────
 
 type RailArgs = BandArgs & { flow: Flow; titleMax: number }
 
@@ -898,10 +847,6 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   )
 }
 
-/**
- * The rail on a surface with no band (mobile): the same steps, wrapping onto more rows instead
- * of fitting one, with no title or gear because the pane header already has both.
- */
 export const PaneRail = ({
   ui,
   tone,
@@ -941,8 +886,6 @@ export const PaneRail = ({
     </Box>
   )
 }
-
-// ─── Card ───────────────────────────────────────────────────────────────────────────────
 
 const CommandChip = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => {
   const { Box, Text } = ui
@@ -1003,8 +946,6 @@ const CardRow = ({
   )
 }
 
-// ─── Build's Agents list ────────────────────────────────────────────────────────────────
-
 const BAR_CELLS = { terminal: 12, rich: 16 } as const
 const BAR_GLYPHS = { full: '█', empty: '░', fullAscii: '#', emptyAscii: '-' } as const
 
@@ -1042,7 +983,6 @@ const StatusBadge = ({ ui, tone, row }: Pick<AgentArgs, 'ui' | 'tone'> & { row: 
   )
 }
 
-/** Skill colour, amber from 80%, danger at 100%: glyph cells on the terminal, Box widths on desktop. */
 const TokenBar = ({ ui, tone, ascii, row }: Omit<AgentArgs, 'on'> & { row: AgentRow }) => {
   const { Box, Text } = ui
   const colour = paint(barRole(row), tone).fg
@@ -1436,8 +1376,6 @@ export const DetailCard = ({
     </Box>
   )
 }
-
-// ─── Band ───────────────────────────────────────────────────────────────────────────────
 
 export function renderBand(args: BandArgs) {
   const { ui, columns, maxRows, tone, below, layout, flow, config, waiting, notices, open, on } =

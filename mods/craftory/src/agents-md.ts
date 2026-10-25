@@ -1,14 +1,3 @@
-/**
- * The files /setup-matt-pocock-skills owns jointly with Craftory: docs/agents/issue-tracker.md,
- * triage-labels.md, domain.md, and the `## Agent skills` block of CLAUDE.md or AGENTS.md.
- *
- * Two directions, one model (`AgentSetup`):
- *   - `readSetup(files)`: files to AgentSetup (Settings shows it; evidence reads the tracker kind)
- *   - `planSetup(setup, files)`: AgentSetup and current files to the writes that make the files say it
- * Round-trip law: `planSetup(readSetup(files), files)` writes nothing.
- * Identity law: for the same answers the bytes equal what the upstream skill writes from its
- * seed templates (tests/agents-md.test.ts against the vendored 1.3.1 fixtures).
- */
 import type {
   AgentSetup,
   DocsLayout,
@@ -35,7 +24,6 @@ export const DEFAULT_DOCS: DocsLayout = { glossary: 'GLOSSARY.md', adr: 'docs/ad
 
 const ROLES = Object.keys(DEFAULT_LABELS) as TriageRole[]
 
-/** What the shell read; null = file absent. */
 export type SetupFiles = {
   tracker: string | null
   triage: string | null
@@ -44,8 +32,6 @@ export type SetupFiles = {
   agentsMd: string | null
   gitignore: string | null
 }
-
-// ─── Read ───────────────────────────────────────────────────────────────────────────────
 
 /** Upstream rule: CLAUDE.md if it exists, else AGENTS.md if it exists, else null (ask). */
 export function steeringOf(files: Pick<SetupFiles, 'claudeMd' | 'agentsMd'>): SteeringFile | null {
@@ -62,7 +48,6 @@ export function parseTrackerDoc(text: string): TrackerSetup {
   return { kind: 'other', description: text }
 }
 
-/** Right column of the label table, keyed by the left column's role. Missing rows keep the default. */
 export function parseTriageLabels(text: string): TriageLabels {
   const labels = { ...DEFAULT_LABELS }
   for (const row of text.split(/\r?\n/)) {
@@ -80,14 +65,8 @@ export function parseDomainDoc(text: string): DocsLayout {
   }
 }
 
-/**
- * Absent when issue-tracker.md is absent (first run). Tracker kind from its H1; labels from the
- * triage table; docs layout from domain.md; steering by upstream's pick rule. No triage file
- * reads as "triage skill not installed".
- */
 const HAS_BLOCK = /^## Agent skills[ \t]*\r?$/m
 
-/** The file that holds the `## Agent skills` block (CLAUDE.md first, as upstream), else null. */
 export function steeringWithBlock(
   files: Pick<SetupFiles, 'claudeMd' | 'agentsMd'>,
 ): SteeringFile | null {
@@ -106,12 +85,6 @@ export function readSetup(files: SetupFiles): Loaded<AgentSetup> {
   return { state: 'ok', value, raw: files.tracker }
 }
 
-// ─── Render ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * GitHub and GitLab: the upstream template with the PRs flag set. Local: Craftory's doc with the
- * issues folder filled in. Other: the user's description under a `# Issue tracker: Other` H1.
- */
 export function renderTrackerDoc(tracker: TrackerSetup, localFolder: string): string {
   switch (tracker.kind) {
     case 'github':
@@ -137,7 +110,6 @@ export function renderTrackerDoc(tracker: TrackerSetup, localFolder: string): st
   }
 }
 
-/** Replaces only the right-column cell of rows whose label changed; unchanged text stays as is. */
 export function renderTriageLabels(labels: TriageLabels, previous: string | null): string {
   const base = previous ?? TEMPLATES['triage-labels']
   const current = parseTriageLabels(base)
@@ -154,7 +126,6 @@ export function renderTriageLabels(labels: TriageLabels, previous: string | null
     .join('\n')
 }
 
-/** Upstream domain.md, with the glossary and ADR paths swapped in when they are not the defaults. */
 export function renderDomainDoc(docs: DocsLayout): string {
   return TEMPLATES.domain
     .replaceAll(DEFAULT_DOCS.glossary, docs.glossary)
@@ -183,7 +154,6 @@ const labelsSummary = (labels: TriageLabels) =>
     ? 'Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`'
     : 'Custom label vocabulary mapped onto the five triage roles'
 
-/** The `## Agent skills` block as upstream shows it; the triage sub-block only when `setup.triage`. */
 export function renderAgentSkillsBlock(setup: AgentSetup, localFolder: string): string {
   const parts = [
     '## Agent skills',
@@ -198,15 +168,8 @@ export function renderAgentSkillsBlock(setup: AgentSetup, localFolder: string): 
   return `${parts.join('\n\n')}\n`
 }
 
-// ─── Write ──────────────────────────────────────────────────────────────────────────────
-
 const eolOf = (text: string) => (text.includes('\r\n') ? '\r\n' : '\n')
 
-/**
- * Insert or replace the block in a steering file. The block runs from `## Agent skills` to the
- * next `## ` heading (or EOF). Text outside it is untouched byte for byte. Appended blocks are
- * separated from the text before them by exactly one blank line.
- */
 export function upsertBlock(steering: string | null, block: string): string {
   if (steering === null || steering === '') return block
   const eol = eolOf(steering)
@@ -222,7 +185,6 @@ export function upsertBlock(steering: string | null, block: string): string {
   return steering + gap + text
 }
 
-/** Whether an existing block already points at every doc the setup needs: then it is left alone. */
 const blockCovers = (steering: string | null, setup: AgentSetup) => {
   const heading = steering === null ? null : /^## Agent skills[ \t]*\r?$/m.exec(steering)
   if (steering === null || heading === null) return false
@@ -236,7 +198,6 @@ const blockCovers = (steering: string | null, setup: AgentSetup) => {
   return needed.every(doc => body.includes(doc))
 }
 
-/** Append `entry` on its own line when no line already names it (with or without a slash). */
 export function ensureGitignore(text: string | null, entry: string): string {
   if (text === null || text === '') return `${entry}\n`
   const bare = entry.replace(/\/$/, '')
@@ -255,21 +216,13 @@ const sameTracker = (a: TrackerSetup, b: TrackerSetup) => a.kind === b.kind && p
 
 const sameLabels = (a: TriageLabels, b: TriageLabels) => ROLES.every(r => a[r] === b[r])
 
-/**
- * The writes for a setup: the three docs (triage only when `setup.triage`), the block in the
- * steering file, and the worktrees folder in .gitignore. A doc that already says what the
- * setup says is left alone, hand edits included, so running twice plans nothing. Never creates
- * AGENTS.md when CLAUDE.md exists, or the reverse.
- */
 export function planSetup(
   setup: AgentSetup,
   files: SetupFiles,
   options: {
     worktreeFolder: string
     localFolder: string
-    /** Settings chose the steering file: honour it even when the other one exists. */
     chooseSteering?: boolean
-    /** Settings changed a value the block summarises: rewrite the block even if it points at the docs. */
     refreshBlock?: boolean
   },
 ): FileWrite[] {
@@ -318,9 +271,6 @@ export function planSetup(
   return writes
 }
 
-// ─── First run ──────────────────────────────────────────────────────────────────────────
-
-/** What Settings pre-fills on first run, from repo signals (upstream "Explore" step). */
 export type SetupSignals = {
   remoteHost: 'github' | 'gitlab' | 'other' | null
   hasScratch: boolean
@@ -329,7 +279,6 @@ export type SetupSignals = {
   hasTriageSkill: boolean
 }
 
-/** `git@github.com:o/r.git`, `https://gitlab.example/o/r` to the host family. */
 export function remoteHostOf(url: string | null): SetupSignals['remoteHost'] {
   const text = url?.trim()
   if (!text) return null
@@ -350,7 +299,6 @@ export function draftSetup(signals: SetupSignals): AgentSetup {
   }
 }
 
-/** "No `docs/agents/` yet. Found a GitHub remote and CONTEXT.md." */
 export function firstRunText(signals: SetupSignals): string {
   const found = [
     signals.remoteHost === 'github' ? 'a GitHub remote' : null,
@@ -362,11 +310,6 @@ export function firstRunText(signals: SetupSignals): string {
   return `No docs/agents/ yet.${list ? ` Found ${list}.` : ''}`
 }
 
-/**
- * A folder change in Settings: Craftory's own Local Markdown doc names the issues folder, so it
- * follows. Another text (upstream's local template, a hand edit) that never names the old
- * folder is left alone.
- */
 export function retargetTracker(doc: string, oldFolder: string, newFolder: string): string {
   return oldFolder === newFolder ? doc : doc.replaceAll(`\`${oldFolder}`, `\`${newFolder}`)
 }

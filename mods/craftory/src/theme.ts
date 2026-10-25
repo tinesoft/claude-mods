@@ -1,9 +1,3 @@
-/**
- * Tokens copied from session-activity's `TOKENS` (DESIGN "Palette"), so the two mods sit
- * together in one band. Craftory does not import across mods. Roles: skill (blue) is running
- * and up next, perm (teal) is done and merged, hook (amber) is needs you and gates, danger is
- * failed and over budget.
- */
 import type { Color, RenderSurface, Space } from 'claude-code'
 import type { ThemeChoice, Tone } from '../types'
 import type { RowStatus } from './build'
@@ -11,7 +5,6 @@ import type { StepState } from './evidence'
 
 export type { Tone }
 
-/** The design's neutral tokens, one set per tone. */
 export type Tokens = {
   page: string
   surface: string
@@ -90,7 +83,6 @@ export const TOKENS: Record<Tone, Tokens> = {
 
 export type Triple = { fg: string; bg: string; bd: string }
 
-/** The `skill`, `perm` and `hook` triples of session-activity's palette. */
 export const TRIPLES: Record<'skill' | 'perm' | 'hook', Record<Tone, Triple>> = {
   skill: {
     light: { fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7' },
@@ -108,7 +100,6 @@ export const TRIPLES: Record<'skill' | 'perm' | 'hook', Record<Tone, Triple>> = 
 
 export type Role = 'skill' | 'perm' | 'hook' | 'danger' | 'neutral' | 'muted'
 
-/** Theme keys a terminal without a known background falls back to, one per role. */
 const TERMINAL_KEY: Record<Role, Color> = {
   skill: 'suggestion',
   perm: 'planMode',
@@ -120,7 +111,6 @@ const TERMINAL_KEY: Record<Role, Color> = {
 
 export type Paint = { fg: Color; bg: Color | undefined; bd: Color | undefined }
 
-/** A role's colours in a tone. An undefined tone is the terminal's own colours. */
 export function paint(role: Role, tone: Tone | undefined): Paint {
   if (tone === undefined) return { fg: TERMINAL_KEY[role], bg: undefined, bd: undefined }
   const t = TOKENS[tone]
@@ -152,7 +142,6 @@ export type StateLook = {
   strike?: true
 }
 
-/** DESIGN "Phase step states": glyph, colour role and words per state. */
 export const STEP_LOOKS: Record<StepState['kind'], StateLook> = {
   done: { label: 'Done', glyph: '✓', ascii: 'v', role: 'perm', bold: false },
   next: { label: 'Up next', glyph: '▸', ascii: '>', role: 'skill', bold: true },
@@ -165,7 +154,6 @@ export const STEP_LOOKS: Record<StepState['kind'], StateLook> = {
   todo: { label: 'Not started', glyph: '·', ascii: '.', role: 'muted', bold: false },
 }
 
-/** The badge colour of an agent row; the words come from `ROW_LABELS`. */
 export const ROW_ROLES: Record<RowStatus, Role> = {
   merged: 'perm',
   'awaiting-merge': 'skill',
@@ -184,7 +172,6 @@ export const SPIN_MS = 150
 
 export const CONNECTOR = { glyph: '─', ascii: '-' } as const
 
-/** Layout spacing by design role, as the step each board pixel value rounds to. */
 export const SPACE = {
   noticeGap: 'sm',
   noticePadX: 'md',
@@ -226,12 +213,9 @@ const CLAUDE_THEME = /^(light|dark)(-daltonized|-ansi)?$/
 
 export type ToneInput = {
   theme: ThemeChoice
-  /** The Claude Code `theme` setting. */
   claudeTheme: unknown
   surface: RenderSurface
-  /** The tone `COLORFGBG` names, when the terminal sets it. */
   colorFgBg: Tone | undefined
-  /** The tone the operating system appearance names, probed off the render path. */
   system: Tone | undefined
 }
 
@@ -258,15 +242,12 @@ export function resolveTone({
 const ACROSS = { xs: 1, sm: 1, md: 2, lg: 3, xl: 4 } as const
 const DOWN = { xs: 0, sm: 0, md: 1, lg: 1, xl: 2 } as const
 
-/** Cells a step takes along a row on the terminal, and a plain number as itself. */
 export const across = (space: Space) => (typeof space === 'number' ? space : ACROSS[space])
 
-/** Cells a step takes down a column on the terminal. */
 export const down = (space: Space) => (typeof space === 'number' ? space : DOWN[space])
 
 const channels = (hex: string) => [1, 3, 5].map(at => Number.parseInt(hex.slice(at, at + 2), 16))
 
-/** Blends `#RRGGBB` a toward b by t (0 is a, 1 is b). */
 export const mix = (a: string, b: string, t: number) => {
   const [from, to] = [channels(a), channels(b)]
   const hex = from.map((c, i) =>

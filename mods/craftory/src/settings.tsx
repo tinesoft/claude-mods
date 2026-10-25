@@ -1,7 +1,3 @@
-/**
- * The Settings tab: drawn from `SECTIONS`, one section at a time. Mobile draws no text field, so
- * `readOnly` shows every value as text there; the same tree serves all four surfaces.
- */
 import type { SettingsSection, Term, TermDraft, Tone } from '../types'
 import {
   HELPERS,
@@ -20,11 +16,9 @@ export type GlossaryEdit = {
   draft: TermDraft
   path: string
   hasContextMd: boolean
-  /** Why the last add or edit did not save. */
   error: string | null
 }
 
-/** Moving `.scratch/` issues into the Local tracker's folder: what would be written. */
 export type ScratchOffer = { count: number; folder: string }
 
 export type SettingsActions = {
@@ -48,11 +42,9 @@ export type SettingsActions = {
 export type SettingsArgs = {
   ui: Ui
   tone: Tone | undefined
-  /** Mobile: values shown, nothing editable. */
   readOnly: boolean
   facts: SettingsFacts
   section: SettingsSection
-  /** True before `docs/agents/` exists: values are a pre-fill and nothing is written yet. */
   isDraft: boolean
   firstRun: string
   glossary: GlossaryEdit

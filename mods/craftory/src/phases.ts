@@ -1,32 +1,19 @@
-/**
- * The phase registry: the one list of phases, their commands, helpers, copy and gate default.
- * Config defaults, Settings pipeline rows, rail steps, card copy and command recognition all
- * derive from PHASES, so a new phase cannot be added in one list and forgotten in another.
- */
 import type { EntryId, PhaseId, SkillName } from '../types'
 
 export const PLUGIN = 'mattpocock-skills'
 export const INSTALL_ID = 'mattpocock-skills@claude-plugins-official'
-/** Plan O2. Widened per release after the end-to-end fixture passes. */
 export const TESTED_RANGE = { min: '1.3.0', below: '1.4.0', label: '1.3.x' } as const
 
 export type PhaseSpec = {
   n: number
   label: string
-  /** Alternatives the user can pick in Settings; the first is the default. Empty: no command. */
   commands: readonly SkillName[]
   helpers: readonly SkillName[]
   defaultGate: boolean
   why: string
-  /** "None to type" line when `commands` is empty. */
   startedBy?: string
   artifactLabel: string
   pipelineDesc: string
-  /**
-   * When a person may mark the phase done. `always`: nothing on the tracker can show it.
-   * `untracked`: Local and GitHub hold a real issue as evidence, so only GitLab and Other
-   * (links, no issues) take a mark.
-   */
   markDone: 'always' | 'untracked'
 }
 
@@ -135,7 +122,6 @@ for (const phase of PHASE_ORDER) {
   for (const skill of PHASES[phase].helpers)
     register(skill, k => ({ kind: 'helper', phase, skill: k }))
 }
-// code-review and pr are helpers upstream, but they are the observable start of Review and Ship.
 register(s('code-review'), skill => ({ kind: 'phase', phase: 'review', skill }))
 register(s('pr'), skill => ({ kind: 'phase', phase: 'ship', skill }))
 for (const phase of PHASE_ORDER) {
@@ -149,10 +135,6 @@ for (const entry of Object.keys(ENTRIES) as EntryId[]) {
 register(s('setup-matt-pocock-skills'), skill => ({ kind: 'setup', skill }))
 register(s('wait-what'), skill => ({ kind: 'glossary', skill }))
 
-/**
- * `mattpocock-skills:to-spec` resolves to the spec phase. Only the namespaced form counts when
- * `strict`, because a user copy of a skill under another plugin is not Matt's.
- */
 export function recognise(name: string, { strict = true } = {}): Recognised | undefined {
   const bare = name.replace(/^\//, '')
   const at = bare.indexOf(':')
@@ -162,7 +144,6 @@ export function recognise(name: string, { strict = true } = {}): Recognised | un
 
 export const namespaced = (skill: SkillName) => `${PLUGIN}:${skill}`
 
-/** The phase before `phase` for which `isOn` holds: the one whose gate guards it. */
 export function predecessor(phase: PhaseId, isOn: (p: PhaseId) => boolean): PhaseId | undefined {
   return PHASE_ORDER.slice(0, PHASE_ORDER.indexOf(phase)).reverse().find(isOn)
 }

@@ -21,7 +21,6 @@ const make =
     children: flat(children),
   })
 
-/** Elements that only record what was asked, so a render function can be read without an engine. */
 export const fakeUi = (rich = false): Ui =>
   ({
     Box: make('Box'),

@@ -1,10 +1,3 @@
-/**
- * The repository as Craftory last read it, and every write back to it. This module owns the
- * `repo`, `plugin` and `install` atoms and is the only code that reads or updates them; other
- * modules call `repoSnapshot`, `pluginOf` and `installOf`.
- *
- * `$.fs.write` is called once, in `writeRepoFile`, which refuses a path outside the allowlist.
- */
 import { atom, type EngineInterface, read, update } from 'claude-code'
 import {
   AGENT_DOCS,
@@ -144,11 +137,7 @@ export async function writableContext($: EngineInterface, steering?: WritableCon
 
 type WriteResult = { ok: true } | { ok: false; reason: string }
 
-export /**
- * The only `$.fs.write` call. Refuses a path outside the allowlist (a programming error the
- * engine test catches) and, for files shared with other writers, a file that changed since the
- * write was planned.
- */ async function writeRepoFile(
+export async function writeRepoFile(
   $: EngineInterface,
   op: FileWrite,
   ctx: WritableContext,
@@ -186,7 +175,7 @@ const GIT_MS = 15_000
 
 type Shell = { exitCode: number; stdout: string; stderr: string }
 
-/** One command; null when it cannot start, which every caller treats as a failed command. */ export function sh(
+export function sh(
   $: EngineInterface,
   argv: readonly string[],
   init?: { cwd?: string; timeoutMs?: number },

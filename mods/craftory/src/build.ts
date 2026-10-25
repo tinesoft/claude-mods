@@ -1,20 +1,3 @@
-/**
- * Build steering: pure transitions over `BuildLedger`. register.tsx owns the one atom and
- * performs the effects each transition names.
- *
- * One implementer, keyed by the Agent tool's `tool_use_id` until the engine gives an agent id:
- *
- *   tool.call Agent ──decideSpawn──► pass | deny (queue, paused, blocked) | steer
- *        steer: `isolation` stripped, `name` set, pending[toolUseId] = SeatPlan
- *   agent.spawn (same tool_use_id) ──► shell makes the worktree, next({ ...e, cwd }),
- *        then seated(): pending[toolUseId] -> runs[agentId]
- *   turn.step (agentId) ──recordUsage──► tokens += fresh tokens; 80% near, 100% over + stopping
- *   turn.step (agentId, isStopping) ──► answered without `next`, which ends the subagent
- *   turn.complete (agentId) ──finishRun──► done | failed | stopped, written to the feature record
- *
- * The seat goes through `agent.spawn`'s `cwd`, not `classic.WorktreeCreate`: the spawn carries
- * the same `tool_use_id` as the call, so the ticket and its worktree pair exactly (M4 spike).
- */
 import type {
   AgentId,
   AgentRecord,
@@ -33,8 +16,6 @@ import type { Flow, TicketRow } from './evidence'
 
 export const EMPTY_LEDGER: BuildLedger = { pending: {}, runs: {}, queued: [], isPaused: false }
 
-/** A budget is near at 80%: `tokens * 5 >= budget * 4`, in integers so 79.99% never rounds up. */
-/** The Agent tool input fields Craftory reads. */
 export type AgentCall = {
   toolUseId: string
   description: string
@@ -47,8 +28,6 @@ export type SpawnDecision =
   | { kind: 'pass' }
   | { kind: 'deny'; reason: string; ticket: IssueRef; isQueued: boolean }
   | { kind: 'steer'; name: string; plan: SeatPlan }
-
-// ─── Budget ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Fresh tokens of one request: input + cache creation + output. Cache reads are excluded:
@@ -64,17 +43,13 @@ export const freshTokens = (usage: {
 export const budgetState = (tokens: number, budget: number): BudgetState =>
   tokens >= budget ? 'over' : tokens * 5 >= budget * 4 ? 'near' : 'ok'
 
-/** The ticket's budget: the config step, or what Raise budget stored for it, whichever is more. */
 export const budgetFor = (config: CraftoryConfig, record: AgentRecord | undefined): number =>
   Math.max(config.worktrees.tokenBudget, record?.budget ?? 0)
 
 export const budgetK = (budget: number) => `${Math.round(budget / 1000)}k`
 
-// ─── Naming and the seat ────────────────────────────────────────────────────────────────
-
 const refNumber = (ref: IssueRef) => ref.replace(/^#/, '')
 
-/** Agent name: `craftory-44-ledger-tax`, `-2` and up for a retry while the name is taken. */
 export function agentName(ref: IssueRef, title: string, taken: ReadonlySet<string>): string {
   const base = `craftory-${refNumber(ref)}-${slugify(title, 4, 32)}`.replace(/-$/, '')
   if (!taken.has(base)) return base
@@ -105,7 +80,6 @@ export function seatPlan(args: {
   }
 }
 
-/** `pnpm install --frozen-lockfile` to argv, honouring simple quotes. No shell runs it. */
 export function splitArgv(command: string): string[] | null {
   const argv: string[] = []
   const word = /"([^"]*)"|'([^']*)'|(\S+)/g
@@ -113,12 +87,9 @@ export function splitArgv(command: string): string[] | null {
   return argv.length === 0 ? null : argv
 }
 
-// ─── Ledger reads ───────────────────────────────────────────────────────────────────────
-
 const liveRuns = (ledger: BuildLedger) =>
   Object.values(ledger.runs).filter(run => run.status === 'running')
 
-/** Running tickets, then the tickets whose spawn is being seated. For the queue reason and the footer. */
 export const runningTickets = (ledger: BuildLedger): IssueRef[] => [
   ...liveRuns(ledger).map(run => run.ticket),
   ...Object.values(ledger.pending).map(seat => seat.plan.ticket),
@@ -131,7 +102,6 @@ export const runOf = (ledger: BuildLedger, ticket: IssueRef): AgentRun | undefin
     .filter(run => run.ticket === ticket)
     .sort((a, b) => b.startedAt - a.startedAt)[0]
 
-/** Build is under way: the skill runs, agents work, or one needs the user. */
 export const isBuilding = (flow: Flow | null): boolean => {
   const kind = flow?.steps.find(s => s.phase === 'build')?.state.kind
   return kind === 'running' || kind === 'needs-you' || kind === 'over-budget' || kind === 'failed'
@@ -147,20 +117,12 @@ export const withoutIsolation = <T extends object>(call: T): Omit<T, 'isolation'
     'isolation'
   >
 
-// ─── Deciding a spawn ───────────────────────────────────────────────────────────────────
-
 const TICKET_REF = /#\d+/g
 
-/** The tickets a text names, in order, once each. */
 const namedIn = (text: string, known: ReadonlySet<string>): string[] => [
   ...new Set((text.match(TICKET_REF) ?? []).filter(ref => known.has(ref))),
 ]
 
-/**
- * The ticket an Agent call is for: the first not-yet-merged ticket of the feature named in the
- * description, else the name, else the prompt. A prompt also names blockers, so merged ones
- * are skipped.
- */
 export function ticketOf(call: AgentCall, tickets: readonly TicketRow[]): TicketRow | undefined {
   const known = new Set<string>(tickets.map(t => t.issue.ref))
   for (const text of [call.description, call.name ?? '', call.prompt]) {
@@ -202,8 +164,6 @@ const duplicateReason = (ticket: IssueRef) =>
  * for a worktree (`isolation: 'worktree'`, as implement-spec step 4 instructs) while Build runs
  * and names a ticket of the active feature. Mergers and explorers name tickets too but ask for
  * no worktree, so they pass untouched.
- *
- * A denied spawn is the queue (never held): the reason tells the model what to wait for.
  */
 export function decideSpawn(args: {
   call: AgentCall
@@ -243,8 +203,6 @@ export function decideSpawn(args: {
   }
 }
 
-// ─── Transitions ────────────────────────────────────────────────────────────────────────
-
 export const addPending = (
   ledger: BuildLedger,
   toolUseId: string,
@@ -258,7 +216,6 @@ export const addPending = (
 export const addQueued = (ledger: BuildLedger, ticket: IssueRef): BuildLedger =>
   ledger.queued.includes(ticket) ? ledger : { ...ledger, queued: [...ledger.queued, ticket] }
 
-/** The spawn is over, seated or not: forget the pending seat. */
 export const dropPending = (ledger: BuildLedger, toolUseId: string): BuildLedger => {
   if (!(toolUseId in ledger.pending)) return ledger
   return {
@@ -267,7 +224,6 @@ export const dropPending = (ledger: BuildLedger, toolUseId: string): BuildLedger
   }
 }
 
-/** pending[toolUseId] becomes runs[agentId]; the ticket leaves the queue. */
 export function seated(
   ledger: BuildLedger,
   toolUseId: string,
@@ -301,10 +257,6 @@ export function seated(
   }
 }
 
-/**
- * Adds a step's tokens. `crossed` names the threshold this step crossed. The state only moves
- * ok, near, over, so each fires once. Over also marks the run stopping.
- */
 export function recordUsage(
   ledger: BuildLedger,
   agentId: AgentId,
@@ -340,10 +292,6 @@ export function patchRun(
 const TDD_FULL = /\b(red|green|refactor)\b[^\n\d]{0,20}?\btest\s+(\d+)\s+of\s+(\d+)/i
 const TDD_LEAD = /^\s*(?:TDD\s*[:·-]\s*)?(red|green|refactor)\s*(?:[:·-]|$)/im
 
-/**
- * The TDD step from a step's answer, only when the agent says it: `red · test 4 of 5`, or just
- * the colour when a line leads with it. Null means not observable; the row then shows none.
- */
 export function tddStepOf(answer: string): string | null {
   const full = TDD_FULL.exec(answer)
   if (full) return `${full[1]!.toLowerCase()} · test ${full[2]} of ${full[3]}`
@@ -373,7 +321,6 @@ export function finishRun(
 
 const isoOf = (ms: Millis): IsoTime => new Date(ms).toISOString()
 
-/** A live run as the stored fact: written at the seat, at threshold crossings and at the end. */
 export function recordOf(run: AgentRun): AgentRecord {
   const isOver =
     run.budgetState === 'over' && (run.status === 'running' || run.status === 'stopped')
@@ -390,8 +337,6 @@ export function recordOf(run: AgentRun): AgentRecord {
   }
 }
 
-// ─── Stopping, pausing and moving ───────────────────────────────────────────────────────
-
 export const stopText = (ticket: IssueRef, budget: number) =>
   `Craftory: ${ticket} reached its ${budgetK(budget)} token budget. Stop now. ` +
   'Do not start new work. Report what is done, what is left and the state of the tests, then end.'
@@ -406,13 +351,11 @@ export const conflictText = (ticket: IssueRef) =>
 export const markStopping = (ledger: BuildLedger, agentId: AgentId): BuildLedger =>
   patchRun(ledger, agentId, { isStopping: true })
 
-/** What a stopping agent's next `turn.step` says in place of a model request. */
 export const stoppedAnswer = (run: AgentRun) =>
   run.budgetState === 'over'
     ? `Stopped by Craftory: ${run.ticket} is over its ${budgetK(run.budget)} token budget. The worktree is kept.`
     : `Stopped by Craftory: ${run.ticket} was paused. The worktree is kept.`
 
-/** The result `turn.step` returns for a stopping agent instead of calling `next`. */
 export const stoppedStep = (turnId: string, index: number, run: AgentRun) => ({
   turnId,
   index,
@@ -422,10 +365,6 @@ export const stoppedStep = (turnId: string, index: number, run: AgentRun) => ({
   usage: null,
 })
 
-/**
- * The running agents to tell that the integration tip moved and they are behind it. Craftory
- * never rebases a worktree under a running agent: the agent merges the new tip itself.
- */
 export function moveNotices(
   ledger: BuildLedger,
   worktrees: readonly Pick<Worktree, 'path' | 'behind'>[],
@@ -445,21 +384,14 @@ export function moveNotices(
   })
 }
 
-/** `/repo/.worktrees/44-x` and `.worktrees/44-x` are the same worktree. */
 export const samePath = (absolute: string, relative: string) => {
   const a = absolute.replace(/\/+$/, '')
   const r = relative.replace(/^\.\//, '').replace(/\/+$/, '')
   return a === r || a.endsWith(`/${r}`)
 }
 
-// ─── Cleanup ────────────────────────────────────────────────────────────────────────────
-
 export type KeepWhy = 'running' | 'unmerged' | 'failed' | 'over-budget' | 'stopped'
 
-/**
- * Which worktrees to remove (merged and removeAfterMerge, or a failed one when keepFailed is
- * off) and which to keep with the reason. Running worktrees are always kept.
- */
 export function cleanupPlan(args: {
   records: readonly AgentRecord[]
   merged: ReadonlySet<string>
@@ -484,8 +416,6 @@ export function cleanupPlan(args: {
   return { remove, keep }
 }
 
-// ─── The agents list ────────────────────────────────────────────────────────────────────
-
 export type RowStatus =
   | 'merged'
   | 'awaiting-merge'
@@ -501,19 +431,15 @@ export type AgentRow = {
   ref: IssueRef
   title: string
   status: RowStatus
-  /** The TDD step, only when the agent said it; the state words for the rows without an agent. */
   step: string | null
   tokens: number
   budget: number
-  /** Null when no agent ever ran for the ticket. */
   elapsedMs: number | null
   worktree: string | null
   branch: string | null
   added: number | null
   deleted: number | null
-  /** `3 commits`, `1 commit · 1 behind`; null before the first look at git. */
   commits: string | null
-  /** Why a row has no agent: what it waits for, or where it merged. */
   note: string | null
 }
 
@@ -528,7 +454,6 @@ const recordRowStatus = (r: AgentRecord): RowStatus =>
         ? 'awaiting-merge'
         : 'stopped'
 
-/** One row per ticket of the feature, from the ledger, the stored records and the git snapshot. */
 export function agentRows(args: {
   tickets: readonly TicketRow[]
   ledger: BuildLedger
@@ -656,7 +581,6 @@ export const ROW_LABELS: Record<RowStatus, string> = {
   stopped: 'Stopped',
 }
 
-/** `2 running · 1 merged · 1 queued · 1 for you`. */
 export function agentSummary(rows: readonly AgentRow[]): string {
   const n = (...statuses: RowStatus[]) => rows.filter(r => statuses.includes(r.status)).length
   const parts: [number, string][] = [
@@ -674,23 +598,19 @@ export function agentSummary(rows: readonly AgentRow[]): string {
 
 export const kTokens = (n: number) => (n === 0 ? '0' : `${(n / 1000).toFixed(1)}k`)
 
-/** `4m 01s`, or an em dash before the agent started. */
 export function elapsedText(ms: number | null): string {
   if (ms === null || ms <= 0) return '—'
   const s = Math.round(ms / 1000)
   return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`
 }
 
-/** What the Build card's Agents list draws: rows already worded, and the lines around them. */
 export type AgentsView = {
   summary: string
   tokens: string
   rows: AgentRow[]
-  /** Rows past the cap, named in a last line. */
   more: number
   footer: string
   isPaused: boolean
-  /** Why steering is limited here, as an info row; null when it works. */
   note: string | null
 }
 
@@ -719,7 +639,6 @@ export const hasMeterLine = (row: AgentRow) =>
 
 export const hasWorktreeLine = (row: AgentRow) => row.worktree !== null || row.note !== null
 
-/** The role of a row's token bar: skill, amber from 80%, danger at 100%; teal once merged. */
 export function barRole(row: AgentRow): 'skill' | 'hook' | 'danger' | 'perm' {
   if (row.status === 'merged') return 'perm'
   const state = budgetState(row.tokens, row.budget)
