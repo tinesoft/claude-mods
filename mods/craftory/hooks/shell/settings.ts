@@ -142,7 +142,20 @@ async function commitWrites(
   const real = writes.filter(w => w.after !== w.before)
   if (real.length === 0) return 'Everything is already as you set it.'
   if (!(await confirmFirstWrites($, real, ctx))) return 'Not written. Nothing changed.'
-  const { wrote, refused } = await applyWrites($, real, ctx)
+  const settled: FileWrite[] = []
+  for (const write of real) {
+    if (write.replan === undefined) {
+      settled.push(write)
+      continue
+    }
+    const current = await readText($, write.path)
+    try {
+      settled.push({ path: write.path, before: current, after: write.replan(current) })
+    } catch {
+      return `${write.path} is not valid JSON any more. Nothing was written.`
+    }
+  }
+  const { wrote, refused } = await applyWrites($, settled, ctx)
   await loadRepo($)
   return refused ? `${refused}. Nothing more was written; try again.` : `Saved ${wrote.join(', ')}.`
 }
@@ -181,7 +194,12 @@ async function commitChange($: EngineInterface, change: SettingsChange) {
         `.craftory/config.json is not valid JSON (${repo.config.problem}). Fix it first.`,
       )
     const after = patchConfig(configText, change.config)
-    writes.push({ path: CONFIG_PATH, before: configText, after })
+    writes.push({
+      path: CONFIG_PATH,
+      before: configText,
+      after,
+      replan: current => patchConfig(current, change.config!),
+    })
     nextConfig = configOf(parseConfig(after))
   }
   const next = change.setup ? change.setup(current.setup) : current.setup

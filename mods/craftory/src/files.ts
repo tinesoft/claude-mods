@@ -6,7 +6,13 @@ export type WritableContext = {
   issuesFolder: string
 }
 
-export type FileWrite = { path: string; before: string | null; after: string }
+export type FileWrite = {
+  path: string
+  before: string | null
+  after: string
+  /** Rebuilds `after` from the file as it is now, for a change that applies over any contents. */
+  replan?: (current: string | null) => string
+}
 
 export const AGENT_DOCS = {
   tracker: 'docs/agents/issue-tracker.md',
@@ -63,6 +69,13 @@ export function isShared(path: string, ctx: WritableContext): boolean {
   const clean = normalise(path)
   return clean !== undefined && !clean.startsWith('.craftory/') && isWritable(clean, ctx)
 }
+
+/**
+ * Whether a write must find the file as it was planned. Shared files are guarded because
+ * others edit them; `config.json` because Craftory rewrites it whole and does not merge.
+ */
+export const isGuarded = (path: string, ctx: WritableContext): boolean =>
+  isShared(path, ctx) || normalise(path) === CONFIG_FILE
 
 export function diffSummary(before: string | null, after: string): string {
   const lines = (text: string | null) => (text === null ? [] : text.split(/\r?\n/))

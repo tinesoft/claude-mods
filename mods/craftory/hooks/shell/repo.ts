@@ -12,7 +12,7 @@ import { CONFIG_PATH, configOf, parseConfig } from '../../src/config'
 import {
   type FileWrite,
   GITIGNORE,
-  isShared,
+  isGuarded,
   isWritable,
   type WritableContext,
 } from '../../src/files'
@@ -144,7 +144,7 @@ export async function writeRepoFile(
 ): Promise<WriteResult> {
   if (!isWritable(op.path, ctx))
     throw new Error(`craftory: ${op.path} is not a file Craftory writes`)
-  if (isShared(op.path, ctx) && (await readText($, op.path)) !== op.before) {
+  if (isGuarded(op.path, ctx) && (await readText($, op.path)) !== op.before) {
     return { ok: false, reason: `${op.path} changed since it was planned` }
   }
   await $.fs.write(op.path, op.after)

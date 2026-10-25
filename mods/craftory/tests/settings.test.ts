@@ -227,3 +227,37 @@ test('desktop draws the switches as Svg tracks in the tone’s colours', async (
   expect(svgs.length).toBeGreaterThanOrEqual(6)
   expect(String(svgs[0]!.props.source)).toContain(TOKENS.dark.switchOn)
 })
+
+const CONFIG = '.craftory/config.json'
+const MINE = '{\n  "version": 1,\n  "worktrees": { "maxParallel": 3 }\n}\n'
+const THEIRS = '{\n  "version": 1,\n  "worktrees": { "maxParallel": 3 },\n  "custom": true\n}\n'
+
+test('a setting is applied to config.json as it is when written, not as it was when the pane last read it', async ($, on) => {
+  const { w, pane } = await settings(
+    on,
+    $,
+    'local',
+    { files: { [CONFIG]: MINE }, racy: { path: CONFIG, onRead: 3, text: THEIRS } },
+    'terminal',
+    'worktrees',
+  )
+  await pane.press({ key: 'set-wt-max-parallel-6' })
+  const saved = JSON.parse(w.files.get(CONFIG)!)
+  expect(saved.custom).toBe(true)
+  expect(saved.worktrees.maxParallel).toBe(6)
+})
+
+test('config.json edited between that re-read and the write is not overwritten', async ($, on) => {
+  const { w, pane } = await settings(
+    on,
+    $,
+    'local',
+    { files: { [CONFIG]: MINE }, racy: { path: CONFIG, onRead: 4, text: THEIRS } },
+    'terminal',
+    'worktrees',
+  )
+  await pane.press({ key: 'set-wt-max-parallel-6' })
+  expect(w.files.get(CONFIG)).toBe(MINE)
+  await pane.redraw()
+  expect(await allText(pane)).toContain('.craftory/config.json changed since it was planned')
+})
