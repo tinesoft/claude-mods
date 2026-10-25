@@ -1,7 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { TRIPLES } from '../src/theme'
-import type {
-  world} from './harness';
+import type { world } from './harness'
 import {
   allText,
   BAND_SURFACES,
@@ -10,7 +9,7 @@ import {
   skillPrompt,
   startSession,
   submit,
-  turnComplete
+  turnComplete,
 } from './harness'
 
 const DRAFT = {
