@@ -153,8 +153,11 @@ const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } a
 
 const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
 
-/** A rail press or a notice button: the same gate as a typed command, then the namespaced command. */
-export async function requestRun($: EngineInterface, skill: SkillName, args: string) {
+/** A rail press or a notice button: the same gate as a typed command, then the namespaced command. */ export async function requestRun(
+  $: EngineInterface,
+  skill: SkillName,
+  args: string,
+) {
   const req = requestOf(skill, args) ?? { skill, args, phase: null }
   if (await holdForGate($, req, await currentFlow($))) return
   await update($, openStepState, () => null)
@@ -187,8 +190,9 @@ export async function togglePicker($: EngineInterface) {
   $.ui.invalidate('ui.render')
 }
 
-/** Switching feature closes the picker and any open step card. */
-export async function closeRailPopups($: EngineInterface) {
+/** Switching feature closes the picker and any open step card. */ export async function closeRailPopups(
+  $: EngineInterface,
+) {
   await update($, isPickingFeatureState, () => false)
   await update($, openStepState, () => null)
 }
@@ -198,14 +202,17 @@ export async function searchGlossary($: EngineInterface, text: string) {
   $.ui.invalidate('ui.render')
 }
 
-/** The glossary's terms at session start, so a term added since can be told apart. */
-export async function rememberGlossaryAtStart($: EngineInterface) {
+/** The glossary's terms at session start, so a term added since can be told apart. */ export async function rememberGlossaryAtStart(
+  $: EngineInterface,
+) {
   const atStart = (await glossaryTerms($)).map(t => termKey(t.name))
   await update($, glossaryAtStartState, () => atStart)
 }
 
-/** The glossary terms the last reply used, for the Glossary tab's "used" mark. */
-export async function noteReplyTerms($: EngineInterface, answer: string) {
+/** The glossary terms the last reply used, for the Glossary tab's "used" mark. */ export async function noteReplyTerms(
+  $: EngineInterface,
+  answer: string,
+) {
   const terms = await glossaryTerms($)
   await update($, lastReplyTermsState, () => termKeysIn(answer, terms))
 }
