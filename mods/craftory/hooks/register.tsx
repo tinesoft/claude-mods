@@ -161,6 +161,7 @@ import {
   type GlossaryEditError,
 } from '../src/glossary'
 import { termKeysIn } from '../src/reply'
+import { planScratchImport, scratchSummary, type ScratchFile } from '../src/scratch'
 import type {
   AgentId,
   AgentRun,
@@ -652,6 +653,62 @@ async function rerunSetup($: EngineInterface) {
   if (!hasSkill(await read($, pluginState), 'setup-matt-pocock-skills'))
     return void $.ui.toast('Install mattpocock-skills first: the setup skill comes with it')
   await $.command.run({ command: namespaced('setup-matt-pocock-skills' as SkillName), args: '' })
+}
+
+// ─── Settings: the .scratch/ import ─────────────────────────────────────────────────────
+
+async function readScratch($: EngineInterface): Promise<ScratchFile[]> {
+  const found: ScratchFile[] = []
+  const take = async (path: string) => {
+    const text = await readText($, path)
+    if (text !== null) found.push({ path, text })
+  }
+  const features = (await $.fs.list('.scratch').catch(() => [])).filter(e => e.kind === 'dir')
+  for (const feature of features) {
+    const base = `.scratch/${feature.name}`
+    await take(`${base}/spec.md`)
+    const issues = await $.fs.list(`${base}/issues`).catch(() => [])
+    for (const issue of issues)
+      if (issue.kind === 'file' && issue.name.endsWith('.md'))
+        await take(`${base}/issues/${issue.name}`)
+  }
+  return found
+}
+
+async function scratchPlan($: EngineInterface, folder: string) {
+  const taken = (await $.fs.list(folder).catch(() => []))
+    .map(e => /^(\d+)-/.exec(e.name)?.[1])
+    .flatMap(n => (n === undefined ? [] : [Number(n)]))
+  return planScratchImport({ files: await readScratch($), taken, folder })
+}
+
+/** Offered only for a Local tracker with a `.scratch/` folder; writes after the person confirms. */
+async function importScratch($: EngineInterface) {
+  const { setup } = await currentSetup($)
+  const config = configOf((await read($, repoState))?.config)
+  const folder = config.tracker.local.folder
+  const plan = await scratchPlan($, folder)
+  if (plan.items.length === 0) return say($, 'Nothing to import from .scratch/.')
+  const answer = await $.ui
+    .ask(
+      `Copy ${scratchSummary(plan)} from .scratch/ into ${folder}? Nothing in .scratch/ is moved or deleted.`,
+      ['Import', 'Not now'],
+    )
+    .catch(() => 'Not now')
+  if (answer !== 'Import') return
+  const { wrote, refused } = await applyWrites(
+    $,
+    plan.writes,
+    await settingsContext($, setup, folder),
+  )
+  await say(
+    $,
+    refused
+      ? `${refused}. Imported ${wrote.length} of ${plan.items.length}.`
+      : `Imported ${scratchSummary(plan)} into ${folder}.`,
+  )
+  await refreshTracker($)
+  await settle($)
 }
 
 // ─── Settings: the glossary ─────────────────────────────────────────────────────────────
@@ -1706,6 +1763,11 @@ async function jumpToTerm($: EngineInterface, name: string) {
   await openPane($, 'settings')
 }
 
+async function scratchOffer($: EngineInterface, folder: string) {
+  const plan = await scratchPlan($, folder)
+  return plan.items.length === 0 ? null : { count: plan.items.length, folder }
+}
+
 async function settingsArgs(
   $: EngineInterface,
   options: Readonly<Record<string, unknown>>,
@@ -1731,7 +1793,13 @@ async function settingsArgs(
       hasContextMd: repo?.hasContextMd ?? false,
       error,
     },
-    scratch: null,
+    scratch:
+      facts.setup.tracker.kind === 'local' &&
+      repo?.hasScratch &&
+      section === 'tracker' &&
+      (await read($, paneTabState)) === 'settings'
+        ? await scratchOffer($, facts.config.tracker.local.folder)
+        : null,
     note,
     on: {
       section: id => {
@@ -1741,7 +1809,7 @@ async function settingsArgs(
       saveSetup: () => void saveSetup($),
       reset: () => void resetSettings($),
       rerunSetup: () => void rerunSetup($),
-      importScratch: () => undefined,
+      importScratch: () => void importScratch($),
       term: {
         draft: patch => {
           void update($, termDraftState, held => ({ ...held, ...patch })).then(() =>

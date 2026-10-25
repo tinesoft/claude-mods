@@ -176,15 +176,16 @@ export const world = (on: On, options: WorldOptions = {}) => {
   }))
   on('fs.list', (_$, e) => {
     const dir = dirs(e.path)
-    const names = [...files.keys()]
-      .filter(f => f.startsWith(`${dir}/`) && !f.slice(dir.length + 1).includes('/'))
+    const below = [...files.keys()]
+      .filter(f => f.startsWith(`${dir}/`))
       .map(f => f.slice(dir.length + 1))
+    const names = [...new Set(below.map(f => f.split('/')[0]!))]
     return names.length === 0
       ? { deny: `${e.path}: no such directory` }
       : {
           value: names.map(name => ({
             name,
-            kind: 'file' as const,
+            kind: below.some(f => f.startsWith(`${name}/`)) ? ('dir' as const) : ('file' as const),
             size: 0,
             mtimeMs: 1,
             isLink: false,
