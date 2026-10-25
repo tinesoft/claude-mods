@@ -64,7 +64,12 @@ function statusOf(
   return { status: role === 'wontfix' ? 'closed' : 'open', role }
 }
 
-function createdAtOf(created: string, mtimeMs: number | null): number | null {
+/**
+ * When a spec counts as created, for `bindSpec` to compare with when `to-spec` ran. A date-only
+ * `created` has no time of day, so it counts as the end of that day, which keeps a spec written
+ * today after a draft started earlier today.
+ */
+function createdAtForBinding(created: string, mtimeMs: number | null): number | null {
   const parsed = Date.parse(created)
   if (!Number.isNaN(parsed))
     return /^\d{4}-\d{2}-\d{2}$/.test(created) ? parsed + 86_400_000 - 1 : parsed
@@ -119,7 +124,7 @@ export function parseIssueFile(args: {
     blockedBy,
     isBug: tags.includes('bug') || type === 'bug',
     ...(isSpec && { stories: storiesIn(body) }),
-    createdAt: createdAtOf(asText(data.created), args.mtimeMs ?? null),
+    createdAt: createdAtForBinding(asText(data.created), args.mtimeMs ?? null),
     location: `${folder}${name}`,
   }
 }

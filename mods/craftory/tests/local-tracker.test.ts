@@ -3,7 +3,8 @@ import { DEFAULT_CONFIG } from '../src/config'
 import { DEFAULT_LABELS } from '../src/agents-md'
 import { TRACKERS, parseIssueRef, refsIn, type ReadContext, type ReadResult } from '../src/tracker'
 import { numberOf, parseFrontMatter, parseIssueFile } from '../src/tracker/local'
-import type { Issue } from '../types'
+import { applyDraftChange, bindSpec, newDraft } from '../src/features'
+import type { Issue, TrackerSnapshot } from '../types'
 
 const folder = 'docs/issues/'
 const parse = (name: string, text: string, labels = DEFAULT_LABELS, mtimeMs?: number): Issue => {
@@ -161,4 +162,29 @@ test('only writes and commands that touch the issues folder refresh the tracker'
   expect(local.touches(ctx, { name: 'Bash', command: 'ls docs/issues/' })).toBe(true)
   expect(local.touches(ctx, { name: 'Bash', command: 'ls' })).toBe(false)
   expect(local.header(ctx)).toBe('Local Markdown · docs/issues/')
+})
+
+test('a spec dated only by day still binds a draft whose to-spec ran earlier that day', () => {
+  const issue = parse('50-export.md', '---\ntype: spec\ncreated: 2026-10-24\n---\n# Export\n')
+  const draft = newDraft({
+    draftId: 'd1',
+    title: 'Export',
+    entry: 'align',
+    enteredFrom: null,
+    at: '2026-10-24T08:00:00.000Z',
+  })
+  const ran = applyDraftChange(draft, {
+    kind: 'ran',
+    phase: 'spec',
+    at: '2026-10-24T15:30:00.000Z',
+  })
+  const snapshot: TrackerSnapshot = {
+    kind: 'local',
+    rich: true,
+    issues: [issue],
+    pr: null,
+    at: 0,
+    problem: null,
+  }
+  expect(bindSpec(ran, snapshot, new Set())?.ref).toBe('#50')
 })
