@@ -76,6 +76,7 @@ const feature = (
   const record: FeatureRecord = {
     version: 1,
     spec: ref(42),
+    origin: 'spec',
     title: 'Export invoices as CSV',
     entry: 'align',
     enteredFrom: null,

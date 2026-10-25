@@ -187,6 +187,7 @@ test('a feature entered from triage shows the issue it came from on the entry st
     record: {
       version: 1,
       spec: '#42' as IssueRef,
+      origin: 'spec',
       title: 'T',
       entry: 'build',
       enteredFrom: '#41' as IssueRef,

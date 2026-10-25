@@ -4,6 +4,7 @@ import {
   applyDraftChange,
   bindSpec,
   draftKey,
+  enteredRecord,
   featureOf,
   featurePath,
   markOf,
@@ -31,6 +32,7 @@ const ref = (n: number) => `#${n}` as IssueRef
 const base: FeatureRecord = {
   version: 1,
   spec: ref(42),
+  origin: 'spec',
   title: 'Export invoices as CSV',
   entry: 'align',
   enteredFrom: null,
@@ -180,6 +182,7 @@ test('a record survives writing and reading, and the file text is stable', () =>
   expect(Object.keys(JSON.parse(text))).toEqual([
     'version',
     'spec',
+    'origin',
     'title',
     'entry',
     'enteredFrom',
@@ -338,4 +341,26 @@ test('a committed integration branch that git would read as an option is dropped
   )
   expect(loaded.state === 'ok' && loaded.value.integrationBranch).toBe('')
   expect(loaded.state === 'ok' && loaded.problem).toContain('integrationBranch')
+})
+
+test('a record says whether its spec is a spec or an issue that is its own ticket', () => {
+  const issue = serialiseFeature({ ...base, origin: 'issue', entry: 'build', enteredFrom: ref(42) })
+  const loaded = parseFeature(issue)
+  expect(loaded.state === 'ok' && loaded.value.origin).toBe('issue')
+  const old = JSON.stringify({ version: 1, spec: '42', entry: 'build', enteredFrom: '42' })
+  const parsed = parseFeature(old)
+  expect(parsed.state === 'ok' && parsed.value.origin).toBe('spec')
+  expect(mergeFeature({ ...base, origin: 'issue' }, base).origin).toBe('issue')
+  expect(mergeFeature(base, { ...base, origin: 'issue' }).origin).toBe('issue')
+})
+
+test('entering at Build from an issue makes the issue its own ticket, from a spec does not', () => {
+  const enter = (kind: 'spec' | 'issue') =>
+    enteredRecord({
+      issue: { ref: ref(54), title: 'Fix the total', kind },
+      phase: 'build',
+      integrationBranch: 'fix/total',
+    })
+  expect(enter('issue').origin).toBe('issue')
+  expect(enter('spec').origin).toBe('spec')
 })

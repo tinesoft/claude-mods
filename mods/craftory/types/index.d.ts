@@ -225,9 +225,16 @@ export type AgentRecord = {
   endedAt?: IsoTime
 }
 
+/**
+ * What `FeatureRecord.spec` points at: a spec issue, or, for a bug or request that entered at
+ * Build, the issue itself, which is then its own single ticket.
+ */
+export type FeatureOrigin = 'spec' | 'issue'
+
 export type FeatureRecord = {
   version: 1
   spec: IssueRef
+  origin: FeatureOrigin
   title: string
   entry: PhaseId
   enteredFrom: IssueRef | null

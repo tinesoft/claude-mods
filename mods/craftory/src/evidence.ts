@@ -244,8 +244,8 @@ function buildAttention(f: Facts): StepState | undefined {
 
 export const isSelfEntry = (feature: Feature): boolean =>
   feature.kind === 'specced' &&
-  feature.record.entry === 'build' &&
-  feature.record.enteredFrom === feature.record.spec
+  feature.record.origin === 'issue' &&
+  feature.record.entry === 'build'
 
 export function factsOf({ feature, tracker, running, build }: FlowInput): Facts {
   const issues = tracker?.rich ? tracker.issues : []

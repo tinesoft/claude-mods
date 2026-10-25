@@ -84,6 +84,7 @@ const TRACKERS_UNDER_TEST = { local: localSnapshot, github: githubSnapshot } as 
 const record = (over: Partial<FeatureRecord> = {}): FeatureRecord => ({
   version: 1,
   spec: '#42' as IssueRef,
+  origin: 'spec',
   title: 'Export invoices as CSV',
   entry: 'align',
   enteredFrom: null,
@@ -248,6 +249,32 @@ for (const tracker of ['local', 'github'] as const) {
     expect(flow.enabledCount).toBe(4)
   })
 }
+
+test('an issue that entered at Build is its own ticket and runs with /implement; a spec that entered there is not', () => {
+  const bug: Stub = { n: 54, title: 'Fix the total' }
+  const own = flowOf({
+    feature: specced({
+      spec: '#54' as IssueRef,
+      origin: 'issue',
+      entry: 'build',
+      enteredFrom: '#54' as IssueRef,
+    }),
+    issues: [bug],
+  })
+  expect(own.tickets.map(t => t.issue.ref)).toEqual(['#54'])
+  expect(own.steps[3]!.command).toBe('implement')
+  const spec = flowOf({
+    feature: specced({
+      spec: '#42' as IssueRef,
+      origin: 'spec',
+      entry: 'build',
+      enteredFrom: '#42' as IssueRef,
+    }),
+    issues: [SPEC],
+  })
+  expect(spec.tickets).toEqual([])
+  expect(spec.steps[3]!.command).toBe('implement-spec')
+})
 
 test('skipped beats done, and says why: off in Settings, skipped for the feature, before the entry', () => {
   const config = withConfig(c => {

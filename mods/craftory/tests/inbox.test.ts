@@ -64,6 +64,7 @@ test('a ready-for-agent bug enters at Build, with the earlier phases skipped for
   const record = JSON.parse(w.files.get('.craftory/features/54.json')!)
   expect(record).toMatchObject({
     spec: '#54',
+    origin: 'issue',
     entry: 'build',
     enteredFrom: '#54',
     skipped: ['align', 'spec', 'tickets'],

@@ -300,6 +300,7 @@ test('worktree removals are found in a shell line, in any spelling', () => {
 const record = (over: Partial<FeatureRecord> = {}): FeatureRecord => ({
   version: 1,
   spec: '#42' as IssueRef,
+  origin: 'spec',
   title: 'CSV',
   entry: 'align',
   enteredFrom: null,

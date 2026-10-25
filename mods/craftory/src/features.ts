@@ -120,6 +120,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
   const value: FeatureRecord = {
     version: 1,
     spec,
+    origin: json.origin === 'issue' ? 'issue' : 'spec',
     title: text(json.title) ?? '',
     entry: isPhase(json.entry) ? json.entry : 'align',
     enteredFrom: parseIssueRef(text(json.enteredFrom) ?? '') ?? null,
@@ -176,6 +177,7 @@ export function serialiseFeature(record: FeatureRecord): string {
     {
       version: 1,
       spec: record.spec,
+      origin: record.origin,
       title: record.title,
       entry: record.entry,
       enteredFrom: record.enteredFrom,
@@ -233,6 +235,7 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
   return {
     version: 1,
     spec: mine.spec,
+    origin: disk.origin === 'issue' || mine.origin === 'issue' ? 'issue' : 'spec',
     title: max(disk.title, mine.title) ?? '',
     entry: earlierPhase(disk.entry, mine.entry),
     enteredFrom: maxRef(disk.enteredFrom, mine.enteredFrom),
@@ -352,6 +355,7 @@ export function promote(
   return {
     version: 1,
     spec: spec.ref,
+    origin: 'spec',
     title: spec.title || draft.title,
     entry: draft.entry,
     enteredFrom: draft.enteredFrom,
@@ -364,7 +368,7 @@ export function promote(
 }
 
 export function enteredRecord(args: {
-  issue: Pick<Issue, 'ref' | 'title'>
+  issue: Pick<Issue, 'ref' | 'title' | 'kind'>
   phase: PhaseId
   integrationBranch: string
 }): FeatureRecord {
@@ -372,6 +376,7 @@ export function enteredRecord(args: {
   return {
     version: 1,
     spec: issue.ref,
+    origin: issue.kind === 'spec' ? 'spec' : 'issue',
     title: issue.title,
     entry: phase,
     enteredFrom: issue.ref,
