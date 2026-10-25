@@ -1,6 +1,13 @@
 import { atom, type EngineInterface, read, type RenderSurface, update } from 'claude-code'
-import { agentRows, type AgentsView, agentsView, type KeepWhy, samePath } from '../../src/build'
-import { configOf } from '../../src/config'
+import {
+  agentRows,
+  type AgentsView,
+  agentsView,
+  type KeepWhy,
+  samePath,
+  splitArgv,
+} from '../../src/build'
+import { configOf, DEFAULT_CONFIG } from '../../src/config'
 import type { Flow } from '../../src/evidence'
 import {
   basesOf,
@@ -32,7 +39,29 @@ const steeringNoteState = atom({ plugin: 'craftory', key: 'steeringNote' } as co
 
 const SETUP_MS = 600_000
 
-type Seat = { ok: true; isFresh: boolean; path: string } | { ok: false; reason: string }
+type Seat =
+  { ok: true; isFresh: boolean; path: string; notes: string[] } | { ok: false; reason: string }
+
+const RUN_SETUP = 'Run'
+
+const SKIP_SETUP = 'Skip'
+
+const DEFAULT_SETUP = splitArgv(DEFAULT_CONFIG.worktrees.setup)?.join(' ')
+
+const approvedKey = (command: string) => `setupApproved:${command}`
+
+async function approveSetup($: EngineInterface, command: string): Promise<boolean> {
+  if (command === DEFAULT_SETUP || (await $.store.get(approvedKey(command))) === true) return true
+  const answer = await $.ui
+    .ask(`Run the setup command from .craftory/config.json in new worktrees? \`${command}\``, [
+      RUN_SETUP,
+      SKIP_SETUP,
+    ])
+    .catch(() => SKIP_SETUP)
+  if (answer !== RUN_SETUP) return false
+  await $.store.set(approvedKey(command), true)
+  return true
+}
 
 export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
   const root = await $.session.cwd()
@@ -40,7 +69,7 @@ export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<
   const listed = await sh($, worktreeListArgv)
   if (listed === null || listed.exitCode !== 0) return { ok: false, reason: 'git is not available' }
   if (parseWorktreeList(listed.stdout).some(w => samePath(w.path, plan.path)))
-    return { ok: true, isFresh: false, path }
+    return { ok: true, isFresh: false, path, notes: [] }
   if (!isSafeRef(plan.branch) || !isSafeRef(plan.base))
     return {
       ok: false,
@@ -58,15 +87,23 @@ export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<
   const added = await sh($, worktreeAddArgv(plan.branch, plan.path, plan.base, hasBranch))
   if (added === null || added.exitCode !== 0)
     return { ok: false, reason: added?.stderr.trim() || 'git worktree add failed' }
+  const notes: string[] = []
+  if (plan.rejectedCopy.length > 0)
+    notes.push(`Craftory did not copy ${plan.rejectedCopy.join(', ')}: not a file inside the repo`)
   for (const file of plan.copy) {
     if (await exists($, file)) await sh($, ['cp', '--', file, `${plan.path}/${file}`])
   }
   if (plan.setup !== null) {
-    const setup = await sh($, plan.setup, { cwd: path, timeoutMs: SETUP_MS })
-    if (setup === null || setup.exitCode !== 0)
-      $.ui.toast(`Setup failed in ${plan.path} · the agent starts anyway`)
+    const command = plan.setup.join(' ')
+    if (!(await approveSetup($, command))) {
+      notes.push(`Craftory skipped the setup command \`${command}\`: you did not approve it`)
+    } else {
+      const setup = await sh($, plan.setup, { cwd: path, timeoutMs: SETUP_MS })
+      if (setup === null || setup.exitCode !== 0)
+        $.ui.toast(`Setup failed in ${plan.path} · the agent starts anyway`)
+    }
   }
-  return { ok: true, isFresh: true, path }
+  return { ok: true, isFresh: true, path, notes }
 }
 
 export async function keptWorktrees($: EngineInterface): Promise<{ path: string; why: KeepWhy }[]> {

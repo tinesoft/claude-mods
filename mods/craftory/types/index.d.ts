@@ -274,7 +274,10 @@ export type SeatPlan = {
   path: string
   base: string
   setup: string[] | null
+  /** Files to copy into the worktree: relative paths inside the repo, never under `.git`. */
   copy: string[]
+  /** The configured `copy` entries Craftory refused, as written. */
+  rejectedCopy: string[]
 }
 
 export type PendingSeat = { toolUseId: string; plan: SeatPlan; at: Millis }

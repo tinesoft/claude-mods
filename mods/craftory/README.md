@@ -114,7 +114,7 @@ A gate is soft. When you start a phase whose gated predecessor is not done, Craf
 
 `/implement-spec` starts one implementer per ticket. Craftory steers each one:
 
-- It gives the implementer its own worktree, `.worktrees/<ticket>-<slug>`, on the branch `craftory/<ticket>-<slug>`, cut from the integration branch. When you start Build with a typed or rail command, Craftory tells Claude which branch to integrate on and where the worktrees live. If that branch does not exist when the first implementer starts, Craftory creates it from your checkout's `HEAD`. It copies the files listed in `copy` and runs the `setup` command there.
+- It gives the implementer its own worktree, `.worktrees/<ticket>-<slug>`, on the branch `craftory/<ticket>-<slug>`, cut from the integration branch. When you start Build with a typed or rail command, Craftory tells Claude which branch to integrate on and where the worktrees live. If that branch does not exist when the first implementer starts, Craftory creates it from your checkout's `HEAD`. It copies the files listed in `copy` and runs the `setup` command there. `copy` takes relative paths inside the repo and never `.git`. Craftory skips any other entry and says so on the card. The first time a `setup` command other than the built-in `pnpm install --frozen-lockfile` is about to run on your machine, Craftory asks **Run** or **Skip**, and remembers a **Run**. After a **Skip**, or when nobody can answer, the agent starts without the setup and the card says so.
 - At most `maxParallel` implementers run at once. Craftory refuses an extra spawn with a reason that names the running tickets and asks Claude to start the ticket after one of them returns.
 - Tickets that are blocked or ready for a human never get an agent.
 - Each agent has a token budget, 80k by default, counted as input, cache-creation and output tokens. The bar turns amber at 80%. At 100% Craftory tells the agent to stop and report, ends its next step, marks the ticket over budget and keeps the worktree. The card offers **Raise budget** and **Diagnose**.
@@ -196,16 +196,16 @@ It never touches content outside the sections it owns. A write to a shared file 
 
 **What it runs**
 
-| When                                | Command                                                                                                                                                                           |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Session start                       | `claude plugin list --json`, to read the `mattpocock-skills` version                                                                                                              |
-| You press **Install** or **Update** | `claude plugin install mattpocock-skills@claude-plugins-official` (or `update`)                                                                                                   |
-| A GitHub tracker refresh            | `gh issue list`, `gh api …/sub_issues`, `gh api …/dependencies/blocked_by`, `gh pr view <branch>`                                                                                 |
-| A Build agent starts                | `git branch <integration> HEAD` when the integration branch is missing, `git worktree add -b <branch> <path> <base>`, `cp` for each file in `copy`, then your `setup` command     |
-| Worktrees tab, cleanup, drift scan  | `git worktree list`, `git status`, `git diff`, `git rev-list`, `git rev-parse`, `git log`, `git branch`, `git remote get-url origin`, `git worktree remove`, `git worktree prune` |
-| Every five seconds                  | The system appearance probe that session-activity runs (`defaults`, `gsettings` or `reg`), 1.5 s timeout                                                                          |
+| When                                | Command                                                                                                                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session start                       | `claude plugin list --json`, to read the `mattpocock-skills` version                                                                                                                              |
+| You press **Install** or **Update** | `claude plugin install mattpocock-skills@claude-plugins-official` (or `update`)                                                                                                                   |
+| A GitHub tracker refresh            | `gh issue list`, `gh api …/sub_issues`, `gh api …/dependencies/blocked_by`, `gh pr view <branch>`                                                                                                 |
+| A Build agent starts                | `git branch <integration> HEAD` when the integration branch is missing, `git worktree add -b <branch> <path> <base>`, `cp` for each file in `copy`, then your `setup` command once you approve it |
+| Worktrees tab, cleanup, drift scan  | `git worktree list`, `git status`, `git diff`, `git rev-list`, `git rev-parse`, `git log`, `git branch`, `git remote get-url origin`, `git worktree remove`, `git worktree prune`                 |
+| Every five seconds                  | The system appearance probe that session-activity runs (`defaults`, `gsettings` or `reg`), 1.5 s timeout                                                                                          |
 
-It starts no other program. The `setup` command is the one in `.craftory/config.json`, which your team commits.
+It starts no other program. The `setup` command is the one in `.craftory/config.json`, which your team commits, so Craftory asks before it runs a command you have not approved on this machine.
 
 **What its hooks decide**
 

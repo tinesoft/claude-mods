@@ -341,7 +341,7 @@ export const register: Register = (on, options) => {
         deny: `${note}. Do not start ${plan.ticket} until that is fixed; tell the user what git said.`,
       }
     }
-    await setSteeringNote($, null)
+    await setSteeringNote($, placed.notes.length > 0 ? placed.notes.join(' · ') : null)
     const undo = async () => {
       if (placed.isFresh) await sh($, worktreeRemoveArgv(plan.path, true))
     }

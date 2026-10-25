@@ -13,6 +13,7 @@ import type {
 } from '../types'
 import { slugify, ticketBranchFor } from './config'
 import type { Flow, TicketRow } from './evidence'
+import { normalise } from './files'
 
 export const EMPTY_LEDGER: BuildLedger = { pending: {}, runs: {}, queued: [], isPaused: false }
 
@@ -58,6 +59,17 @@ export function agentName(ref: IssueRef, title: string, taken: ReadonlySet<strin
   return `${base}-${n}`
 }
 
+function sortCopy(entries: readonly string[]): { copy: string[]; rejectedCopy: string[] } {
+  const copy: string[] = []
+  const rejectedCopy: string[] = []
+  for (const entry of entries) {
+    const clean = normalise(entry)
+    if (clean === undefined || clean.split('/').includes('.git')) rejectedCopy.push(entry)
+    else copy.push(clean)
+  }
+  return { copy, rejectedCopy }
+}
+
 const withSlash = (folder: string) => (folder.endsWith('/') ? folder : `${folder}/`)
 
 export function seatPlan(args: {
@@ -76,7 +88,7 @@ export function seatPlan(args: {
     path: `${withSlash(worktrees.folder)}${refNumber(ref)}-${slugify(title, 4, 32)}`,
     base: integrationBranch,
     setup: splitArgv(worktrees.setup),
-    copy: worktrees.copy,
+    ...sortCopy(worktrees.copy),
   }
 }
 
