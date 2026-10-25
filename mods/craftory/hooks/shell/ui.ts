@@ -1,6 +1,7 @@
 /**
  * What the person sees and prefers, and the only code that reads or writes those atoms: the
- * system appearance, the personal prefs and how a tone follows from them.
+ * system appearance, the personal prefs, the pane's tab and the rail's open step card, the
+ * feature picker, the Glossary tab's search and its used and at-start marks.
  *
  * An atom is declared here and read or updated only here: the engine's state scan accepts
  * `read` and `update` on an atom of the same file, so other modules call these functions.
@@ -13,11 +14,29 @@ import {
   type Timer,
   update,
 } from 'claude-code'
+import { DEFAULT_DOCS } from '../../src/agents-md'
 import { parseColorFgBg, SYSTEM_PROBES } from '../../src/appearance'
-import { parsePrefOverrides, resolvePrefs, STORE_PREFS } from '../../src/config'
+import { configOf, parsePrefOverrides, resolvePrefs, STORE_PREFS } from '../../src/config'
+import type { Flow } from '../../src/evidence'
+import { termKey } from '../../src/glossary'
+import { glossaryView, ticketsView } from '../../src/pane-view'
+import { namespaced } from '../../src/phases'
 import type { Ui } from '../../src/rail'
+import { termKeysIn } from '../../src/reply'
 import { resolveTone, type Tone } from '../../src/theme'
-import type { PrefOverrides } from '../../types'
+import { TRACKERS } from '../../src/tracker'
+import type { PaneTab, PhaseId, PrefOverrides, SkillName } from '../../types'
+import {
+  currentFlow,
+  featuresOf,
+  holdForGate,
+  readContext,
+  refreshGit,
+  requestOf,
+  trackerKindOf,
+  trackerOf,
+} from './flow'
+import { glossaryTerms, repoSnapshot } from './repo'
 
 const APPEARANCE_MS = 5_000
 
@@ -118,4 +137,121 @@ export async function savePrefs($: EngineInterface, patch: PrefOverrides) {
 export async function resetPrefs($: EngineInterface) {
   await $.store.set(STORE_PREFS, {})
   await update($, prefsState, () => ({}))
+}
+
+export const PANE = 'craftory'
+
+const paneTabState = atom({ plugin: 'craftory', key: 'paneTab' } as const, 'flow')
+
+const openStepState = atom({ plugin: 'craftory', key: 'openStep' } as const, null)
+
+const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
+
+const glossaryQueryState = atom({ plugin: 'craftory', key: 'glossaryQuery' } as const, '')
+
+const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } as const, [])
+
+const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
+
+/** A rail press or a notice button: the same gate as a typed command, then the namespaced command. */
+export async function requestRun($: EngineInterface, skill: SkillName, args: string) {
+  const req = requestOf(skill, args) ?? { skill, args, phase: null }
+  if (await holdForGate($, req, await currentFlow($))) return
+  await update($, openStepState, () => null)
+  await $.command.run({ command: namespaced(skill), args })
+}
+
+export function paneTabOf($: EngineInterface) {
+  return read($, paneTabState)
+}
+
+export function openStepOf($: EngineInterface) {
+  return read($, openStepState)
+}
+
+export function isPickingFeatureOf($: EngineInterface) {
+  return read($, isPickingFeatureState)
+}
+
+export function glossaryQueryOf($: EngineInterface) {
+  return read($, glossaryQueryState)
+}
+
+export async function closeCard($: EngineInterface) {
+  await update($, openStepState, () => null)
+  $.ui.invalidate('ui.render')
+}
+
+export async function togglePicker($: EngineInterface) {
+  await update($, isPickingFeatureState, picking => !picking)
+  $.ui.invalidate('ui.render')
+}
+
+/** Switching feature closes the picker and any open step card. */
+export async function closeRailPopups($: EngineInterface) {
+  await update($, isPickingFeatureState, () => false)
+  await update($, openStepState, () => null)
+}
+
+export async function searchGlossary($: EngineInterface, text: string) {
+  await update($, glossaryQueryState, () => text)
+  $.ui.invalidate('ui.render')
+}
+
+/** The glossary's terms at session start, so a term added since can be told apart. */
+export async function rememberGlossaryAtStart($: EngineInterface) {
+  const atStart = (await glossaryTerms($)).map(t => termKey(t.name))
+  await update($, glossaryAtStartState, () => atStart)
+}
+
+/** The glossary terms the last reply used, for the Glossary tab's "used" mark. */
+export async function noteReplyTerms($: EngineInterface, answer: string) {
+  const terms = await glossaryTerms($)
+  await update($, lastReplyTermsState, () => termKeysIn(answer, terms))
+}
+
+export async function openPane($: EngineInterface, tab: PaneTab) {
+  await update($, paneTabState, () => tab)
+  if (tab === 'worktrees') await refreshGit($)
+  await $.ui.open({ id: PANE, title: 'Craftory', focus: true, closeOnEscape: true })
+}
+
+export async function glossaryViewOf($: EngineInterface) {
+  const repo = await repoSnapshot($)
+  return glossaryView({
+    doc: repo?.glossary,
+    path: repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary,
+    query: await read($, glossaryQueryState),
+    used: await read($, lastReplyTermsState),
+    atStart: await read($, glossaryAtStartState),
+  })
+}
+
+export async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
+  const [repo, tracker, features] = await Promise.all([
+    repoSnapshot($),
+    trackerOf($),
+    featuresOf($),
+  ])
+  const spec = TRACKERS[trackerKindOf(repo)]
+  return ticketsView({
+    flow,
+    tracker,
+    config: configOf(repo?.config),
+    header:
+      repo === null || spec === undefined ? 'Tracker' : spec.header(await readContext($, repo)),
+    featureSpecs: new Set(Object.keys(features)),
+  })
+}
+
+export async function pressStep($: EngineInterface, step: PhaseId | 'triage', fitsCard: boolean) {
+  if (!fitsCard) return openPane($, 'flow')
+  await update($, openStepState, open => (open === step ? null : step))
+  $.ui.invalidate('ui.render')
+}
+
+export async function runFromCard($: EngineInterface, phase: PhaseId | 'triage') {
+  if (phase === 'triage') return requestRun($, 'triage' as SkillName, '')
+  const step = (await currentFlow($))?.steps.find(s => s.phase === phase)
+  if (step?.command) await requestRun($, step.command, step.args)
 }

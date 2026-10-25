@@ -28,7 +28,7 @@ import {
 import { type KeepWhy, samePath, stoppedAnswer, stoppedStep, withoutIsolation } from '../src/build'
 import { CONFIG_PATH, configOf, configWrite, parseConfig, patchConfig } from '../src/config'
 import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
-import { type Flow, waitingForTriage } from '../src/evidence'
+import { waitingForTriage } from '../src/evidence'
 import { draftKey, specKey } from '../src/features'
 import {
   diffSummary,
@@ -51,11 +51,11 @@ import {
 } from '../src/glossary'
 import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
-import { glossaryView, type InboxAction, tabCounts, ticketsView } from '../src/pane-view'
+import { type InboxAction, tabCounts } from '../src/pane-view'
 import { namespaced, recognise } from '../src/phases'
 import { hasSkill, INSTALL_ARGV, pluginLine, UPDATE_ARGV } from '../src/plugin'
 import { type BandActions, type FeatureChoice, renderBand, spinFrameOf } from '../src/rail'
-import { linkTerms, Reply, termKeysIn } from '../src/reply'
+import { linkTerms, Reply } from '../src/reply'
 import { planScratchImport, type ScratchFile, scratchSummary } from '../src/scratch'
 import {
   checkText,
@@ -65,13 +65,10 @@ import {
 } from '../src/sections'
 import type { SettingsArgs } from '../src/settings'
 import { markdownSummary } from '../src/summary'
-import { TRACKERS } from '../src/tracker'
 import type {
   AgentId,
   AgentSetup,
   GlossaryDoc,
-  PaneTab,
-  PhaseId,
   PluginStatus,
   RepoSnapshot,
   SkillName,
@@ -108,16 +105,13 @@ import {
   gitOf,
   hasAgentRuns,
   heldNotices,
-  holdForGate,
   loadFeatures,
   noticeOf,
   pendingSeat,
   planSpawn,
   raiseBudget,
-  readContext,
   refreshGit,
   refreshTracker,
-  requestOf,
   runOf,
   scheduleGit,
   scheduleRefresh,
@@ -127,7 +121,6 @@ import {
   switchFeature,
   togglePause,
   touchesTracker,
-  trackerKindOf,
   trackerOf,
 } from './shell/flow'
 import {
@@ -145,16 +138,31 @@ import {
   writableContext,
 } from './shell/repo'
 import {
+  closeCard,
+  closeRailPopups,
+  glossaryQueryOf,
+  glossaryViewOf,
+  isPickingFeatureOf,
   loadPrefs,
+  noteReplyTerms,
+  openPane,
+  openStepOf,
+  PANE,
+  paneTabOf,
+  pressStep,
+  rememberGlossaryAtStart,
+  requestRun,
   resetPrefs,
   resolvedPrefs,
+  runFromCard,
   savePrefs,
+  searchGlossary,
+  ticketsViewOf,
+  togglePicker,
   toneOf,
   uiFor,
   watchAppearance,
 } from './shell/ui'
-
-const PANE = 'craftory'
 
 const COMMAND = 'craftory'
 
@@ -168,13 +176,7 @@ const DIAGNOSE_REASON =
 const keptReason = (path: string, why: KeepWhy) =>
   `Craftory keeps ${path}: ${why === 'running' ? 'an agent is still working in it' : `its agent ${why === 'failed' ? 'failed' : why === 'over-budget' ? 'ran out of token budget' : 'was stopped'}, and the user decides what happens to its work`}. Do not remove it. Clean up the other worktrees and leave this one.`
 
-const paneTabState = atom({ plugin: 'craftory', key: 'paneTab' } as const, 'flow')
-
 const setupNoteState = atom({ plugin: 'craftory', key: 'setupNote' } as const, null)
-
-const openStepState = atom({ plugin: 'craftory', key: 'openStep' } as const, null)
-
-const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
 
 const settingsSectionState = atom(
   { plugin: 'craftory', key: 'settingsSection' } as const,
@@ -193,12 +195,6 @@ const setupDraftState = atom({ plugin: 'craftory', key: 'setupDraft' } as const,
 const askedFilesState = atom({ plugin: 'craftory', key: 'askedFiles' } as const, [])
 
 const termErrorState = atom({ plugin: 'craftory', key: 'termError' } as const, null)
-
-const glossaryQueryState = atom({ plugin: 'craftory', key: 'glossaryQuery' } as const, '')
-
-const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } as const, [])
-
-const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
 
 const WRITE_IT = 'Write'
 
@@ -592,20 +588,6 @@ async function copyGlossaryPath($: EngineInterface, surface: RenderSurface) {
   )
 }
 
-/** A rail press or a notice button: the same gate as a typed command, then the namespaced command. */
-async function requestRun($: EngineInterface, skill: SkillName, args: string) {
-  const req = requestOf(skill, args) ?? { skill, args, phase: null }
-  if (await holdForGate($, req, await currentFlow($))) return
-  await update($, openStepState, () => null)
-  await $.command.run({ command: namespaced(skill), args })
-}
-
-async function openPane($: EngineInterface, tab: PaneTab) {
-  await update($, paneTabState, () => tab)
-  if (tab === 'worktrees') await refreshGit($)
-  await $.ui.open({ id: PANE, title: 'Craftory', focus: true, closeOnEscape: true })
-}
-
 async function onNotice($: EngineInterface, action: NoticeAction) {
   switch (action.kind) {
     case 'install':
@@ -664,34 +646,6 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
   }
 }
 
-async function glossaryViewOf($: EngineInterface) {
-  const repo = await repoSnapshot($)
-  return glossaryView({
-    doc: repo?.glossary,
-    path: repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary,
-    query: await read($, glossaryQueryState),
-    used: await read($, lastReplyTermsState),
-    atStart: await read($, glossaryAtStartState),
-  })
-}
-
-async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
-  const [repo, tracker, features] = await Promise.all([
-    repoSnapshot($),
-    trackerOf($),
-    featuresOf($),
-  ])
-  const spec = TRACKERS[trackerKindOf(repo)]
-  return ticketsView({
-    flow,
-    tracker,
-    config: configOf(repo?.config),
-    header:
-      repo === null || spec === undefined ? 'Tracker' : spec.header(await readContext($, repo)),
-    featureSpecs: new Set(Object.keys(features)),
-  })
-}
-
 /** Start feature on a ready-for-agent issue: it enters at `phase` and the earlier phases are skipped. */
 async function startFromIssue($: EngineInterface, action: Extract<InboxAction, { kind: 'start' }>) {
   const step = await enterFromIssue($, action)
@@ -744,7 +698,7 @@ async function settingsArgs(
       facts.setup.tracker.kind === 'local' &&
       repo?.hasScratch &&
       section === 'tracker' &&
-      (await read($, paneTabState)) === 'settings'
+      (await paneTabOf($)) === 'settings'
         ? await scratchOffer($, facts.config.tracker.local.folder)
         : null,
     note,
@@ -800,18 +754,6 @@ async function featureChoices($: EngineInterface): Promise<FeatureChoice[]> {
   ]
 }
 
-async function pressStep($: EngineInterface, step: PhaseId | 'triage', fitsCard: boolean) {
-  if (!fitsCard) return openPane($, 'flow')
-  await update($, openStepState, open => (open === step ? null : step))
-  $.ui.invalidate('ui.render')
-}
-
-async function runFromCard($: EngineInterface, phase: PhaseId | 'triage') {
-  if (phase === 'triage') return requestRun($, 'triage' as SkillName, '')
-  const step = (await currentFlow($))?.steps.find(s => s.phase === phase)
-  if (step?.command) await requestRun($, step.command, step.args)
-}
-
 const bandActions = ($: EngineInterface): BandActions => ({
   step: (phase, fitsCard) => void pressStep($, phase, fitsCard),
   triage: fitsCard => void pressStep($, 'triage', fitsCard),
@@ -819,18 +761,11 @@ const bandActions = ($: EngineInterface): BandActions => ({
   gear: () => void openPane($, 'settings'),
   run: phase => void runFromCard($, phase),
   openTickets: () => void openPane($, 'tickets'),
-  closeCard: () => {
-    void update($, openStepState, () => null).then(() => $.ui.invalidate('ui.render'))
-  },
-  pickFeature: () => {
-    void update($, isPickingFeatureState, picking => !picking).then(() =>
-      $.ui.invalidate('ui.render'),
-    )
-  },
+  closeCard: () => void closeCard($),
+  pickFeature: () => void togglePicker($),
   switchFeature: key => {
     void (async () => {
-      await update($, isPickingFeatureState, () => false)
-      await update($, openStepState, () => null)
+      await closeRailPopups($)
       await switchFeature($, key)
     })()
   },
@@ -859,8 +794,7 @@ export const register: Register = (on, options) => {
       $.ui.toast(`Craftory needs Claude Code ${ENGINE_FLOOR} or later. Run claude update.`)
     }
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($)])
-    const atStart = (await glossaryTerms($)).map(t => termKey(t.name))
-    await update($, glossaryAtStartState, () => atStart)
+    await rememberGlossaryAtStart($)
     await refreshTracker($)
     await refreshGit($)
     if (configOf((await repoSnapshot($))?.config).worktrees.pruneStale) await pruneStale($)
@@ -894,8 +828,7 @@ export const register: Register = (on, options) => {
       await finishAgent($, e.agentId as AgentId, e.reason)
       return result
     }
-    const terms = await glossaryTerms($)
-    await update($, lastReplyTermsState, () => termKeysIn(e.answer, terms))
+    await noteReplyTerms($, e.answer)
     await finishTurn($, e)
     return result
   })
@@ -1045,9 +978,9 @@ export const register: Register = (on, options) => {
       waiting: waitingForTriage(await trackerOf($)),
       agents: await agentsViewOf($, flow),
       notices: [...events, ...derived],
-      open: await read($, openStepState),
+      open: await openStepOf($),
       features: await featureChoices($),
-      isPickingFeature: await read($, isPickingFeatureState),
+      isPickingFeature: await isPickingFeatureOf($),
       on: bandActions($),
     })
   })
@@ -1092,7 +1025,7 @@ export const register: Register = (on, options) => {
       tone: await toneOf($, options, e.surface),
       ascii: resolved.ascii,
       spinFrame: spinFrameOf(await $.clock.now()),
-      tab: await read($, paneTabState),
+      tab: await paneTabOf($),
       pluginLine: pluginLine(await pluginOf($)),
       flow,
       waiting: waitingForTriage(await trackerOf($)),
@@ -1105,7 +1038,7 @@ export const register: Register = (on, options) => {
       tickets,
       worktrees,
       glossary,
-      query: await read($, glossaryQueryState),
+      query: await glossaryQueryOf($),
       settings: await settingsArgs($, options),
       on: {
         tab: tab => void openPane($, tab),
@@ -1124,9 +1057,7 @@ export const register: Register = (on, options) => {
             const record = await activeRecord($)
             if (record !== null) await requestRun($, 'implement-spec' as SkillName, record.spec)
           })(),
-        search: text => {
-          void update($, glossaryQueryState, () => text).then(() => $.ui.invalidate('ui.render'))
-        },
+        search: text => void searchGlossary($, text),
         editTerm: name => void jumpToTerm($, name),
         rail: { step: actions.step, triage: actions.triage },
       },

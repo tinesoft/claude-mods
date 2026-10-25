@@ -41,8 +41,7 @@ type Seat = { ok: true; isFresh: boolean; path: string } | { ok: false; reason: 
  * Makes the worktree an implementer will work in: `git worktree add -b <branch> <path> <base>`,
  * the files to copy, then the setup command in it. A worktree that is already there (a retry of
  * a kept one) is reused as it is.
- */
-export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
+ */ export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
   const root = await $.session.cwd()
   const path = `${root}/${plan.path}`
   const listed = await sh($, worktreeListArgv)
@@ -64,14 +63,16 @@ export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<
   return { ok: true, isFresh: true, path }
 }
 
-/** Worktrees a `git worktree remove` must not touch: running, failed, over-budget or stopped ones. */
-export async function keptWorktrees($: EngineInterface): Promise<{ path: string; why: KeepWhy }[]> {
+/** Worktrees a `git worktree remove` must not touch: running, failed, over-budget or stopped ones. */ export async function keptWorktrees(
+  $: EngineInterface,
+): Promise<{ path: string; why: KeepWhy }[]> {
   const { plan } = await cleanupInputs($)
   return plan.keep.filter(k => k.why !== 'unmerged')
 }
 
-/** The Worktrees tab: every worktree git lists, with what Craftory knows about it. */
-export async function worktreesViewOf($: EngineInterface): Promise<WorktreesView | null> {
+/** The Worktrees tab: every worktree git lists, with what Craftory knows about it. */ export async function worktreesViewOf(
+  $: EngineInterface,
+): Promise<WorktreesView | null> {
   const [git, features, repo, diffs] = await Promise.all([
     gitOf($),
     featuresOf($),
@@ -102,8 +103,10 @@ export async function worktreesViewOf($: EngineInterface): Promise<WorktreesView
   })
 }
 
-/** Diff toggles the shortstat line under a row. */
-export async function toggleDiff($: EngineInterface, path: string) {
+/** Diff toggles the shortstat line under a row. */ export async function toggleDiff(
+  $: EngineInterface,
+  path: string,
+) {
   const view = await worktreesViewOf($)
   const row = view?.rows.find(r => r.path === path)
   if (row === undefined) return
@@ -138,8 +141,11 @@ async function currentBases($: EngineInterface, git: GitSnapshot) {
   })
 }
 
-/** A mod cannot open a terminal, so the row copies `cd <path>` for the user to paste. */
-export async function copyTerminal($: EngineInterface, path: string, surface: RenderSurface) {
+/** A mod cannot open a terminal, so the row copies `cd <path>` for the user to paste. */ export async function copyTerminal(
+  $: EngineInterface,
+  path: string,
+  surface: RenderSurface,
+) {
   const copied = await $.ui.copy({ text: `cd ${path}`, surface }).catch(() => ({ isCopied: false }))
   $.ui.toast(
     copied.isCopied
@@ -148,8 +154,10 @@ export async function copyTerminal($: EngineInterface, path: string, surface: Re
   )
 }
 
-/** Remove refuses a running or kept worktree unless the user confirms; only then is it forced. */
-export async function removeWorktree($: EngineInterface, path: string) {
+/** Remove refuses a running or kept worktree unless the user confirms; only then is it forced. */ export async function removeWorktree(
+  $: EngineInterface,
+  path: string,
+) {
   const row = (await worktreesViewOf($))?.rows.find(r => r.path === path)
   if (row === undefined || !row.canRemove) return
   if (row.isProtected) {
@@ -170,8 +178,9 @@ export async function removeWorktree($: EngineInterface, path: string) {
   await refreshGit($)
 }
 
-/** Prune N stale: the stale worktrees Craftory does not keep, removed without force. */
-export async function pruneStale($: EngineInterface) {
+/** Prune N stale: the stale worktrees Craftory does not keep, removed without force. */ export async function pruneStale(
+  $: EngineInterface,
+) {
   const git = await gitOf($)
   if (git === null) return
   const stale = prunable(
@@ -184,8 +193,10 @@ export async function pruneStale($: EngineInterface) {
   await refreshGit($)
 }
 
-/** The Agents list for the Build card, from the ledger, the stored records and the last look at git. */
-export function setSteeringNote($: EngineInterface, note: string | null) {
+/** The Agents list for the Build card, from the ledger, the stored records and the last look at git. */ export function setSteeringNote(
+  $: EngineInterface,
+  note: string | null,
+) {
   return update($, steeringNoteState, () => note)
 }
 
