@@ -20,7 +20,7 @@ import {
 } from '../../src/glossary'
 import { namespaced, SKILLS } from '../../src/phases'
 import { hasSkill } from '../../src/plugin'
-import { planScratchImport, type ScratchFile, scratchSummary } from '../../src/scratch'
+import { scratchSummary } from '../../src/scratch'
 import {
   checkText,
   type SettingsChange,
@@ -40,6 +40,7 @@ import {
   readText,
   repoFacts,
   repoSnapshot,
+  scratchPlan,
   writableContext,
 } from './repo'
 import { copyWithToast, openPane, paneTabOf, resetPrefs, resolvedPrefs, savePrefs } from './ui'
@@ -290,31 +291,6 @@ async function rerunSetup($: EngineInterface) {
   await $.command.run({ command: namespaced(SKILLS.setupMattPocockSkills), args: '' })
 }
 
-async function readScratch($: EngineInterface): Promise<ScratchFile[]> {
-  const found: ScratchFile[] = []
-  const take = async (path: string) => {
-    const text = await readText($, path)
-    if (text !== null) found.push({ path, text })
-  }
-  const features = (await $.fs.list('.scratch').catch(() => [])).filter(e => e.kind === 'dir')
-  for (const feature of features) {
-    const base = `.scratch/${feature.name}`
-    await take(`${base}/spec.md`)
-    const issues = await $.fs.list(`${base}/issues`).catch(() => [])
-    for (const issue of issues)
-      if (issue.kind === 'file' && issue.name.endsWith('.md'))
-        await take(`${base}/issues/${issue.name}`)
-  }
-  return found
-}
-
-async function scratchPlan($: EngineInterface, folder: string) {
-  const taken = (await $.fs.list(folder).catch(() => []))
-    .map(e => /^(\d+)-/.exec(e.name)?.[1])
-    .flatMap(n => (n === undefined ? [] : [Number(n)]))
-  return planScratchImport({ files: await readScratch($), taken, folder })
-}
-
 async function importScratch($: EngineInterface) {
   const { setup } = await currentSetup($)
   const { config } = await repoFacts($)
@@ -339,6 +315,7 @@ async function importScratch($: EngineInterface) {
       ? `${refused}. Imported ${wrote.length} of ${plan.items.length}.`
       : `Imported ${scratchSummary(plan)} into ${folder}.`,
   )
+  await loadRepo($)
   await refreshTracker($)
   await settle($)
 }
@@ -455,11 +432,6 @@ export async function jumpToTerm($: EngineInterface, name: string) {
   await openPane($, 'settings')
 }
 
-async function scratchOffer($: EngineInterface, folder: string) {
-  const plan = await scratchPlan($, folder)
-  return plan.items.length === 0 ? null : { count: plan.items.length, folder }
-}
-
 export async function settingsArgs(
   $: EngineInterface,
   options: Readonly<Record<string, unknown>>,
@@ -490,7 +462,7 @@ export async function settingsArgs(
       repo?.hasScratch &&
       section === 'tracker' &&
       (await paneTabOf($)) === 'settings'
-        ? await scratchOffer($, facts.config.tracker.local.folder)
+        ? { count: repo.scratchCount, folder: facts.config.tracker.local.folder }
         : null,
     note,
     on: {

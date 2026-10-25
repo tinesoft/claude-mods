@@ -30,6 +30,7 @@ const repo = (setup: 'absent' | 'ok'): RepoSnapshot => ({
   remoteHost: null,
   hasContextMd: false,
   hasScratch: false,
+  scratchCount: 0,
   hasGitignoreEntry: false,
   at: 0,
 })

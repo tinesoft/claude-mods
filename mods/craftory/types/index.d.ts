@@ -394,6 +394,8 @@ export type RepoSnapshot = {
   remoteHost: 'github' | 'gitlab' | 'other' | null
   hasContextMd: boolean
   hasScratch: boolean
+  /** Issues `.scratch/` would import, counted when the repo was read. */
+  scratchCount: number
   hasGitignoreEntry: boolean
   at: Millis
 }

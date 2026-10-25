@@ -82,3 +82,13 @@ test('Import writes numbered files and moves nothing', async ($, on) => {
   ])
   expect(w.files.get('.scratch/csv/spec.md')).toBe(FILES['.scratch/csv/spec.md'])
 })
+
+test('the offer is counted when the repo is read, not on every Settings render', async ($, on) => {
+  const { w, pane } = await offer(on, $)
+  w.files.set(
+    '.scratch/csv/issues/03-extra.md',
+    '# Extra\n\nStatus: ready-for-agent\n\nBody three.\n',
+  )
+  await pane.press({ key: 'section-section-tracker' })
+  expect(await allText(pane)).toContain('3 issues in .scratch/ can be copied')
+})

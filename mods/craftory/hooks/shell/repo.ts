@@ -24,6 +24,7 @@ import {
   pluginStatus,
   PROBE_TIMEOUT_MS,
 } from '../../src/plugin'
+import { planScratchImport, type ScratchFile } from '../../src/scratch'
 import type { InstallState, RepoSnapshot } from '../../types'
 
 const repoState = atom({ plugin: 'craftory', key: 'repo' } as const, null)
@@ -91,7 +92,8 @@ export async function loadRepo($: EngineInterface) {
   ])
   const file = steeringOf(files)
   const steering = file === 'CLAUDE.md' ? files.claudeMd : files.agentsMd
-  const worktrees = configOf(config).worktrees.folder
+  const { worktrees, tracker } = configOf(config)
+  const scratchCount = hasScratch ? (await scratchPlan($, tracker.local.folder)).items.length : 0
   const snapshot: RepoSnapshot = {
     config,
     setup,
@@ -100,11 +102,38 @@ export async function loadRepo($: EngineInterface) {
     remoteHost: remoteHostOf(url),
     hasContextMd,
     hasScratch,
+    scratchCount,
     hasGitignoreEntry:
-      files.gitignore !== null && ensureGitignore(files.gitignore, worktrees) === files.gitignore,
+      files.gitignore !== null &&
+      ensureGitignore(files.gitignore, worktrees.folder) === files.gitignore,
     at,
   }
   await update($, repoState, () => snapshot)
+}
+
+async function readScratch($: EngineInterface): Promise<ScratchFile[]> {
+  const found: ScratchFile[] = []
+  const take = async (path: string) => {
+    const text = await readText($, path)
+    if (text !== null) found.push({ path, text })
+  }
+  const features = (await $.fs.list('.scratch').catch(() => [])).filter(e => e.kind === 'dir')
+  for (const feature of features) {
+    const base = `.scratch/${feature.name}`
+    await take(`${base}/spec.md`)
+    const issues = await $.fs.list(`${base}/issues`).catch(() => [])
+    for (const issue of issues)
+      if (issue.kind === 'file' && issue.name.endsWith('.md'))
+        await take(`${base}/issues/${issue.name}`)
+  }
+  return found
+}
+
+export async function scratchPlan($: EngineInterface, folder: string) {
+  const taken = (await $.fs.list(folder).catch(() => []))
+    .map(e => /^(\d+)-/.exec(e.name)?.[1])
+    .flatMap(n => (n === undefined ? [] : [Number(n)]))
+  return planScratchImport({ files: await readScratch($), taken, folder })
 }
 
 export async function detectPlugin($: EngineInterface) {

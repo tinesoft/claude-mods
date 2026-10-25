@@ -121,7 +121,7 @@ export const isBuilding = (flow: Flow | null): boolean => {
 
 /**
  * The Agent input without `isolation`: the engine refuses a spawn that has both `cwd` and
- * `isolation: 'worktree'`, and Craftory seats the agent through `cwd` (M4 spike).
+ * `isolation: 'worktree'`, and Craftory seats the agent through `cwd`.
  */
 export const withoutIsolation = <T extends object>(call: T): Omit<T, 'isolation'> =>
   Object.fromEntries(Object.entries(call).filter(([key]) => key !== 'isolation')) as Omit<
