@@ -27,9 +27,17 @@ export function normalise(path: string): string | undefined {
 
 const folderOf = (folder: string) => normalise(folder)?.concat('/')
 
+const GIT_DIR = '.git'
+const OWN_DIR = '.craftory'
+
+const inside = (clean: string, folder: string) => clean.split('/')[0] === folder
+
 export function isWritable(path: string, ctx: WritableContext): boolean {
   const clean = normalise(path)
-  if (clean === undefined) return false
+  if (clean === undefined || clean.split('/').includes(GIT_DIR)) return false
+  const glossary = normalise(ctx.docs.glossary)
+  const hasGlossary =
+    glossary !== undefined && glossary.endsWith('.md') && !inside(glossary, OWN_DIR)
   const exact = [
     CONFIG_FILE,
     AGENT_DOCS.tracker,
@@ -37,7 +45,7 @@ export function isWritable(path: string, ctx: WritableContext): boolean {
     AGENT_DOCS.domain,
     GITIGNORE,
     ...(ctx.steering ? [ctx.steering] : []),
-    ...(normalise(ctx.docs.glossary) ? [normalise(ctx.docs.glossary)!] : []),
+    ...(hasGlossary ? [glossary] : []),
   ]
   if (exact.includes(clean)) return true
   if (clean.startsWith(FEATURES_DIR))
@@ -45,6 +53,7 @@ export function isWritable(path: string, ctx: WritableContext): boolean {
   const issues = folderOf(ctx.issuesFolder)
   return (
     issues !== undefined &&
+    !inside(issues, OWN_DIR) &&
     clean.startsWith(issues) &&
     /^\d+-[a-z0-9-]*\.md$/.test(clean.slice(issues.length))
   )

@@ -195,7 +195,7 @@ Craftory writes only these files, and checks each write against this list:
 | `.craftory/config.json`, `.craftory/features/<spec>.json`       | Craftory, committed                  |
 | `docs/issues/<n>-<slug>.md`, only when importing `.scratch/`    | Matt's skills                        |
 
-It never touches content outside the sections it owns. A write to a shared file fails and reloads if the file changed since Craftory read it. Personal settings and pre-spec drafts are saved with `$.store`, on your machine. Feature records are written as soon as they change. Commit them so teammates see the same rail.
+It never writes under `.git/`, the glossary file must end in `.md`, and the issues folder cannot be `.craftory/`. It never touches content outside the sections it owns. A write to a shared file fails and reloads if the file changed since Craftory read it. Personal settings and pre-spec drafts are saved with `$.store`, on your machine. Feature records are written as soon as they change. Commit them so teammates see the same rail.
 
 **What it runs**
 
