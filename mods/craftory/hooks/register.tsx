@@ -1340,6 +1340,7 @@ const bandActions = ($: EngineInterface): BandActions => ({
   diagnose: () => {
     void $.command.run({ command: namespaced('diagnosing-bugs' as SkillName), args: '' })
   },
+  writePr: () => void requestRun($, 'pr' as SkillName, ''),
 })
 
 export const register: Register = (on, options) => {
@@ -1504,6 +1505,9 @@ export const register: Register = (on, options) => {
     }
   })
 
+  // The seat goes through `cwd`: `agent.spawn` shares the Agent call's `tool_use_id`, so the ticket
+  // and its worktree pair exactly. The engine refuses `cwd` together with `isolation: 'worktree'`,
+  // so the call lost `isolation` above, and a spawn that fails removes the worktree made for it.
   on('agent.spawn', async ($, e, next) => {
     const seat = (await read($, buildState)).pending[e.tool_use_id]
     if (seat === undefined) return next(e)
@@ -1545,6 +1549,8 @@ export const register: Register = (on, options) => {
     return result
   })
 
+  // Yielding a text chunk and returning without `next` sends no request and ends the subagent at
+  // once; its Agent call then returns that text. This is the hard stop at the budget.
   on('turn.step', async function* ($, e, next) {
     const agentId = e.agentId as AgentId | undefined
     const run = agentId === undefined ? undefined : (await read($, buildState)).runs[agentId]

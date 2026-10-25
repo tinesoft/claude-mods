@@ -44,6 +44,7 @@ const on: BandActions = {
   openPanel: () => void calls.push('open-panel'),
   raiseBudget: ticket => void calls.push(`raise ${ticket}`),
   diagnose: () => void calls.push('diagnose'),
+  writePr: () => void calls.push('write-pr'),
 }
 
 const args = (over: Partial<BandArgs> = {}): BandArgs => ({
@@ -304,4 +305,33 @@ test('a derived notice replaces the rail, an event notice sits above it', () => 
   const above = renderBand(args({ notices: [notice('gate-spec', false)] })) as Node
   const rows = above.children.map(c => (c as Node).props.key)
   expect(rows).toEqual(['notice-gate-spec', 'rail'])
+})
+
+const shipFlow = (artifact: string | null) => {
+  const flow = withState(baseFlow(), 'ship', { kind: 'todo' })
+  return { ...flow, steps: flow.steps.map(s => (s.phase === 'ship' ? { ...s, artifact } : s)) }
+}
+
+test('Ship offers /pr to rewrite the body once there is a pull request, and it runs the pr skill', () => {
+  calls.length = 0
+  const card = byKey(renderBand(args({ flow: shipFlow('#60 (draft)'), open: 'ship' })), 'card')
+  expect(byKey(card, 'pr')!.props.label).toBe('Rewrite the body with /pr')
+  ;(byKey(card, 'pr')!.props.onPress as () => void)()
+  expect(calls).toEqual(['write-pr'])
+  const without = byKey(renderBand(args({ flow: shipFlow(null), open: 'ship' })), 'card')
+  expect(byKey(without, 'pr')).toBeUndefined()
+})
+
+test('a Build that failed or ran out of budget offers diagnosing-bugs instead of moving on', () => {
+  for (const state of [
+    { kind: 'failed', meta: '#44 failed' },
+    { kind: 'over-budget', ticket: '#44' as IssueRef, budget: 80_000 },
+  ] as const) {
+    calls.length = 0
+    const flow = withState(baseFlow(), 'build', state)
+    const card = byKey(renderBand(args({ flow, open: 'build' })), 'card')
+    expect(byKey(card, 'diagnose')!.props.label).toBe('Diagnose')
+    ;(byKey(card, 'diagnose')!.props.onPress as () => void)()
+    expect(calls).toEqual(['diagnose'])
+  }
 })

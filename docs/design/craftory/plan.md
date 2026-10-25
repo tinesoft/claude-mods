@@ -272,10 +272,10 @@ Not yet observed on a live client: the band and pane on a terminal or Desktop, l
 
 **M4 · Build, Review, Ship, Retro**
 
-- [ ] Agent steering per M1: names, queue, budget states, stop at budget, worktree kept
-- [ ] Agents list live in Build's card; Worktrees tab with Diff, Open terminal, Remove, Prune
-- [ ] Review recognised as Build's close-out; Ship rewrites the PR body and marks it ready; Retro
-- [ ] Rebase-conflict and budget toasts
+- [x] Agent steering per M1: names, queue, budget states, stop at budget, worktree kept
+- [x] Agents list live in Build's card; Worktrees tab with Diff, Open terminal, Remove, Prune
+- [x] Review recognised as Build's close-out; Ship rewrites the PR body and marks it ready; Retro
+- [x] Rebase-conflict and budget toasts
 
 **M5 · Pane, Settings, glossary · first release**
 

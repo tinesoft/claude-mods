@@ -237,7 +237,7 @@ export type CardView = {
   gate: string | null
   /** The primary button: its label, and what it runs. Null when nothing is typed for the phase. */
   primary: { label: string; phase: PhaseId | 'triage' } | null
-  secondary: { id: string; label: string; action: 'open-tickets' }[]
+  secondary: { id: string; label: string; action: 'open-tickets' | 'diagnose' | 'pr' }[]
   /** Build's live Agents list; null on every other card and with Settings › live agents off. */
   agents: AgentsView | null
 }
@@ -261,6 +261,25 @@ export function triageCard(waiting: number): CardView {
     secondary: [],
     agents: null,
   }
+}
+
+type Secondary = CardView['secondary']
+
+/**
+ * Spec and Tickets open the panel; a Build that failed or ran out of budget offers
+ * diagnosing-bugs instead of moving on; Ship, once there is a pull request, offers `pr`.
+ */
+function secondaryOf(step: Step, specRef: string | null, isDone: boolean): Secondary {
+  const kind = step.state.kind
+  if (step.phase === 'spec' && isDone && specRef !== null)
+    return [{ id: 'open-spec', label: `Open ${specRef}`, action: 'open-tickets' }]
+  if (step.phase === 'tickets' && isDone)
+    return [{ id: 'open-tickets', label: 'Open in panel', action: 'open-tickets' }]
+  if (step.phase === 'build' && (kind === 'failed' || kind === 'over-budget'))
+    return [{ id: 'diagnose', label: 'Diagnose', action: 'diagnose' }]
+  if (step.phase === 'ship' && step.artifact !== null)
+    return [{ id: 'pr', label: 'Rewrite the body with /pr', action: 'pr' }]
+  return []
 }
 
 export function phaseCard(
@@ -299,12 +318,7 @@ export function phaseCard(
       command === null
         ? null
         : { label: isDone ? `Re-run ${command}` : command, phase: step.phase },
-    secondary:
-      step.phase === 'spec' && isDone && specRef !== null
-        ? [{ id: 'open-spec', label: `Open ${specRef}`, action: 'open-tickets' }]
-        : step.phase === 'tickets' && isDone
-          ? [{ id: 'open-tickets', label: 'Open in panel', action: 'open-tickets' }]
-          : [],
+    secondary: secondaryOf(step, specRef, isDone),
     agents: step.phase === 'build' ? agents : null,
   }
 }
@@ -445,6 +459,8 @@ export type BandActions = {
   openPanel: () => void
   raiseBudget: (ticket: IssueRef) => void
   diagnose: () => void
+  /** Ship's secondary button: `/mattpocock-skills:pr` rewrites the PR body. */
+  writePr: () => void
 }
 
 export type BandArgs = {
@@ -1221,7 +1237,14 @@ export const DetailCard = ({
   density: CardDensity
   on: Pick<
     BandActions,
-    'closeCard' | 'run' | 'openTickets' | 'pauseAll' | 'openPanel' | 'raiseBudget' | 'diagnose'
+    | 'closeCard'
+    | 'run'
+    | 'openTickets'
+    | 'pauseAll'
+    | 'openPanel'
+    | 'raiseBudget'
+    | 'diagnose'
+    | 'writePr'
   >
   ascii?: boolean
 }) => {
@@ -1330,7 +1353,15 @@ export const DetailCard = ({
             />
           )}
           {card.secondary.map(button => (
-            <Button key={button.id} label={button.label} onPress={() => on.openTickets()} />
+            <Button
+              key={button.id}
+              label={button.label}
+              onPress={() => {
+                if (button.action === 'diagnose') on.diagnose()
+                else if (button.action === 'pr') on.writePr()
+                else on.openTickets()
+              }}
+            />
           ))}
         </Box>
       )}
