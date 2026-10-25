@@ -62,6 +62,7 @@ import {
   applyDraftChange,
   bindSpec,
   draftKey,
+  enteredRecord,
   FEATURES_DIR,
   featureOf,
   featurePath,
@@ -113,6 +114,7 @@ import {
 import { checkRun, consumePass, dropText, issuePass, type RunRequest } from '../src/gates'
 import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
+import { glossaryView, tabCounts, ticketsView, type InboxAction } from '../src/pane-view'
 import { namespaced, recognise } from '../src/phases'
 import {
   hasSkill,
@@ -132,7 +134,8 @@ import { readTracker, TRACKERS, type Read, type ReadContext, type ReadResult } f
 import { DEFAULT_LABELS } from '../src/agents-md'
 import { parseColorFgBg, SYSTEM_PROBES } from '../src/appearance'
 import { resolveTone, SPIN_MS, type Tone } from '../src/theme'
-import { parseGlossary } from '../src/glossary'
+import { parseGlossary, termKey, termsOf } from '../src/glossary'
+import { termKeysIn } from '../src/reply'
 import type {
   AgentId,
   AgentRun,
@@ -192,6 +195,9 @@ const keptReason = (path: string, why: KeepWhy) =>
 // git         refreshGit (session.start, after a seat, a finish and a git command by an agent)
 // diffs       the Worktrees tab's Diff button
 // steeringNote  agent.spawn, when a worktree cannot be made
+// glossaryQuery  the Glossary tab's search
+// lastReplyTerms  turn.complete (the terms the last reply used)
+// glossaryAtStart  session.start, once the repo is read
 
 // openStep    the rail's steps and the card's Close
 // isPickingFeature  the feature switcher
@@ -225,6 +231,19 @@ const diffsState = atom({ plugin: 'craftory', key: 'diffs' } as const, {})
 const steeringNoteState = atom({ plugin: 'craftory', key: 'steeringNote' } as const, null)
 const openStepState = atom({ plugin: 'craftory', key: 'openStep' } as const, null)
 const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
+const settingsSectionState = atom(
+  { plugin: 'craftory', key: 'settingsSection' } as const,
+  'tracker',
+)
+const termDraftState = atom({ plugin: 'craftory', key: 'termDraft' } as const, {
+  name: '',
+  definition: '',
+  avoid: '',
+  editing: null,
+})
+const glossaryQueryState = atom({ plugin: 'craftory', key: 'glossaryQuery' } as const, '')
+const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } as const, [])
+const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
 
 // ─── Reads ──────────────────────────────────────────────────────────────────────────────
 
@@ -450,6 +469,11 @@ async function readContext($: EngineInterface, repo: RepoSnapshot): Promise<Read
       specs: Object.values(features).map(f => f.spec),
       branch: record?.integrationBranch || null,
     },
+    remoteWeb: (await read($, gitState))?.remote?.webUrl ?? null,
+    ...(repo.setup.state === 'ok' &&
+      repo.setup.value.tracker.kind === 'other' && {
+        otherDescription: repo.setup.value.tracker.description,
+      }),
   }
 }
 
@@ -489,16 +513,10 @@ const executeReads = ($: EngineInterface) => (reads: readonly Read[]) =>
 async function refreshTracker($: EngineInterface) {
   const repo = await read($, repoState)
   if (repo === null) return
-  const kind = trackerKindOf(repo)
-  if (kind === 'gitlab' || kind === 'other') {
-    const at = await $.clock.now()
-    await update($, trackerState, () => ({ kind, rich: false as const, links: [], at }))
-  } else {
-    const spec = TRACKERS[kind]
-    if (spec === undefined) return
-    const snapshot = await readTracker(spec, await readContext($, repo), executeReads($))
-    await update($, trackerState, () => snapshot)
-  }
+  const spec = TRACKERS[trackerKindOf(repo)]
+  if (spec === undefined) return
+  const snapshot = await readTracker(spec, await readContext($, repo), executeReads($))
+  await update($, trackerState, () => snapshot)
   await bindDrafts($)
   await cleanupMerged($)
   await settle($)
@@ -517,7 +535,7 @@ async function touchesTracker(
 ) {
   const repo = await read($, repoState)
   const kind = trackerKindOf(repo)
-  if (repo === null || kind === 'gitlab' || kind === 'other') return false
+  if (repo === null) return false
   return TRACKERS[kind]?.touches(await readContext($, repo), tool) === true
 }
 
@@ -1145,10 +1163,15 @@ async function finishAgent($: EngineInterface, agentId: AgentId, reason: FinishR
 /** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */
 function uiFor($: EngineInterface, event: Parameters<EngineInterface['ui']['resolve']>[0]): Ui {
   const table = $.ui.resolve(event)
-  const { Box, Text, Button } = table
-  return event.surface !== 'terminal' && 'Svg' in table
-    ? { Box, Text, Button, Svg: table.Svg }
-    : { Box, Text, Button }
+  const { Box, Text, Button, Link } = table
+  return {
+    Box,
+    Text,
+    Button,
+    Link,
+    ...(event.surface !== 'terminal' && 'Svg' in table && { Svg: table.Svg }),
+    ...('Input' in table && { Input: table.Input }),
+  }
 }
 
 async function probeSystem($: EngineInterface): Promise<Tone | null> {
@@ -1268,6 +1291,90 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
   }
 }
 
+// ─── Pane tabs ──────────────────────────────────────────────────────────────────────────
+
+async function glossaryTerms($: EngineInterface) {
+  const repo = await read($, repoState)
+  return repo?.glossary.state === 'ok' ? termsOf(repo.glossary.value) : []
+}
+
+async function glossaryViewOf($: EngineInterface) {
+  const repo = await read($, repoState)
+  return glossaryView({
+    doc: repo?.glossary,
+    path: repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary,
+    query: await read($, glossaryQueryState),
+    used: await read($, lastReplyTermsState),
+    atStart: await read($, glossaryAtStartState),
+  })
+}
+
+async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
+  const [repo, tracker, features] = await Promise.all([
+    read($, repoState),
+    read($, trackerState),
+    read($, featuresState),
+  ])
+  const spec = TRACKERS[trackerKindOf(repo)]
+  return ticketsView({
+    flow,
+    tracker,
+    config: configOf(repo?.config),
+    header:
+      repo === null || spec === undefined ? 'Tracker' : spec.header(await readContext($, repo)),
+    featureSpecs: new Set(Object.keys(features)),
+  })
+}
+
+/** Start feature on a ready-for-agent issue: it enters at `phase` and the earlier phases are skipped. */
+async function startFromIssue($: EngineInterface, action: Extract<InboxAction, { kind: 'start' }>) {
+  const tracker = await read($, trackerState)
+  const issue = tracker?.rich ? tracker.issues.find(i => i.ref === action.ref) : undefined
+  if (issue === undefined) return
+  const repo = await read($, repoState)
+  const config = configOf(repo?.config)
+  const now = await $.clock.now()
+  if (action.phase === 'align') {
+    const draft = newDraft({
+      draftId: `d${now}`,
+      title: issue.title,
+      entry: 'align',
+      enteredFrom: issue.ref,
+      at: isoOf(now),
+    })
+    await update($, draftsState, held => ({ ...held, [draft.draftId]: draft }))
+    await persistDrafts($)
+    await update($, activeState, () => draftKey(draft.draftId))
+  } else {
+    const record = await saveFeature(
+      $,
+      enteredRecord({
+        issue,
+        phase: action.phase,
+        integrationBranch: integrationBranchFor(config, issue.title),
+      }),
+    )
+    await update($, featuresState, held => ({ ...held, [record.spec]: record }))
+    await update($, activeState, () => specKey(record.spec))
+    await $.store.set(STORE_LAST_ACTIVE, specKey(record.spec))
+  }
+  await settle($)
+  const step = (await currentFlow($))?.steps.find(s => s.phase === action.phase)
+  if (step?.command)
+    await requestRun($, step.command, action.phase === 'align' ? issue.ref : step.args)
+}
+
+async function openFolder($: EngineInterface, folder: string, surface: RenderSurface) {
+  const copied = await $.ui.copy({ text: folder, surface }).catch(() => ({ isCopied: false }))
+  $.ui.toast(copied.isCopied ? `Copied ${folder}` : `Could not copy · the folder is ${folder}`)
+}
+
+async function jumpToTerm($: EngineInterface, name: string) {
+  await update($, settingsSectionState, () => 'glossary')
+  await update($, termDraftState, () => ({ name: '', definition: '', avoid: '', editing: name }))
+  await openPane($, 'settings')
+}
+
 // ─── Hooks ──────────────────────────────────────────────────────────────────────────────
 
 const isSupported = async ($: EngineInterface) => meetsFloor((await $.session.version()).base)
@@ -1357,6 +1464,8 @@ export const register: Register = (on, options) => {
       $.ui.toast(`Craftory needs Claude Code ${ENGINE_FLOOR} or later. Run claude update.`)
     }
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($)])
+    const atStart = (await glossaryTerms($)).map(t => termKey(t.name))
+    await update($, glossaryAtStartState, () => atStart)
     await refreshTracker($)
     await refreshGit($)
     if (configOf((await read($, repoState))?.config).worktrees.pruneStale) await pruneStale($)
@@ -1422,6 +1531,8 @@ export const register: Register = (on, options) => {
       await finishAgent($, e.agentId as AgentId, e.reason)
       return result
     }
+    const terms = await glossaryTerms($)
+    await update($, lastReplyTermsState, () => termKeysIn(e.answer, terms))
     const running = await read($, runningState)
     if (running !== null && !running.isAwaitingUser) {
       const grillAsksNext = running.phase === 'align' && !e.isAborted
@@ -1640,21 +1751,62 @@ export const register: Register = (on, options) => {
     })
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) =>
-    renderPane({
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
+    const [flow, git, glossary, prefs] = await Promise.all([
+      currentFlow($),
+      read($, gitState),
+      glossaryViewOf($),
+      read($, prefsState),
+    ])
+    const worktrees = await worktreesViewOf($)
+    const tickets = await ticketsViewOf($, flow)
+    const resolved = resolvePrefs(options, prefs)
+    const actions = bandActions($)
+    return renderPane({
       ui: uiFor($, e),
+      surface: e.surface,
       tone: await toneOf($, options, e.surface),
+      ascii: resolved.ascii,
+      spinFrame: spinFrameOf(await $.clock.now()),
       tab: await read($, paneTabState),
       pluginLine: pluginLine(await read($, pluginState)),
       setupNote: await read($, setupNoteState),
-      worktrees: await worktreesViewOf($),
+      flow,
+      waiting: waitingForTriage(await read($, trackerState)),
+      counts: tabCounts({
+        flow,
+        tickets,
+        worktrees: git === null ? null : git.worktrees.length,
+        terms: glossary.hasFile ? glossary.total : null,
+      }),
+      tickets,
+      worktrees,
+      glossary,
+      query: await read($, glossaryQueryState),
       on: {
         writeSetup: () => writeSetup($),
+        tab: tab => void openPane($, tab),
         diff: path => void toggleDiff($, path),
         openTerminal: (path, surface) => void copyTerminal($, path, surface),
         remove: path => void removeWorktree($, path),
         prune: () => void pruneStale($),
+        openFolder: (folder, surface) => void openFolder($, folder, surface),
+        inbox: action =>
+          void (action.kind === 'start'
+            ? startFromIssue($, action)
+            : requestRun($, 'triage' as SkillName, action.ref)),
+        implement: ref => void requestRun($, 'implement' as SkillName, ref),
+        implementSpec: () =>
+          void (async () => {
+            const record = await activeRecord($)
+            if (record !== null) await requestRun($, 'implement-spec' as SkillName, record.spec)
+          })(),
+        search: text => {
+          void update($, glossaryQueryState, () => text).then(() => $.ui.invalidate('ui.render'))
+        },
+        editTerm: name => void jumpToTerm($, name),
+        rail: { step: actions.step, triage: actions.triage },
       },
-    }),
-  )
+    })
+  })
 }

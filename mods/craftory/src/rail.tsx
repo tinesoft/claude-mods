@@ -58,8 +58,10 @@ import {
 } from './theme'
 
 /** `Svg` exists on every surface that draws rich (remote) elements, never on the terminal. */
-export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'> & {
+export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button' | 'Link'> & {
   Svg?: ElementTable<'desktop'>['Svg']
+  /** Every surface but mobile has a text field. */
+  Input?: ElementTable<'desktop'>['Input']
 }
 
 export const isRich = (ui: Ui) => ui.Svg !== undefined
@@ -632,7 +634,11 @@ const stepIcon = (step: Step, frame: number, color: string, track: string) =>
     ? spinnerSvg(frame, hexOr(color), track)
     : stepSvg(step.state.kind === 'next' ? 'next' : step.state.kind, hexOr(color))
 
-const StepButton = ({ args, step, fits }: { args: RailArgs; step: Step; fits: boolean }) => {
+type StepArgs = Pick<RailArgs, 'ui' | 'tone' | 'ascii' | 'spinFrame' | 'flow' | 'open'> & {
+  on: Pick<BandActions, 'step'>
+}
+
+const StepButton = ({ args, step, fits }: { args: StepArgs; step: Step; fits: boolean }) => {
   const { ui, tone, ascii, spinFrame, flow, open, on } = args
   const { Box, Button, Text } = ui
   const look = STEP_LOOKS[step.state.kind]
@@ -699,7 +705,11 @@ const StepButton = ({ args, step, fits }: { args: RailArgs; step: Step; fits: bo
   )
 }
 
-const TriageButton = ({ args, fits }: { args: RailArgs; fits: boolean }) => {
+type TriageArgs = Pick<RailArgs, 'ui' | 'tone' | 'waiting' | 'open'> & {
+  on: Pick<BandActions, 'triage'>
+}
+
+const TriageButton = ({ args, fits }: { args: TriageArgs; fits: boolean }) => {
   const { ui, tone, waiting, open, on } = args
   const { Box, Button, Text } = ui
   const isOpen = open === 'triage'
@@ -872,6 +882,50 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
         </Button>
       </Box>
       <Gear args={args} />
+    </Box>
+  )
+}
+
+/**
+ * The rail on a surface with no band (mobile): the same steps, wrapping onto more rows instead
+ * of fitting one, with no title or gear because the pane header already has both.
+ */
+export const PaneRail = ({
+  ui,
+  tone,
+  ascii,
+  spinFrame,
+  flow,
+  waiting,
+  on,
+}: Pick<RailArgs, 'ui' | 'tone' | 'ascii' | 'spinFrame' | 'flow' | 'waiting'> & {
+  on: Pick<BandActions, 'step' | 'triage'>
+}) => {
+  const { Box, Text } = ui
+  const args = { ui, tone, ascii, spinFrame, flow, waiting, open: null, on }
+  return (
+    <Box
+      key="pane-rail"
+      flexDirection="row"
+      flexWrap="wrap"
+      alignItems="center"
+      columnGap={SPACE.railGap}
+    >
+      <TriageButton args={args} fits={false} />
+      <Text
+        key="divider"
+        {...(tone === undefined ? { dimColor: true } : { color: TOKENS[tone].line })}
+      >
+        {'│'}
+      </Text>
+      {flow.steps.map((step, index) => (
+        <Box key={`group-${step.phase}`} flexDirection="row" alignItems="center">
+          {index > 0 && (
+            <Connector ui={ui} tone={tone} ascii={ascii} before={flow.steps[index - 1]!} />
+          )}
+          <StepButton args={args} step={step} fits={false} />
+        </Box>
+      ))}
     </Box>
   )
 }

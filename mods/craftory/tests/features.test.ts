@@ -271,7 +271,7 @@ test('a draft binds to the first spec made after its Spec ran, never to an older
   })
   expect(bindSpec(never, tracker(issues), new Set())).toBeUndefined()
   expect(
-    bindSpec(draft, { kind: 'gitlab', rich: false, links: [], at: 0 }, new Set()),
+    bindSpec(draft, { kind: 'gitlab', rich: false, links: [], note: null, at: 0 }, new Set()),
   ).toBeUndefined()
 })
 

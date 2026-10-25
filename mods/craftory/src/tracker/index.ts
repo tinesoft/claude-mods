@@ -15,6 +15,7 @@ import type {
   TriageLabels,
 } from '../../types'
 import * as github from './github'
+import * as links from './links'
 import * as local from './local'
 
 export { parseIssueRef, refsIn } from './refs'
@@ -37,6 +38,10 @@ export type ReadContext = {
   now: Millis
   /** What the active feature needs from a tracker that is asked per issue (GitHub). */
   focus?: { specs: readonly IssueRef[]; branch: string | null }
+  /** The git remote's web address, for a GitLab project that Settings did not name. */
+  remoteWeb?: string | null
+  /** The paragraph the user wrote for an Other tracker. */
+  otherDescription?: string
 }
 
 export type TrackerSpec = {
@@ -53,10 +58,11 @@ export type TrackerSpec = {
   header: (ctx: ReadContext) => string
 }
 
-/** GitLab and Other arrive with M5. */
 export const TRACKERS: Partial<Record<TrackerKind, TrackerSpec>> = {
   local: local.spec,
   github: github.spec,
+  gitlab: links.gitlab,
+  other: links.other,
 }
 
 /**

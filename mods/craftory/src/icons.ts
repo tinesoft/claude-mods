@@ -57,3 +57,10 @@ export const spinnerSvg = (frame: number, color: string, track: string) => {
     `<path d="${RING_ARC}" stroke="${color}" transform="rotate(${degrees} 8 8)"/></svg>`
   )
 }
+
+export const SWITCH_SIZE = { width: 40, height: 24 } as const
+
+export const switchSvg = (isOn: boolean, onColor: string, offColor: string) =>
+  `<svg ${XMLNS} viewBox="0 0 40 24">` +
+  `<rect width="40" height="24" rx="12" fill="${isOn ? onColor : offColor}"/>` +
+  `<circle cx="${isOn ? 28 : 12}" cy="12" r="9" fill="#FFFFFF"/></svg>`

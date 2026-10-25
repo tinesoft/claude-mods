@@ -27,6 +27,7 @@ export const fakeUi = (rich = false): Ui =>
     Box: make('Box'),
     Text: make('Text'),
     Button: make('Button'),
+    Link: make('Link'),
     ...(rich && { Svg: make('Svg') }),
   }) as never
 

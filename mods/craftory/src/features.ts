@@ -386,6 +386,30 @@ export function promote(
   }
 }
 
+/**
+ * A ready-for-agent issue started as a feature at `phase`: the issue is the feature's spec
+ * reference, and the phases before the entry are skipped for this feature.
+ */
+export function enteredRecord(args: {
+  issue: Pick<Issue, 'ref' | 'title'>
+  phase: PhaseId
+  integrationBranch: string
+}): FeatureRecord {
+  const { issue, phase, integrationBranch } = args
+  return {
+    version: 1,
+    spec: issue.ref,
+    title: issue.title,
+    entry: phase,
+    enteredFrom: issue.ref,
+    skipped: PHASE_ORDER.slice(0, PHASE_ORDER.indexOf(phase)),
+    integrationBranch,
+    pr: null,
+    marks: {},
+    agents: {},
+  }
+}
+
 const touchedAt = (record: FeatureRecord) =>
   Math.max(
     0,

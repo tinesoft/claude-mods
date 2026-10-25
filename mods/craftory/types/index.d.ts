@@ -214,7 +214,14 @@ export type TrackerSnapshot =
       at: Millis
       problem: string | null
     }
-  | { kind: 'gitlab' | 'other'; rich: false; links: TrackerLink[]; at: Millis }
+  | {
+      kind: 'gitlab' | 'other'
+      rich: false
+      links: TrackerLink[]
+      /** Other only: the user's own description of the tracker, shown when it holds no link. */
+      note: string | null
+      at: Millis
+    }
 
 // ─── Git ────────────────────────────────────────────────────────────────────────────────
 
@@ -487,7 +494,8 @@ declare module 'claude-code' {
       notices: EventNotice[]
       dismissed: NoticeKey[]
       lastReplyTerms: string[]
-      glossaryAtStart: string[]
+      /** The glossary's term keys when the session began; null until the repo has been read. */
+      glossaryAtStart: string[] | null
 
       /** The toast basis last seen; null until the first look after the tracker was read. */
       signals: SignalBasis | null

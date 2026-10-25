@@ -1,30 +1,59 @@
 /**
- * The pane body. The Worktrees tab is complete (M4); Flow, Tickets, Glossary and Settings stay a
- * placeholder until M5 draws their tabs and the tab row.
+ * The pane body: the tab row, then one of the five tabs. Plain args and callbacks in, a tree out
+ * (nothing here touches `$`); `register.tsx` builds the views from the atoms.
  */
 import type { RenderSurface } from 'claude-code'
-import type { PaneTab, Tone } from '../types'
+import type { IssueRef, PaneTab, Tone } from '../types'
+import type { Flow } from './evidence'
 import { WORKTREE_LABELS, type WorktreeKind, type WorktreeRowView, type WorktreesView } from './git'
-import { CardButton, isRich, type Ui } from './rail'
-import { paint, SPACE, TOKENS, type Role } from './theme'
+import {
+  flowRows,
+  TABS,
+  type GlossaryView,
+  type InboxAction,
+  type InboxRowView,
+  type TabCounts,
+  type TicketRowView,
+  type TicketsView,
+} from './pane-view'
+import { CardButton, isRich, PaneRail, type BandActions, type Ui } from './rail'
+import { paint, SPACE, STEP_LOOKS, TOKENS, type Role } from './theme'
+import { inkOf } from './widgets'
 
 export type PaneActions = {
   writeSetup: () => void
+  tab: (tab: PaneTab) => void
   /** The diff line toggles under the row. */
   diff: (path: string) => void
   openTerminal: (path: string, surface: RenderSurface) => void
   remove: (path: string) => void
   prune: () => void
+  openFolder: (folder: string, surface: RenderSurface) => void
+  inbox: (action: InboxAction) => void
+  implement: (ref: IssueRef) => void
+  implementSpec: () => void
+  search: (text: string) => void
+  editTerm: (name: string) => void
+  rail: Pick<BandActions, 'step' | 'triage'>
 }
 
 export type PaneArgs = {
   ui: Ui
+  surface: RenderSurface
   tone: Tone | undefined
+  ascii: boolean
+  spinFrame: number
   tab: PaneTab
   pluginLine: string
   setupNote: string | null
+  flow: Flow | null
+  waiting: number
+  counts: TabCounts
+  tickets: TicketsView
   /** The Worktrees tab's rows; null before git has been read. */
   worktrees: WorktreesView | null
+  glossary: GlossaryView
+  query: string
   on: PaneActions
 }
 
@@ -36,13 +65,6 @@ const KIND_ROLES: Record<WorktreeKind, Role> = {
   stale: 'hook',
   other: 'muted',
 }
-
-const inkOf = (tone: Tone | undefined, key: 'ink' | 'ink2' | 'text2' | 'muted') =>
-  tone === undefined
-    ? key === 'ink' || key === 'ink2'
-      ? {}
-      : { dimColor: true }
-    : { color: TOKENS[tone][key] }
 
 const WorktreeCard = ({
   ui,
@@ -153,31 +175,6 @@ const WorktreeCard = ({
   )
 }
 
-export function renderPane({ ui, tone, tab, pluginLine, setupNote, worktrees, on }: PaneArgs) {
-  const { Box, Button, Text } = ui
-  const quiet = tone === undefined ? { dimColor: true } : { color: TOKENS[tone].text2 }
-  return (
-    <Box
-      flexDirection="column"
-      paddingLeft={SPACE.paneLeft}
-      paddingRight={SPACE.paneRight}
-      rowGap={SPACE.paneGap}
-    >
-      <Text bold>Craftory</Text>
-      <Text {...quiet}>{pluginLine}</Text>
-      {tab === 'worktrees' && <WorktreesTab ui={ui} tone={tone} view={worktrees} on={on} />}
-      {tab === 'settings' && (
-        <Box flexDirection="column" rowGap={SPACE.paneGap}>
-          <Button key="pane-write-setup" onPress={() => on.writeSetup()}>
-            <Text>Write setup with detected defaults</Text>
-          </Button>
-          {setupNote !== null && <Text {...quiet}>{setupNote}</Text>}
-        </Box>
-      )}
-    </Box>
-  )
-}
-
 const WorktreesTab = ({
   ui,
   tone,
@@ -216,6 +213,485 @@ const WorktreesTab = ({
         Each agent works in its own worktree, branched from the integration branch. When its ticket
         is green it merges back and the worktree is removed.
       </Text>
+    </Box>
+  )
+}
+
+// ─── Tabs ───────────────────────────────────────────────────────────────────────────────
+
+const TabRow = ({
+  ui,
+  tone,
+  tab,
+  counts,
+  on,
+}: Pick<PaneArgs, 'ui' | 'tone' | 'tab' | 'counts' | 'on'>) => {
+  const { Box, Button, Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  const t = tone === undefined ? undefined : TOKENS[tone]
+  return (
+    <Box
+      key="tabs"
+      flexDirection="row"
+      flexWrap="wrap"
+      columnGap={rich ? 0 : SPACE.tabGap}
+      {...(rich && t !== undefined && { backgroundColor: t.fill })}
+    >
+      {TABS.map(({ id, hotkey, title }) => {
+        const isOn = tab === id
+        const count = counts[id]
+        return (
+          <Box
+            key={`tab-${id}-box`}
+            paddingX={SPACE.tabPad}
+            columnGap={SPACE.chipGap}
+            {...(rich &&
+              t !== undefined &&
+              isOn && {
+                backgroundColor: t.surface,
+                borderStyle: 'round' as const,
+                borderColor: t.line,
+              })}
+          >
+            <Button key={`tab-${id}`} plain hotkey={hotkey} onPress={() => on.tab(id)}>
+              <Text
+                bold={isOn}
+                dimColor={!isOn && tone === undefined}
+                {...(tone !== undefined && inkOf(tone, isOn ? 'ink' : 'text2'))}
+              >
+                {title}
+              </Text>
+              {count !== undefined && (
+                <Text mono={rich} {...inkOf(tone, 'muted')}>{` ${count}`}</Text>
+              )}
+            </Button>
+          </Box>
+        )
+      })}
+    </Box>
+  )
+}
+
+const FlowTab = ({
+  ui,
+  tone,
+  surface,
+  ascii,
+  spinFrame,
+  flow,
+  waiting,
+  on,
+}: Pick<
+  PaneArgs,
+  'ui' | 'tone' | 'surface' | 'ascii' | 'spinFrame' | 'flow' | 'waiting' | 'on'
+>) => {
+  const { Box, Text } = ui
+  if (flow === null) {
+    return (
+      <Text {...inkOf(tone, 'text2')}>
+        No feature in flight. Talk the plan through first with /grill-with-docs.
+      </Text>
+    )
+  }
+  const rich = isRich(ui) && tone !== undefined
+  return (
+    <Box key="flow" flexDirection="column" rowGap={SPACE.paneGap}>
+      {surface === 'mobile' && (
+        <PaneRail
+          ui={ui}
+          tone={tone}
+          ascii={ascii}
+          spinFrame={spinFrame}
+          flow={flow}
+          waiting={waiting}
+          on={on.rail}
+        />
+      )}
+      <Text {...inkOf(tone, 'text2')}>
+        {`${flow.title} · ${flow.doneCount} of ${flow.enabledCount} phases done`}
+      </Text>
+      {flowRows(flow).map(row => {
+        const look = STEP_LOOKS[row.state]
+        const colours = paint(look.role, tone)
+        return (
+          <Box key={`flow-${row.phase}`} flexDirection="row" columnGap={SPACE.rowLabelGap}>
+            <Text key={`flow-glyph-${row.phase}`} bold color={colours.fg}>
+              {ascii ? look.ascii : look.glyph}
+            </Text>
+            <Box flexDirection="column" flexShrink={1} minWidth={0}>
+              <Box flexDirection="row" columnGap={SPACE.rowLabelGap} flexWrap="wrap">
+                <Text
+                  bold
+                  {...(row.state === 'next' || row.state === 'running'
+                    ? { color: colours.fg }
+                    : inkOf(tone, 'ink'))}
+                >
+                  {row.label}
+                </Text>
+                {row.command !== '' && (
+                  <Text mono={rich} {...inkOf(tone, 'muted')}>
+                    {row.command}
+                  </Text>
+                )}
+              </Box>
+              <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+                {row.result}
+              </Text>
+            </Box>
+          </Box>
+        )
+      })}
+    </Box>
+  )
+}
+
+const ROLE_OF_ISSUE: Record<InboxRowView['role'], Role> = {
+  'needs-triage': 'neutral',
+  'needs-info': 'neutral',
+  'ready-for-agent': 'skill',
+  'ready-for-human': 'hook',
+  wontfix: 'muted',
+}
+
+const STATUS_ROLE: Record<TicketRowView['status'], Role> = {
+  merged: 'perm',
+  ready: 'skill',
+  blocked: 'muted',
+  human: 'hook',
+  open: 'neutral',
+}
+
+const Badge = ({
+  ui,
+  tone,
+  role,
+  text,
+  id,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  role: Role
+  text: string
+  id: string
+}) => {
+  const { Box, Text } = ui
+  const colours = paint(role, tone)
+  if (!isRich(ui) || tone === undefined) return <Text bold color={colours.fg}>{`[${text}]`}</Text>
+  return (
+    <Box
+      key={`badge-${id}`}
+      paddingX={SPACE.chipPadX}
+      borderStyle="round"
+      {...(colours.bd !== undefined && { borderColor: colours.bd })}
+      backgroundColor={colours.bg ?? TOKENS[tone].fill}
+    >
+      <Text bold color={colours.fg}>
+        {text}
+      </Text>
+    </Box>
+  )
+}
+
+const InboxRow = ({
+  ui,
+  tone,
+  row,
+  on,
+}: Pick<PaneArgs, 'ui' | 'tone' | 'on'> & { row: InboxRowView }) => {
+  const { Box, Text } = ui
+  const rich = isRich(ui)
+  return (
+    <Box
+      key={`inbox-${row.ref}`}
+      flexDirection="row"
+      flexWrap="wrap"
+      columnGap={SPACE.rowLabelGap}
+      alignItems="center"
+    >
+      <Text mono={rich} {...inkOf(tone, 'muted')}>
+        {row.ref}
+      </Text>
+      <Box flexDirection="column" flexShrink={1} minWidth={0}>
+        <Text bold wrap="wrap" {...inkOf(tone, 'ink')}>
+          {row.title}
+        </Text>
+        <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+          <Text mono={rich} color={paint(ROLE_OF_ISSUE[row.role], tone).fg}>
+            {row.role}
+          </Text>
+          {` · ${row.note}`}
+        </Text>
+      </Box>
+      {row.action !== null && row.label !== null && (
+        <CardButton
+          ui={ui}
+          tone={tone}
+          id={`inbox-${row.action.kind}-${row.ref}`}
+          label={row.label}
+          onPress={() => row.action && on.inbox(row.action)}
+        />
+      )}
+    </Box>
+  )
+}
+
+const TicketCard = ({
+  ui,
+  tone,
+  row,
+  on,
+}: Pick<PaneArgs, 'ui' | 'tone' | 'on'> & { row: TicketRowView }) => {
+  const { Box, Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  const t = tone === undefined ? undefined : TOKENS[tone]
+  return (
+    <Box
+      key={`ticket-${row.ref}`}
+      flexDirection="column"
+      rowGap={SPACE.lineGap}
+      {...(rich &&
+        t !== undefined && {
+          borderStyle: 'round' as const,
+          borderColor: t.line,
+          backgroundColor: t.surface,
+          paddingX: SPACE.agentsPadX,
+          paddingY: SPACE.agentsPadY,
+        })}
+    >
+      <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowLabelGap}>
+        <Box flexDirection="row" columnGap={SPACE.rowLabelGap} flexShrink={1} minWidth={0}>
+          <Text mono={rich} {...inkOf(tone, 'muted')}>
+            {row.ref}
+          </Text>
+          <Text bold wrap="wrap" {...inkOf(tone, 'ink')}>
+            {row.title}
+          </Text>
+        </Box>
+        <Badge
+          ui={ui}
+          tone={tone}
+          role={STATUS_ROLE[row.status]}
+          text={row.statusLabel}
+          id={row.ref}
+        />
+      </Box>
+      <Box flexDirection="row" columnGap={SPACE.rowLabelGap} flexWrap="wrap" alignItems="center">
+        {row.blockedBy.length > 0 && (
+          <Text {...inkOf(tone, 'text2')}>{`Blocked by ${row.blockedBy.join(', ')}`}</Text>
+        )}
+        {row.command !== null && (
+          <CardButton
+            ui={ui}
+            tone={tone}
+            id={`implement-${row.ref}`}
+            label={row.command}
+            onPress={() => on.implement(row.ref)}
+          />
+        )}
+      </Box>
+    </Box>
+  )
+}
+
+const TicketsTab = ({
+  ui,
+  tone,
+  view,
+  on,
+}: Pick<PaneArgs, 'ui' | 'tone' | 'on'> & { view: TicketsView }) => {
+  const { Box, Link, Text } = ui
+  return (
+    <Box key="tickets" flexDirection="column" rowGap={SPACE.paneGap}>
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="center"
+        columnGap={SPACE.rowLabelGap}
+      >
+        <Text key="tracker-header" {...inkOf(tone, 'text2')}>
+          {view.header}
+        </Text>
+        {view.folder !== null && (
+          <CardButton
+            ui={ui}
+            tone={tone}
+            id="open-folder"
+            label="Open folder"
+            onPress={surface => on.openFolder(view.folder!, surface)}
+          />
+        )}
+      </Box>
+      {view.links !== null && (
+        <Box key="tracker-links" flexDirection="column" rowGap={SPACE.lineGap}>
+          <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+            Craftory shows links for this tracker. Issues stay where they are.
+          </Text>
+          {view.links.items.map(link => (
+            <Link key={`link-${link.url}`} href={link.url} label={`${link.label} · ${link.url}`} />
+          ))}
+          {view.links.note !== null && view.links.items.length === 0 && (
+            <Text wrap="wrap" {...inkOf(tone, 'ink2')}>
+              {view.links.note}
+            </Text>
+          )}
+        </Box>
+      )}
+      {view.showInbox && (
+        <Box key="inbox" flexDirection="column" rowGap={SPACE.lineGap}>
+          <Box flexDirection="row" columnGap={SPACE.rowLabelGap}>
+            <Text bold {...inkOf(tone, 'ink')}>
+              Inbox
+            </Text>
+            <Text {...inkOf(tone, 'text2')}>Issues from outside the flow · triage roles</Text>
+          </Box>
+          {view.inbox.length === 0 && <Text {...inkOf(tone, 'muted')}>Nothing waiting.</Text>}
+          {view.inbox.map(row => (
+            <InboxRow key={row.ref} ui={ui} tone={tone} row={row} on={on} />
+          ))}
+        </Box>
+      )}
+      {view.specLabel !== null && (
+        <Text bold {...inkOf(tone, 'ink')}>
+          {view.specLabel}
+        </Text>
+      )}
+      {view.tickets.map(row => (
+        <TicketCard key={row.ref} ui={ui} tone={tone} row={row} on={on} />
+      ))}
+      {view.runAll !== null && (
+        <CardButton
+          ui={ui}
+          tone={tone}
+          id="implement-spec"
+          label={view.runAll}
+          onPress={() => on.implementSpec()}
+        />
+      )}
+      {view.links === null && view.specLabel === null && (
+        <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+          No spec in flight. Tickets of the active feature show here.
+        </Text>
+      )}
+    </Box>
+  )
+}
+
+const GlossaryTab = ({
+  ui,
+  tone,
+  view,
+  query,
+  on,
+}: Pick<PaneArgs, 'ui' | 'tone' | 'on' | 'query'> & { view: GlossaryView }) => {
+  const { Box, Input, Text } = ui
+  const rich = isRich(ui)
+  return (
+    <Box key="glossary" flexDirection="column" rowGap={SPACE.paneGap}>
+      {Input !== undefined && (
+        <Input
+          key="glossary-search"
+          value={query}
+          placeholder={`Search ${view.total} terms`}
+          submitLabel="search"
+          onInput={text => on.search(text)}
+          onSubmit={text => on.search(text)}
+        />
+      )}
+      <Text key="glossary-summary" mono={rich} {...inkOf(tone, 'muted')}>
+        {view.summary}
+      </Text>
+      {view.hasFile && (
+        <Box
+          key="glossary-used"
+          flexDirection="column"
+          rowGap={SPACE.lineGap}
+          {...(rich &&
+            tone !== undefined && {
+              borderStyle: 'round' as const,
+              borderColor: paint('skill', tone).bd ?? TOKENS[tone].line,
+              backgroundColor: paint('skill', tone).bg ?? TOKENS[tone].fill,
+              paddingX: SPACE.agentsPadX,
+              paddingY: SPACE.agentsPadY,
+            })}
+        >
+          <Text bold color={paint('skill', tone).fg}>
+            Used in last reply
+          </Text>
+          {view.used.length === 0 && (
+            <Text {...inkOf(tone, 'text2')}>No glossary term in the last reply.</Text>
+          )}
+          {view.used.map(term => (
+            <Text key={`used-${term.name}`} wrap="wrap" {...inkOf(tone, 'ink2')}>
+              <Text bold>{term.name}</Text>
+              {` ${term.definition}`}
+            </Text>
+          ))}
+          <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+            On the terminal this list stands in for underlined terms.
+          </Text>
+        </Box>
+      )}
+      {view.terms.map(term => (
+        <Box key={`term-${term.name}`} flexDirection="column" rowGap={SPACE.lineGap}>
+          <Box
+            flexDirection="row"
+            justifyContent="space-between"
+            columnGap={SPACE.rowLabelGap}
+            alignItems="center"
+          >
+            <Box flexDirection="row" columnGap={SPACE.rowLabelGap}>
+              <Text bold {...inkOf(tone, 'ink')}>
+                {term.name}
+              </Text>
+              {term.isNew && <Badge ui={ui} tone={tone} role="perm" text="New" id={term.name} />}
+            </Box>
+            <CardButton
+              ui={ui}
+              tone={tone}
+              id={`term-edit-${term.name}`}
+              label="Edit"
+              onPress={() => on.editTerm(term.name)}
+            />
+          </Box>
+          <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+            {term.definition}
+          </Text>
+          {term.avoid.length > 0 && (
+            <Text wrap="wrap" {...inkOf(tone, 'muted')}>{`Avoid: ${term.avoid.join(', ')}`}</Text>
+          )}
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
+export function renderPane(args: PaneArgs) {
+  const { ui, tone, tab, pluginLine, setupNote, on } = args
+  const { Box, Button, Text } = ui
+  return (
+    <Box
+      flexDirection="column"
+      paddingLeft={SPACE.paneLeft}
+      paddingRight={SPACE.paneRight}
+      rowGap={SPACE.paneGap}
+    >
+      <Text bold>Craftory</Text>
+      <Text {...inkOf(tone, 'text2')}>{pluginLine}</Text>
+      <TabRow ui={ui} tone={tone} tab={tab} counts={args.counts} on={on} />
+      {tab === 'flow' && <FlowTab {...args} />}
+      {tab === 'tickets' && <TicketsTab ui={ui} tone={tone} view={args.tickets} on={on} />}
+      {tab === 'worktrees' && <WorktreesTab ui={ui} tone={tone} view={args.worktrees} on={on} />}
+      {tab === 'glossary' && (
+        <GlossaryTab ui={ui} tone={tone} view={args.glossary} query={args.query} on={on} />
+      )}
+      {tab === 'settings' && (
+        <Box flexDirection="column" rowGap={SPACE.paneGap}>
+          <Button key="pane-write-setup" onPress={() => on.writeSetup()}>
+            <Text>Write setup with detected defaults</Text>
+          </Button>
+          {setupNote !== null && <Text {...inkOf(tone, 'text2')}>{setupNote}</Text>}
+        </Box>
+      )}
     </Box>
   )
 }

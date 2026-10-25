@@ -214,6 +214,12 @@ export const SPACE = {
   paneLeft: 'md',
   paneRight: 'sm',
   paneGap: 'md',
+  tabGap: 'md',
+  tabPad: 'sm',
+  sectionGap: 'lg',
+  fieldGap: 'sm',
+  rowTextGap: 'xs',
+  switchSide: 'md',
 } as const satisfies Record<string, Space>
 
 const CLAUDE_THEME = /^(light|dark)(-daltonized|-ansi)?$/

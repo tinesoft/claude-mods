@@ -258,11 +258,22 @@ function buildAttention(f: Facts): StepState | undefined {
   return failed === undefined ? undefined : { kind: 'failed', meta: `${failed.ticket} failed` }
 }
 
+/**
+ * A feature that entered at Build from an issue (a ready-for-agent bug) has no spec and no
+ * tickets: the issue is the one unit of work, so it stands in as its own ticket.
+ */
+export const isSelfEntry = (feature: Feature): boolean =>
+  feature.kind === 'specced' &&
+  feature.record.entry === 'build' &&
+  feature.record.enteredFrom === feature.record.spec
+
 export function factsOf({ feature, tracker, running, build }: FlowInput): Facts {
   const issues = tracker?.rich ? tracker.issues : []
   const specRef = feature.kind === 'specced' ? feature.record.spec : null
   const byRef = new Map(issues.map(i => [i.ref as string, i]))
-  const children = specRef === null ? [] : issues.filter(i => i.parent === specRef).sort(byNumber)
+  const own = specRef === null ? [] : issues.filter(i => i.parent === specRef).sort(byNumber)
+  const itself = specRef === null ? undefined : byRef.get(specRef)
+  const children = own.length === 0 && isSelfEntry(feature) && itself ? [itself] : own
   const live =
     running !== null && (running.feature === null || running.feature === feature.key)
       ? running.phase
@@ -349,7 +360,10 @@ export function deriveFlow(input: FlowInput): Flow {
   const steps = PHASE_ORDER.map((phase): Step => ({
     phase,
     state: states[phase],
-    command: config.phases[phase].command ?? null,
+    command:
+      phase === 'build' && isSelfEntry(feature)
+        ? PHASES.build.commands[1]
+        : (config.phases[phase].command ?? null),
     args: phase === 'tickets' || phase === 'build' ? specRef : '',
     artifact: evidence[phase].artifact ?? null,
     blockers: blockersOf(phase),
