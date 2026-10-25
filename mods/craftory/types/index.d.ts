@@ -428,6 +428,8 @@ export type RepoSnapshot = {
   glossary: Loaded<GlossaryDoc>
   /** Which steering file exists, and whether its `## Agent skills` block is present. */
   steering: { file: SteeringFile | null; hasBlock: boolean }
+  /** From `git remote get-url origin`; null when there is no remote or the surface runs no commands. */
+  remoteHost: 'github' | 'gitlab' | 'other' | null
   hasContextMd: boolean
   hasScratch: boolean
   hasGitignoreEntry: boolean
@@ -464,6 +466,8 @@ declare module 'claude-code' {
       settingsSection: SettingsSection
       termDraft: TermDraft
       glossaryQuery: string
+      /** The last setup write's outcome, shown in Settings. */
+      setupNote: string | null
     }
   }
 }

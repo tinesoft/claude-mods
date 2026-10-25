@@ -33,6 +33,8 @@ export const STORE_LAST_ACTIVE = 'lastActive'
 export const featurePath = (spec: IssueRef) => `${FEATURES_DIR}${spec.replace(/^#/, '')}.json`
 
 export const specKey = (spec: IssueRef): FeatureKey => `spec:${spec}`
+export const isFeatureKey = (v: unknown): v is FeatureKey =>
+  typeof v === 'string' && /^(spec|draft):.+/.test(v)
 export const draftKey = (draftId: string): FeatureKey => `draft:${draftId}`
 
 type Json = Record<string, unknown>
@@ -434,3 +436,22 @@ export function featureOf(
 
 export const markOf = (feature: Feature, phase: PhaseId): PhaseMark =>
   (feature.kind === 'draft' ? feature.draft.marks : feature.record.marks)[phase] ?? {}
+
+/** `$.store.get(STORE_DRAFTS)` is unknown data: keep the drafts that parse, by draft id. */
+export function parseDrafts(stored: unknown): Record<string, DraftFeature> {
+  if (!isRecord(stored)) return {}
+  return Object.fromEntries(
+    Object.entries(stored).flatMap(([id, value]) => {
+      if (!isRecord(value) || !text(value.title) || !text(value.startedAt)) return []
+      const draft: DraftFeature = {
+        draftId: id,
+        title: text(value.title)!,
+        entry: isPhase(value.entry) ? value.entry : 'align',
+        enteredFrom: parseIssueRef(text(value.enteredFrom) ?? '') ?? null,
+        marks: parseMarks(value.marks),
+        startedAt: text(value.startedAt)!,
+      }
+      return [[id, draft]]
+    }),
+  )
+}

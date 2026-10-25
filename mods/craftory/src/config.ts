@@ -12,6 +12,7 @@ import type {
   PrefOverrides,
   Prefs,
 } from '../types'
+import type { FileWrite } from './files'
 import { PHASE_ORDER, PHASES } from './phases'
 
 export const CONFIG_PATH = '.craftory/config.json'
@@ -151,6 +152,10 @@ export function patchConfig(raw: string | null, patch: ConfigPatch): string {
   if (!isRecord(base)) throw new TypeError('config.json is not an object')
   return `${JSON.stringify(assign(base, patch as Json), null, 2)}\n`
 }
+
+/** First-run write of the defaults. An existing file is never rewritten by setup. */
+export const configWrite = (raw: string | null): FileWrite[] =>
+  raw === null ? [{ path: CONFIG_PATH, before: null, after: patchConfig(null, {}) }] : []
 
 export const configOf = (loaded: Loaded<CraftoryConfig> | undefined): CraftoryConfig =>
   loaded?.state === 'ok' ? loaded.value : DEFAULT_CONFIG

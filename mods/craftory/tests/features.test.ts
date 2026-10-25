@@ -20,6 +20,7 @@ import type {
   AgentRecord,
   DraftFeature,
   FeatureRecord,
+  GitSnapshot,
   Issue,
   IssueRef,
   TrackerSnapshot,
@@ -297,8 +298,15 @@ test('a draft ignores changes that need a spec', () => {
 test('the active feature is the one on this branch, else the last used, else the busiest', () => {
   const features = { '#42': A, '#50': { ...C, spec: ref(50), integrationBranch: 'feat/other' } }
   const drafts = { d1: draft }
-  const git = (branch: string | null) =>
-    ({ root: '/r', branch, remote: null, worktrees: [], merged: {}, tips: {}, at: 0 }) as const
+  const git = (branch: string | null): GitSnapshot => ({
+    root: '/r',
+    branch,
+    remote: null,
+    worktrees: [],
+    merged: {},
+    tips: {},
+    at: 0,
+  })
   const pick = (over: Partial<Parameters<typeof pickActive>[0]>) =>
     pickActive({ features, drafts, git: null, lastActive: null, ...over })
 
