@@ -279,7 +279,10 @@ export const mountBand = async <S extends BandSurface = 'terminal'>(
   })
 }
 
-export const mountPane = ($: Engine, surface: RenderSurface = 'terminal') =>
+export const mountPane = <S extends RenderSurface = 'terminal'>(
+  $: Engine,
+  surface: S = 'terminal' as S,
+) =>
   $.ui.mount({
     plugin: 'craftory',
     surface,

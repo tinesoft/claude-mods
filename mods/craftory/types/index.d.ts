@@ -446,7 +446,7 @@ export type NoticeKey = EventNotice['kind'] | 'plugin' | 'first-run' | 'no-featu
 export type PaneTab = 'flow' | 'tickets' | 'worktrees' | 'glossary' | 'settings'
 
 export type SettingsSection =
-  'tracker' | 'docs' | 'glossary' | 'entry' | 'pipeline' | 'worktrees' | 'automation'
+  'entry' | 'tracker' | 'docs' | 'glossary' | 'pipeline' | 'worktrees' | 'automation' | 'personal'
 
 export type TermDraft = { name: string; definition: string; avoid: string; editing: string | null }
 
@@ -508,6 +508,15 @@ declare module 'claude-code' {
       diffs: Record<string, string>
       settingsSection: SettingsSection
       termDraft: TermDraft
+      /** Why the last term add or edit did not save, shown under the form. */
+      termError: string | null
+      /**
+       * The setup Settings shows before `docs/agents/` exists, with the person's edits. Nothing
+       * is written until Save setup; null means the pre-fill from repo signals.
+       */
+      setupDraft: AgentSetup | null
+      /** Shared files already confirmed this session, so only the first write to each asks. */
+      askedFiles: string[]
       glossaryQuery: string
       /** The last setup write's outcome, shown in Settings. */
       setupNote: string | null

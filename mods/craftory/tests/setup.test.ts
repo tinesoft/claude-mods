@@ -68,7 +68,7 @@ test('setup writes exactly the planned files, as /setup-matt-pocock-skills would
   expect(JSON.parse(text('.craftory/config.json')!)).toEqual(DEFAULT_CONFIG)
   expect(w.files.has('AGENTS.md')).toBe(false)
   await pane.redraw()
-  expect(await allText(pane)).toContain('Wrote docs/agents/issue-tracker.md')
+  expect(await allText(pane)).toContain('Saved docs/agents/issue-tracker.md')
 })
 
 test('nothing is written outside the files Craftory may write', async ($, on) => {
@@ -84,16 +84,17 @@ test('nothing is written outside the files Craftory may write', async ($, on) =>
   for (const { path } of w.writes) expect(isWritable(path, ctx), path).toBe(true)
 })
 
-test('setup is idempotent: the second press writes nothing and says so', async ($, on) => {
+test('after Save setup the button is gone and saving the same values again writes nothing', async ($, on) => {
   const w = world(on, github)
   await startSession($)
   const pane = await openSettings($)
   await pane.press({ key: 'pane-write-setup' })
   const first = w.writes.length
-  await pane.press({ key: 'pane-write-setup' })
-  expect(w.writes.length).toBe(first)
   await pane.redraw()
-  expect(await allText(pane)).toContain('Everything is already set up.')
+  expect(await pane.find({ key: 'pane-write-setup' })).toBeUndefined()
+  await pane.press({ key: 'section-section-docs' })
+  await pane.press({ key: 'set-docs-steering-CLAUDE.md' })
+  expect(w.writes.length).toBe(first)
 })
 
 test('after setup the first-run notice is gone', async ($, on) => {

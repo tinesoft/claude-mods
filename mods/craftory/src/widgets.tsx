@@ -89,10 +89,13 @@ export const Segments = ({
   ui,
   tone,
   id,
+  prefix = 'set',
   choices,
   current,
   onPick,
 }: Common & {
+  /** The key prefix of each choice's Button: `set-<id>-<value>`. */
+  prefix?: string
   choices: readonly Choice[]
   current: string
   onPick: ((value: string) => void) | undefined
@@ -117,7 +120,7 @@ export const Segments = ({
         const isOn = value === current
         return (
           <Box
-            key={`set-${id}-${value}-box`}
+            key={`${prefix}-${id}-${value}-box`}
             paddingX={SPACE.tabPad}
             {...(rich &&
               t &&
@@ -127,7 +130,7 @@ export const Segments = ({
                 borderColor: t.line,
               })}
           >
-            <Button key={`set-${id}-${value}`} plain onPress={() => onPick(value)}>
+            <Button key={`${prefix}-${id}-${value}`} plain onPress={() => onPick(value)}>
               <Text
                 bold={isOn}
                 underline={isOn && !rich}
@@ -153,6 +156,7 @@ export const Field = ({
   value,
   placeholder,
   rows,
+  onInput,
   onSubmit,
 }: Common & {
   label: string
@@ -160,6 +164,8 @@ export const Field = ({
   value: string
   placeholder?: string
   rows?: number
+  /** Every change of the text, for a form whose button saves several fields at once. */
+  onInput?: (text: string) => void
   onSubmit: ((text: string) => void) | undefined
 }) => {
   const { Box, Text, Input } = ui
@@ -174,6 +180,7 @@ export const Field = ({
           value={value}
           {...(placeholder !== undefined && { placeholder })}
           {...(rows !== undefined && { rows })}
+          {...(onInput !== undefined && { onInput: (text: string) => onInput(text) })}
           submitLabel="save"
           onSubmit={text => onSubmit(text)}
         />

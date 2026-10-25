@@ -55,7 +55,7 @@ export function steeringOf(files: Pick<SetupFiles, 'claudeMd' | 'agentsMd'>): St
 
 export function parseTrackerDoc(text: string): TrackerSetup {
   const h1 = /^# Issue tracker:\s*(.*?)\s*$/m.exec(text)?.[1]?.toLowerCase()
-  const prsAsRequests = /\*\*PRs as a request surface: yes\.\*\*/.test(text)
+  const prsAsRequests = /\*\*(?:PRs|MRs) as a request surface: yes\.\*\*/.test(text)
   if (h1 === 'github') return { kind: 'github', prsAsRequests }
   if (h1 === 'gitlab') return { kind: 'gitlab', prsAsRequests }
   if (h1 === 'local markdown') return { kind: 'local' }
@@ -85,13 +85,23 @@ export function parseDomainDoc(text: string): DocsLayout {
  * triage table; docs layout from domain.md; steering by upstream's pick rule. No triage file
  * reads as "triage skill not installed".
  */
+const HAS_BLOCK = /^## Agent skills[ \t]*\r?$/m
+
+/** The file that holds the `## Agent skills` block (CLAUDE.md first, as upstream), else null. */
+export function steeringWithBlock(
+  files: Pick<SetupFiles, 'claudeMd' | 'agentsMd'>,
+): SteeringFile | null {
+  if (files.claudeMd !== null && HAS_BLOCK.test(files.claudeMd)) return 'CLAUDE.md'
+  return files.agentsMd !== null && HAS_BLOCK.test(files.agentsMd) ? 'AGENTS.md' : null
+}
+
 export function readSetup(files: SetupFiles): Loaded<AgentSetup> {
   if (files.tracker === null) return { state: 'absent' }
   const value: AgentSetup = {
     tracker: parseTrackerDoc(files.tracker),
     triage: files.triage === null ? null : parseTriageLabels(files.triage),
     docs: files.domain === null ? DEFAULT_DOCS : parseDomainDoc(files.domain),
-    steering: steeringOf(files) ?? 'AGENTS.md',
+    steering: steeringWithBlock(files) ?? steeringOf(files) ?? 'AGENTS.md',
   }
   return { state: 'ok', value, raw: files.tracker }
 }
@@ -109,7 +119,9 @@ export function renderTrackerDoc(tracker: TrackerSetup, localFolder: string): st
       const text =
         TEMPLATES[tracker.kind === 'github' ? 'issue-tracker-github' : 'issue-tracker-gitlab']
       return tracker.prsAsRequests
-        ? text.replace('**PRs as a request surface: no.**', '**PRs as a request surface: yes.**')
+        ? text
+            .replace('**PRs as a request surface: no.**', '**PRs as a request surface: yes.**')
+            .replace('**MRs as a request surface: no.**', '**MRs as a request surface: yes.**')
         : text
     }
     case 'local':
@@ -252,7 +264,14 @@ const sameLabels = (a: TriageLabels, b: TriageLabels) => ROLES.every(r => a[r] =
 export function planSetup(
   setup: AgentSetup,
   files: SetupFiles,
-  options: { worktreeFolder: string; localFolder: string },
+  options: {
+    worktreeFolder: string
+    localFolder: string
+    /** Settings chose the steering file: honour it even when the other one exists. */
+    chooseSteering?: boolean
+    /** Settings changed a value the block summarises: rewrite the block even if it points at the docs. */
+    refreshBlock?: boolean
+  },
 ): FileWrite[] {
   const writes: FileWrite[] = []
   const put = (path: string, before: string | null, after: string) => {
@@ -260,7 +279,10 @@ export function planSetup(
   }
 
   const trackerSays =
-    files.tracker !== null && sameTracker(parseTrackerDoc(files.tracker), setup.tracker)
+    files.tracker !== null &&
+    (setup.tracker.kind === 'other'
+      ? files.tracker.trim() === renderTrackerDoc(setup.tracker, options.localFolder).trim()
+      : sameTracker(parseTrackerDoc(files.tracker), setup.tracker))
   put(
     AGENT_DOCS.tracker,
     files.tracker,
@@ -282,12 +304,12 @@ export function planSetup(
     parseDomainDoc(files.domain).adr === setup.docs.adr
   put(AGENT_DOCS.domain, files.domain, domainSays ? files.domain! : renderDomainDoc(setup.docs))
 
-  const target = steeringOf(files) ?? setup.steering
+  const target = options.chooseSteering ? setup.steering : (steeringOf(files) ?? setup.steering)
   const steering = target === 'CLAUDE.md' ? files.claudeMd : files.agentsMd
   put(
     target,
     steering,
-    blockCovers(steering, setup)
+    blockCovers(steering, setup) && options.refreshBlock !== true
       ? steering!
       : upsertBlock(steering, renderAgentSkillsBlock(setup, options.localFolder)),
   )
@@ -338,4 +360,13 @@ export function firstRunText(signals: SetupSignals): string {
   ].filter((x): x is string => x !== null)
   const list = found.length > 1 ? `${found.slice(0, -1).join(', ')} and ${found.at(-1)}` : found[0]
   return `No docs/agents/ yet.${list ? ` Found ${list}.` : ''}`
+}
+
+/**
+ * A folder change in Settings: Craftory's own Local Markdown doc names the issues folder, so it
+ * follows. Another text (upstream's local template, a hand edit) that never names the old
+ * folder is left alone.
+ */
+export function retargetTracker(doc: string, oldFolder: string, newFolder: string): string {
+  return oldFolder === newFolder ? doc : doc.replaceAll(`\`${oldFolder}`, `\`${newFolder}`)
 }

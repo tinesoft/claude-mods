@@ -52,6 +52,7 @@ import {
   integrationBranchFor,
   parseConfig,
   parsePrefOverrides,
+  patchConfig,
   resolvePrefs,
   STORE_PREFS,
 } from '../src/config'
@@ -88,11 +89,19 @@ import {
   planSetup,
   readSetup,
   remoteHostOf,
+  retargetTracker,
   steeringOf,
   type SetupFiles,
   type SetupSignals,
 } from '../src/agents-md'
-import { GITIGNORE, isShared, isWritable, type FileWrite, type WritableContext } from '../src/files'
+import {
+  diffSummary,
+  GITIGNORE,
+  isShared,
+  isWritable,
+  type FileWrite,
+  type WritableContext,
+} from '../src/files'
 import {
   assembleGit,
   basesOf,
@@ -115,6 +124,12 @@ import { checkRun, consumePass, dropText, issuePass, type RunRequest } from '../
 import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
 import { glossaryView, tabCounts, ticketsView, type InboxAction } from '../src/pane-view'
+import {
+  checkText,
+  type SettingsChange,
+  type SettingsFacts,
+  type SettingsRow,
+} from '../src/sections'
 import { namespaced, recognise } from '../src/phases'
 import {
   hasSkill,
@@ -128,30 +143,44 @@ import {
   UPDATE_ARGV,
 } from '../src/plugin'
 import { renderBand, spinFrameOf, type BandActions, type FeatureChoice, type Ui } from '../src/rail'
+import type { SettingsArgs } from '../src/settings'
 import { diffSignals, signalBasis, TOAST_MS, toastText } from '../src/signals'
 import { markdownSummary, statusLine } from '../src/summary'
 import { readTracker, TRACKERS, type Read, type ReadContext, type ReadResult } from '../src/tracker'
 import { DEFAULT_LABELS } from '../src/agents-md'
 import { parseColorFgBg, SYSTEM_PROBES } from '../src/appearance'
 import { resolveTone, SPIN_MS, type Tone } from '../src/theme'
-import { parseGlossary, termKey, termsOf } from '../src/glossary'
+import {
+  addTerm,
+  deleteTerm,
+  editTerm,
+  parseGlossary,
+  serialiseGlossary,
+  termKey,
+  termsOf,
+  type GlossaryEditError,
+} from '../src/glossary'
 import { termKeysIn } from '../src/reply'
 import type {
   AgentId,
   AgentRun,
+  AgentSetup,
   EventNotice,
   FeatureKey,
   FeatureRecord,
   GitSnapshot,
+  GlossaryDoc,
   InstallState,
   IssueRef,
   IsoTime,
   PaneTab,
   PhaseId,
+  PluginStatus,
   RepoSnapshot,
   Running,
   SeatPlan,
   SkillName,
+  TermDraft,
 } from '../types'
 
 const PANE = 'craftory'
@@ -195,6 +224,9 @@ const keptReason = (path: string, why: KeepWhy) =>
 // git         refreshGit (session.start, after a seat, a finish and a git command by an agent)
 // diffs       the Worktrees tab's Diff button
 // steeringNote  agent.spawn, when a worktree cannot be made
+// setupDraft   Settings, before docs/agents/ exists (the edits to the pre-fill)
+// askedFiles   the first-write ask: shared files confirmed this session
+// termDraft, termError, settingsSection  Settings › Glossary and its section tabs
 // glossaryQuery  the Glossary tab's search
 // lastReplyTerms  turn.complete (the terms the last reply used)
 // glossaryAtStart  session.start, once the repo is read
@@ -241,6 +273,9 @@ const termDraftState = atom({ plugin: 'craftory', key: 'termDraft' } as const, {
   avoid: '',
   editing: null,
 })
+const setupDraftState = atom({ plugin: 'craftory', key: 'setupDraft' } as const, null)
+const askedFilesState = atom({ plugin: 'craftory', key: 'askedFiles' } as const, [])
+const termErrorState = atom({ plugin: 'craftory', key: 'termError' } as const, null)
 const glossaryQueryState = atom({ plugin: 'craftory', key: 'glossaryQuery' } as const, '')
 const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } as const, [])
 const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
@@ -387,52 +422,348 @@ async function applyWrites($: EngineInterface, writes: readonly FileWrite[], ctx
   return { wrote, refused: null }
 }
 
-/** Setup as `/setup-matt-pocock-skills` would write it, from the answers read off the repo. */
-async function writeSetup($: EngineInterface) {
+// ─── Settings: writes ───────────────────────────────────────────────────────────────────
+
+const WRITE_IT = 'Write'
+const NOT_NOW = 'Not now'
+
+const signalsOf = (repo: RepoSnapshot | null, plugin: PluginStatus): SetupSignals => ({
+  remoteHost: repo?.remoteHost ?? null,
+  hasScratch: repo?.hasScratch ?? false,
+  hasContextMd: repo?.hasContextMd ?? false,
+  steering: repo?.steering.file ?? null,
+  hasTriageSkill: hasSkill(plugin, 'triage'),
+})
+
+/** The setup Settings shows: what is on disk, else the person's edits to the repo-signal pre-fill. */
+async function currentSetup($: EngineInterface): Promise<{ setup: AgentSetup; isDraft: boolean }> {
+  const [repo, plugin, draft] = await Promise.all([
+    read($, repoState),
+    read($, pluginState),
+    read($, setupDraftState),
+  ])
+  if (repo?.setup.state === 'ok') return { setup: repo.setup.value, isDraft: false }
+  return { setup: draft ?? draftSetup(signalsOf(repo, plugin)), isDraft: true }
+}
+
+async function settingsFacts(
+  $: EngineInterface,
+  options: Readonly<Record<string, unknown>>,
+): Promise<SettingsFacts & { isDraft: boolean }> {
+  const [repo, prefs, current] = await Promise.all([
+    read($, repoState),
+    read($, prefsState),
+    currentSetup($),
+  ])
+  return {
+    config: configOf(repo?.config),
+    setup: current.setup,
+    isDraft: current.isDraft,
+    prefs: resolvePrefs(options, prefs),
+  }
+}
+
+/**
+ * The first write to a file other people share, in a session, asks with a short diff summary.
+ * An ask that cannot be shown (`-p`) allows: Craftory guides and does not gate.
+ */
+async function confirmFirstWrites(
+  $: EngineInterface,
+  writes: readonly FileWrite[],
+  ctx: WritableContext,
+): Promise<boolean> {
+  const asked = await read($, askedFilesState)
+  const fresh = writes.filter(w => isShared(w.path, ctx) && !asked.includes(w.path))
+  if (fresh.length === 0) return true
+  const question = [
+    `Craftory will change ${fresh.length === 1 ? 'a file' : `${fresh.length} files`} your team shares:`,
+    ...fresh.map(w => `${w.path}: ${diffSummary(w.before, w.after)}`),
+  ].join('\n')
+  const answer = await $.ui.ask(question, [WRITE_IT, NOT_NOW]).catch(() => WRITE_IT)
+  if (answer !== WRITE_IT) return false
+  await update($, askedFilesState, held => [...held, ...fresh.map(w => w.path)])
+  return true
+}
+
+/** Asks where needed, writes, reloads the facts, and says what happened in one line. */
+async function commitWrites(
+  $: EngineInterface,
+  writes: readonly FileWrite[],
+  ctx: WritableContext,
+): Promise<string> {
+  const real = writes.filter(w => w.after !== w.before)
+  if (real.length === 0) return 'Everything is already as you set it.'
+  if (!(await confirmFirstWrites($, real, ctx))) return 'Not written. Nothing changed.'
+  const { wrote, refused } = await applyWrites($, real, ctx)
+  await loadRepo($)
+  return refused ? `${refused}. Nothing more was written; try again.` : `Saved ${wrote.join(', ')}.`
+}
+
+async function say($: EngineInterface, note: string | null) {
+  await update($, setupNoteState, () => note)
+  $.ui.invalidate('ui.render')
+}
+
+async function settingsContext($: EngineInterface, setup: AgentSetup, issuesFolder: string) {
+  return {
+    ...(await writableContext($)),
+    steering: setup.steering,
+    docs: setup.docs,
+    issuesFolder,
+  } satisfies WritableContext
+}
+
+/** Applies one Settings change to its files: config.json, the agent docs, or `$.store`. */
+async function commitChange($: EngineInterface, change: SettingsChange) {
+  const [repo, current, files, configText] = await Promise.all([
+    read($, repoState),
+    currentSetup($),
+    readSetupFiles($),
+    readText($, CONFIG_PATH),
+  ])
+  const writes: FileWrite[] = []
+  const oldConfig = configOf(repo?.config)
+  let nextConfig = oldConfig
+  if (change.prefs !== undefined) {
+    const merged = { ...(await read($, prefsState)), ...change.prefs }
+    await $.store.set(STORE_PREFS, merged)
+    await update($, prefsState, () => merged)
+  }
+  if (change.config !== undefined) {
+    if (repo?.config.state === 'invalid')
+      return say(
+        $,
+        `.craftory/config.json is not valid JSON (${repo.config.problem}). Fix it first.`,
+      )
+    const after = patchConfig(configText, change.config)
+    writes.push({ path: CONFIG_PATH, before: configText, after })
+    nextConfig = configOf(parseConfig(after))
+  }
+  const next = change.setup ? change.setup(current.setup) : current.setup
+  if (change.setup && current.isDraft) await update($, setupDraftState, () => next)
+  if (!current.isDraft) {
+    const options = {
+      worktreeFolder: nextConfig.worktrees.folder,
+      localFolder: nextConfig.tracker.local.folder,
+      chooseSteering: true,
+      refreshBlock: true,
+    }
+    if (change.setup) writes.push(...planSetup(next, files, options))
+    const at = writes.findIndex(w => w.path === AGENT_DOCS.tracker)
+    const doc = at === -1 ? files.tracker : writes[at]!.after
+    if (doc !== null && next.tracker.kind === 'local') {
+      const moved = retargetTracker(
+        doc,
+        oldConfig.tracker.local.folder,
+        nextConfig.tracker.local.folder,
+      )
+      const write = { path: AGENT_DOCS.tracker, before: files.tracker, after: moved }
+      if (moved !== doc) {
+        if (at === -1) writes.push(write)
+        else writes[at] = write
+      }
+    }
+    if (
+      nextConfig.worktrees.folder !== oldConfig.worktrees.folder &&
+      !writes.some(w => w.path === GITIGNORE)
+    )
+      writes.push({
+        path: GITIGNORE,
+        before: files.gitignore,
+        after: ensureGitignore(files.gitignore, nextConfig.worktrees.folder),
+      })
+  }
+  const ctx = await settingsContext($, next, nextConfig.tracker.local.folder)
+  await say($, writes.length === 0 ? null : await commitWrites($, writes, ctx))
+  if (writes.length > 0) await refreshTracker($)
+  await settle($)
+}
+
+async function applySetting($: EngineInterface, row: SettingsRow, value: string | boolean) {
+  if (row.control === 'text' && typeof value === 'string') {
+    const problem = checkText(row, value)
+    if (problem !== null) return say($, problem)
+  }
+  const change =
+    row.control === 'switch'
+      ? typeof value === 'boolean'
+        ? row.write(value)
+        : undefined
+      : typeof value === 'string'
+        ? row.write(value)
+        : undefined
+  if (change !== undefined) await commitChange($, change)
+}
+
+/** Save setup: exactly what `/setup-matt-pocock-skills` would write for the answers on screen. */
+async function saveSetup($: EngineInterface) {
   try {
-    const [files, configText, url, plugin] = await Promise.all([
+    const [files, configText, current] = await Promise.all([
       readSetupFiles($),
       readText($, CONFIG_PATH),
-      remoteUrl($),
-      read($, pluginState),
+      currentSetup($),
     ])
-    const signals: SetupSignals = {
-      remoteHost: remoteHostOf(url),
-      hasScratch: await exists($, '.scratch'),
-      hasContextMd: await exists($, 'CONTEXT.md'),
-      steering: steeringOf(files),
-      hasTriageSkill: hasSkill(plugin, 'triage'),
-    }
-    const read_ = readSetup(files)
-    const setup = read_.state === 'ok' ? read_.value : draftSetup(signals)
     const config = configOf(parseConfig(configText))
     const writes = [
-      ...planSetup(setup, files, {
+      ...planSetup(current.setup, files, {
         worktreeFolder: config.worktrees.folder,
         localFolder: config.tracker.local.folder,
+        chooseSteering: true,
       }),
       ...configWrite(configText),
     ]
-    const ctx = await writableContext($, steeringOf(files) ?? setup.steering)
-    const { wrote, refused } = await applyWrites($, writes, {
-      ...ctx,
-      steering: steeringOf(files) ?? setup.steering,
-    })
-    const note = refused
-      ? `${refused}. Nothing more was written; press again.`
-      : wrote.length > 0
-        ? `Wrote ${wrote.join(', ')}.`
-        : 'Everything is already set up.'
-    await update($, setupNoteState, () => note)
-    await loadRepo($)
+    const ctx = await settingsContext($, current.setup, config.tracker.local.folder)
+    const note = await commitWrites($, writes, ctx)
+    await update($, setupDraftState, () => null)
+    await say($, note)
+    await refreshTracker($)
   } catch (error) {
-    await update(
-      $,
-      setupNoteState,
-      () => `Setup failed: ${error instanceof Error ? error.message : String(error)}`,
-    )
+    await say($, `Setup failed: ${error instanceof Error ? error.message : String(error)}`)
   }
+  await settle($)
+}
+
+async function resetSettings($: EngineInterface) {
+  const answer = await $.ui
+    .ask(
+      'Reset Craftory to its defaults? This rewrites .craftory/config.json and clears your personal settings. Docs and the glossary stay.',
+      ['Reset', 'Keep'],
+    )
+    .catch(() => 'Keep')
+  if (answer !== 'Reset') return
+  const configText = await readText($, CONFIG_PATH)
+  const { setup } = await currentSetup($)
+  const config = configOf(parseConfig(configText))
+  const defaults = patchConfig(null, {})
+  const ctx = await settingsContext($, setup, config.tracker.local.folder)
+  const note = await commitWrites(
+    $,
+    [{ path: CONFIG_PATH, before: configText, after: defaults }],
+    ctx,
+  )
+  await $.store.set(STORE_PREFS, {})
+  await update($, prefsState, () => ({}))
+  await say($, note === 'Everything is already as you set it.' ? 'Already at the defaults.' : note)
+  await refreshTracker($)
+  await settle($)
+}
+
+async function rerunSetup($: EngineInterface) {
+  if (!hasSkill(await read($, pluginState), 'setup-matt-pocock-skills'))
+    return void $.ui.toast('Install mattpocock-skills first: the setup skill comes with it')
+  await $.command.run({ command: namespaced('setup-matt-pocock-skills' as SkillName), args: '' })
+}
+
+// ─── Settings: the glossary ─────────────────────────────────────────────────────────────
+
+const TERM_ERRORS: Record<GlossaryEditError, string> = {
+  duplicate: 'A term with that name is already in the glossary.',
+  'unknown-term': 'That term is no longer in the glossary.',
+  'empty-name': 'A term needs a name.',
+}
+
+const EMPTY_DRAFT: TermDraft = { name: '', definition: '', avoid: '', editing: null }
+
+/** One glossary edit: read the file, edit the raw slices, write once through the shared guard. */
+async function changeGlossary(
+  $: EngineInterface,
+  edit: (doc: GlossaryDoc | null) => GlossaryDoc | GlossaryEditError,
+  done?: (path: string) => string,
+) {
+  const { setup } = await currentSetup($)
+  const path = setup.docs.glossary
+  const raw = await readText($, path)
+  const loaded = parseGlossary(raw)
+  if (loaded.state === 'invalid')
+    return update($, termErrorState, () => `${path} could not be read`)
+  const next = edit(loaded.state === 'ok' ? loaded.value : null)
+  if (typeof next === 'string') {
+    await update($, termErrorState, () => TERM_ERRORS[next])
+    return $.ui.invalidate('ui.render')
+  }
+  const config = configOf((await read($, repoState))?.config)
+  const note = await commitWrites(
+    $,
+    [{ path, before: raw, after: serialiseGlossary(next) }],
+    await settingsContext($, setup, config.tracker.local.folder),
+  )
+  await update($, termErrorState, () => null)
+  await update($, termDraftState, () => EMPTY_DRAFT)
+  await say($, done?.(path) ?? note)
   $.ui.invalidate('ui.render')
+}
+
+async function saveTerm($: EngineInterface, patch: Partial<TermDraft> = {}) {
+  const draft = { ...(await read($, termDraftState)), ...patch }
+  await update($, termDraftState, () => draft)
+  if (draft.definition.trim() === '' && draft.name.trim() !== '') {
+    await update($, termErrorState, () => 'A term needs a definition.')
+    return $.ui.invalidate('ui.render')
+  }
+  const term = {
+    name: draft.name.trim(),
+    definition: draft.definition.trim(),
+    avoid: draft.avoid
+      .split(',')
+      .map(a => a.trim())
+      .filter(Boolean),
+  }
+  const editing = draft.editing
+  await changeGlossary($, doc =>
+    editing === null
+      ? addTerm(doc, term)
+      : doc === null
+        ? 'unknown-term'
+        : editTerm(doc, termKey(editing), term),
+  )
+}
+
+async function editTermInForm($: EngineInterface, name: string) {
+  const term = (await glossaryTerms($)).find(t => termKey(t.name) === termKey(name))
+  if (term === undefined) return
+  await update($, termErrorState, () => null)
+  await update($, termDraftState, () => ({
+    name: term.name,
+    definition: term.definition,
+    avoid: term.avoid.join(', '),
+    editing: term.name,
+  }))
+  $.ui.invalidate('ui.render')
+}
+
+/** Terms in CONTEXT.md (the glossary's older name) that GLOSSARY.md does not have yet. */
+async function importContext($: EngineInterface) {
+  const imported = parseGlossary(await readText($, 'CONTEXT.md'))
+  if (imported.state !== 'ok') return say($, 'CONTEXT.md has no terms to import.')
+  const incoming = termsOf(imported.value)
+  let added = 0
+  await changeGlossary(
+    $,
+    doc => {
+      let current: GlossaryDoc | null = doc
+      for (const term of incoming) {
+        const next = addTerm(current, term)
+        if (typeof next === 'string') continue
+        current = next
+        added++
+      }
+      return current ?? { slices: [] }
+    },
+    path =>
+      added === 0
+        ? 'Nothing new in CONTEXT.md.'
+        : `Imported ${added} of ${incoming.length} terms from CONTEXT.md into ${path}.`,
+  )
+}
+
+async function copyGlossaryPath($: EngineInterface, surface: RenderSurface) {
+  const { setup } = await currentSetup($)
+  const copied = await $.ui
+    .copy({ text: setup.docs.glossary, surface })
+    .catch(() => ({ isCopied: false }))
+  $.ui.toast(
+    copied.isCopied ? `Copied ${setup.docs.glossary}` : `The glossary is ${setup.docs.glossary}`,
+  )
 }
 
 // ─── Flow, tracker and feature facts ────────────────────────────────────────────────────
@@ -1371,8 +1702,66 @@ async function openFolder($: EngineInterface, folder: string, surface: RenderSur
 
 async function jumpToTerm($: EngineInterface, name: string) {
   await update($, settingsSectionState, () => 'glossary')
-  await update($, termDraftState, () => ({ name: '', definition: '', avoid: '', editing: name }))
+  await editTermInForm($, name)
   await openPane($, 'settings')
+}
+
+async function settingsArgs(
+  $: EngineInterface,
+  options: Readonly<Record<string, unknown>>,
+): Promise<Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly'>> {
+  const [facts, repo, plugin, section, draft, error, note] = await Promise.all([
+    settingsFacts($, options),
+    read($, repoState),
+    read($, pluginState),
+    read($, settingsSectionState),
+    read($, termDraftState),
+    read($, termErrorState),
+    read($, setupNoteState),
+  ])
+  return {
+    facts,
+    section,
+    isDraft: facts.isDraft,
+    firstRun: firstRunText(signalsOf(repo, plugin)),
+    glossary: {
+      terms: await glossaryTerms($),
+      draft,
+      path: facts.setup.docs.glossary,
+      hasContextMd: repo?.hasContextMd ?? false,
+      error,
+    },
+    scratch: null,
+    note,
+    on: {
+      section: id => {
+        void update($, settingsSectionState, () => id).then(() => $.ui.invalidate('ui.render'))
+      },
+      set: (row, value) => void applySetting($, row, value),
+      saveSetup: () => void saveSetup($),
+      reset: () => void resetSettings($),
+      rerunSetup: () => void rerunSetup($),
+      importScratch: () => undefined,
+      term: {
+        draft: patch => {
+          void update($, termDraftState, held => ({ ...held, ...patch })).then(() =>
+            $.ui.invalidate('ui.render'),
+          )
+        },
+        save: patch => void saveTerm($, patch),
+        cancel: () => {
+          void update($, termDraftState, () => EMPTY_DRAFT).then(() => $.ui.invalidate('ui.render'))
+        },
+        edit: name => void editTermInForm($, name),
+        remove: name =>
+          void changeGlossary($, doc =>
+            doc === null ? 'unknown-term' : deleteTerm(doc, termKey(name)),
+          ),
+        importContext: () => void importContext($),
+        copyPath: () => void copyGlossaryPath($, 'desktop'),
+      },
+    },
+  }
 }
 
 // ─── Hooks ──────────────────────────────────────────────────────────────────────────────
@@ -1770,7 +2159,6 @@ export const register: Register = (on, options) => {
       spinFrame: spinFrameOf(await $.clock.now()),
       tab: await read($, paneTabState),
       pluginLine: pluginLine(await read($, pluginState)),
-      setupNote: await read($, setupNoteState),
       flow,
       waiting: waitingForTriage(await read($, trackerState)),
       counts: tabCounts({
@@ -1783,8 +2171,8 @@ export const register: Register = (on, options) => {
       worktrees,
       glossary,
       query: await read($, glossaryQueryState),
+      settings: await settingsArgs($, options),
       on: {
-        writeSetup: () => writeSetup($),
         tab: tab => void openPane($, tab),
         diff: path => void toggleDiff($, path),
         openTerminal: (path, surface) => void copyTerminal($, path, surface),

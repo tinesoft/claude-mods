@@ -65,3 +65,30 @@ export function isShared(path: string, ctx: WritableContext): boolean {
   const clean = normalise(path)
   return clean !== undefined && !clean.startsWith('.craftory/') && isWritable(clean, ctx)
 }
+
+/** Lines added and removed, counting each distinct line, and the first line that was added. */
+export function diffSummary(before: string | null, after: string): string {
+  const lines = (text: string | null) => (text === null ? [] : text.split(/\r?\n/))
+  const old = lines(before)
+  const next = lines(after)
+  const count = (list: string[]) => {
+    const map = new Map<string, number>()
+    for (const l of list) map.set(l, (map.get(l) ?? 0) + 1)
+    return map
+  }
+  const [was, now] = [count(old), count(next)]
+  const gained = next.filter(l => {
+    const left = was.get(l) ?? 0
+    was.set(l, left - 1)
+    return left <= 0
+  })
+  const lost = old.filter(l => {
+    const left = now.get(l) ?? 0
+    now.set(l, left - 1)
+    return left <= 0
+  })
+  if (before === null) return `new file, ${next.filter(Boolean).length} lines`
+  const first = gained.find(l => l.trim() !== '')
+  const head = `+${gained.length} −${lost.length} lines`
+  return first === undefined ? head : `${head}, adds "${first.trim().slice(0, 60)}"`
+}

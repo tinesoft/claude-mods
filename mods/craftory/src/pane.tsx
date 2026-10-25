@@ -17,11 +17,11 @@ import {
   type TicketsView,
 } from './pane-view'
 import { CardButton, isRich, PaneRail, type BandActions, type Ui } from './rail'
+import { SettingsTab, type SettingsArgs } from './settings'
 import { paint, SPACE, STEP_LOOKS, TOKENS, type Role } from './theme'
 import { inkOf } from './widgets'
 
 export type PaneActions = {
-  writeSetup: () => void
   tab: (tab: PaneTab) => void
   /** The diff line toggles under the row. */
   diff: (path: string) => void
@@ -45,7 +45,6 @@ export type PaneArgs = {
   spinFrame: number
   tab: PaneTab
   pluginLine: string
-  setupNote: string | null
   flow: Flow | null
   waiting: number
   counts: TabCounts
@@ -54,6 +53,7 @@ export type PaneArgs = {
   worktrees: WorktreesView | null
   glossary: GlossaryView
   query: string
+  settings: Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly'>
   on: PaneActions
 }
 
@@ -666,8 +666,8 @@ const GlossaryTab = ({
 }
 
 export function renderPane(args: PaneArgs) {
-  const { ui, tone, tab, pluginLine, setupNote, on } = args
-  const { Box, Button, Text } = ui
+  const { ui, tone, tab, pluginLine, on } = args
+  const { Box, Text } = ui
   return (
     <Box
       flexDirection="column"
@@ -685,12 +685,7 @@ export function renderPane(args: PaneArgs) {
         <GlossaryTab ui={ui} tone={tone} view={args.glossary} query={args.query} on={on} />
       )}
       {tab === 'settings' && (
-        <Box flexDirection="column" rowGap={SPACE.paneGap}>
-          <Button key="pane-write-setup" onPress={() => on.writeSetup()}>
-            <Text>Write setup with detected defaults</Text>
-          </Button>
-          {setupNote !== null && <Text {...inkOf(tone, 'text2')}>{setupNote}</Text>}
-        </Box>
+        <SettingsTab ui={ui} tone={tone} readOnly={args.surface === 'mobile'} {...args.settings} />
       )}
     </Box>
   )
