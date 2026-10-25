@@ -9,7 +9,7 @@ import type {
 import { budgetK } from './build'
 import { driftText, retroText } from './drift'
 import { gateText } from './gates'
-import { PLUGIN, TESTED_RANGE } from './phases'
+import { PLUGIN, SKILLS, TESTED_RANGE } from './phases'
 import type { Role } from './theme'
 
 export type NoticeAction =
@@ -146,7 +146,7 @@ export function derivedNotices(args: {
           {
             id: 'run',
             label: '/grill-with-docs',
-            action: { kind: 'run', skill: 'grill-with-docs' as SkillName, args: '' },
+            action: { kind: 'run', skill: SKILLS.grillWithDocs, args: '' },
           },
         ],
       },

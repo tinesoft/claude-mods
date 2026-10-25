@@ -22,14 +22,37 @@ export type PhaseSpec = {
   markDone: 'always' | 'untracked'
 }
 
-const s = (name: string) => name as SkillName
+const skill = (name: string) => name as SkillName
+
+export const SKILLS = {
+  grillWithDocs: skill('grill-with-docs'),
+  grillMe: skill('grill-me'),
+  grilling: skill('grilling'),
+  domainModeling: skill('domain-modeling'),
+  prototype: skill('prototype'),
+  research: skill('research'),
+  toSpec: skill('to-spec'),
+  toTickets: skill('to-tickets'),
+  implementSpec: skill('implement-spec'),
+  implement: skill('implement'),
+  tdd: skill('tdd'),
+  diagnosingBugs: skill('diagnosing-bugs'),
+  codebaseDesign: skill('codebase-design'),
+  codeReview: skill('code-review'),
+  pr: skill('pr'),
+  retro: skill('retro'),
+  triage: skill('triage'),
+  wayfinder: skill('wayfinder'),
+  setupMattPocockSkills: skill('setup-matt-pocock-skills'),
+  waitWhat: skill('wait-what'),
+} as const
 
 export const PHASES = {
   align: {
     n: 1,
     label: 'Align',
-    commands: [s('grill-with-docs'), s('grill-me')],
-    helpers: [s('grilling'), s('domain-modeling'), s('prototype'), s('research')],
+    commands: [SKILLS.grillWithDocs, SKILLS.grillMe],
+    helpers: [SKILLS.grilling, SKILLS.domainModeling, SKILLS.prototype, SKILLS.research],
     defaultGate: true,
     gateClears: 'ran',
     why: 'Interviews you about the plan until every branch is resolved, and writes the answers back to the docs.',
@@ -40,7 +63,7 @@ export const PHASES = {
   spec: {
     n: 2,
     label: 'Spec',
-    commands: [s('to-spec')],
+    commands: [SKILLS.toSpec],
     helpers: [],
     defaultGate: true,
     gateClears: 'done',
@@ -52,7 +75,7 @@ export const PHASES = {
   tickets: {
     n: 3,
     label: 'Tickets',
-    commands: [s('to-tickets')],
+    commands: [SKILLS.toTickets],
     helpers: [],
     defaultGate: false,
     gateClears: 'done',
@@ -64,8 +87,8 @@ export const PHASES = {
   build: {
     n: 4,
     label: 'Build',
-    commands: [s('implement-spec'), s('implement')],
-    helpers: [s('tdd'), s('diagnosing-bugs'), s('codebase-design')],
+    commands: [SKILLS.implementSpec, SKILLS.implement],
+    helpers: [SKILLS.tdd, SKILLS.diagnosingBugs, SKILLS.codebaseDesign],
     defaultGate: true,
     gateClears: 'done',
     why: 'Runs every unblocked ticket in parallel on one integration branch, one subagent per ticket.',
@@ -77,7 +100,7 @@ export const PHASES = {
     n: 5,
     label: 'Review',
     commands: [],
-    helpers: [s('code-review')],
+    helpers: [SKILLS.codeReview],
     defaultGate: true,
     gateClears: 'done',
     why: 'The close-out of implement-spec: the diff is checked against your standards and the spec, and one agent fixes what they find.',
@@ -90,7 +113,7 @@ export const PHASES = {
     n: 6,
     label: 'Ship',
     commands: [],
-    helpers: [s('pr')],
+    helpers: [SKILLS.pr],
     defaultGate: false,
     gateClears: 'done',
     why: 'Rewrites the draft PR body with evidence and a merge-danger call, then marks it ready. Merging stays with you.',
@@ -102,7 +125,7 @@ export const PHASES = {
   retro: {
     n: 7,
     label: 'Retro',
-    commands: [s('retro')],
+    commands: [SKILLS.retro],
     helpers: [],
     defaultGate: false,
     gateClears: 'done',
@@ -116,8 +139,8 @@ export const PHASES = {
 export const PHASE_ORDER = Object.keys(PHASES) as PhaseId[]
 
 export const ENTRIES = {
-  triage: { label: 'Triage', commands: [s('triage')] },
-  wayfinder: { label: 'Wayfinder', commands: [s('wayfinder')] },
+  triage: { label: 'Triage', commands: [SKILLS.triage] },
+  wayfinder: { label: 'Wayfinder', commands: [SKILLS.wayfinder] },
 } as const satisfies Record<EntryId, { label: string; commands: readonly SkillName[] }>
 
 export type Recognised =
@@ -134,8 +157,8 @@ for (const phase of PHASE_ORDER) {
   for (const skill of PHASES[phase].helpers)
     register(skill, k => ({ kind: 'helper', phase, skill: k }))
 }
-register(s('code-review'), skill => ({ kind: 'phase', phase: 'review', skill }))
-register(s('pr'), skill => ({ kind: 'phase', phase: 'ship', skill }))
+register(SKILLS.codeReview, skill => ({ kind: 'phase', phase: 'review', skill }))
+register(SKILLS.pr, skill => ({ kind: 'phase', phase: 'ship', skill }))
 for (const phase of PHASE_ORDER) {
   for (const skill of PHASES[phase].commands)
     register(skill, k => ({ kind: 'phase', phase, skill: k }))
@@ -144,8 +167,8 @@ for (const entry of Object.keys(ENTRIES) as EntryId[]) {
   for (const skill of ENTRIES[entry].commands)
     register(skill, k => ({ kind: 'entry', entry, skill: k }))
 }
-register(s('setup-matt-pocock-skills'), skill => ({ kind: 'setup', skill }))
-register(s('wait-what'), skill => ({ kind: 'glossary', skill }))
+register(SKILLS.setupMattPocockSkills, skill => ({ kind: 'setup', skill }))
+register(SKILLS.waitWhat, skill => ({ kind: 'glossary', skill }))
 
 export const KNOWN_SKILLS = [...BY_SKILL.keys()] as SkillName[]
 

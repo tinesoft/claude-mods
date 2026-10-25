@@ -2,6 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { EMPTY_LEDGER } from '../src/build'
 import { DEFAULT_CONFIG } from '../src/config'
 import { deriveFlow, type Flow } from '../src/evidence'
+import { SKILLS } from '../src/phases'
 import type {
   AgentRecord,
   BuildLedger,
@@ -13,7 +14,6 @@ import type {
   PhaseMark,
   PullRequest,
   Running,
-  SkillName,
   TrackerSnapshot,
 } from '../types'
 
@@ -104,7 +104,7 @@ const flowOf = (args: {
       ? {
           phase: null,
           entry: null,
-          skill: 'implement-spec' as SkillName,
+          skill: SKILLS.implementSpec,
           args: '',
           feature: 'spec:#42',
           startedAt: 1,

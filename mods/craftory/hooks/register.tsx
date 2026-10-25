@@ -15,12 +15,12 @@ import { removalTargets, worktreeRemoveArgv } from '../src/git'
 import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
 import { type InboxAction, tabCounts } from '../src/pane-view'
-import { namespaced, recognise } from '../src/phases'
+import { namespaced, recognise, SKILLS } from '../src/phases'
 import { bareIsOurs, INSTALL_ARGV, pluginLine, UPDATE_ARGV } from '../src/plugin'
 import { type BandActions, type FeatureChoice, renderBand, spinFrameOf } from '../src/rail'
 import { linkTerms, Reply } from '../src/reply'
 import { markdownSummary } from '../src/summary'
-import type { AgentId, SkillName } from '../types'
+import type { AgentId } from '../types'
 import {
   agentsViewOf,
   copyTerminal,
@@ -143,7 +143,7 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
     }
     case 'diagnose': {
       await dropNotice($, action.id)
-      await $.command.run({ command: namespaced('diagnosing-bugs' as SkillName), args: '' })
+      await $.command.run({ command: namespaced(SKILLS.diagnosingBugs), args: '' })
       return
     }
     case 'raise-budget': {
@@ -246,10 +246,10 @@ const bandActions = ($: EngineInterface): BandActions => ({
     void raiseBudget($, ticket).then(() => dropNotice($, `budget-${ticket}`))
   },
   diagnose: () => {
-    void $.command.run({ command: namespaced('diagnosing-bugs' as SkillName), args: '' })
+    void $.command.run({ command: namespaced(SKILLS.diagnosingBugs), args: '' })
   },
   markDone: phase => void markDone($, phase),
-  writePr: () => void requestRun($, 'pr' as SkillName, ''),
+  writePr: () => void requestRun($, SKILLS.pr, ''),
 })
 
 export const register: Register = (on, options) => {
@@ -465,7 +465,7 @@ export const register: Register = (on, options) => {
         path={repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary}
         on={{
           ask: term =>
-            void $.command.run({ command: namespaced('wait-what' as SkillName), args: term.name }),
+            void $.command.run({ command: namespaced(SKILLS.waitWhat), args: term.name }),
           edit: term => void jumpToTerm($, term.name),
         }}
       />
@@ -515,12 +515,12 @@ export const register: Register = (on, options) => {
         inbox: action =>
           void (action.kind === 'start'
             ? startFromIssue($, action)
-            : requestRun($, 'triage' as SkillName, action.ref)),
-        implement: ref => void requestRun($, 'implement' as SkillName, ref),
+            : requestRun($, SKILLS.triage, action.ref)),
+        implement: ref => void requestRun($, SKILLS.implement, ref),
         implementSpec: () =>
           void (async () => {
             const record = await activeRecord($)
-            if (record !== null) await requestRun($, 'implement-spec' as SkillName, record.spec)
+            if (record !== null) await requestRun($, SKILLS.implementSpec, record.spec)
           })(),
         search: text => void searchGlossary($, text),
         editTerm: name => void jumpToTerm($, name),

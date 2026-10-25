@@ -26,7 +26,7 @@ import {
   termKey,
   termsOf,
 } from '../../src/glossary'
-import { namespaced } from '../../src/phases'
+import { namespaced, SKILLS } from '../../src/phases'
 import { hasSkill } from '../../src/plugin'
 import { planScratchImport, type ScratchFile, scratchSummary } from '../../src/scratch'
 import {
@@ -36,14 +36,7 @@ import {
   type SettingsRow,
 } from '../../src/sections'
 import type { SettingsArgs } from '../../src/settings'
-import type {
-  AgentSetup,
-  GlossaryDoc,
-  PluginStatus,
-  RepoSnapshot,
-  SkillName,
-  TermDraft,
-} from '../../types'
+import type { AgentSetup, GlossaryDoc, PluginStatus, RepoSnapshot, TermDraft } from '../../types'
 import { refreshTracker, settle } from './flow'
 import {
   applyWrites,
@@ -312,7 +305,7 @@ async function resetSettings($: EngineInterface) {
 async function rerunSetup($: EngineInterface) {
   if (!hasSkill(await pluginOf($), 'setup-matt-pocock-skills'))
     return void $.ui.toast('Install mattpocock-skills first: the setup skill comes with it')
-  await $.command.run({ command: namespaced('setup-matt-pocock-skills' as SkillName), args: '' })
+  await $.command.run({ command: namespaced(SKILLS.setupMattPocockSkills), args: '' })
 }
 
 async function readScratch($: EngineInterface): Promise<ScratchFile[]> {

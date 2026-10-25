@@ -52,9 +52,8 @@ export function exists($: EngineInterface, path: string): Promise<boolean> {
   return $.fs.exists(path).catch(() => false)
 }
 
-export /** `git remote get-url origin`; the desktop and mobile surfaces run no commands, so null there. */ function remoteUrl(
-  $: EngineInterface,
-): Promise<string | null> {
+/** `git remote get-url origin`; the desktop and mobile surfaces run no commands, so null there. */
+export function remoteUrl($: EngineInterface): Promise<string | null> {
   return $.process
     .run(['git', 'remote', 'get-url', 'origin'], { timeoutMs: PROBE_TIMEOUT_MS })
     .then(r => (r.exitCode === 0 ? r.stdout.trim() : null))

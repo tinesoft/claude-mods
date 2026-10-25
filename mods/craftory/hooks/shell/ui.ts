@@ -16,7 +16,7 @@ import { configOf, parsePrefOverrides, resolvePrefs, STORE_PREFS } from '../../s
 import type { Flow } from '../../src/evidence'
 import { termKey } from '../../src/glossary'
 import { glossaryView, ticketsView } from '../../src/pane-view'
-import { namespaced } from '../../src/phases'
+import { namespaced, SKILLS } from '../../src/phases'
 import type { Ui } from '../../src/rail'
 import { termKeysIn } from '../../src/reply'
 import { resolveTone, type Tone } from '../../src/theme'
@@ -47,7 +47,8 @@ const appearanceState = atom({ plugin: 'craftory', key: 'appearance' } as const,
 
 let appearanceTimer: Timer | undefined
 
-export /** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */ function uiFor(
+/** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */
+export function uiFor(
   $: EngineInterface,
   event: Parameters<EngineInterface['ui']['resolve']>[0],
 ): Ui {
@@ -87,9 +88,8 @@ async function refreshAppearance($: EngineInterface) {
   $.ui.invalidate('ui.render')
 }
 
-export /** Reads the system appearance off the render path, now and every five seconds. */ function watchAppearance(
-  $: EngineInterface,
-) {
+/** Reads the system appearance off the render path, now and every five seconds. */
+export function watchAppearance($: EngineInterface) {
   appearanceTimer?.cancel()
   appearanceTimer = $.clock.every(APPEARANCE_MS, () => refreshAppearance($))
   $.clock.after(0, () => refreshAppearance($))
@@ -112,7 +112,8 @@ export async function toneOf(
   })
 }
 
-export /** The personal prefs this session sees: the mod's options under whatever the person stored. */ async function resolvedPrefs(
+/** The personal prefs this session sees: the mod's options under whatever the person stored. */
+export async function resolvedPrefs(
   $: EngineInterface,
   options: Readonly<Record<string, unknown>>,
 ) {
@@ -243,7 +244,7 @@ export async function pressStep($: EngineInterface, step: PhaseId | 'triage', fi
 }
 
 export async function runFromCard($: EngineInterface, phase: PhaseId | 'triage') {
-  if (phase === 'triage') return requestRun($, 'triage' as SkillName, '')
+  if (phase === 'triage') return requestRun($, SKILLS.triage, '')
   const step = (await currentFlow($))?.steps.find(s => s.phase === phase)
   if (step?.command) await requestRun($, step.command, step.args)
 }

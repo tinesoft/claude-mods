@@ -2,6 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { DEFAULT_LABELS } from '../src/agents-md'
 import { DEFAULT_CONFIG } from '../src/config'
 import { deriveFlow, ticketsLine, type Flow } from '../src/evidence'
+import { SKILLS } from '../src/phases'
 import { TRACKERS, type ReadContext, type ReadResult } from '../src/tracker'
 import { applySubIssues, parseIssueList } from '../src/tracker/github'
 import type {
@@ -12,7 +13,6 @@ import type {
   PhaseId,
   PhaseMark,
   Running,
-  SkillName,
   TrackerSnapshot,
 } from '../types'
 
@@ -142,7 +142,7 @@ const flowOf = (args: {
       ? {
           phase: null,
           entry: null,
-          skill: 'to-spec' as SkillName,
+          skill: SKILLS.toSpec,
           args: '',
           feature: feature.key,
           startedAt: 1,

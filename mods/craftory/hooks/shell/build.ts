@@ -178,11 +178,8 @@ async function currentBases($: EngineInterface, git: GitSnapshot) {
   })
 }
 
-/** A mod cannot open a terminal, so the row copies `cd <path>` for the user to paste. */ export async function copyTerminal(
-  $: EngineInterface,
-  path: string,
-  surface: RenderSurface,
-) {
+/** A mod cannot open a terminal, so the row copies `cd <path>` for the user to paste. */
+export async function copyTerminal($: EngineInterface, path: string, surface: RenderSurface) {
   const line = cdCommand(path)
   const copied = await $.ui.copy({ text: line, surface }).catch(() => ({ isCopied: false }))
   $.ui.toast(
