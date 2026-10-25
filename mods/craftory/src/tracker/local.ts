@@ -20,7 +20,7 @@
  */
 import type { Issue, IssueKind, IssueRef, IssueStatus, TriageLabels, TriageRole } from '../../types'
 import type { FsListing, ReadResult, TrackerSpec } from './index'
-import { parseIssueRef } from './refs'
+import { isSpecBody, parseIssueRef, storiesIn } from './refs'
 
 export type FrontMatter = Record<string, string | string[]>
 
@@ -119,9 +119,7 @@ export function parseIssueFile(args: {
   const upstreamBlocked = UPSTREAM_LINE('Blocked by').exec(head)?.[1]
   const parent = parseIssueRef(asText(data.parent))
   const type = asText(data.type).toLowerCase()
-  const isSpec =
-    type === 'spec' ||
-    (type === '' && /^## Problem Statement\b/m.test(body) && /^## User Stories\b/m.test(body))
+  const isSpec = type === 'spec' || (type === '' && isSpecBody(body))
   const kind: IssueKind = isSpec
     ? 'spec'
     : type === 'ticket' || parent !== undefined || upstreamBlocked !== undefined
@@ -148,6 +146,7 @@ export function parseIssueFile(args: {
     parent: parent ?? null,
     blockedBy,
     isBug: tags.includes('bug') || type === 'bug',
+    ...(isSpec && { stories: storiesIn(body) }),
     createdAt: createdAtOf(asText(data.created), args.mtimeMs ?? null),
     location: `${folder}${name}`,
   }

@@ -186,6 +186,8 @@ export type Issue = {
   parent: IssueRef | null
   blockedBy: IssueRef[]
   isBug: boolean
+  /** Specs only: the numbered user stories in the body, for the spec-published toast. */
+  stories?: number
   createdAt: Millis | null
   /** Local: repo-relative file path. GitHub: html url. */
   location: string
