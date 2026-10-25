@@ -1,13 +1,16 @@
 import { expect, test } from 'claude-code/testing'
 import {
   parseTrackerDoc,
+  planSettingsWrites,
   planSetup,
   readSetup,
   renderTrackerDoc,
   retargetTracker,
   type SetupFiles,
 } from '../src/agents-md'
-import { diffSummary } from '../src/files'
+import type { AgentSetup } from '../types'
+import { DEFAULT_CONFIG } from '../src/config'
+import { AGENT_DOCS, diffSummary } from '../src/files'
 
 const EMPTY: SetupFiles = {
   tracker: null,
@@ -89,4 +92,57 @@ test('moving the issues folder updates Craftory’s own tracker doc and leaves o
 test('the diff summary counts added and removed lines and quotes the first added one', () => {
   expect(diffSummary('a\nb\n', 'a\nc\nd\n')).toBe('+2 −1 lines, adds "c"')
   expect(diffSummary(null, 'a\nb\n')).toBe('new file, 2 lines')
+})
+
+const CONFIGURED = { files: EMPTY, configText: null, oldConfig: DEFAULT_CONFIG }
+const SAVED = { setup: SETUP, isDraft: false }
+
+test('a config change on a saved setup writes only the config and reports the config it makes', () => {
+  const plan = planSettingsWrites({
+    ...CONFIGURED,
+    current: SAVED,
+    change: { config: { automation: { liveAgents: false } } },
+  })
+  expect(plan.writes.map(w => w.path)).toEqual(['.craftory/config.json'])
+  expect(plan.nextConfig.automation.liveAgents).toBe(false)
+  expect(plan.nextSetup).toBe(SETUP)
+})
+
+test('moving the worktree folder also ignores the new folder', () => {
+  const plan = planSettingsWrites({
+    ...CONFIGURED,
+    current: SAVED,
+    change: { config: { worktrees: { folder: '.trees/' } } },
+  })
+  expect(plan.writes.map(w => w.path)).toEqual(['.craftory/config.json', '.gitignore'])
+  expect(plan.writes[1]?.after).toContain('.trees/')
+})
+
+test('moving the issues folder retargets the tracker doc on a local tracker', () => {
+  const tracker = renderTrackerDoc({ kind: 'local' }, 'docs/issues/')
+  const plan = planSettingsWrites({
+    ...CONFIGURED,
+    files: { ...EMPTY, tracker },
+    current: SAVED,
+    change: { config: { tracker: { local: { folder: 'work/' } } } },
+  })
+  const doc = plan.writes.find(w => w.path === AGENT_DOCS.tracker)
+  expect(doc?.after).toContain('`work/<n>-<slug>.md`')
+})
+
+test('a setup change plans the setup files for a saved setup and none for a draft', () => {
+  const github = (s: AgentSetup): AgentSetup => ({
+    ...s,
+    tracker: { kind: 'github', prsAsRequests: false },
+  })
+  const saved = planSettingsWrites({ ...CONFIGURED, current: SAVED, change: { setup: github } })
+  expect(saved.writes.map(w => w.path)).toContain(AGENT_DOCS.tracker)
+  expect(saved.nextSetup.tracker.kind).toBe('github')
+  const draft = planSettingsWrites({
+    ...CONFIGURED,
+    current: { setup: SETUP, isDraft: true },
+    change: { setup: github },
+  })
+  expect(draft.writes).toEqual([])
+  expect(draft.nextSetup.tracker.kind).toBe('github')
 })

@@ -1,5 +1,7 @@
 import type {
   AgentSetup,
+  ConfigPatch,
+  CraftoryConfig,
   DocsLayout,
   Loaded,
   SteeringFile,
@@ -7,6 +9,7 @@ import type {
   TriageLabels,
   TriageRole,
 } from '../types'
+import { CONFIG_PATH, configOf, parseConfig, patchConfig } from './config'
 import { AGENT_DOCS, GITIGNORE, type FileWrite } from './files'
 import { TEMPLATES } from './templates'
 
@@ -312,4 +315,66 @@ export function firstRunText(signals: SetupSignals): string {
 
 export function retargetTracker(doc: string, oldFolder: string, newFolder: string): string {
   return oldFolder === newFolder ? doc : doc.replaceAll(`\`${oldFolder}`, `\`${newFolder}`)
+}
+
+/**
+ * What one Settings change writes, and the config and setup the repo holds once it is written.
+ * The setup files follow only a saved setup; an unsaved draft keeps its change in memory.
+ */
+export function planSettingsWrites(args: {
+  change: { config?: ConfigPatch; setup?: (current: AgentSetup) => AgentSetup }
+  current: { setup: AgentSetup; isDraft: boolean }
+  files: SetupFiles
+  configText: string | null
+  oldConfig: CraftoryConfig
+}): { writes: FileWrite[]; nextConfig: CraftoryConfig; nextSetup: AgentSetup } {
+  const { change, current, files, configText, oldConfig } = args
+  const writes: FileWrite[] = []
+  const { config: patch } = change
+  let nextConfig = oldConfig
+  if (patch !== undefined) {
+    const after = patchConfig(configText, patch)
+    writes.push({
+      path: CONFIG_PATH,
+      before: configText,
+      after,
+      replan: raw => patchConfig(raw, patch),
+    })
+    nextConfig = configOf(parseConfig(after))
+  }
+  const nextSetup = change.setup ? change.setup(current.setup) : current.setup
+  if (current.isDraft) return { writes, nextConfig, nextSetup }
+  if (change.setup)
+    writes.push(
+      ...planSetup(nextSetup, files, {
+        worktreeFolder: nextConfig.worktrees.folder,
+        localFolder: nextConfig.tracker.local.folder,
+        chooseSteering: true,
+        refreshBlock: true,
+      }),
+    )
+  const at = writes.findIndex(w => w.path === AGENT_DOCS.tracker)
+  const doc = at === -1 ? files.tracker : writes[at]!.after
+  if (doc !== null && nextSetup.tracker.kind === 'local') {
+    const moved = retargetTracker(
+      doc,
+      oldConfig.tracker.local.folder,
+      nextConfig.tracker.local.folder,
+    )
+    const write = { path: AGENT_DOCS.tracker, before: files.tracker, after: moved }
+    if (moved !== doc) {
+      if (at === -1) writes.push(write)
+      else writes[at] = write
+    }
+  }
+  if (
+    nextConfig.worktrees.folder !== oldConfig.worktrees.folder &&
+    !writes.some(w => w.path === GITIGNORE)
+  )
+    writes.push({
+      path: GITIGNORE,
+      before: files.gitignore,
+      after: ensureGitignore(files.gitignore, nextConfig.worktrees.folder),
+    })
+  return { writes, nextConfig, nextSetup }
 }

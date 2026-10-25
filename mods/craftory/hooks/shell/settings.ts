@@ -1,21 +1,13 @@
 import { atom, type EngineInterface, read, type RenderSurface, update } from 'claude-code'
 import {
-  AGENT_DOCS,
   draftSetup,
-  ensureGitignore,
   firstRunText,
+  planSettingsWrites,
   planSetup,
-  retargetTracker,
   type SetupSignals,
 } from '../../src/agents-md'
 import { CONFIG_PATH, configOf, configWrite, parseConfig, patchConfig } from '../../src/config'
-import {
-  diffSummary,
-  type FileWrite,
-  GITIGNORE,
-  isShared,
-  type WritableContext,
-} from '../../src/files'
+import { diffSummary, type FileWrite, isShared, type WritableContext } from '../../src/files'
 import {
   addTerm,
   deleteTerm,
@@ -175,62 +167,20 @@ async function commitChange($: EngineInterface, change: SettingsChange) {
     readSetupFiles($),
     readText($, CONFIG_PATH),
   ])
-  const writes: FileWrite[] = []
-  const oldConfig = configOf(repo?.config)
-  let nextConfig = oldConfig
   if (change.prefs !== undefined) {
     await savePrefs($, change.prefs)
   }
-  if (change.config !== undefined) {
-    if (repo?.config.state === 'invalid')
-      return say(
-        $,
-        `.craftory/config.json is not valid JSON (${repo.config.problem}). Fix it first.`,
-      )
-    const after = patchConfig(configText, change.config)
-    writes.push({
-      path: CONFIG_PATH,
-      before: configText,
-      after,
-      replan: current => patchConfig(current, change.config!),
-    })
-    nextConfig = configOf(parseConfig(after))
-  }
-  const next = change.setup ? change.setup(current.setup) : current.setup
-  if (change.setup && current.isDraft) await update($, setupDraftState, () => next)
-  if (!current.isDraft) {
-    const options = {
-      worktreeFolder: nextConfig.worktrees.folder,
-      localFolder: nextConfig.tracker.local.folder,
-      chooseSteering: true,
-      refreshBlock: true,
-    }
-    if (change.setup) writes.push(...planSetup(next, files, options))
-    const at = writes.findIndex(w => w.path === AGENT_DOCS.tracker)
-    const doc = at === -1 ? files.tracker : writes[at]!.after
-    if (doc !== null && next.tracker.kind === 'local') {
-      const moved = retargetTracker(
-        doc,
-        oldConfig.tracker.local.folder,
-        nextConfig.tracker.local.folder,
-      )
-      const write = { path: AGENT_DOCS.tracker, before: files.tracker, after: moved }
-      if (moved !== doc) {
-        if (at === -1) writes.push(write)
-        else writes[at] = write
-      }
-    }
-    if (
-      nextConfig.worktrees.folder !== oldConfig.worktrees.folder &&
-      !writes.some(w => w.path === GITIGNORE)
-    )
-      writes.push({
-        path: GITIGNORE,
-        before: files.gitignore,
-        after: ensureGitignore(files.gitignore, nextConfig.worktrees.folder),
-      })
-  }
-  const ctx = await settingsContext($, next, nextConfig.tracker.local.folder)
+  if (change.config !== undefined && repo?.config.state === 'invalid')
+    return say($, `.craftory/config.json is not valid JSON (${repo.config.problem}). Fix it first.`)
+  const { writes, nextConfig, nextSetup } = planSettingsWrites({
+    change,
+    current,
+    files,
+    configText,
+    oldConfig: configOf(repo?.config),
+  })
+  if (change.setup && current.isDraft) await update($, setupDraftState, () => nextSetup)
+  const ctx = await settingsContext($, nextSetup, nextConfig.tracker.local.folder)
   await say($, writes.length === 0 ? null : await commitWrites($, writes, ctx))
   if (writes.length > 0) await refreshTracker($)
   await settle($)

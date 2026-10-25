@@ -16,6 +16,7 @@ import {
   freshTokens,
   moveNotices,
   queueReason,
+  raiseRunBudget,
   recordOf,
   recordUsage,
   seated,
@@ -257,6 +258,16 @@ test('each threshold is crossed once, and over marks the run stopping', () => {
     budgetState: 'over',
     stop: { cause: 'budget', isDelivered: false },
   })
+})
+
+test('raising a budget re-judges the ticket’s running agents and leaves the others alone', () => {
+  const over = recordUsage(withRun(EMPTY_LEDGER, 44), agent(44), 90_000, 5).ledger
+  const both = withRun(over, 45)
+  const raised = raiseRunBudget(both, ref(44), 160_000)
+  expect(raised.runs[agent(44)]).toMatchObject({ budget: 160_000, budgetState: 'ok' })
+  expect(raised.runs[agent(45)]).toEqual(both.runs[agent(45)])
+  const done = finishRun(over, agent(44), 'answer', 9).ledger
+  expect(raiseRunBudget(done, ref(44), 160_000).runs[agent(44)]).toEqual(done.runs[agent(44)])
 })
 
 test('one step can jump straight from ok to over, crossing only over', () => {

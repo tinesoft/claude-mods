@@ -20,7 +20,7 @@ import {
   countTokens,
   endRun,
   ledgerOf,
-  raiseRunBudget,
+  raiseBudgetOf,
   seatRun,
   setPaused,
 } from './ledger'
@@ -136,6 +136,6 @@ export async function raiseBudget($: EngineInterface, ticket: IssueRef) {
   const step = configOf((await repoSnapshot($))?.config).worktrees.tokenBudget
   const budget = old.budget + step
   await recordChange($, specKey(record.spec), { kind: 'agent', record: { ...old, budget } })
-  await raiseRunBudget($, ticket, budget)
+  await raiseBudgetOf($, ticket, budget)
   $.ui.toast(`Budget for ${ticket} raised to ${budgetK(budget)} · run it again to continue`)
 }

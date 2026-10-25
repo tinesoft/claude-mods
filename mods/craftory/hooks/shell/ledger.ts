@@ -3,7 +3,6 @@ import {
   addPending,
   addQueued,
   type AgentCall,
-  budgetState,
   decideSpawn,
   deliverStop,
   dropPending,
@@ -13,6 +12,7 @@ import {
   isBuilding,
   markStopping,
   patchRun,
+  raiseRunBudget,
   recordUsage,
   seated,
   type SpawnDecision,
@@ -135,16 +135,6 @@ export async function setPaused($: EngineInterface, isPaused: boolean) {
   return read($, buildState)
 }
 
-export async function raiseRunBudget($: EngineInterface, ticket: IssueRef, budget: number) {
-  await update($, buildState, ledger => ({
-    ...ledger,
-    runs: Object.fromEntries(
-      Object.entries(ledger.runs).map(([id, run]) => [
-        id,
-        run.ticket === ticket && run.status === 'running'
-          ? { ...run, budget, budgetState: budgetState(run.tokens, budget) }
-          : run,
-      ]),
-    ),
-  }))
+export async function raiseBudgetOf($: EngineInterface, ticket: IssueRef, budget: number) {
+  await update($, buildState, ledger => raiseRunBudget(ledger, ticket, budget))
 }

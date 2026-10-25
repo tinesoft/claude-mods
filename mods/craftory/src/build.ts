@@ -336,6 +336,21 @@ export function finishRun(
   return { ledger: { ...ledger, runs: { ...ledger.runs, [agentId]: finished } }, run: finished }
 }
 
+/** The ticket's running agents get the new budget, and their budget state is judged against it. */
+export function raiseRunBudget(ledger: BuildLedger, ticket: IssueRef, budget: number): BuildLedger {
+  return {
+    ...ledger,
+    runs: Object.fromEntries(
+      Object.entries(ledger.runs).map(([id, run]) => [
+        id,
+        run.ticket === ticket && run.status === 'running'
+          ? { ...run, budget, budgetState: budgetState(run.tokens, budget) }
+          : run,
+      ]),
+    ),
+  }
+}
+
 export const isoOf = (ms: Millis): IsoTime => new Date(ms).toISOString()
 
 export function recordOf(run: AgentRun): AgentRecord {
