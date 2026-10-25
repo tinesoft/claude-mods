@@ -7,6 +7,8 @@ const basis = (over: Partial<SignalBasis> = {}): SignalBasis => ({
   gates: [],
   budgets: [],
   conflicts: [],
+  drifts: [],
+  retros: [],
   ...over,
 })
 const spec = (n: number, stories: number | null = null) => ({ ref: `#${n}` as IssueRef, stories })

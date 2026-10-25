@@ -427,6 +427,12 @@ export type BudgetSignalBasis = { id: string; ticket: IssueRef; budget: number }
 /** A rebase-conflict notice, as the toast basis sees it. */
 export type ConflictSignalBasis = { id: string; ticket: IssueRef; worktree: string }
 
+/** A drift notice, as the toast basis sees it. */
+export type DriftSignalBasis = { id: string; avoided: string; term: string; count: number }
+
+/** A retro-ready notice, as the toast basis sees it. */
+export type RetroSignalBasis = { id: string; suggestions: number | null }
+
 /** What a toast is derived from, taken from the same facts as the Flow (src/signals.ts). */
 export type SignalBasis = {
   /** The specs that belong to a feature in flight, with their user stories when known. */
@@ -437,6 +443,10 @@ export type SignalBasis = {
   budgets: BudgetSignalBasis[]
   /** The worktrees whose agent stopped on a merge conflict. */
   conflicts: ConflictSignalBasis[]
+  /** The avoid-words the integration diff uses. */
+  drifts: DriftSignalBasis[]
+  /** Retros that finished with suggestions to review. */
+  retros: RetroSignalBasis[]
 }
 
 export type NoticeKey = EventNotice['kind'] | 'plugin' | 'first-run' | 'no-feature' | 'duplicates'

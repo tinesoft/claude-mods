@@ -9,14 +9,17 @@ import type {
   BudgetSignalBasis,
   ConflictSignalBasis,
   DraftFeature,
+  DriftSignalBasis,
   EventNotice,
   FeatureRecord,
   GateSignalBasis,
   IssueRef,
+  RetroSignalBasis,
   SignalBasis,
   TrackerSnapshot,
 } from '../types'
 import { budgetK } from './build'
+import { driftText, retroText } from './drift'
 import { bindSpec } from './features'
 import { PHASES } from './phases'
 
@@ -25,6 +28,8 @@ export type Signal =
   | ({ kind: 'gate' } & GateSignalBasis)
   | ({ kind: 'budget' } & BudgetSignalBasis)
   | ({ kind: 'rebase-conflict' } & ConflictSignalBasis)
+  | ({ kind: 'drift' } & DriftSignalBasis)
+  | ({ kind: 'retro-ready' } & RetroSignalBasis)
 
 export const TOAST_MS = 4000
 
@@ -35,6 +40,8 @@ export const TOASTS: { [K in Signal['kind']]: (signal: Extract<Signal, { kind: K
   gate: s => `${PHASES[s.phase].label} is gated · ${s.reason}`,
   budget: s => `Agent ${s.ticket} hit its ${budgetK(s.budget)} budget · worktree kept`,
   'rebase-conflict': s => `Rebase conflict in ${s.worktree} · agent paused`,
+  drift: s => driftText(s),
+  'retro-ready': s => retroText(s.suggestions),
 }
 
 export function toastText(signal: Signal): string {
@@ -47,6 +54,10 @@ export function toastText(signal: Signal): string {
       return TOASTS.budget(signal)
     case 'rebase-conflict':
       return TOASTS['rebase-conflict'](signal)
+    case 'drift':
+      return TOASTS.drift(signal)
+    case 'retro-ready':
+      return TOASTS['retro-ready'](signal)
     default: {
       const _exhaustive: never = signal
       return _exhaustive
@@ -81,6 +92,12 @@ export function signalBasis(args: {
     conflicts: notices.flatMap((n): ConflictSignalBasis[] =>
       n.kind === 'rebase-conflict' ? [{ id: n.id, ticket: n.ticket, worktree: n.worktree }] : [],
     ),
+    drifts: notices.flatMap((n): DriftSignalBasis[] =>
+      n.kind === 'drift' ? [{ id: n.id, avoided: n.avoided, term: n.term, count: n.count }] : [],
+    ),
+    retros: notices.flatMap((n): RetroSignalBasis[] =>
+      n.kind === 'retro-ready' ? [{ id: n.id, suggestions: n.suggestions }] : [],
+    ),
   }
 }
 
@@ -100,5 +117,11 @@ export function diffSignals(prev: SignalBasis | null, next: SignalBasis): Signal
     ...next.conflicts
       .filter(c => !prev.conflicts.some(p => p.id === c.id))
       .map((c): Signal => ({ kind: 'rebase-conflict', ...c })),
+    ...next.drifts
+      .filter(d => !prev.drifts.some(p => p.id === d.id))
+      .map((d): Signal => ({ kind: 'drift', ...d })),
+    ...next.retros
+      .filter(r => !prev.retros.some(p => p.id === r.id))
+      .map((r): Signal => ({ kind: 'retro-ready', ...r })),
   ]
 }

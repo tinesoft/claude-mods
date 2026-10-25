@@ -1,0 +1,64 @@
+/**
+ * Glossary drift: words a term says to avoid, found in the lines a diff adds. Only added lines
+ * count (the code that is about to ship), whole words only, and anything in an inline code span
+ * is left alone. The glossary file itself is skipped, since it lists the avoid-words by design.
+ */
+import type { Term } from '../types'
+import { findWord, skippedRanges } from './prose'
+
+export type DriftFinding = { term: string; avoided: string; count: number }
+
+export const driftDiffArgv = (base: string, branch: string) =>
+  ['git', 'diff', '--unified=0', '--no-color', `${base}...${branch}`] as const
+
+/** `+++ b/path` names the file the following hunks belong to. */
+const fileOf = (line: string) => /^\+\+\+ (?:b\/)?(.+)$/.exec(line)?.[1]
+
+export function addedLines(diff: string, skipFiles: readonly string[]): string[] {
+  const added: string[] = []
+  let file = ''
+  for (const line of diff.split('\n')) {
+    const named = fileOf(line)
+    if (named !== undefined) file = named
+    else if (line.startsWith('+') && !line.startsWith('+++') && !skipFiles.includes(file))
+      added.push(line.slice(1))
+  }
+  return added
+}
+
+export function findDrift(
+  diff: string,
+  terms: readonly Term[],
+  skipFiles: readonly string[] = [],
+): DriftFinding[] {
+  const lines = addedLines(diff, skipFiles)
+  const counts = new Map<string, DriftFinding>()
+  for (const line of lines) {
+    const skipped = skippedRanges(line, { links: false })
+    for (const term of terms)
+      for (const avoided of term.avoid) {
+        const hits = findWord(line, avoided, skipped).length
+        if (hits === 0) continue
+        const key = `${term.name}\0${avoided}`
+        const old = counts.get(key)
+        counts.set(key, { term: term.name, avoided, count: (old?.count ?? 0) + hits })
+      }
+  }
+  return [...counts.values()].sort(
+    (a, b) => b.count - a.count || a.avoided.localeCompare(b.avoided),
+  )
+}
+
+export const driftText = (f: Pick<DriftFinding, 'avoided' | 'count'>) =>
+  `Glossary drift · the diff says "${f.avoided}" ${f.count} ${f.count === 1 ? 'time' : 'times'}`
+
+/** The count of ranked suggestions in a retro's answer: its numbered list, or null when it has none. */
+export function retroSuggestions(answer: string): number | null {
+  const n = answer.match(/^\s*\d+[.)]\s+\S/gm)?.length ?? 0
+  return n > 0 ? n : null
+}
+
+export const retroText = (suggestions: number | null) =>
+  suggestions === null
+    ? 'Retro ready'
+    : `Retro ready · ${suggestions} ranked ${suggestions === 1 ? 'suggestion' : 'suggestions'}`

@@ -160,6 +160,7 @@ import {
   termsOf,
   type GlossaryEditError,
 } from '../src/glossary'
+import { driftDiffArgv, findDrift, retroSuggestions } from '../src/drift'
 import { linkTerms, Reply, termKeysIn } from '../src/reply'
 import { planScratchImport, scratchSummary, type ScratchFile } from '../src/scratch'
 import type {
@@ -1670,6 +1671,16 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
     case 'open-tickets':
       await openPane($, 'tickets')
       return
+    case 'rename': {
+      const notice = await noticeOf($, action.id)
+      if (notice?.kind !== 'drift') return
+      await dropNotice($, notice.id)
+      return jumpToTerm($, notice.term)
+    }
+    case 'review-retro': {
+      await dropNotice($, action.id)
+      return openPane($, 'flow')
+    }
     case 'dismiss':
       return dropNotice($, action.id)
     default: {
@@ -1832,6 +1843,35 @@ async function settingsArgs(
   }
 }
 
+/**
+ * The avoid-words of the glossary, found in what the integration branch adds over its base.
+ * Run when Review starts and before Ship; each finding becomes a notice and, once, a toast.
+ */
+async function scanDrift($: EngineInterface) {
+  const [git, record, terms, repo] = await Promise.all([
+    read($, gitState),
+    activeRecord($),
+    glossaryTerms($),
+    read($, repoState),
+  ])
+  const integration = record?.integrationBranch
+  const base = git?.branch
+  if (!integration || !base || integration === base || !terms.some(t => t.avoid.length > 0)) return
+  const diff = await sh($, driftDiffArgv(base, integration))
+  if (diff === null || diff.exitCode !== 0) return
+  const glossary =
+    repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary
+  for (const f of findDrift(diff.stdout, terms, [glossary, 'CONTEXT.md']).slice(0, 3))
+    await addNotice($, {
+      kind: 'drift',
+      id: `drift-${termKey(f.term)}-${termKey(f.avoided)}`,
+      avoided: f.avoided,
+      term: f.term,
+      count: f.count,
+    })
+  await settle($)
+}
+
 // ─── Hooks ──────────────────────────────────────────────────────────────────────────────
 
 const isSupported = async ($: EngineInterface) => meetsFloor((await $.session.version()).base)
@@ -1960,6 +2000,7 @@ export const register: Register = (on, options) => {
       if (key !== null && phase !== null)
         await recordChange($, key, { kind: 'ran', phase, at: isoOf(now) })
       await settle($)
+      if (phase === 'review' || phase === 'ship') await scanDrift($)
     }
     return next(e)
   })
@@ -2002,6 +2043,13 @@ export const register: Register = (on, options) => {
             kind: 'ended',
             phase: running.phase,
             at: isoOf(await $.clock.now()),
+          })
+        }
+        if (running.phase === 'retro' && !e.isAborted) {
+          await addNotice($, {
+            kind: 'retro-ready',
+            id: `retro-${await $.clock.now()}`,
+            suggestions: retroSuggestions(e.answer),
           })
         }
       }

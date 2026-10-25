@@ -12,6 +12,7 @@ import type {
   SkillName,
 } from '../types'
 import { budgetK } from './build'
+import { driftText, retroText } from './drift'
 import { gateText } from './gates'
 import { PLUGIN, TESTED_RANGE } from './phases'
 import type { Role } from './theme'
@@ -26,6 +27,8 @@ export type NoticeAction =
   | { kind: 'diagnose'; id: string }
   | { kind: 'raise-budget'; id: string }
   | { kind: 'resolve'; id: string } // opens the Worktrees tab
+  | { kind: 'rename'; id: string } // opens Settings › Glossary on the drifting term
+  | { kind: 'review-retro'; id: string } // opens the Flow tab on the Retro result
   | { kind: 'open-tickets' } // opens the pane on the Tickets tab
   | { kind: 'dismiss'; id: string }
 
@@ -170,7 +173,7 @@ const dismiss = (id: string): NoticeButton => ({
   action: { kind: 'dismiss', id },
 })
 
-/** The band row of a stored event notice. Drift and retro-ready rows arrive with M5. */
+/** The band row of a stored event notice. */
 export function eventNotice(notice: EventNotice): NoticeView | undefined {
   switch (notice.kind) {
     case 'gate':
@@ -243,8 +246,37 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
         ],
       }
     case 'drift':
+      return {
+        id: notice.id,
+        role: 'hook',
+        text: driftText(notice),
+        replacesRail: false,
+        actions: [
+          {
+            id: `rename-${notice.id}`,
+            label: 'Rename',
+            action: { kind: 'rename', id: notice.id },
+            primary: true,
+          },
+          dismiss(notice.id),
+        ],
+      }
     case 'retro-ready':
-      return undefined
+      return {
+        id: notice.id,
+        role: 'perm',
+        text: retroText(notice.suggestions),
+        replacesRail: false,
+        actions: [
+          {
+            id: 'review-retro',
+            label: 'Review',
+            action: { kind: 'review-retro', id: notice.id },
+            primary: true,
+          },
+          dismiss(notice.id),
+        ],
+      }
     default: {
       const _exhaustive: never = notice
       return _exhaustive
