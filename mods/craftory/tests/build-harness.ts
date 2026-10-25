@@ -26,6 +26,7 @@ export const fakeGit = (
   }
   const shell: Shell = argv => {
     const [a, b, c] = argv
+    if (['defaults', 'gsettings', 'reg'].includes(a!)) return undefined
     if (argv[0] !== 'git') return { exitCode: 0 }
     if (b === 'worktree' && c === 'list')
       return {

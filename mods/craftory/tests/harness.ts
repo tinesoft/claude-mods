@@ -44,7 +44,14 @@ export type WorldOptions = {
   }
   answer?: (e: { agentId?: string; index: number }) => string
   racy?: { path: string; onRead: number; text: string }
+  /** Commands that answer only after this many milliseconds on the mock clock. */
+  stall?: { when: (argv: readonly string[]) => boolean; ms: number }
 }
+
+let clockInUse: ReturnType<typeof mock.clock> | undefined
+
+/** The hooks start tracker and git reads on a timer, so a test lets them run before it looks. */
+const LET_REFRESH_RUN_MS = 1_500
 
 export const world = (on: On, options: WorldOptions = {}) => {
   const files = new Map(Object.entries(options.files ?? {}))
@@ -52,6 +59,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   const rel = (path: string) => path.replace(/^\/.*?\/craftory\//, '')
   const dirs = (path: string) => rel(path).replace(/\/$/, '')
   const clock = mock.clock(on, { now: options.now ?? 1_000_000 })
+  clockInUse = clock
   const store = new Map(Object.entries(options.store ?? {}))
   on('store.get', (_$, e) => ({ value: store.get(e.key) }))
   on('store.set', (_$, e) => (store.set(e.key, e.value), { value: undefined }))
@@ -187,9 +195,10 @@ export const world = (on: On, options: WorldOptions = {}) => {
     files.set(rel(e.path), e.text)
     return { value: undefined }
   })
-  on('process.run', (_$, e) => {
+  on('process.run', async (_$, e) => {
     ran.push([...e.argv])
     ranIn.push({ argv: [...e.argv], cwd: e.init?.cwd })
+    if (options.stall?.when(e.argv)) await clock.sleep(options.stall.ms)
     const done = (exitCode: number, stdout = '', stderr = '') => ({
       value: { exitCode, stdout, stderr, isStdoutTruncated: false, isStderrTruncated: false },
     })
@@ -242,8 +251,11 @@ export const world = (on: On, options: WorldOptions = {}) => {
 
 export type World = ReturnType<typeof world>
 
-export const startSession = ($: Engine, surface: RenderSurface = 'terminal') =>
-  $.session.start({ cwd: '/repo', surface } as never)
+export const startSession = async ($: Engine, surface: RenderSurface = 'terminal') => {
+  const started = await $.session.start({ cwd: '/repo', surface } as never)
+  await clockInUse?.settle()
+  return started
+}
 
 export const bandProps = (bodyColumns: number, maxRows = 24) => ({
   hasSurvey: false,
@@ -364,8 +376,8 @@ export const skillPrompt = ($: Engine, skill: string) =>
     source: 'plugin',
   } as never)
 
-export const turnComplete = ($: Engine, extra: Record<string, unknown> = {}) =>
-  $.turn.complete({
+export const turnComplete = async ($: Engine, extra: Record<string, unknown> = {}) => {
+  const done = await $.turn.complete({
     answer: 'ok',
     durationMs: 1,
     isAborted: false,
@@ -373,6 +385,9 @@ export const turnComplete = ($: Engine, extra: Record<string, unknown> = {}) =>
     reason: 'answer',
     ...extra,
   } as never)
+  await clockInUse?.advance(LET_REFRESH_RUN_MS)
+  return done
+}
 
 export const submit = ($: Engine, text: string) => $.prompt.submit({ text } as never)
 

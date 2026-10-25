@@ -224,6 +224,7 @@ It starts no other program. The `setup` command is the one in `.craftory/config.
 
 ## ⚠️ Limits
 
+- Craftory reads the tracker and git on a short timer after the session starts and after a turn or an agent ends, so the first draw may show the previous state for about a second. It never holds a turn or the session start for those reads.
 - The kept-worktree guard on Bash is best-effort. A command that builds the path with a variable, a glob or a `cd` is not caught.
 - VS Code draws nothing: Claude Code 2.1.302 attaches no surface for a mod there.
 - Where an organization manages Claude Code, `skill.prompt` hooks do not reach user plugins, so phases started by a skill are seen only through typed commands and the tracker.

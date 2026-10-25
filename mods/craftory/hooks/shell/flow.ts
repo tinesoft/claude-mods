@@ -630,7 +630,7 @@ export async function finishTurn($: EngineInterface, e: { answer: string; isAbor
       }
     }
   }
-  await refreshTracker($)
+  scheduleRefresh($)
 }
 
 export async function planSpawn($: EngineInterface, call: AgentCall): Promise<SpawnDecision> {
@@ -965,8 +965,8 @@ export async function finishAgent($: EngineInterface, agentId: AgentId, reason: 
   })
   if (done.run === null) return
   await persistRun($, done.run)
-  await refreshGit($)
-  await refreshTracker($)
+  scheduleGit($)
+  scheduleRefresh($)
 }
 
 export async function noticeOf($: EngineInterface, id: string) {

@@ -191,6 +191,14 @@ async function openFolder($: EngineInterface, folder: string, surface: RenderSur
   $.ui.toast(copied.isCopied ? `Copied ${folder}` : `Could not copy · the folder is ${folder}`)
 }
 
+/** Tracker and git reads run subprocesses and the network, so session start does not wait for them. */
+async function refreshAtStart($: EngineInterface) {
+  await refreshTracker($)
+  await refreshGit($)
+  if (configOf((await repoSnapshot($))?.config).worktrees.pruneStale) await pruneStale($)
+  await settle($)
+}
+
 const isSupported = async ($: EngineInterface) => meetsFloor((await $.session.version()).base)
 
 const canAskInBand = async ($: EngineInterface) =>
@@ -259,10 +267,8 @@ export const register: Register = (on, options) => {
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($)])
     await stopStaleAgents($)
     await rememberGlossaryAtStart($)
-    await refreshTracker($)
-    await refreshGit($)
-    if (configOf((await repoSnapshot($))?.config).worktrees.pruneStale) await pruneStale($)
     await settle($)
+    $.clock.after(0, () => void refreshAtStart($))
     return next(e)
   })
 
