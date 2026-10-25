@@ -88,7 +88,7 @@ const record = (over: Partial<FeatureRecord> = {}): FeatureRecord => ({
   title: 'Export invoices as CSV',
   entry: 'align',
   enteredFrom: null,
-  skipped: [],
+  skips: {},
   integrationBranch: 'feat/csv',
   pr: null,
   marks: {},
@@ -281,20 +281,23 @@ test('skipped beats done, and says why: off in Settings, skipped for the feature
     c.phases.retro.enabled = false
   })
   const flow = flowOf({
-    feature: specced({ skipped: ['review'], marks: ran('align', 'spec') }),
+    feature: specced({ skips: { review: { skippedAt: AT } }, marks: ran('align', 'spec') }),
     issues: [SPEC],
     config,
   })
   expect(flow.steps[4]!.state).toEqual({ kind: 'skipped', why: 'feature' })
   expect(flow.steps[6]!.state).toEqual({ kind: 'skipped', why: 'off' })
   const markedAndSkipped = flowOf({
-    feature: specced({ skipped: ['align'], marks: { align: { markedDoneAt: AT } } }),
+    feature: specced({
+      skips: { align: { skippedAt: AT } },
+      marks: { align: { markedDoneAt: AT } },
+    }),
   })
   expect(markedAndSkipped.steps[0]!.state).toEqual({ kind: 'skipped', why: 'feature' })
 })
 
 test('a skipped predecessor hands its gate to the one before it, and the gate of a skipped first phase vanishes', () => {
-  const flow = flowOf({ feature: specced({ skipped: ['align'] }) })
+  const flow = flowOf({ feature: specced({ skips: { align: { skippedAt: AT } } }) })
   expect(kinds(flow).slice(0, 3)).toEqual(['skipped', 'done', 'next'])
   const noSpecGate = flowOf({
     feature: draft(ran('align')),

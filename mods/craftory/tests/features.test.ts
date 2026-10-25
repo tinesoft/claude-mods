@@ -1,4 +1,5 @@
 import { expect, test } from 'claude-code/testing'
+import { PHASE_ORDER } from '../src/phases'
 import {
   applyChange,
   applyDraftChange,
@@ -6,6 +7,7 @@ import {
   draftKey,
   enteredRecord,
   featureOf,
+  isSkipped,
   featurePath,
   markOf,
   mergeFeature,
@@ -36,7 +38,7 @@ const base: FeatureRecord = {
   title: 'Export invoices as CSV',
   entry: 'align',
   enteredFrom: null,
-  skipped: [],
+  skips: {},
   integrationBranch: 'feat/export-invoices-as-csv',
   pr: null,
   marks: {},
@@ -65,7 +67,7 @@ const A: FeatureRecord = {
     },
     spec: { ranAt: '2026-10-24T09:40:00.000Z' },
   },
-  skipped: ['retro'],
+  skips: { retro: { skippedAt: '2026-10-24T09:50:00.000Z' } },
   agents: { '#44': agent({ tokens: 500 }) },
 }
 const B: FeatureRecord = {
@@ -80,7 +82,10 @@ const B: FeatureRecord = {
     },
     spec: { markedDoneAt: '2026-10-24T11:00:00.000Z' },
   },
-  skipped: ['ship', 'retro'],
+  skips: {
+    ship: { skippedAt: '2026-10-24T10:00:00.000Z' },
+    retro: { skippedAt: '2026-10-24T09:00:00.000Z', unskippedAt: '2026-10-24T09:10:00.000Z' },
+  },
   agents: {
     '#44': agent({ tokens: 900, outcome: 'over-budget', endedAt: '2026-10-24T10:20:00.000Z' }),
     '#45': agent({ ticket: ref(45), tokens: 1 }),
@@ -115,7 +120,12 @@ test('a merge keeps the earliest start, the latest end, every artifact and the n
     endedAt: '2026-10-24T09:45:00.000Z',
     artifacts: ['GLOSSARY.md', 'docs/adr/0007.md'],
   })
-  expect(merged.skipped).toEqual(['ship', 'retro'])
+  expect(merged.skips).toEqual({
+    ship: { skippedAt: '2026-10-24T10:00:00.000Z' },
+    retro: { skippedAt: '2026-10-24T09:50:00.000Z', unskippedAt: '2026-10-24T09:10:00.000Z' },
+  })
+  expect(isSkipped(merged, 'ship')).toBe(true)
+  expect(isSkipped(merged, 'retro')).toBe(true)
   expect(merged.entry).toBe('align')
   expect(merged.pr).toBe('#60')
   expect(merged.agents['#44']).toMatchObject({ tokens: 900, outcome: 'over-budget' })
@@ -132,7 +142,7 @@ const CHANGES: FeatureChange[] = [
     artifacts: ['docs/issues/43-a.md'],
   },
   { kind: 'mark-done', phase: 'ship', at: '2026-10-24T14:00:00.000Z' },
-  { kind: 'skip', phase: 'review' },
+  { kind: 'skip', phase: 'review', at: '2026-10-24T13:20:00.000Z' },
   { kind: 'agent', record: agent({ tokens: 20 }) },
   { kind: 'pr', pr: ref(61) },
 ]
@@ -153,12 +163,21 @@ test('changes record what happened', () => {
     endedAt: '2026-10-24T13:10:00.000Z',
     artifacts: ['docs/issues/43-a.md'],
   })
-  record = applyChange(applyChange(record, { kind: 'skip', phase: 'ship' }), {
-    kind: 'skip',
+  record = applyChange(
+    applyChange(record, { kind: 'skip', phase: 'ship', at: '2026-10-24T16:00:00.000Z' }),
+    {
+      kind: 'skip',
+      phase: 'align',
+      at: '2026-10-24T16:00:00.000Z',
+    },
+  )
+  expect(PHASE_ORDER.filter(p => isSkipped(record, p))).toEqual(['align', 'ship'])
+  const unskipped = applyChange(record, {
+    kind: 'unskip',
     phase: 'align',
+    at: '2026-10-24T16:30:00.000Z',
   })
-  expect(record.skipped).toEqual(['align', 'ship'])
-  expect(applyChange(record, { kind: 'unskip', phase: 'align' }).skipped).toEqual(['ship'])
+  expect(PHASE_ORDER.filter(p => isSkipped(unskipped, p))).toEqual(['ship'])
   expect(
     applyChange(base, { kind: 'agent', record: agent({ tokens: 5 }) }).agents['#44']?.tokens,
   ).toBe(5)
@@ -175,7 +194,7 @@ test('a record survives writing and reading, and the file text is stable', () =>
   expect(serialiseFeature(B)).toBe(text)
   const shuffled = serialiseFeature({
     ...B,
-    skipped: ['retro', 'ship'],
+    skips: Object.fromEntries(Object.entries(B.skips).reverse()),
     agents: { '#45': B.agents['#45']!, '#44': B.agents['#44']! },
   })
   expect(shuffled).toBe(text)
@@ -186,7 +205,7 @@ test('a record survives writing and reading, and the file text is stable', () =>
     'title',
     'entry',
     'enteredFrom',
-    'skipped',
+    'skips',
     'integrationBranch',
     'pr',
     'marks',
@@ -200,6 +219,7 @@ test('a hand-damaged record loads what it can and names what it dropped', () => 
     spec: '42',
     entry: 'nowhere',
     skipped: ['ship', 'x'],
+    skips: { retro: { skippedAt: 'yesterday' }, align: { skippedAt: '2026-10-24T09:00:00.000Z' } },
     marks: { align: { ranAt: 7, endedAt: '2026-10-24T09:30:00.000Z' }, bogus: {} },
     agents: { '#44': { ticket: '#44', tokens: 'many' }, '#45': agent({ ticket: ref(45) }) },
   })
@@ -208,7 +228,10 @@ test('a hand-damaged record loads what it can and names what it dropped', () => 
   expect(loaded.value).toMatchObject({
     spec: '#42',
     entry: 'align',
-    skipped: ['ship'],
+    skips: {
+      ship: { skippedAt: '1970-01-01T00:00:00.001Z' },
+      align: { skippedAt: '2026-10-24T09:00:00.000Z' },
+    },
     marks: { align: { endedAt: '2026-10-24T09:30:00.000Z' } },
   })
   expect(Object.keys(loaded.value.agents)).toEqual(['#45'])
@@ -284,7 +307,7 @@ test('promoting a draft carries its marks onto a record for the spec', () => {
     spec: '#42',
     title: 'Spec 42',
     integrationBranch: 'feat/csv',
-    skipped: [],
+    skips: {},
     agents: {},
   })
   expect(record.marks).toEqual(draft.marks)
@@ -293,7 +316,11 @@ test('promoting a draft carries its marks onto a record for the spec', () => {
 })
 
 test('a draft ignores changes that need a spec', () => {
-  const same = applyDraftChange(draft, { kind: 'skip', phase: 'ship' })
+  const same = applyDraftChange(draft, {
+    kind: 'skip',
+    phase: 'ship',
+    at: '2026-10-24T10:00:00.000Z',
+  })
   expect(same).toEqual(draft)
   expect(applyDraftChange(draft, { kind: 'agent', record: agent() })).toEqual(draft)
 })
@@ -360,7 +387,36 @@ test('entering at Build from an issue makes the issue its own ticket, from a spe
       issue: { ref: ref(54), title: 'Fix the total', kind },
       phase: 'build',
       integrationBranch: 'fix/total',
+      at: '2026-10-24T10:00:00.000Z',
     })
   expect(enter('issue').origin).toBe('issue')
   expect(enter('spec').origin).toBe('spec')
+})
+
+test('unskipping is a join like everything else: the later of skip and unskip wins in either merge order', () => {
+  const skipped = applyChange(base, { kind: 'skip', phase: 'ship', at: '2026-10-24T10:00:00.000Z' })
+  const back = applyChange(skipped, {
+    kind: 'unskip',
+    phase: 'ship',
+    at: '2026-10-24T11:00:00.000Z',
+  })
+  expect(isSkipped(skipped, 'ship')).toBe(true)
+  expect(isSkipped(back, 'ship')).toBe(false)
+  for (const merged of [mergeFeature(skipped, back), mergeFeature(back, skipped)]) {
+    expect(isSkipped(merged, 'ship')).toBe(false)
+    expect(merged).toEqual(mergeFeature(back, skipped))
+  }
+  const again = applyChange(back, { kind: 'skip', phase: 'ship', at: '2026-10-24T12:00:00.000Z' })
+  expect(isSkipped(mergeFeature(back, again), 'ship')).toBe(true)
+  expect(isSkipped(mergeFeature(again, skipped), 'ship')).toBe(true)
+})
+
+test('an entered record skips the phases before its entry, stamped when it was entered', () => {
+  const record = enteredRecord({
+    issue: { ref: ref(54), title: 'Fix the total', kind: 'issue' },
+    phase: 'build',
+    integrationBranch: 'fix/total',
+    at: '2026-10-24T10:00:00.000Z',
+  })
+  expect(PHASE_ORDER.filter(p => isSkipped(record, p))).toEqual(['align', 'spec', 'tickets'])
 })

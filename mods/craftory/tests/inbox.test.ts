@@ -67,8 +67,8 @@ test('a ready-for-agent bug enters at Build, with the earlier phases skipped for
     origin: 'issue',
     entry: 'build',
     enteredFrom: '#54',
-    skipped: ['align', 'spec', 'tickets'],
   })
+  expect(Object.keys(record.skips)).toEqual(['align', 'spec', 'tickets'])
   expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement', args: '#54' })
   await pane.press({ key: 'tab-flow' })
   await pane.redraw()
@@ -96,10 +96,9 @@ test('entry.triage.enterAt moves where a ready issue enters', async ($, on) => {
   const { w, pane } = await tickets(on, $, { files: { '.craftory/config.json': config } })
   expect(await texts(pane)).toContain('ready-for-agent · Enters at Tickets · bug')
   await pane.press({ key: 'inbox-start-#54' })
-  expect(JSON.parse(w.files.get('.craftory/features/54.json')!)).toMatchObject({
-    entry: 'tickets',
-    skipped: ['align', 'spec'],
-  })
+  const record = JSON.parse(w.files.get('.craftory/features/54.json')!)
+  expect(record).toMatchObject({ entry: 'tickets' })
+  expect(Object.keys(record.skips)).toEqual(['align', 'spec'])
   expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:to-tickets', args: '#54' })
 })
 

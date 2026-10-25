@@ -211,6 +211,12 @@ export type PhaseMark = {
   artifacts?: string[]
 }
 
+/**
+ * Whether a phase is left out for one feature. Both stamps only grow, so two writers join to
+ * the same record; the phase is skipped while `skippedAt` is later than `unskippedAt`.
+ */
+export type SkipMark = { skippedAt?: IsoTime; unskippedAt?: IsoTime }
+
 export type AgentOutcome = 'running' | 'done' | 'failed' | 'over-budget' | 'stopped'
 
 export type AgentRecord = {
@@ -238,7 +244,7 @@ export type FeatureRecord = {
   title: string
   entry: PhaseId
   enteredFrom: IssueRef | null
-  skipped: PhaseId[]
+  skips: Partial<Record<PhaseId, SkipMark>>
   integrationBranch: string
   pr: IssueRef | null
   marks: Partial<Record<PhaseId, PhaseMark>>

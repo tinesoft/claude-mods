@@ -12,6 +12,7 @@ import type {
   SkillName,
   TrackerSnapshot,
 } from '../types'
+import { isSkipped } from './features'
 import { PHASE_ORDER, PHASES, predecessor } from './phases'
 
 export type SkipReason = 'off' | 'feature' | 'entry'
@@ -277,7 +278,7 @@ export function factsOf({ feature, tracker, running, build }: FlowInput): Facts 
 const skipReason = (input: FlowInput, phase: PhaseId): SkipReason | undefined => {
   const { feature, config } = input
   if (!config.phases[phase].enabled) return 'off'
-  if (feature.kind === 'specced' && feature.record.skipped.includes(phase)) return 'feature'
+  if (feature.kind === 'specced' && isSkipped(feature.record, phase)) return 'feature'
   const entry = feature.kind === 'draft' ? feature.draft.entry : feature.record.entry
   return PHASE_ORDER.indexOf(phase) < PHASE_ORDER.indexOf(entry) ? 'entry' : undefined
 }

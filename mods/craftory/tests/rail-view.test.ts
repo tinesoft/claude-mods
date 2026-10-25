@@ -191,7 +191,7 @@ test('a feature entered from triage shows the issue it came from on the entry st
       title: 'T',
       entry: 'build',
       enteredFrom: '#41' as IssueRef,
-      skipped: [],
+      skips: {},
       integrationBranch: '',
       pr: null,
       marks: {},

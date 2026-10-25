@@ -12,6 +12,7 @@ import type {
   Loaded,
   PhaseId,
   PhaseMark,
+  SkipMark,
   TrackerSnapshot,
 } from '../types'
 import { isSafeRef } from './git'
@@ -44,7 +45,62 @@ const maxRef = (a: IssueRef | null, b: IssueRef | null) =>
   a === null ? b : b === null ? a : a >= b ? a : b
 const union = (a: readonly string[] = [], b: readonly string[] = []) =>
   [...new Set([...a, ...b])].sort()
-const inPhaseOrder = (phases: Iterable<PhaseId>) => PHASE_ORDER.filter(p => new Set(phases).has(p))
+
+/** Files written before skips carried times list the phases; they count as skipped since the epoch. */
+const LEGACY_SKIPPED_AT: IsoTime = '1970-01-01T00:00:00.001Z'
+
+const isStamp = (v: unknown): v is IsoTime => typeof v === 'string' && !Number.isNaN(Date.parse(v))
+
+const stampOf = (v: unknown) => (isStamp(v) ? v : undefined)
+
+export function isSkipped(record: Pick<FeatureRecord, 'skips'>, phase: PhaseId): boolean {
+  const mark = record.skips[phase]
+  if (mark?.skippedAt === undefined) return false
+  return Date.parse(mark.skippedAt) > Date.parse(mark.unskippedAt ?? '1970-01-01T00:00:00.000Z')
+}
+
+const mergeSkip = (a: SkipMark = {}, b: SkipMark = {}): SkipMark => {
+  const skippedAt = max(a.skippedAt, b.skippedAt)
+  const unskippedAt = max(a.unskippedAt, b.unskippedAt)
+  return { ...(skippedAt && { skippedAt }), ...(unskippedAt && { unskippedAt }) }
+}
+
+function parseSkips(skips: unknown, legacy: unknown): FeatureRecord['skips'] {
+  const found: FeatureRecord['skips'] = {}
+  for (const phase of PHASE_ORDER) {
+    const value = isRecord(skips) ? skips[phase] : undefined
+    const mark = mergeSkip(
+      isRecord(value)
+        ? {
+            ...(stampOf(value.skippedAt) && { skippedAt: stampOf(value.skippedAt)! }),
+            ...(stampOf(value.unskippedAt) && { unskippedAt: stampOf(value.unskippedAt)! }),
+          }
+        : {},
+      Array.isArray(legacy) && legacy.includes(phase) ? { skippedAt: LEGACY_SKIPPED_AT } : {},
+    )
+    if (mark.skippedAt !== undefined || mark.unskippedAt !== undefined) found[phase] = mark
+  }
+  return found
+}
+
+function serialiseSkips(skips: FeatureRecord['skips']) {
+  return Object.fromEntries(
+    PHASE_ORDER.flatMap(p => {
+      const m = skips[p]
+      return m && (m.skippedAt || m.unskippedAt)
+        ? [
+            [
+              p,
+              {
+                ...(m.skippedAt && { skippedAt: m.skippedAt }),
+                ...(m.unskippedAt && { unskippedAt: m.unskippedAt }),
+              },
+            ],
+          ]
+        : []
+    }),
+  )
+}
 
 function parseMark(value: unknown): PhaseMark {
   if (!isRecord(value)) return {}
@@ -124,7 +180,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     title: text(json.title) ?? '',
     entry: isPhase(json.entry) ? json.entry : 'align',
     enteredFrom: parseIssueRef(text(json.enteredFrom) ?? '') ?? null,
-    skipped: inPhaseOrder(Array.isArray(json.skipped) ? json.skipped.filter(isPhase) : []),
+    skips: parseSkips(json.skips, json.skipped),
     integrationBranch: branch,
     pr: parseIssueRef(text(json.pr) ?? '') ?? null,
     marks: parseMarks(json.marks),
@@ -181,7 +237,7 @@ export function serialiseFeature(record: FeatureRecord): string {
       title: record.title,
       entry: record.entry,
       enteredFrom: record.enteredFrom,
-      skipped: inPhaseOrder(record.skipped),
+      skips: serialiseSkips(record.skips),
       integrationBranch: record.integrationBranch,
       pr: record.pr,
       marks,
@@ -218,6 +274,9 @@ function mergeAgent(a: AgentRecord, b: AgentRecord): AgentRecord {
   }
 }
 
+const mergeSkips = (a: FeatureRecord['skips'], b: FeatureRecord['skips']): FeatureRecord['skips'] =>
+  Object.fromEntries(PHASE_ORDER.flatMap(p => (a[p] || b[p] ? [[p, mergeSkip(a[p], b[p])]] : [])))
+
 const earlierPhase = (a: PhaseId, b: PhaseId) =>
   PHASE_ORDER.indexOf(a) <= PHASE_ORDER.indexOf(b) ? a : b
 
@@ -239,7 +298,7 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
     title: max(disk.title, mine.title) ?? '',
     entry: earlierPhase(disk.entry, mine.entry),
     enteredFrom: maxRef(disk.enteredFrom, mine.enteredFrom),
-    skipped: inPhaseOrder([...disk.skipped, ...mine.skipped]),
+    skips: mergeSkips(disk.skips, mine.skips),
     integrationBranch: max(disk.integrationBranch, mine.integrationBranch) ?? '',
     pr: maxRef(disk.pr, mine.pr),
     marks,
@@ -251,8 +310,8 @@ export type FeatureChange =
   | { kind: 'ran'; phase: PhaseId; at: IsoTime }
   | { kind: 'ended'; phase: PhaseId; at: IsoTime; artifacts?: string[] }
   | { kind: 'mark-done'; phase: PhaseId; at: IsoTime }
-  | { kind: 'skip'; phase: PhaseId }
-  | { kind: 'unskip'; phase: PhaseId }
+  | { kind: 'skip'; phase: PhaseId; at: IsoTime }
+  | { kind: 'unskip'; phase: PhaseId; at: IsoTime }
   | { kind: 'agent'; record: AgentRecord }
   | { kind: 'pr'; pr: IssueRef }
 
@@ -287,9 +346,21 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
     case 'mark-done':
       return { ...record, marks: changeMarks(record.marks, change) }
     case 'skip':
-      return { ...record, skipped: inPhaseOrder([...record.skipped, change.phase]) }
+      return {
+        ...record,
+        skips: {
+          ...record.skips,
+          [change.phase]: mergeSkip(record.skips[change.phase], { skippedAt: change.at }),
+        },
+      }
     case 'unskip':
-      return { ...record, skipped: record.skipped.filter(p => p !== change.phase) }
+      return {
+        ...record,
+        skips: {
+          ...record.skips,
+          [change.phase]: mergeSkip(record.skips[change.phase], { unskippedAt: change.at }),
+        },
+      }
     case 'agent': {
       const old = record.agents[change.record.ticket]
       return {
@@ -359,7 +430,7 @@ export function promote(
     title: spec.title || draft.title,
     entry: draft.entry,
     enteredFrom: draft.enteredFrom,
-    skipped: [],
+    skips: {},
     integrationBranch,
     pr: null,
     marks: draft.marks,
@@ -371,8 +442,9 @@ export function enteredRecord(args: {
   issue: Pick<Issue, 'ref' | 'title' | 'kind'>
   phase: PhaseId
   integrationBranch: string
+  at: IsoTime
 }): FeatureRecord {
-  const { issue, phase, integrationBranch } = args
+  const { issue, phase, integrationBranch, at } = args
   return {
     version: 1,
     spec: issue.ref,
@@ -380,7 +452,9 @@ export function enteredRecord(args: {
     title: issue.title,
     entry: phase,
     enteredFrom: issue.ref,
-    skipped: PHASE_ORDER.slice(0, PHASE_ORDER.indexOf(phase)),
+    skips: Object.fromEntries(
+      PHASE_ORDER.slice(0, PHASE_ORDER.indexOf(phase)).map(p => [p, { skippedAt: at }]),
+    ),
     integrationBranch,
     pr: null,
     marks: {},

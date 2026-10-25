@@ -304,7 +304,7 @@ const record = (over: Partial<FeatureRecord> = {}): FeatureRecord => ({
   title: 'CSV',
   entry: 'align',
   enteredFrom: null,
-  skipped: [],
+  skips: {},
   integrationBranch: 'feat/csv',
   pr: null,
   marks: {},

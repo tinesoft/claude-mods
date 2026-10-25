@@ -80,7 +80,7 @@ const feature = (
     title: 'Export invoices as CSV',
     entry: 'align',
     enteredFrom: null,
-    skipped: [],
+    skips: {},
     integrationBranch: 'feat/csv',
     pr: null,
     marks,

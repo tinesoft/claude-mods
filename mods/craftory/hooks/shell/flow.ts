@@ -533,6 +533,7 @@ export async function enterFromIssue(
         issue,
         phase: action.phase,
         integrationBranch: integrationBranchFor(config, issue.title),
+        at: isoOf(now),
       }),
     )
     await update($, activeState, () => specKey(record.spec))
