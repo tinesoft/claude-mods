@@ -32,8 +32,7 @@ const appearanceState = atom({ plugin: 'craftory', key: 'appearance' } as const,
 
 let appearanceTimer: Timer | undefined
 
-/** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */
-export function uiFor(
+/** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */ export function uiFor(
   $: EngineInterface,
   event: Parameters<EngineInterface['ui']['resolve']>[0],
 ): Ui {
@@ -73,8 +72,9 @@ async function refreshAppearance($: EngineInterface) {
   $.ui.invalidate('ui.render')
 }
 
-/** Reads the system appearance off the render path, now and every five seconds. */
-export function watchAppearance($: EngineInterface) {
+/** Reads the system appearance off the render path, now and every five seconds. */ export function watchAppearance(
+  $: EngineInterface,
+) {
   appearanceTimer?.cancel()
   appearanceTimer = $.clock.every(APPEARANCE_MS, () => refreshAppearance($))
   $.clock.after(0, () => refreshAppearance($))
@@ -97,8 +97,7 @@ export async function toneOf(
   })
 }
 
-/** The personal prefs this session sees: the mod's options under whatever the person stored. */
-export async function resolvedPrefs(
+/** The personal prefs this session sees: the mod's options under whatever the person stored. */ export async function resolvedPrefs(
   $: EngineInterface,
   options: Readonly<Record<string, unknown>>,
 ) {

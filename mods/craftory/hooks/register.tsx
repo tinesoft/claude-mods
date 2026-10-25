@@ -24,12 +24,8 @@ import {
   ensureGitignore,
   firstRunText,
   planSetup,
-  readSetup,
-  remoteHostOf,
   retargetTracker,
-  type SetupFiles,
   type SetupSignals,
-  steeringOf,
 } from '../src/agents-md'
 import {
   addPending,
@@ -103,7 +99,6 @@ import {
   type FileWrite,
   GITIGNORE,
   isShared,
-  isWritable,
   type WritableContext,
 } from '../src/files'
 import { checkRun, consumePass, dropText, issuePass, type RunRequest } from '../src/gates'
@@ -139,17 +134,7 @@ import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
 import { glossaryView, type InboxAction, tabCounts, ticketsView } from '../src/pane-view'
 import { namespaced, recognise } from '../src/phases'
-import {
-  hasSkill,
-  INSTALL_ARGV,
-  INSTALL_TIMEOUT_MS,
-  installOutcome,
-  LIST_ARGV,
-  pluginLine,
-  pluginStatus,
-  PROBE_TIMEOUT_MS,
-  UPDATE_ARGV,
-} from '../src/plugin'
+import { hasSkill, INSTALL_ARGV, pluginLine, UPDATE_ARGV } from '../src/plugin'
 import { type BandActions, type FeatureChoice, renderBand, spinFrameOf } from '../src/rail'
 import { linkTerms, Reply, termKeysIn } from '../src/reply'
 import { planScratchImport, type ScratchFile, scratchSummary } from '../src/scratch'
@@ -173,7 +158,6 @@ import type {
   FeatureRecord,
   GitSnapshot,
   GlossaryDoc,
-  InstallState,
   IsoTime,
   IssueRef,
   PaneTab,
@@ -185,6 +169,22 @@ import type {
   SkillName,
   TermDraft,
 } from '../types'
+import {
+  applyWrites,
+  detectPlugin,
+  exists,
+  glossaryTerms,
+  installOf,
+  installPlugin,
+  loadRepo,
+  pluginOf,
+  readSetupFiles,
+  readText,
+  remoteUrl,
+  repoSnapshot,
+  writableContext,
+  writeRepoFile,
+} from './shell/repo'
 import {
   loadPrefs,
   resetPrefs,
@@ -217,17 +217,11 @@ const DIAGNOSE_REASON =
 const keptReason = (path: string, why: KeepWhy) =>
   `Craftory keeps ${path}: ${why === 'running' ? 'an agent is still working in it' : `its agent ${why === 'failed' ? 'failed' : why === 'over-budget' ? 'ran out of token budget' : 'was stopped'}, and the user decides what happens to its work`}. Do not remove it. Clean up the other worktrees and leave this one.`
 
-const repoState = atom({ plugin: 'craftory', key: 'repo' } as const, null)
-
 const featuresState = atom({ plugin: 'craftory', key: 'features' } as const, {})
 
 const draftsState = atom({ plugin: 'craftory', key: 'drafts' } as const, {})
 
 const activeState = atom({ plugin: 'craftory', key: 'active' } as const, null)
-
-const pluginState = atom({ plugin: 'craftory', key: 'plugin' } as const, { kind: 'checking' })
-
-const installState = atom({ plugin: 'craftory', key: 'install' } as const, { kind: 'idle' })
 
 const dismissedState = atom({ plugin: 'craftory', key: 'dismissed' } as const, [])
 
@@ -285,61 +279,6 @@ const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } a
 
 const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
 
-const readText = ($: EngineInterface, path: string): Promise<string | null> =>
-  $.fs.read(path).catch(() => null)
-
-const exists = ($: EngineInterface, path: string): Promise<boolean> =>
-  $.fs.exists(path).catch(() => false)
-
-/** `git remote get-url origin`; the desktop and mobile surfaces run no commands, so null there. */
-const remoteUrl = ($: EngineInterface): Promise<string | null> =>
-  $.process
-    .run(['git', 'remote', 'get-url', 'origin'], { timeoutMs: PROBE_TIMEOUT_MS })
-    .then(r => (r.exitCode === 0 ? r.stdout.trim() : null))
-    .catch(() => null)
-
-async function readSetupFiles($: EngineInterface): Promise<SetupFiles> {
-  const [tracker, triage, domain, claudeMd, agentsMd, gitignore] = await Promise.all([
-    readText($, AGENT_DOCS.tracker),
-    readText($, AGENT_DOCS.triage),
-    readText($, AGENT_DOCS.domain),
-    readText($, 'CLAUDE.md'),
-    readText($, 'AGENTS.md'),
-    readText($, GITIGNORE),
-  ])
-  return { tracker, triage, domain, claudeMd, agentsMd, gitignore }
-}
-
-async function loadRepo($: EngineInterface) {
-  const [configText, files] = await Promise.all([readText($, CONFIG_PATH), readSetupFiles($)])
-  const config = parseConfig(configText)
-  const setup = readSetup(files)
-  const glossaryPath = setup.state === 'ok' ? setup.value.docs.glossary : DEFAULT_DOCS.glossary
-  const [glossaryText, hasContextMd, hasScratch, url, at] = await Promise.all([
-    readText($, glossaryPath),
-    exists($, 'CONTEXT.md'),
-    exists($, '.scratch'),
-    remoteUrl($),
-    $.clock.now(),
-  ])
-  const file = steeringOf(files)
-  const steering = file === 'CLAUDE.md' ? files.claudeMd : files.agentsMd
-  const worktrees = configOf(config).worktrees.folder
-  const snapshot: RepoSnapshot = {
-    config,
-    setup,
-    glossary: parseGlossary(glossaryText),
-    steering: { file, hasBlock: steering !== null && /^## Agent skills\s*$/m.test(steering) },
-    remoteHost: remoteHostOf(url),
-    hasContextMd,
-    hasScratch,
-    hasGitignoreEntry:
-      files.gitignore !== null && ensureGitignore(files.gitignore, worktrees) === files.gitignore,
-    at,
-  }
-  await update($, repoState, () => snapshot)
-}
-
 async function loadFeatures($: EngineInterface) {
   const entries = await $.fs.list(FEATURES_DIR).catch(() => [])
   const records = await Promise.all(
@@ -359,70 +298,6 @@ async function loadFeatures($: EngineInterface) {
   )
 }
 
-async function detectPlugin($: EngineInterface) {
-  const commands = await $.command.list().catch(() => [])
-  const listJson = await $.process
-    .run(LIST_ARGV, { timeoutMs: PROBE_TIMEOUT_MS })
-    .then(r => (r.exitCode === 0 ? r.stdout : null))
-    .catch(() => null)
-  await update($, pluginState, () => pluginStatus({ commands, listJson }))
-}
-
-async function installPlugin($: EngineInterface, argv: readonly string[]) {
-  const setInstall = (state: InstallState) => update($, installState, () => state)
-  await setInstall({ kind: 'installing', startedAt: await $.clock.now() })
-  $.ui.invalidate('ui.render')
-  const result = await $.process
-    .run(argv, { timeoutMs: INSTALL_TIMEOUT_MS })
-    .catch(error => ({ exitCode: 1, stdout: '', stderr: String(error) }))
-  const outcome = installOutcome(result)
-  await setInstall(outcome.ok ? { kind: 'restart' } : { kind: 'failed', message: outcome.message })
-  await detectPlugin($)
-  $.ui.invalidate('ui.render')
-}
-
-async function writableContext($: EngineInterface, steering?: WritableContext['steering']) {
-  const repo = await read($, repoState)
-  const config = configOf(repo?.config)
-  return {
-    steering: repo?.steering.file ?? steering ?? null,
-    docs: repo?.setup.state === 'ok' ? repo.setup.value.docs : DEFAULT_DOCS,
-    issuesFolder: config.tracker.local.folder,
-  } satisfies WritableContext
-}
-
-type WriteResult = { ok: true } | { ok: false; reason: string }
-
-/**
- * The only `$.fs.write` call. Refuses a path outside the allowlist (a programming error the
- * engine test catches) and, for files shared with other writers, a file that changed since the
- * write was planned.
- */
-async function writeRepoFile(
-  $: EngineInterface,
-  op: FileWrite,
-  ctx: WritableContext,
-): Promise<WriteResult> {
-  if (!isWritable(op.path, ctx))
-    throw new Error(`craftory: ${op.path} is not a file Craftory writes`)
-  if (isShared(op.path, ctx) && (await readText($, op.path)) !== op.before) {
-    return { ok: false, reason: `${op.path} changed since it was planned` }
-  }
-  await $.fs.write(op.path, op.after)
-  return { ok: true }
-}
-
-async function applyWrites($: EngineInterface, writes: readonly FileWrite[], ctx: WritableContext) {
-  const wrote: string[] = []
-  for (const op of writes) {
-    if (op.after === op.before) continue
-    const result = await writeRepoFile($, op, ctx)
-    if (!result.ok) return { wrote, refused: result.reason }
-    wrote.push(op.path)
-  }
-  return { wrote, refused: null }
-}
-
 const WRITE_IT = 'Write'
 
 const NOT_NOW = 'Not now'
@@ -438,8 +313,8 @@ const signalsOf = (repo: RepoSnapshot | null, plugin: PluginStatus): SetupSignal
 /** The setup Settings shows: what is on disk, else the person's edits to the repo-signal pre-fill. */
 async function currentSetup($: EngineInterface): Promise<{ setup: AgentSetup; isDraft: boolean }> {
   const [repo, plugin, draft] = await Promise.all([
-    read($, repoState),
-    read($, pluginState),
+    repoSnapshot($),
+    pluginOf($),
     read($, setupDraftState),
   ])
   if (repo?.setup.state === 'ok') return { setup: repo.setup.value, isDraft: false }
@@ -451,7 +326,7 @@ async function settingsFacts(
   options: Readonly<Record<string, unknown>>,
 ): Promise<SettingsFacts & { isDraft: boolean }> {
   const [repo, prefs, current] = await Promise.all([
-    read($, repoState),
+    repoSnapshot($),
     resolvedPrefs($, options),
     currentSetup($),
   ])
@@ -516,7 +391,7 @@ async function settingsContext($: EngineInterface, setup: AgentSetup, issuesFold
 /** Applies one Settings change to its files: config.json, the agent docs, or `$.store`. */
 async function commitChange($: EngineInterface, change: SettingsChange) {
   const [repo, current, files, configText] = await Promise.all([
-    read($, repoState),
+    repoSnapshot($),
     currentSetup($),
     readSetupFiles($),
     readText($, CONFIG_PATH),
@@ -646,7 +521,7 @@ async function resetSettings($: EngineInterface) {
 }
 
 async function rerunSetup($: EngineInterface) {
-  if (!hasSkill(await read($, pluginState), 'setup-matt-pocock-skills'))
+  if (!hasSkill(await pluginOf($), 'setup-matt-pocock-skills'))
     return void $.ui.toast('Install mattpocock-skills first: the setup skill comes with it')
   await $.command.run({ command: namespaced('setup-matt-pocock-skills' as SkillName), args: '' })
 }
@@ -679,7 +554,7 @@ async function scratchPlan($: EngineInterface, folder: string) {
 /** Offered only for a Local tracker with a `.scratch/` folder; writes after the person confirms. */
 async function importScratch($: EngineInterface) {
   const { setup } = await currentSetup($)
-  const config = configOf((await read($, repoState))?.config)
+  const config = configOf((await repoSnapshot($))?.config)
   const folder = config.tracker.local.folder
   const plan = await scratchPlan($, folder)
   if (plan.items.length === 0) return say($, 'Nothing to import from .scratch/.')
@@ -730,7 +605,7 @@ async function changeGlossary(
     await update($, termErrorState, () => TERM_ERRORS[next])
     return $.ui.invalidate('ui.render')
   }
-  const config = configOf((await read($, repoState))?.config)
+  const config = configOf((await repoSnapshot($))?.config)
   const note = await commitWrites(
     $,
     [{ path, before: raw, after: serialiseGlossary(next) }],
@@ -819,7 +694,7 @@ const isoOf = (ms: number): IsoTime => new Date(ms).toISOString()
 
 async function currentFlow($: EngineInterface): Promise<Flow | null> {
   const [repo, features, drafts, active, tracker, running, build] = await Promise.all([
-    read($, repoState),
+    repoSnapshot($),
     read($, featuresState),
     read($, draftsState),
     read($, activeState),
@@ -889,7 +764,7 @@ const executeReads = ($: EngineInterface) => (reads: readonly Read[]) =>
   )
 
 async function refreshTracker($: EngineInterface) {
-  const repo = await read($, repoState)
+  const repo = await repoSnapshot($)
   if (repo === null) return
   const spec = TRACKERS[trackerKindOf(repo)]
   if (spec === undefined) return
@@ -911,7 +786,7 @@ async function touchesTracker(
   $: EngineInterface,
   tool: { name: string; command?: string; path?: string },
 ) {
-  const repo = await read($, repoState)
+  const repo = await repoSnapshot($)
   const kind = trackerKindOf(repo)
   if (repo === null) return false
   return TRACKERS[kind]?.touches(await readContext($, repo), tool) === true
@@ -967,7 +842,7 @@ async function startDraft($: EngineInterface, phase: PhaseId): Promise<FeatureKe
 async function bindDrafts($: EngineInterface) {
   const [tracker, repo, drafts] = await Promise.all([
     read($, trackerState),
-    read($, repoState),
+    repoSnapshot($),
     read($, draftsState),
   ])
   if (!tracker?.rich) return
@@ -1158,7 +1033,7 @@ async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
 
 async function refreshGit($: EngineInterface) {
   const [repo, features, tracker, ledger] = await Promise.all([
-    read($, repoState),
+    repoSnapshot($),
     read($, featuresState),
     read($, trackerState),
     read($, buildState),
@@ -1252,7 +1127,7 @@ function scheduleGit($: EngineInterface) {
 
 async function cleanupInputs($: EngineInterface) {
   const [repo, features, tracker, ledger, git] = await Promise.all([
-    read($, repoState),
+    repoSnapshot($),
     read($, featuresState),
     read($, trackerState),
     read($, buildState),
@@ -1343,7 +1218,7 @@ async function worktreesViewOf($: EngineInterface): Promise<WorktreesView | null
   const [git, features, repo, diffs] = await Promise.all([
     read($, gitState),
     read($, featuresState),
-    read($, repoState),
+    repoSnapshot($),
     read($, diffsState),
   ])
   if (git === null) return null
@@ -1392,7 +1267,7 @@ async function toggleDiff($: EngineInterface, path: string) {
 }
 
 async function currentBases($: EngineInterface, git: GitSnapshot) {
-  const [features, repo] = await Promise.all([read($, featuresState), read($, repoState)])
+  const [features, repo] = await Promise.all([read($, featuresState), repoSnapshot($)])
   return basesOf({
     entries: git.worktrees.map(w => ({
       path: w.path,
@@ -1470,7 +1345,7 @@ async function togglePause($: EngineInterface) {
 /** The Agents list for the Build card, from the ledger, the stored records and the last look at git. */
 async function agentsViewOf($: EngineInterface, flow: Flow | null): Promise<AgentsView | null> {
   const [repo, ledger, git, note] = await Promise.all([
-    read($, repoState),
+    repoSnapshot($),
     read($, buildState),
     read($, gitState),
     read($, steeringNoteState),
@@ -1498,7 +1373,7 @@ async function raiseBudget($: EngineInterface, ticket: IssueRef) {
   const record = await featureOfTicket($, ticket)
   const old = record?.agents[ticket]
   if (record === null || old === undefined) return
-  const step = configOf((await read($, repoState))?.config).worktrees.tokenBudget
+  const step = configOf((await repoSnapshot($))?.config).worktrees.tokenBudget
   const budget = old.budget + step
   await recordChange($, specKey(record.spec), { kind: 'agent', record: { ...old, budget } })
   await update($, buildState, ledger => ({
@@ -1614,13 +1489,8 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
   }
 }
 
-async function glossaryTerms($: EngineInterface) {
-  const repo = await read($, repoState)
-  return repo?.glossary.state === 'ok' ? termsOf(repo.glossary.value) : []
-}
-
 async function glossaryViewOf($: EngineInterface) {
-  const repo = await read($, repoState)
+  const repo = await repoSnapshot($)
   return glossaryView({
     doc: repo?.glossary,
     path: repo?.setup.state === 'ok' ? repo.setup.value.docs.glossary : DEFAULT_DOCS.glossary,
@@ -1632,7 +1502,7 @@ async function glossaryViewOf($: EngineInterface) {
 
 async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
   const [repo, tracker, features] = await Promise.all([
-    read($, repoState),
+    repoSnapshot($),
     read($, trackerState),
     read($, featuresState),
   ])
@@ -1652,7 +1522,7 @@ async function startFromIssue($: EngineInterface, action: Extract<InboxAction, {
   const tracker = await read($, trackerState)
   const issue = tracker?.rich ? tracker.issues.find(i => i.ref === action.ref) : undefined
   if (issue === undefined) return
-  const repo = await read($, repoState)
+  const repo = await repoSnapshot($)
   const config = configOf(repo?.config)
   const now = await $.clock.now()
   if (action.phase === 'align') {
@@ -1707,8 +1577,8 @@ async function settingsArgs(
 ): Promise<Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly'>> {
   const [facts, repo, plugin, section, draft, error, note] = await Promise.all([
     settingsFacts($, options),
-    read($, repoState),
-    read($, pluginState),
+    repoSnapshot($),
+    pluginOf($),
     read($, settingsSectionState),
     read($, termDraftState),
     read($, termErrorState),
@@ -1774,7 +1644,7 @@ async function scanDrift($: EngineInterface) {
     read($, gitState),
     activeRecord($),
     glossaryTerms($),
-    read($, repoState),
+    repoSnapshot($),
   ])
   const integration = record?.integrationBranch
   const base = git?.branch
@@ -1884,7 +1754,7 @@ export const register: Register = (on, options) => {
     await update($, glossaryAtStartState, () => atStart)
     await refreshTracker($)
     await refreshGit($)
-    if (configOf((await read($, repoState))?.config).worktrees.pruneStale) await pruneStale($)
+    if (configOf((await repoSnapshot($))?.config).worktrees.pruneStale) await pruneStale($)
     await settle($)
     return next(e)
   })
@@ -1892,7 +1762,7 @@ export const register: Register = (on, options) => {
   on('command.run', { command: COMMAND }, async $ => {
     if (!(await drawsAnything($))) {
       return {
-        text: markdownSummary(await currentFlow($), await read($, pluginState)),
+        text: markdownSummary(await currentFlow($), await pluginOf($)),
       }
     }
     await openPane($, 'flow')
@@ -1996,7 +1866,7 @@ export const register: Register = (on, options) => {
     if (e.agentId !== undefined) return next(e)
     const [flow, repo, record] = await Promise.all([
       currentFlow($),
-      read($, repoState),
+      repoSnapshot($),
       activeRecord($),
     ])
     if (flow === null || record === null) return next(e)
@@ -2071,7 +1941,7 @@ export const register: Register = (on, options) => {
       await undo()
       return result
     }
-    const repo = await read($, repoState)
+    const repo = await repoSnapshot($)
     const old = (await featureOfTicket($, plan.ticket))?.agents[plan.ticket]
     const budget = budgetFor(configOf(repo?.config), old)
     const at = await $.clock.now()
@@ -2130,14 +2000,10 @@ export const register: Register = (on, options) => {
     if (e.props.hasSurvey || !(await isSupported($))) return below
     const prefs = await resolvedPrefs($, options)
     if (!prefs.rail) return below
-    const [repo, plugin, flow] = await Promise.all([
-      read($, repoState),
-      read($, pluginState),
-      currentFlow($),
-    ])
+    const [repo, plugin, flow] = await Promise.all([repoSnapshot($), pluginOf($), currentFlow($)])
     const derived = derivedNotices({
       plugin,
-      install: await read($, installState),
+      install: await installOf($),
       repo,
       hasFeature: flow !== null,
       firstRunText: firstRunText({
@@ -2178,7 +2044,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     if (e.surface === 'terminal' || e.props.isSummary === true || !(await isSupported($)))
       return next(e)
-    const repo = await read($, repoState)
+    const repo = await repoSnapshot($)
     if (!configOf(repo?.config).automation.underlineTerms) return next(e)
     const linked = linkTerms(e.props.text, await glossaryTerms($))
     if (linked.found.length === 0) return next(e)
@@ -2216,7 +2082,7 @@ export const register: Register = (on, options) => {
       ascii: resolved.ascii,
       spinFrame: spinFrameOf(await $.clock.now()),
       tab: await read($, paneTabState),
-      pluginLine: pluginLine(await read($, pluginState)),
+      pluginLine: pluginLine(await pluginOf($)),
       flow,
       waiting: waitingForTriage(await read($, trackerState)),
       counts: tabCounts({
