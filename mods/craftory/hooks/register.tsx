@@ -25,16 +25,7 @@ import {
   retargetTracker,
   type SetupSignals,
 } from '../src/agents-md'
-import {
-  agentRows,
-  type AgentsView,
-  agentsView,
-  type KeepWhy,
-  samePath,
-  stoppedAnswer,
-  stoppedStep,
-  withoutIsolation,
-} from '../src/build'
+import { type KeepWhy, samePath, stoppedAnswer, stoppedStep, withoutIsolation } from '../src/build'
 import { CONFIG_PATH, configOf, configWrite, parseConfig, patchConfig } from '../src/config'
 import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
 import { type Flow, waitingForTriage } from '../src/evidence'
@@ -47,21 +38,7 @@ import {
   type WritableContext,
 } from '../src/files'
 import type { RunRequest } from '../src/gates'
-import {
-  basesOf,
-  diffLine,
-  parseShortstat,
-  parseWorktreeList,
-  prunable,
-  removalTargets,
-  shortstatArgv,
-  tipArgv,
-  worktreeAddArgv,
-  worktreeListArgv,
-  worktreeRemoveArgv,
-  type WorktreesView,
-  worktreesView,
-} from '../src/git'
+import { removalTargets, worktreeRemoveArgv } from '../src/git'
 import {
   addTerm,
   deleteTerm,
@@ -92,21 +69,29 @@ import { TRACKERS } from '../src/tracker'
 import type {
   AgentId,
   AgentSetup,
-  GitSnapshot,
   GlossaryDoc,
   PaneTab,
   PhaseId,
   PluginStatus,
   RepoSnapshot,
-  SeatPlan,
   SkillName,
   TermDraft,
 } from '../types'
 import {
+  agentsViewOf,
+  copyTerminal,
+  keptWorktrees,
+  pruneStale,
+  removeWorktree,
+  seatWorktree,
+  setSteeringNote,
+  toggleDiff,
+  worktreesViewOf,
+} from './shell/build'
+import {
   activeKey,
   activeRecord,
   allowGate,
-  cleanupInputs,
   countStep,
   currentFlow,
   dismissedOf,
@@ -124,7 +109,6 @@ import {
   hasAgentRuns,
   heldNotices,
   holdForGate,
-  ledgerOf,
   loadFeatures,
   noticeOf,
   pendingSeat,
@@ -149,7 +133,6 @@ import {
 import {
   applyWrites,
   detectPlugin,
-  exists,
   glossaryTerms,
   installOf,
   installPlugin,
@@ -175,10 +158,6 @@ const PANE = 'craftory'
 
 const COMMAND = 'craftory'
 
-const REMOVE_ANYWAY = 'Remove anyway'
-
-const KEEP_IT = 'Keep it'
-
 const RUN_ANYWAY = 'Run anyway'
 
 const DIAGNOSE_FIRST = 'Diagnose first'
@@ -192,10 +171,6 @@ const keptReason = (path: string, why: KeepWhy) =>
 const paneTabState = atom({ plugin: 'craftory', key: 'paneTab' } as const, 'flow')
 
 const setupNoteState = atom({ plugin: 'craftory', key: 'setupNote' } as const, null)
-
-const diffsState = atom({ plugin: 'craftory', key: 'diffs' } as const, {})
-
-const steeringNoteState = atom({ plugin: 'craftory', key: 'steeringNote' } as const, null)
 
 const openStepState = atom({ plugin: 'craftory', key: 'openStep' } as const, null)
 
@@ -625,183 +600,6 @@ async function requestRun($: EngineInterface, skill: SkillName, args: string) {
   await $.command.run({ command: namespaced(skill), args })
 }
 
-const SETUP_MS = 600_000
-
-type Seat = { ok: true; isFresh: boolean; path: string } | { ok: false; reason: string }
-
-/**
- * Makes the worktree an implementer will work in: `git worktree add -b <branch> <path> <base>`,
- * the files to copy, then the setup command in it. A worktree that is already there (a retry of
- * a kept one) is reused as it is.
- */
-async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
-  const root = await $.session.cwd()
-  const path = `${root}/${plan.path}`
-  const listed = await sh($, worktreeListArgv)
-  if (listed === null || listed.exitCode !== 0) return { ok: false, reason: 'git is not available' }
-  if (parseWorktreeList(listed.stdout).some(w => samePath(w.path, plan.path)))
-    return { ok: true, isFresh: false, path }
-  const hasBranch = (await sh($, tipArgv(plan.branch)))?.exitCode === 0
-  const added = await sh($, worktreeAddArgv(plan.branch, plan.path, plan.base, hasBranch))
-  if (added === null || added.exitCode !== 0)
-    return { ok: false, reason: added?.stderr.trim() || 'git worktree add failed' }
-  for (const file of plan.copy) {
-    if (await exists($, file)) await sh($, ['cp', '--', file, `${plan.path}/${file}`])
-  }
-  if (plan.setup !== null) {
-    const setup = await sh($, plan.setup, { cwd: path, timeoutMs: SETUP_MS })
-    if (setup === null || setup.exitCode !== 0)
-      $.ui.toast(`Setup failed in ${plan.path} · the agent starts anyway`)
-  }
-  return { ok: true, isFresh: true, path }
-}
-
-/** Worktrees a `git worktree remove` must not touch: running, failed, over-budget or stopped ones. */
-async function keptWorktrees($: EngineInterface): Promise<{ path: string; why: KeepWhy }[]> {
-  const { plan } = await cleanupInputs($)
-  return plan.keep.filter(k => k.why !== 'unmerged')
-}
-
-/** The Worktrees tab: every worktree git lists, with what Craftory knows about it. */
-async function worktreesViewOf($: EngineInterface): Promise<WorktreesView | null> {
-  const [git, features, repo, diffs] = await Promise.all([
-    gitOf($),
-    featuresOf($),
-    repoSnapshot($),
-    read($, diffsState),
-  ])
-  if (git === null) return null
-  const config = configOf(repo?.config)
-  const records = Object.values(features)
-  return worktreesView({
-    git,
-    records,
-    bases: basesOf({
-      entries: git.worktrees.map(w => ({
-        path: w.path,
-        branch: w.branch,
-        isMain: w.role === 'checkout',
-      })),
-      main: git.branch,
-      records,
-      runs: new Map(),
-      ticketBranch: config.worktrees.ticketBranch,
-    }),
-    kept: await keptWorktrees($),
-    diffs,
-    folder: config.worktrees.folder,
-    now: await $.clock.now(),
-  })
-}
-
-/** Diff toggles the shortstat line under a row. */
-async function toggleDiff($: EngineInterface, path: string) {
-  const view = await worktreesViewOf($)
-  const row = view?.rows.find(r => r.path === path)
-  if (row === undefined) return
-  if (row.diff !== null) {
-    await update($, diffsState, held =>
-      Object.fromEntries(Object.entries(held).filter(([p]) => p !== path)),
-    )
-    return $.ui.invalidate('ui.render')
-  }
-  const git = await gitOf($)
-  const base = git === null ? undefined : (await currentBases($, git))[path]
-  const result =
-    base === undefined || row.branch === null ? null : await sh($, shortstatArgv(base, row.branch))
-  const line =
-    result?.exitCode === 0 ? diffLine(parseShortstat(result.stdout)) : 'could not read the diff'
-  await update($, diffsState, held => ({ ...held, [path]: line }))
-  $.ui.invalidate('ui.render')
-}
-
-async function currentBases($: EngineInterface, git: GitSnapshot) {
-  const [features, repo] = await Promise.all([featuresOf($), repoSnapshot($)])
-  return basesOf({
-    entries: git.worktrees.map(w => ({
-      path: w.path,
-      branch: w.branch,
-      isMain: w.role === 'checkout',
-    })),
-    main: git.branch,
-    records: Object.values(features),
-    runs: new Map(),
-    ticketBranch: configOf(repo?.config).worktrees.ticketBranch,
-  })
-}
-
-/** A mod cannot open a terminal, so the row copies `cd <path>` for the user to paste. */
-async function copyTerminal($: EngineInterface, path: string, surface: RenderSurface) {
-  const copied = await $.ui.copy({ text: `cd ${path}`, surface }).catch(() => ({ isCopied: false }))
-  $.ui.toast(
-    copied.isCopied
-      ? `Copied cd ${path} · paste it in a terminal`
-      : `Could not copy · run cd ${path} in a terminal`,
-  )
-}
-
-/** Remove refuses a running or kept worktree unless the user confirms; only then is it forced. */
-async function removeWorktree($: EngineInterface, path: string) {
-  const row = (await worktreesViewOf($))?.rows.find(r => r.path === path)
-  if (row === undefined || !row.canRemove) return
-  if (row.isProtected) {
-    const answer = await $.ui
-      .ask(`Remove ${row.shown}? Its agent is running or its work is kept. Remove anyway?`, [
-        REMOVE_ANYWAY,
-        KEEP_IT,
-      ])
-      .catch(() => KEEP_IT)
-    if (answer !== REMOVE_ANYWAY) return
-  }
-  const result = await sh($, worktreeRemoveArgv(path, row.isProtected))
-  $.ui.toast(
-    result?.exitCode === 0
-      ? `Removed ${row.shown}`
-      : `Could not remove ${row.shown}: ${result?.stderr.trim() || 'git did not run'}`,
-  )
-  await refreshGit($)
-}
-
-/** Prune N stale: the stale worktrees Craftory does not keep, removed without force. */
-async function pruneStale($: EngineInterface) {
-  const git = await gitOf($)
-  if (git === null) return
-  const stale = prunable(
-    git,
-    (await keptWorktrees($)).map(k => k.path),
-  )
-  let removed = 0
-  for (const w of stale) if ((await sh($, worktreeRemoveArgv(w.path)))?.exitCode === 0) removed++
-  if (stale.length > 0) $.ui.toast(`Pruned ${removed} of ${stale.length} stale worktrees`)
-  await refreshGit($)
-}
-
-/** The Agents list for the Build card, from the ledger, the stored records and the last look at git. */
-async function agentsViewOf($: EngineInterface, flow: Flow | null): Promise<AgentsView | null> {
-  const [repo, ledger, git, note] = await Promise.all([
-    repoSnapshot($),
-    ledgerOf($),
-    gitOf($),
-    read($, steeringNoteState),
-  ])
-  const config = configOf(repo?.config)
-  if (flow === null || !config.automation.liveAgents || flow.tickets.length === 0) return null
-  const build = flow.steps.find(s => s.phase === 'build')?.state.kind
-  // Before any agent exists the list would only repeat the tickets.
-  if (build === 'todo' || build === 'next' || build === 'gated' || build === 'skipped') return null
-  const record = flow.feature.kind === 'specced' ? flow.feature.record : null
-  const rows = agentRows({
-    tickets: flow.tickets,
-    ledger,
-    records: record?.agents ?? {},
-    worktrees: git?.worktrees ?? [],
-    config,
-    integrationBranch: record?.integrationBranch ?? '',
-    now: await $.clock.now(),
-  })
-  return agentsView({ rows, config, isPaused: ledger.isPaused, note })
-}
-
 async function openPane($: EngineInterface, tab: PaneTab) {
   await update($, paneTabState, () => tab)
   if (tab === 'worktrees') await refreshGit($)
@@ -1149,13 +947,13 @@ export const register: Register = (on, options) => {
     const placed = await seatWorktree($, plan)
     if (!placed.ok) {
       const note = `Craftory could not make ${plan.path}: ${placed.reason}`
-      await update($, steeringNoteState, () => note)
+      await setSteeringNote($, note)
       await settle($)
       return {
         deny: `${note}. Do not start ${plan.ticket} until that is fixed; tell the user what git said.`,
       }
     }
-    await update($, steeringNoteState, () => null)
+    await setSteeringNote($, null)
     const undo = async () => {
       if (placed.isFresh) await sh($, worktreeRemoveArgv(plan.path, true))
     }

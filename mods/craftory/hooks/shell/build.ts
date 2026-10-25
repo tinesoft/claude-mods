@@ -1,0 +1,218 @@
+/**
+ * The worktrees Build works in: making a seat, the Worktrees tab and the Agents list. This
+ * module owns the `diffs` and `steeringNote` atoms; the agent ledger and the git snapshot are
+ * read through flow.ts.
+ */
+import { atom, type EngineInterface, read, type RenderSurface, update } from 'claude-code'
+import { agentRows, type AgentsView, agentsView, type KeepWhy, samePath } from '../../src/build'
+import { configOf } from '../../src/config'
+import type { Flow } from '../../src/evidence'
+import {
+  basesOf,
+  diffLine,
+  parseShortstat,
+  parseWorktreeList,
+  prunable,
+  shortstatArgv,
+  tipArgv,
+  worktreeAddArgv,
+  worktreeListArgv,
+  worktreeRemoveArgv,
+  type WorktreesView,
+  worktreesView,
+} from '../../src/git'
+import type { GitSnapshot, SeatPlan } from '../../types'
+import { cleanupInputs, featuresOf, gitOf, ledgerOf, refreshGit } from './flow'
+import { exists, repoSnapshot, sh } from './repo'
+
+const REMOVE_ANYWAY = 'Remove anyway'
+
+const KEEP_IT = 'Keep it'
+
+const diffsState = atom({ plugin: 'craftory', key: 'diffs' } as const, {})
+
+const steeringNoteState = atom({ plugin: 'craftory', key: 'steeringNote' } as const, null)
+
+const SETUP_MS = 600_000
+
+type Seat = { ok: true; isFresh: boolean; path: string } | { ok: false; reason: string }
+
+/**
+ * Makes the worktree an implementer will work in: `git worktree add -b <branch> <path> <base>`,
+ * the files to copy, then the setup command in it. A worktree that is already there (a retry of
+ * a kept one) is reused as it is.
+ */
+export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
+  const root = await $.session.cwd()
+  const path = `${root}/${plan.path}`
+  const listed = await sh($, worktreeListArgv)
+  if (listed === null || listed.exitCode !== 0) return { ok: false, reason: 'git is not available' }
+  if (parseWorktreeList(listed.stdout).some(w => samePath(w.path, plan.path)))
+    return { ok: true, isFresh: false, path }
+  const hasBranch = (await sh($, tipArgv(plan.branch)))?.exitCode === 0
+  const added = await sh($, worktreeAddArgv(plan.branch, plan.path, plan.base, hasBranch))
+  if (added === null || added.exitCode !== 0)
+    return { ok: false, reason: added?.stderr.trim() || 'git worktree add failed' }
+  for (const file of plan.copy) {
+    if (await exists($, file)) await sh($, ['cp', '--', file, `${plan.path}/${file}`])
+  }
+  if (plan.setup !== null) {
+    const setup = await sh($, plan.setup, { cwd: path, timeoutMs: SETUP_MS })
+    if (setup === null || setup.exitCode !== 0)
+      $.ui.toast(`Setup failed in ${plan.path} · the agent starts anyway`)
+  }
+  return { ok: true, isFresh: true, path }
+}
+
+/** Worktrees a `git worktree remove` must not touch: running, failed, over-budget or stopped ones. */
+export async function keptWorktrees($: EngineInterface): Promise<{ path: string; why: KeepWhy }[]> {
+  const { plan } = await cleanupInputs($)
+  return plan.keep.filter(k => k.why !== 'unmerged')
+}
+
+/** The Worktrees tab: every worktree git lists, with what Craftory knows about it. */
+export async function worktreesViewOf($: EngineInterface): Promise<WorktreesView | null> {
+  const [git, features, repo, diffs] = await Promise.all([
+    gitOf($),
+    featuresOf($),
+    repoSnapshot($),
+    read($, diffsState),
+  ])
+  if (git === null) return null
+  const config = configOf(repo?.config)
+  const records = Object.values(features)
+  return worktreesView({
+    git,
+    records,
+    bases: basesOf({
+      entries: git.worktrees.map(w => ({
+        path: w.path,
+        branch: w.branch,
+        isMain: w.role === 'checkout',
+      })),
+      main: git.branch,
+      records,
+      runs: new Map(),
+      ticketBranch: config.worktrees.ticketBranch,
+    }),
+    kept: await keptWorktrees($),
+    diffs,
+    folder: config.worktrees.folder,
+    now: await $.clock.now(),
+  })
+}
+
+/** Diff toggles the shortstat line under a row. */
+export async function toggleDiff($: EngineInterface, path: string) {
+  const view = await worktreesViewOf($)
+  const row = view?.rows.find(r => r.path === path)
+  if (row === undefined) return
+  if (row.diff !== null) {
+    await update($, diffsState, held =>
+      Object.fromEntries(Object.entries(held).filter(([p]) => p !== path)),
+    )
+    return $.ui.invalidate('ui.render')
+  }
+  const git = await gitOf($)
+  const base = git === null ? undefined : (await currentBases($, git))[path]
+  const result =
+    base === undefined || row.branch === null ? null : await sh($, shortstatArgv(base, row.branch))
+  const line =
+    result?.exitCode === 0 ? diffLine(parseShortstat(result.stdout)) : 'could not read the diff'
+  await update($, diffsState, held => ({ ...held, [path]: line }))
+  $.ui.invalidate('ui.render')
+}
+
+async function currentBases($: EngineInterface, git: GitSnapshot) {
+  const [features, repo] = await Promise.all([featuresOf($), repoSnapshot($)])
+  return basesOf({
+    entries: git.worktrees.map(w => ({
+      path: w.path,
+      branch: w.branch,
+      isMain: w.role === 'checkout',
+    })),
+    main: git.branch,
+    records: Object.values(features),
+    runs: new Map(),
+    ticketBranch: configOf(repo?.config).worktrees.ticketBranch,
+  })
+}
+
+/** A mod cannot open a terminal, so the row copies `cd <path>` for the user to paste. */
+export async function copyTerminal($: EngineInterface, path: string, surface: RenderSurface) {
+  const copied = await $.ui.copy({ text: `cd ${path}`, surface }).catch(() => ({ isCopied: false }))
+  $.ui.toast(
+    copied.isCopied
+      ? `Copied cd ${path} · paste it in a terminal`
+      : `Could not copy · run cd ${path} in a terminal`,
+  )
+}
+
+/** Remove refuses a running or kept worktree unless the user confirms; only then is it forced. */
+export async function removeWorktree($: EngineInterface, path: string) {
+  const row = (await worktreesViewOf($))?.rows.find(r => r.path === path)
+  if (row === undefined || !row.canRemove) return
+  if (row.isProtected) {
+    const answer = await $.ui
+      .ask(`Remove ${row.shown}? Its agent is running or its work is kept. Remove anyway?`, [
+        REMOVE_ANYWAY,
+        KEEP_IT,
+      ])
+      .catch(() => KEEP_IT)
+    if (answer !== REMOVE_ANYWAY) return
+  }
+  const result = await sh($, worktreeRemoveArgv(path, row.isProtected))
+  $.ui.toast(
+    result?.exitCode === 0
+      ? `Removed ${row.shown}`
+      : `Could not remove ${row.shown}: ${result?.stderr.trim() || 'git did not run'}`,
+  )
+  await refreshGit($)
+}
+
+/** Prune N stale: the stale worktrees Craftory does not keep, removed without force. */
+export async function pruneStale($: EngineInterface) {
+  const git = await gitOf($)
+  if (git === null) return
+  const stale = prunable(
+    git,
+    (await keptWorktrees($)).map(k => k.path),
+  )
+  let removed = 0
+  for (const w of stale) if ((await sh($, worktreeRemoveArgv(w.path)))?.exitCode === 0) removed++
+  if (stale.length > 0) $.ui.toast(`Pruned ${removed} of ${stale.length} stale worktrees`)
+  await refreshGit($)
+}
+
+/** The Agents list for the Build card, from the ledger, the stored records and the last look at git. */
+export function setSteeringNote($: EngineInterface, note: string | null) {
+  return update($, steeringNoteState, () => note)
+}
+
+export async function agentsViewOf(
+  $: EngineInterface,
+  flow: Flow | null,
+): Promise<AgentsView | null> {
+  const [repo, ledger, git, note] = await Promise.all([
+    repoSnapshot($),
+    ledgerOf($),
+    gitOf($),
+    read($, steeringNoteState),
+  ])
+  const config = configOf(repo?.config)
+  if (flow === null || !config.automation.liveAgents || flow.tickets.length === 0) return null
+  const build = flow.steps.find(s => s.phase === 'build')?.state.kind
+  // Before any agent exists the list would only repeat the tickets.
+  if (build === 'todo' || build === 'next' || build === 'gated' || build === 'skipped') return null
+  const record = flow.feature.kind === 'specced' ? flow.feature.record : null
+  const rows = agentRows({
+    tickets: flow.tickets,
+    ledger,
+    records: record?.agents ?? {},
+    worktrees: git?.worktrees ?? [],
+    config,
+    integrationBranch: record?.integrationBranch ?? '',
+    now: await $.clock.now(),
+  })
+  return agentsView({ rows, config, isPaused: ledger.isPaused, note })
+}
