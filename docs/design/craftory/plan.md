@@ -103,7 +103,16 @@ mods/craftory/
 ├── .claude-plugin/plugin.json      # name, userConfig (personal defaults), types
 ├── hooks/
 │   ├── hooks.json                  # modules: ["./register.tsx"]
-│   └── register.tsx                # every hook and every $ call
+│   ├── register.tsx                # registers every hook; hook-only helpers (notice buttons, band actions)
+│   └── shell/                      # every other $ call, grouped by the atoms each module owns
+│       ├── repo.ts                 # atoms repo, plugin, install; fs reads, the one fs.write, git/gh probes
+│       ├── flow.ts                 # atoms tracker, features, drafts, active, running, passes, notices,
+│       │                           #   signals, dismissed, build (agent ledger), git; settle, tracker and git reads
+│       ├── build.ts                # atoms diffs, steeringNote; seats, Worktrees tab, Agents list
+│       ├── settings.ts             # atoms setupDraft, askedFiles, setupNote, settingsSection, termDraft,
+│       │                           #   termError; Settings writes, .scratch/ import, glossary edits
+│       └── ui.ts                   # atoms appearance, prefs, paneTab, openStep, isPickingFeature,
+│                                   #   glossaryQuery, lastReplyTerms, glossaryAtStart; tone, openPane, pane views
 ├── src/                            # pure helpers: plain data in, plain data out, never $
 │   ├── phases.ts                   # registry: id, label, commands, helpers, default gate, evidence rule
 │   ├── evidence.ts                 # tracker + git + event facts → phase status per feature
@@ -127,6 +136,8 @@ mods/craftory/
 ├── README.md
 ├── package.json, project.json, tsconfig.json
 ```
+
+Each atom is declared in the one `hooks/shell` module that reads and updates it. The engine's state scan accepts `read` and `update` only on an atom declared in the same file, so a module never imports another module's atom: it calls that module's functions (`repoSnapshot`, `settle`, `openPane`). That also keeps one writer per atom. A `$`-taking helper that another file calls must be a `function` declaration, not an arrow const, for the same scan.
 
 ## Files Craftory reads and writes
 

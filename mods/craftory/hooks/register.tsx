@@ -1,5 +1,7 @@
 /**
- * Every hook and every `$` call of Craftory lives here; src/ is pure data in, data out.
+ * Every hook of Craftory is registered here; every `$` call lives in hooks/ (this file and
+ * hooks/shell/); src/ is pure data in, data out. A hook that needs state calls the module that
+ * owns it: an atom is read and updated only in the shell module that declares it.
  *
  * Ask in a hook, never hold: a hook has 10 s of its own time and the clock stops only during
  * `next` and `$` calls, so a hook cannot wait on a band press. Gates therefore drop the
