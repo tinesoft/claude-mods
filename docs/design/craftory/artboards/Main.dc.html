@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Craftory: phase rail above the prompt bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.sa { color-scheme: light; --page: #F5F6F8; --surface: #FFFFFF; --surface-2: #F9FAFB; --tile: #F5F6F8; --fill: #F0F1F4; --fill-2: #E8EAEE; --line: #DADCE1; --line-soft: #ECEDF0; --line-strong: #CFD2D8; --line-dashed: #B9BCC4; --ink: #17181C; --ink-2: #2A2D35; --text-2: #3B3F48; --muted: #5A5E68; --inverse-bg: #17181C; --on-ink: #FFFFFF; --switch-on: #17181C; --switch-off: #B9BCC4; --count-bg: rgba(23,24,28,0.07); --link-hover: #163A8F; --skill-fg: #1F4FC1; --skill-bg: #EDF2FD; --skill-bd: #C9D7F7; --agent-fg: #5B3A99; --agent-bg: #F3EEFB; --agent-bd: #D9CCF0; --mcp-fg: #9C1F62; --mcp-bg: #FCEEF5; --mcp-bd: #F0C8DC; --perm-fg: #0E6159; --perm-bg: #E8F5F2; --perm-bd: #BCE0D8; --hook-fg: #9A4A0B; --hook-bg: #FDF1E6; --hook-bd: #F0CFAE; --danger: #B42318; --danger-bd: #E8A39C; }
+@media (prefers-color-scheme: dark) { .sa:not([data-theme="light"]) { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; } }
+.sa[data-theme="dark"] { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; }
+.sa a { color: var(--skill-fg); } .sa a:hover { color: var(--link-hover); }
+.sa textarea::placeholder { color: var(--muted); }
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.term{text-decoration: underline dotted; text-underline-offset: 3px; text-decoration-color: var(--line-dashed)}
+button{font:inherit}
+</style>
+</helmet>
+<div class="sa" data-theme="{{theme}}" style="min-height: 1080px; box-sizing: border-box; background: var(--page); color: var(--ink); font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; justify-content: flex-end; padding: 40px 24px 32px">
+  <div style="width: 100%; max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="align-self: flex-end; max-width: 80%; background: var(--fill-2); border-radius: 14px; padding: 12px 16px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 14px; line-height: 1.5">/implement-spec #42</div>
+      <div style="font-size: 15px; line-height: 1.6; color: var(--ink)">
+        <p style="margin: 0 0 10px">Building spec <a href="#">#42 Export invoices as CSV</a> on branch <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; background: var(--fill-2); padding: 1px 6px; border-radius: 4px">feat/invoice-csv</span>. #43 is merged into the branch; #44 and #45 are running in parallel, each with its own subagent.</p>
+        <p style="margin: 0">#46 starts as soon as #44 is green. #47 is a <span class="term">human decision</span>, so I left it for you.</p>
+      </div>
+    </div>
+
+    <div style="position: relative; display: flex; flex-direction: column; gap: 8px">
+
+      <sc-if value="{{hasOpen}}" hint-placeholder-val="{{ true }}">
+        <div role="dialog" aria-label="Phase details" style="position: absolute; left: {{popLeft}}; bottom: calc(100% + 8px); width: {{popW}}; max-width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(23,24,28,0.12), 0 2px 6px rgba(23,24,28,0.06); padding: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 5">
+          <div style="display: flex; align-items: flex-start; gap: 10px">
+            <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0">
+              <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: {{cur.fg}}">{{cur.kicker}}</div>
+              <div style="font-size: 17px; font-weight: 600">{{cur.label}}</div>
+            </div>
+            <button onClick="{{close}}" aria-label="Close details" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+          </div>
+          <div style="font-size: 14px; line-height: 1.5; color: var(--ink-2)">{{cur.why}}</div>
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+              <span style="width: 64px; flex-shrink: 0; color: var(--muted)">Command</span>
+              <sc-if value="{{cur.hasCmds}}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{cur.cmds}}" as="c" hint-placeholder-count="1">
+                  <span style="height: 26px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 7px; background: var(--inverse-bg); color: var(--on-ink); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px">/{{c}}</span>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{cur.noCmds}}" hint-placeholder-val="{{ false }}">
+                <span style="color: var(--text-2)">None to type. {{cur.startedBy}}</span>
+              </sc-if>
+            </div>
+            <sc-if value="{{cur.hasHelpers}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+                <span style="width: 64px; flex-shrink: 0; color: var(--muted)">Helpers</span>
+                <sc-for list="{{cur.helpers}}" as="s" hint-placeholder-count="2">
+                  <span style="height: 26px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 7px; border: 1px solid var(--skill-bd); background: var(--skill-bg); color: var(--skill-fg); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M8 2L14 5 8 8 2 5zM2 8l6 3 6-3M2 11l6 3 6-3"></path></svg>{{s}}</span>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <div style="background: var(--tile); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 13px">
+            <span style="color: var(--muted)">{{cur.artifactLabel}}</span>
+            <span style="font-weight: 600; overflow-wrap: anywhere">{{cur.artifact}}</span>
+          </div>
+          <sc-if value="{{cur.hasAgents}}" hint-placeholder-val="{{ true }}">
+            <section aria-label="Agents in progress" style="border: 1px solid var(--line); border-radius: 10px; overflow: hidden">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line-soft); font-size: 12.5px">
+                <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--skill-fg); box-shadow: 0 0 0 3px var(--skill-bg)"></span>
+                <span style="font-weight: 600">Agents</span>
+                <span style="color: var(--text-2); flex-grow: 1">{{agentSummary}}</span>
+                <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--text-2)" aria-live="polite">{{totalTokens}} tokens</span>
+              </div>
+              <ul style="list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto">
+                <sc-for list="{{agents}}" as="a" hint-placeholder-count="5">
+                  <li style="display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 4px 12px; align-items: center; padding: 9px 12px; border-top: {{a.divider}}">
+                    <div style="display: flex; align-items: center; gap: 8px; min-width: 0">
+                      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; color: var(--muted); flex-shrink: 0">{{a.id}}</span>
+                      <span style="font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{a.title}}</span>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end"><span style="font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 5px; color: {{a.stFg}}; background: {{a.stBg}}; border: 1px solid {{a.stBd}}; white-space: nowrap">{{a.status}}</span></div>
+                    <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: {{a.stepFg}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{a.step}}</span>
+                    <div style="display: flex; flex-direction: column; gap: 3px; align-items: stretch">
+                      <div aria-hidden="true" style="height: 4px; border-radius: 2px; background: var(--fill-2); overflow: hidden"><div style="height: 4px; width: {{a.pct}}; background: {{a.barColor}}; border-radius: 2px"></div></div>
+                      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; color: var(--text-2); text-align: right; white-space: nowrap">{{a.tok}} · {{a.time}}</span>
+                    </div>
+                    <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; color: {{a.wtFg}}">
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4.5" cy="3.5" r="1.5"></circle><circle cx="4.5" cy="12.5" r="1.5"></circle><circle cx="11.5" cy="6" r="1.5"></circle><path d="M4.5 5v6M11.5 7.5c0 2.5-7 1.5-7 3.5"></path></svg>
+                      <span>{{a.wt}}</span>
+                      <sc-if value="{{a.hasBranch}}" hint-placeholder-val="{{ true }}"><span style="padding: 0 5px; border-radius: 4px; background: var(--fill); color: var(--text-2)">{{a.branch}}</span><span style="color: var(--perm-fg)">+{{a.add}}</span><span style="color: var(--danger)">−{{a.del}}</span><span style="color: var(--muted)">{{a.commits}}</span></sc-if>
+                    </div>
+                  </li>
+                </sc-for>
+              </ul>
+              <div style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line-soft); flex-wrap: wrap">
+                <span style="font-size: 12px; color: var(--muted); flex-grow: 1">One git worktree per agent · 80k token budget each</span>
+                <button style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer">Pause all</button>
+                <a href="Panel.dc.html" style="height: 30px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 12.5px">Open panel</a>
+              </div>
+            </section>
+          </sc-if>
+          <sc-if value="{{cur.hasGate}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: var(--hook-fg); background: var(--hook-bg); border: 1px solid var(--hook-bd); border-radius: 8px; padding: 8px 10px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg><span>{{cur.gate}}</span></div>
+          </sc-if>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <sc-if value="{{cur.hasPrimary}}" hint-placeholder-val="{{ true }}">
+              <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: var(--inverse-bg); color: var(--on-ink); font-size: 13.5px; font-weight: 500; cursor: pointer; font-family: 'IBM Plex Mono', ui-monospace, monospace">{{cur.primary}}</button>
+            </sc-if>
+            <sc-for list="{{cur.secondary}}" as="b" hint-placeholder-count="1">
+              <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13.5px; font-weight: 500; cursor: pointer">{{b}}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <nav aria-label="SDLC phases" style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 6px 4px 4px">
+        <button onClick="{{pickTriage}}" aria-pressed="{{triPressed}}" aria-label="Triage inbox, 3 new items. An entry point outside the 7 phases" style="height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 8px; border: 1px dashed {{triBd}}; background: {{triBg}}; color: var(--ink-2); font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: {{triRing}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9.5l1.8-6h8.4l1.8 6v3.5H2zM2 9.5h3.5l1 1.5h3l1-1.5H14"></path></svg>Triage<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 600; padding: 0 5px; border-radius: 5px; background: var(--hook-bg); color: var(--hook-fg); border: 1px solid var(--hook-bd)">3</span></button>
+        <span aria-hidden="true" style="width: 1px; height: 24px; background: var(--line); margin: 0 4px"></span>
+        <a href="Panel.dc.html" style="height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 8px; background: var(--fill); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; max-width: 210px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h7"></path></svg><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Export invoices as CSV</span></a>
+        <ol style="list-style: none; margin: 0; padding: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; flex-grow: 1">
+          <sc-for list="{{phases}}" as="p" hint-placeholder-count="7">
+            <li style="display: flex; align-items: center; gap: 2px">
+              <span aria-hidden="true" style="display: {{p.conn}}; width: 10px; height: 2px; border-radius: 1px; background: {{p.connColor}}"></span>
+              <button onClick="{{p.pick}}" aria-pressed="{{p.pressed}}" aria-current="{{p.current}}" aria-label="{{p.aria}}" style="height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px 0 5px; border-radius: 8px; border: 1px solid {{p.btnBd}}; background: {{p.btnBg}}; color: {{p.labelColor}}; font-size: 13px; font-weight: {{p.weight}}; cursor: pointer; box-shadow: {{p.ring}}">
+                <span style="width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid {{p.dotBd}}; background: {{p.dotBg}}; color: {{p.dotFg}}; display: inline-flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; box-sizing: border-box">
+                  <sc-if value="{{p.isDone}}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></sc-if>
+                  <sc-if value="{{p.notDone}}" hint-placeholder-val="{{ true }}"><span>{{p.n}}</span></sc-if>
+                </span>
+                <span style="white-space: nowrap">{{p.label}}</span>
+                <sc-if value="{{p.hasMeta}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: var(--count-bg); color: var(--text-2)">{{p.meta}}</span></sc-if>
+              </button>
+            </li>
+          </sc-for>
+        </ol>
+      </nav>
+
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 1px 2px rgba(23,24,28,0.05); padding: 14px 14px 10px 16px; display: flex; flex-direction: column; gap: 10px">
+        <label for="prompt" class="sr">Message Claude</label>
+        <textarea id="prompt" rows="2" placeholder="Reply to Claude, or /implement #43…" style="border: 0; outline: none; resize: none; font: inherit; font-size: 15px; line-height: 1.5; color: var(--ink); background: transparent"></textarea>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+          <button aria-label="Add attachment" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg></button>
+          <span style="font-size: 12.5px; color: var(--muted); flex-grow: 1">Craftory · Markdown issues in docs/issues/ · 12 glossary terms · <a href="Settings.dc.html" style="color: var(--text-2)">Customize</a></span>
+          <button style="height: 36px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: var(--text-2); font-size: 13px; cursor: pointer">Opus 5.5</button>
+          <button aria-label="Send message" style="width: 36px; height: 36px; border-radius: 10px; border: 0; background: var(--inverse-bg); color: var(--on-ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":1080}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    var self = this;
+    this.timer = setInterval(function () {
+      var t = (self.state && self.state.tick) || 0;
+      if (t >= 150) { clearInterval(self.timer); return; }
+      self.setState({ tick: t + 1 });
+    }, 1200);
+  }
+  componentWillUnmount() { if (this.timer) clearInterval(this.timer); }
+  renderVals() {
+    var self = this;
+    var open = (this.state && this.state.open !== undefined) ? this.state.open : 'build';
+    var P = [
+      { id: 'align', label: 'Align', status: 'done', meta: '+3 terms', cmds: ['grill-with-docs'], helpers: ['grilling', 'domain-modeling', 'prototype', 'research'], why: 'Interviewed you about the plan until every branch was resolved, answered the open design questions with a prototype and research, and wrote the answers back to the docs.', artifactLabel: 'Updated', artifact: 'GLOSSARY.md (+3 terms) · docs/adr/0007-csv-streaming.md', secondary: ['Re-grill'] },
+      { id: 'spec', label: 'Spec', status: 'done', meta: '#42', cmds: ['to-spec'], why: 'Turned the conversation into a spec with user stories, decisions and an out-of-scope list, then published it.', artifactLabel: 'Written', artifact: 'docs/issues/42-export-invoices-as-csv.md', secondary: ['Open #42'] },
+      { id: 'tickets', label: 'Tickets', status: 'done', meta: '5', cmds: ['to-tickets'], why: 'Split the spec into thin vertical slices, each one shippable on its own, with blocking edges between them.', artifactLabel: 'Created', artifact: '#43 to #47 · 1 ready, 4 blocked', secondary: ['Open in panel'] },
+      { id: 'build', label: 'Build', status: 'running', meta: '1/5', agents: true, cmds: ['implement-spec'], helpers: ['tdd', 'diagnosing-bugs', 'codebase-design'], why: 'Running every unblocked ticket in parallel on one integration branch, one subagent per ticket, each doing red-green-refactor.', artifactLabel: 'Integration branch', artifact: 'feat/invoice-csv in .worktrees/_spec-42 · 1 merged, 2 running, 1 queued, 1 for you', secondary: ['Answer #47'], gate: 'Gate on: if a test is still red when Review starts, Craftory asks you to confirm first.' },
+      { id: 'review', label: 'Review', status: 'todo', helpers: ['code-review'], startedBy: 'Runs as the end of Build.', why: 'The close-out of implement-spec on the integration branch: the diff is checked against your coding standards and spec #42 by parallel subagents, and one agent fixes what they find. /code-review re-runs it on its own.', artifactLabel: 'Will check against', artifact: 'Spec #42 · AGENTS.md', secondary: [] },
+      { id: 'ship', label: 'Ship', status: 'todo', helpers: ['pr'], startedBy: 'The agent uses pr on the draft PR that Build opened.', why: 'Rewrites the draft PR body: the smallest visual of the change, before/after evidence and a merge-danger call. Then marks it ready for review. Merging stays with you.', artifactLabel: 'Will mark ready', artifact: 'Draft PR feat/invoice-csv → main, closing #43 to #47', secondary: [] },
+      { id: 'retro', label: 'Retro', status: 'todo', cmds: ['retro'], why: 'Suggests ranked improvements to your skills, glossary and AGENTS.md from what went well or badly this session.', artifactLabel: 'Runs', artifact: 'When the PR is opened, or when you end the session', secondary: [] }
+    ];
+    var S = {
+      done: { label: 'Done', fg: 'var(--perm-fg)', dotBg: 'var(--perm-bg)', dotBd: 'var(--perm-bd)', dotFg: 'var(--perm-fg)', labelColor: 'var(--ink)', weight: '500' },
+      running: { label: 'Running', fg: 'var(--skill-fg)', dotBg: 'var(--skill-fg)', dotBd: 'var(--skill-fg)', dotFg: 'var(--on-ink)', labelColor: 'var(--skill-fg)', weight: '600' },
+      next: { label: 'Up next', fg: 'var(--skill-fg)', dotBg: 'var(--skill-bg)', dotBd: 'var(--skill-fg)', dotFg: 'var(--skill-fg)', labelColor: 'var(--skill-fg)', weight: '600' },
+      todo: { label: 'Not started', fg: 'var(--muted)', dotBg: 'var(--surface)', dotBd: 'var(--line-strong)', dotFg: 'var(--muted)', labelColor: 'var(--text-2)', weight: '500' }
+    };
+    function mk(p, kicker, fg) {
+      var cmds = p.cmds || [], helpers = p.helpers || [];
+      return { kicker: kicker, label: p.label, fg: fg, why: p.why, cmds: cmds, hasCmds: cmds.length > 0, noCmds: cmds.length === 0, startedBy: p.startedBy || '',
+        helpers: helpers, hasHelpers: helpers.length > 0, artifactLabel: p.artifactLabel, artifact: p.artifact,
+        hasPrimary: !!p.primary, primary: p.primary || '', secondary: p.secondary || [], hasGate: !!p.gate, gate: p.gate || '', hasAgents: !!p.agents };
+    }
+    var TRI = { label: 'Triage inbox', cmds: ['triage'], why: 'Intake for work that comes from outside the flow: bug reports, requests and outside PRs. Triage labels each one. Ready-for-agent items then enter the flow at Align; a small bug can go straight to Build.', artifactLabel: 'Waiting', artifact: '3 new: 2 bug reports, 1 outside PR · all labelled needs-triage', primary: '/triage', secondary: [] };
+    var triOpen = open === 'triage';
+    var cur = triOpen ? mk(TRI, 'Entry point · outside the 7 phases', 'var(--hook-fg)') : null, idx = 0;
+    var phases = P.map(function (p, i) {
+      var s = S[p.status];
+      var sel = p.id === open;
+      if (sel) {
+        idx = i;
+        cur = mk(p, 'Phase ' + (i + 1) + ' of 7 · ' + s.label, s.fg);
+      }
+      return { n: i + 1, label: p.label, meta: p.meta || '', hasMeta: !!p.meta,
+        isDone: p.status === 'done', notDone: p.status !== 'done',
+        conn: i === 0 ? 'none' : 'block', connColor: p.status === 'todo' ? 'var(--line)' : 'var(--perm-bd)',
+        dotBg: s.dotBg, dotBd: s.dotBd, dotFg: s.dotFg, labelColor: s.labelColor, weight: s.weight,
+        btnBg: sel ? 'var(--fill)' : 'transparent', btnBd: sel ? 'var(--line-strong)' : 'transparent',
+        ring: sel ? '0 0 0 3px rgba(31,79,193,0.16)' : 'none',
+        pressed: sel ? 'true' : 'false', current: p.status === 'running' ? 'step' : 'false',
+        aria: 'Phase ' + (i + 1) + ', ' + p.label + ', ' + s.label,
+        pick: function () { self.setState({ open: sel ? null : p.id }); } };
+    });
+    var tick = (this.state && this.state.tick) || 0;
+    function fmtK(n) { return n === 0 ? '0' : (n / 1000).toFixed(1) + 'k'; }
+    function fmtT(s) { s = Math.round(s); return s === 0 ? '—' : Math.floor(s / 60) + 'm ' + (s % 60 < 10 ? '0' : '') + (s % 60) + 's'; }
+    var ST = {
+      done: { t: 'Merged', fg: 'var(--perm-fg)', bg: 'var(--perm-bg)', bd: 'var(--perm-bd)', bar: 'var(--perm-fg)' },
+      running: { t: 'Running', fg: 'var(--skill-fg)', bg: 'var(--skill-bg)', bd: 'var(--skill-bd)', bar: 'var(--skill-fg)' },
+      queued: { t: 'Queued', fg: 'var(--muted)', bg: 'var(--fill)', bd: 'var(--line)', bar: 'var(--line-strong)' },
+      human: { t: 'Needs you', fg: 'var(--hook-fg)', bg: 'var(--hook-bg)', bd: 'var(--hook-bd)', bar: 'var(--hook-fg)' },
+      near: { t: 'Near budget', fg: 'var(--hook-fg)', bg: 'var(--hook-bg)', bd: 'var(--hook-bd)', bar: 'var(--hook-fg)' },
+      over: { t: 'Over budget', fg: 'var(--danger)', bg: 'var(--surface)', bd: 'var(--danger-bd)', bar: 'var(--danger)' }
+    };
+    var BUDGET = 80000;
+    var c44 = ['green · test 3 of 5', 'refactor · test 3 of 5', 'red · test 4 of 5', 'green · test 4 of 5', 'refactor · test 4 of 5', 'red · test 5 of 5', 'green · test 5 of 5'];
+    var c45 = ['red · writing test 1 of 4', 'green · test 1 of 4', 'refactor · test 1 of 4', 'red · test 2 of 4', 'green · test 2 of 4'];
+    var A = [
+      { id: '#43', title: 'Export button streams one invoice run', s: 'done', tok: 48200, time: 372, step: 'refactor ✓ · 6 tests pass', wt: 'merged into feat/invoice-csv · worktree removed' },
+      { id: '#44', title: 'Ledger lines include tax columns', s: 'running', tok: 31400 + tick * 410, time: 241 + tick * 1.2, step: 'TDD ' + c44[Math.min(Math.floor(tick / 8), c44.length - 1)], wt: '.worktrees/44-ledger-tax', branch: 'craftory/44-ledger-tax', add: 142 + Math.floor(tick * 1.5), del: 18 + Math.floor(tick / 6), commits: (3 + Math.floor(tick / 16)) + ' commits' },
+      { id: '#45', title: 'Filter export by date range', s: 'running', tok: 12900 + tick * 260, time: 118 + tick * 1.2, step: 'TDD ' + c45[Math.min(Math.floor(tick / 10), c45.length - 1)], wt: '.worktrees/45-date-filter', branch: 'craftory/45-date-filter', add: 37 + tick, del: 2, commits: (1 + Math.floor(tick / 20)) + ' commit' + (tick >= 20 ? 's' : '') + ' · 1 behind' },
+      { id: '#46', title: 'Email the CSV when an export batch finishes', s: 'queued', tok: 0, time: 0, step: 'waits for #44', wt: 'worktree is created when #44 merges' },
+      { id: '#47', title: 'Pick the default column order', s: 'human', tok: 0, time: 0, step: 'ready-for-human · not for agents', wt: 'no worktree · decision only' }
+    ];
+    var total = 0;
+    var agents = A.map(function (a, i) {
+      var key = a.s, step = a.step;
+      if (a.s === 'running' && a.tok >= BUDGET) { key = 'over'; a.tok = BUDGET; step = 'stopped and reported · worktree kept · Raise budget or Diagnose'; }
+      else if (a.s === 'running' && a.tok >= BUDGET * 0.8) { key = 'near'; }
+      var s = ST[key]; total += a.tok;
+      return { id: a.id, title: a.title, status: s.t, stFg: s.fg, stBg: s.bg, stBd: s.bd, barColor: s.bar,
+        step: step, stepFg: key === 'over' ? 'var(--danger)' : (a.s === 'running' ? 'var(--ink-2)' : 'var(--muted)'),
+        wt: a.wt, hasBranch: !!a.branch, branch: a.branch || '', add: a.add || 0, del: a.del || 0, commits: a.commits || '',
+        wtFg: a.branch ? 'var(--ink-2)' : 'var(--muted)',
+        tok: fmtK(a.tok), time: fmtT(a.time), pct: Math.min(100, Math.round(a.tok / 800)) + '%',
+        divider: i === 0 ? '0' : '1px solid var(--line-soft)' };
+    });
+    var lefts = ['0px', '60px', '140px', '200px', '300px', '340px', '380px'];
+    return { theme: this.props.theme ?? 'auto', phases: phases, hasOpen: !!cur, popLeft: triOpen ? '0px' : lefts[idx],
+      pickTriage: function () { self.setState({ open: triOpen ? null : 'triage' }); },
+      triPressed: triOpen ? 'true' : 'false', triBg: triOpen ? 'var(--fill)' : 'transparent', triBd: triOpen ? 'var(--hook-fg)' : 'var(--line-dashed)',
+      triRing: triOpen ? '0 0 0 3px rgba(154,74,11,0.16)' : 'none',
+      popW: cur && cur.hasAgents ? '540px' : '440px',
+      agents: agents, agentSummary: '2 running · 1 merged · 1 queued · 1 for you', totalTokens: fmtK(total),
+      cur: cur || mk({ label: '', why: '', artifactLabel: '', artifact: '' }, '', 'var(--ink)'),
+      close: function () { self.setState({ open: null }); } };
+  }
+}
+</script>
+</body>
+</html>

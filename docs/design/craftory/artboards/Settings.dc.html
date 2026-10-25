@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings: Craftory</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.sa { color-scheme: light; --page: #F5F6F8; --surface: #FFFFFF; --surface-2: #F9FAFB; --tile: #F5F6F8; --fill: #F0F1F4; --fill-2: #E8EAEE; --line: #DADCE1; --line-soft: #ECEDF0; --line-strong: #CFD2D8; --line-dashed: #B9BCC4; --ink: #17181C; --ink-2: #2A2D35; --text-2: #3B3F48; --muted: #5A5E68; --inverse-bg: #17181C; --on-ink: #FFFFFF; --switch-on: #17181C; --switch-off: #B9BCC4; --count-bg: rgba(23,24,28,0.07); --link-hover: #163A8F; --skill-fg: #1F4FC1; --skill-bg: #EDF2FD; --skill-bd: #C9D7F7; --agent-fg: #5B3A99; --agent-bg: #F3EEFB; --agent-bd: #D9CCF0; --mcp-fg: #9C1F62; --mcp-bg: #FCEEF5; --mcp-bd: #F0C8DC; --perm-fg: #0E6159; --perm-bg: #E8F5F2; --perm-bd: #BCE0D8; --hook-fg: #9A4A0B; --hook-bg: #FDF1E6; --hook-bd: #F0CFAE; --danger: #B42318; --danger-bd: #E8A39C; }
+@media (prefers-color-scheme: dark) { .sa:not([data-theme="light"]) { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; } }
+.sa[data-theme="dark"] { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; }
+.sa a { color: var(--skill-fg); } .sa a:hover { color: var(--link-hover); }
+.sa input::placeholder, .sa textarea::placeholder { color: var(--muted); }
+.mono{font-family: 'IBM Plex Mono', ui-monospace, monospace}
+.h2{margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500}
+.fld{height: 40px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; color: var(--ink); background: var(--surface); width: 100%; min-width: 0}
+.lbl{font-size: 13px; font-weight: 600; color: var(--ink)}
+button, select{font:inherit}
+</style>
+</helmet>
+<div class="sa" data-theme="{{theme}}" style="min-height: 3600px; box-sizing: border-box; background: var(--page); color: var(--ink); font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; padding: 40px 24px">
+  <div style="max-width: 1040px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start">
+
+    <nav aria-label="Settings" style="flex: 1 1 200px; max-width: 240px; display: flex; flex-direction: column; gap: 2px">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; color: var(--text-2); text-decoration: none; font-size: 14px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"></path></svg>Back to chat</a>
+      <span class="mono" style="min-height: 32px; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: var(--muted)">/craftory</span>
+      <a href="Panel.dc.html" style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: var(--text-2); text-decoration: none">1 · Flow</a>
+      <a href="Panel.dc.html" style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: var(--text-2); text-decoration: none">2 · Tickets</a>
+      <a href="Panel.dc.html" style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: var(--text-2); text-decoration: none">3 · Worktrees</a>
+      <a href="Panel.dc.html" style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: var(--text-2); text-decoration: none">4 · Glossary</a>
+      <span aria-current="page" style="min-height: 40px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; font-weight: 600; background: var(--fill-2); border-radius: 8px">5 · Settings</span>
+      <div style="display: flex; flex-direction: column; padding: 2px 0 6px 12px">
+        <a href="#tracker" style="min-height: 34px; display: flex; align-items: center; padding: 0 12px; font-size: 13.5px; color: var(--text-2); text-decoration: none">Issue tracker</a>
+        <a href="#docs" style="min-height: 34px; display: flex; align-items: center; padding: 0 12px; font-size: 13.5px; color: var(--text-2); text-decoration: none">Docs layout</a>
+        <a href="#glossary" style="min-height: 34px; display: flex; align-items: center; padding: 0 12px; font-size: 13.5px; color: var(--text-2); text-decoration: none">Glossary</a>
+        <a href="#entry" style="min-height: 34px; display: flex; align-items: center; padding: 0 12px; font-size: 13.5px; color: var(--text-2); text-decoration: none">Entry points</a>
+        <a href="#pipeline" style="min-height: 34px; display: flex; align-items: center; padding: 0 12px; font-size: 13.5px; color: var(--text-2); text-decoration: none">Pipeline</a>
+        <a href="#worktrees" style="min-height: 34px; display: flex; align-items: center; padding: 0 12px; font-size: 13.5px; color: var(--text-2); text-decoration: none">Worktrees</a>
+        <a href="#automation" style="min-height: 34px; display: flex; align-items: center; padding: 0 12px; font-size: 13.5px; color: var(--text-2); text-decoration: none">Automation</a>
+      </div>
+    </nav>
+
+    <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 28px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 600">Craftory</h1>
+        <p style="margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--text-2)">A guided flow from idea to merged PR, built on Matt Pocock’s skills. Shared values are written to <span class="mono">docs/agents/*.md</span>, <span class="mono">GLOSSARY.md</span> and <span class="mono">.craftory/config.json</span>, so every skill and every teammate reads the same ones. The rail switch is yours alone.</p>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--text-2); padding-top: 4px"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--perm-fg)" aria-hidden="true"></span><span><span class="mono">mattpocock-skills</span> 1.3.1 installed · tested with 1.3.x</span></div>
+      </div>
+
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 6px 8px 6px 18px; display: flex; align-items: center; gap: 12px">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; padding: 10px 0">
+          <span style="font-size: 14.5px; font-weight: 600">Show the phase rail above the prompt bar</span>
+          <span style="font-size: 13px; color: var(--text-2)">Off: phases still run from slash commands and show in the side panel.</span>
+        </div>
+        <button role="switch" aria-checked="{{rail.aria}}" aria-label="Show the phase rail" onClick="{{toggleRail}}" style="width: 56px; height: 44px; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><span style="width: 40px; height: 24px; border-radius: 12px; background: {{rail.track}}; display: flex; align-items: center; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; margin-left: {{rail.knob}}; box-shadow: 0 1px 2px rgba(0,0,0,0.25)"></span></span></button>
+      </div>
+
+      <section id="tracker" style="display: flex; flex-direction: column; gap: 10px">
+        <h2 class="h2">Issue tracker</h2>
+        <div role="radiogroup" aria-label="Issue tracker" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px">
+          <sc-for list="{{trackers}}" as="t" hint-placeholder-count="4">
+            <button role="radio" aria-checked="{{t.aria}}" onClick="{{t.pick}}" style="text-align: left; min-height: 88px; padding: 12px; border-radius: 12px; border: {{t.bd}}; background: var(--surface); color: var(--ink); cursor: pointer; display: flex; flex-direction: column; gap: 6px; box-shadow: {{t.ring}}">
+              <span style="display: flex; align-items: center; gap: 8px; width: 100%"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg><span style="font-size: 14px; font-weight: 600; flex-grow: 1">{{t.label}}</span><span style="width: 16px; height: 16px; border-radius: 50%; border: {{t.radioBd}}; box-sizing: border-box"></span></span>
+              <span style="font-size: 12.5px; line-height: 1.4; color: var(--text-2)">{{t.desc}}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+          <sc-if value="{{isLocal}}" hint-placeholder-val="{{ false }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+              <div style="display: flex; flex-direction: column; gap: 6px"><label for="lfolder" class="lbl">Issues folder</label><input id="lfolder" class="fld" value="docs/issues/"></div>
+              <div style="display: flex; flex-direction: column; gap: 6px"><label for="lname" class="lbl">File name</label><input id="lname" class="fld" value="{id}-{slug}.md"></div>
+              <div style="display: flex; flex-direction: column; gap: 6px"><label for="lstatus" class="lbl">Status is stored in</label><select id="lstatus" class="fld"><option>Front matter: status</option><option>Sub-folder per status</option></select></div>
+            </div>
+            <span style="font-size: 12.5px; color: var(--text-2)">Specs and tickets are plain Markdown, reviewed in your PRs like any other file.</span>
+          </sc-if>
+          <sc-if value="{{isGithub}}" hint-placeholder-val="{{ true }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+              <div style="display: flex; flex-direction: column; gap: 6px"><label for="ghrepo" class="lbl">Repository</label><input id="ghrepo" class="fld" value="tinesoft/claude-mods"></div>
+              <div style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Connection</span><span style="height: 40px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--perm-fg)"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--perm-fg)"></span>Signed in through the gh CLI</span></div>
+              <div style="display: flex; flex-direction: column; gap: 6px"><label for="ghspec" class="lbl">Label for specs</label><input id="ghspec" class="fld" value="spec"></div>
+              <div style="display: flex; flex-direction: column; gap: 6px"><label for="ghticket" class="lbl">Label for tickets</label><input id="ghticket" class="fld" value="ticket"></div>
+            </div>
+            <span style="font-size: 12.5px; color: var(--text-2)">Blocking edges become “Blocked by #n” lines in each ticket body, and native sub-issues under the spec.</span>
+          </sc-if>
+          <sc-if value="{{isGitlab}}" hint-placeholder-val="{{ false }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+              <div style="display: flex; flex-direction: column; gap: 6px"><label for="glhost" class="lbl">Instance</label><input id="glhost" class="fld" value="https://gitlab.com"></div>
+              <div style="display: flex; flex-direction: column; gap: 6px"><label for="glproj" class="lbl">Project path</label><input id="glproj" class="fld" placeholder="group/project"></div>
+            </div>
+            <span style="font-size: 12.5px; color: var(--text-2)">Uses the glab CLI. Not signed in yet: <a href="#">Connect</a>.</span>
+          </sc-if>
+          <sc-if value="{{isOther}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 6px"><label for="oth" class="lbl">Tell Claude how to create, read and update issues</label><textarea id="oth" rows="4" placeholder="We use Linear, team ENG. Create issues with the Linear connector; put the spec link in the description…" style="box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: inherit; font-size: 13.5px; line-height: 1.5; color: var(--ink); background: var(--surface); resize: vertical"></textarea></div>
+          </sc-if>
+
+          <div style="border-top: 1px solid var(--line-soft); padding-top: 14px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; flex-direction: column; gap: 2px"><span class="lbl">Triage labels</span><span style="font-size: 12.5px; color: var(--text-2)">Map each triage role to the label your tracker uses.</span></div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 14px">
+              <sc-for list="{{roles}}" as="r" hint-placeholder-count="5">
+                <div style="display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: 10px">
+                  <label for="{{r.id}}" style="font-size: 13px; color: var(--text-2)">{{r.role}}</label>
+                  <input id="{{r.id}}" class="fld" value="{{r.label}}">
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="docs" style="display: flex; flex-direction: column; gap: 10px">
+        <h2 class="h2">Docs layout</h2>
+        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+          <div style="display: flex; flex-direction: column; gap: 6px"><label for="dgloss" class="lbl">Glossary file</label><input id="dgloss" class="fld" value="GLOSSARY.md"></div>
+          <div style="display: flex; flex-direction: column; gap: 6px"><label for="dadr" class="lbl">ADR folder</label><input id="dadr" class="fld" value="docs/adr/"></div>
+          <div style="display: flex; flex-direction: column; gap: 6px"><label for="dres" class="lbl">Research notes</label><input id="dres" class="fld" value="docs/research/"></div>
+          <div style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Agent steering file</span>
+            <div role="group" aria-label="Agent steering file" style="display: flex; gap: 2px; background: var(--fill); padding: 3px; border-radius: 9px">
+              <sc-for list="{{steer}}" as="s" hint-placeholder-count="2">
+                <button onClick="{{s.pick}}" aria-pressed="{{s.aria}}" class="mono" style="flex: 1 1 0; height: 34px; border: 0; border-radius: 7px; background: {{s.bg}}; box-shadow: {{s.shadow}}; color: var(--ink); font-size: 12.5px; cursor: pointer">{{s.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="glossary" style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+          <h2 class="h2">Glossary</h2>
+          <span style="font-size: 13px; color: var(--text-2); flex-grow: 1">{{termCount}} terms in GLOSSARY.md · grill-with-docs and domain-modeling add to it as you talk</span>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
+          <div style="overflow-x: auto">
+            <table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: 13.5px">
+              <thead>
+                <tr style="text-align: left; color: var(--muted); font-size: 12px">
+                  <th scope="col" style="padding: 10px 12px 8px 18px; font-weight: 500; width: 22%">Term</th>
+                  <th scope="col" style="padding: 10px 12px 8px; font-weight: 500">Definition</th>
+                  <th scope="col" style="padding: 10px 12px 8px; font-weight: 500; width: 22%">Avoid saying</th>
+                  <th scope="col" style="padding: 10px 12px 8px; width: 96px"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{terms}}" as="g" hint-placeholder-count="5">
+                  <tr style="border-top: 1px solid var(--line-soft); vertical-align: top">
+                    <td style="padding: 10px 12px 10px 18px; font-weight: 600">{{g.term}}<sc-if value="{{g.isNew}}" hint-placeholder-val="{{ false }}"> <span style="font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 5px; color: var(--perm-fg); background: var(--perm-bg); border: 1px solid var(--perm-bd)">New</span></sc-if></td>
+                    <td style="padding: 10px 12px; color: var(--ink-2); line-height: 1.45">{{g.def}}</td>
+                    <td style="padding: 10px 12px; color: var(--text-2)">{{g.avoid}}</td>
+                    <td style="padding: 4px 8px; text-align: right; white-space: nowrap">
+                      <button aria-label="{{g.editLabel}}" style="width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text-2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 2.5l3 3L6 13H3v-3z"></path></svg></button>
+                      <button onClick="{{g.remove}}" aria-label="{{g.delLabel}}" style="width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text-2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 9h5.6l.7-9"></path></svg></button>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="border-top: 1px solid var(--line); background: var(--surface-2); padding: 12px 18px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr) auto; gap: 8px; align-items: end">
+            <div style="display: flex; flex-direction: column; gap: 4px"><label for="nterm" style="font-size: 12px; color: var(--muted)">New term</label><input id="nterm" class="fld" style="font-family: inherit" value="{{draft.term}}" onInput="{{setTerm}}" placeholder="Credit note"></div>
+            <div style="display: flex; flex-direction: column; gap: 4px"><label for="ndef" style="font-size: 12px; color: var(--muted)">Definition</label><input id="ndef" class="fld" style="font-family: inherit" value="{{draft.def}}" onInput="{{setDef}}" placeholder="What it means in this codebase"></div>
+            <div style="display: flex; flex-direction: column; gap: 4px"><label for="navoid" style="font-size: 12px; color: var(--muted)">Avoid saying</label><input id="navoid" class="fld" style="font-family: inherit" value="{{draft.avoid}}" onInput="{{setAvoid}}" placeholder="refund"></div>
+            <button onClick="{{addTerm}}" style="height: 40px; padding: 0 16px; border-radius: 8px; border: 0; background: var(--inverse-bg); color: var(--on-ink); font-size: 13.5px; font-weight: 500; cursor: pointer">Add term</button>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13px; cursor: pointer">Import from CONTEXT.md</button>
+          <button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13px; cursor: pointer">Open GLOSSARY.md</button>
+        </div>
+      </section>
+
+      <section id="entry" style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+          <h2 class="h2">Entry points</h2>
+          <span style="font-size: 13px; color: var(--text-2)">Ways into the flow that sit outside the 7 phases</span>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
+          <sc-for list="{{entries}}" as="e" hint-placeholder-count="2">
+            <li style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 8px 10px 18px; border-top: {{e.divider}}">
+              <span class="mono" style="flex-shrink: 0; height: 28px; display: inline-flex; align-items: center; padding: 0 9px; border-radius: 7px; background: var(--inverse-bg); color: var(--on-ink); font-size: 12px">{{e.cmd}}</span>
+              <div style="flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                <span style="font-size: 14.5px; font-weight: 600">{{e.label}}</span>
+                <span style="font-size: 12.5px; line-height: 1.45; color: var(--text-2)">{{e.desc}}</span>
+              </div>
+              <label for="{{e.selId}}" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">{{e.selLabel}}</label>
+              <select id="{{e.selId}}" class="fld" style="width: 230px; flex: 0 0 230px">
+                <sc-for list="{{e.options}}" as="o" hint-placeholder-count="2"><option>{{o}}</option></sc-for>
+              </select>
+              <button role="switch" aria-checked="{{e.aria}}" aria-label="{{e.label}}" onClick="{{e.toggle}}" style="flex-shrink: 0; width: 56px; height: 44px; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><span style="width: 40px; height: 24px; border-radius: 12px; background: {{e.track}}; display: flex; align-items: center; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; margin-left: {{e.knob}}; box-shadow: 0 1px 2px rgba(0,0,0,0.25)"></span></span></button>
+            </li>
+          </sc-for>
+        </ul>
+      </section>
+
+      <section id="pipeline" style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+          <h2 class="h2">Pipeline</h2>
+          <span style="font-size: 13px; color: var(--text-2)">{{onCount}} of 7 phases on · a gate asks you to confirm before the next phase runs while this one is not done</span>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
+          <sc-for list="{{pipeline}}" as="p" hint-placeholder-count="7">
+            <li style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 8px 10px 18px; border-top: {{p.divider}}; opacity: {{p.opacity}}">
+              <span class="mono" style="flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line-strong); color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; box-sizing: border-box">{{p.n}}</span>
+              <div style="flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                <span style="font-size: 14.5px; font-weight: 600">{{p.label}}</span>
+                <span style="font-size: 12.5px; line-height: 1.4; color: var(--text-2)">{{p.desc}}</span>
+              </div>
+              <sc-if value="{{p.hasChoice}}" hint-placeholder-val="{{ true }}">
+                <label for="{{p.selId}}" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">{{p.label}} command</label>
+                <select id="{{p.selId}}" class="fld" style="width: 190px; flex: 0 0 190px">
+                  <sc-for list="{{p.options}}" as="o" hint-placeholder-count="2"><option>{{o}}</option></sc-for>
+                </select>
+              </sc-if>
+              <sc-if value="{{p.isAuto}}" hint-placeholder-val="{{ false }}">
+                <span style="width: 190px; flex: 0 0 190px; box-sizing: border-box; min-height: 40px; display: inline-flex; flex-direction: column; justify-content: center; padding: 4px 10px; border-radius: 8px; background: var(--fill); font-size: 12px; line-height: 1.35; color: var(--text-2)"><span style="font-weight: 600; color: var(--ink-2)">No command</span>{{p.auto}}</span>
+              </sc-if>
+              <button onClick="{{p.toggleGate}}" aria-pressed="{{p.gateAria}}" aria-label="{{p.gateLabel}}" style="height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid {{p.gateBd}}; background: {{p.gateBg}}; color: {{p.gateFg}}; font-size: 12.5px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path d="{{p.lockPath}}"></path></svg>{{p.gateText}}</button>
+              <button role="switch" aria-checked="{{p.aria}}" aria-label="{{p.switchLabel}}" onClick="{{p.toggle}}" style="flex-shrink: 0; width: 56px; height: 44px; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><span style="width: 40px; height: 24px; border-radius: 12px; background: {{p.track}}; display: flex; align-items: center; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; margin-left: {{p.knob}}; box-shadow: 0 1px 2px rgba(0,0,0,0.25)"></span></span></button>
+            </li>
+          </sc-for>
+        </ul>
+        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span class="lbl">Helpers inside each phase</span>
+            <span style="font-size: 12.5px; line-height: 1.45; color: var(--text-2)">Model-invoked skills hold reusable discipline. You don’t type them: the agent reaches for them while a phase runs. Commands (with a /) start a phase.</span>
+          </div>
+          <sc-for list="{{helperGroups}}" as="hg" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px">
+              <span style="width: 64px; flex-shrink: 0; font-weight: 600; color: var(--ink-2)">{{hg.phase}}</span>
+              <sc-for list="{{hg.items}}" as="h" hint-placeholder-count="3"><span class="mono" style="height: 26px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 7px; border: 1px solid var(--skill-bd); background: var(--skill-bg); color: var(--skill-fg); font-size: 12px">{{h}}</span></sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section id="worktrees" style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+          <h2 class="h2">Worktrees</h2>
+          <span style="font-size: 13px; color: var(--text-2)">Build and Review agents each get their own git worktree, so parallel tickets never touch your checkout</span>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
+          <div style="padding: 16px 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+            <div style="display: flex; flex-direction: column; gap: 6px"><label for="wroot" class="lbl">Worktree folder</label><input id="wroot" class="fld" value=".worktrees/"><span style="font-size: 12px; color: var(--muted)">Added to .gitignore on setup</span></div>
+            <div style="display: flex; flex-direction: column; gap: 6px"><label for="wint" class="lbl">Integration branch</label><input id="wint" class="fld" value="feat/{spec-slug}"><span style="font-size: 12px; color: var(--muted)">One per spec; tickets merge into it</span></div>
+            <div style="display: flex; flex-direction: column; gap: 6px"><label for="wbr" class="lbl">Ticket branch</label><input id="wbr" class="fld" value="craftory/{ticket}-{slug}"><span style="font-size: 12px; color: var(--muted)">Example: craftory/44-ledger-tax</span></div>
+            <div style="display: flex; flex-direction: column; gap: 6px"><label for="wmax" class="lbl">Parallel worktrees, at most</label><select id="wmax" class="fld"><option>3</option><option>2</option><option>4</option><option>6</option><option>1 (one at a time)</option></select><span style="font-size: 12px; color: var(--muted)">More tickets wait in the queue</span></div>
+            <div style="display: flex; flex-direction: column; gap: 6px"><label for="wbudget" class="lbl">Token budget per agent</label><select id="wbudget" class="fld"><option>80k</option><option>40k</option><option>120k</option><option>200k</option></select><span style="font-size: 12px; color: var(--muted)">Amber at 80%. At 100% the agent stops and reports; its worktree is kept</span></div>
+            <div style="display: flex; flex-direction: column; gap: 6px"><label for="wsetup" class="lbl">Setup command</label><input id="wsetup" class="fld" value="pnpm install --frozen-lockfile"><span style="font-size: 12px; color: var(--muted)">Runs in each new worktree</span></div>
+            <div style="display: flex; flex-direction: column; gap: 6px"><label for="wcopy" class="lbl">Copy untracked files</label><input id="wcopy" class="fld" value=".env.local, .tool-versions"><span style="font-size: 12px; color: var(--muted)">Comma-separated, from your checkout</span></div>
+          </div>
+          <ul style="list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-soft)">
+            <sc-for list="{{wtOpts}}" as="w" hint-placeholder-count="4">
+              <li style="display: flex; align-items: center; gap: 14px; padding: 8px 8px 8px 18px; border-top: {{w.divider}}">
+                <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 6px 0">
+                  <span style="font-size: 14.5px; font-weight: 600">{{w.label}}</span>
+                  <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">{{w.desc}}</span>
+                </div>
+                <button role="switch" aria-checked="{{w.aria}}" aria-label="{{w.label}}" onClick="{{w.toggle}}" style="flex-shrink: 0; width: 56px; height: 44px; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><span style="width: 40px; height: 24px; border-radius: 12px; background: {{w.track}}; display: flex; align-items: center; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; margin-left: {{w.knob}}; box-shadow: 0 1px 2px rgba(0,0,0,0.25)"></span></span></button>
+              </li>
+            </sc-for>
+          </ul>
+        </div>
+      </section>
+
+      <section id="automation" style="display: flex; flex-direction: column; gap: 10px">
+        <h2 class="h2">Automation</h2>
+        <ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
+          <sc-for list="{{autos}}" as="a" hint-placeholder-count="4">
+            <li style="display: flex; align-items: center; gap: 14px; padding: 8px 8px 8px 18px; border-top: {{a.divider}}">
+              <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 6px 0">
+                <span style="font-size: 14.5px; font-weight: 600">{{a.label}}</span>
+                <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">{{a.desc}}</span>
+              </div>
+              <button role="switch" aria-checked="{{a.aria}}" aria-label="{{a.label}}" onClick="{{a.toggle}}" style="flex-shrink: 0; width: 56px; height: 44px; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><span style="width: 40px; height: 24px; border-radius: 12px; background: {{a.track}}; display: flex; align-items: center; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; margin-left: {{a.knob}}; box-shadow: 0 1px 2px rgba(0,0,0,0.25)"></span></span></button>
+            </li>
+          </sc-for>
+        </ul>
+      </section>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+        <button onClick="{{reset}}" style="height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer">Reset to defaults</button>
+        <button class="mono" style="height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13px; cursor: pointer">Re-run /setup-matt-pocock-skills</button>
+        <span style="font-size: 12.5px; color: var(--muted)">Changes save as you go</span>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":3600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var st = this.state || {};
+    function sw(on) { return { aria: on ? 'true' : 'false', track: on ? 'var(--switch-on)' : 'var(--switch-off)', knob: on ? '16px' : '0px' }; }
+    var tracker = st.tracker || 'local';
+    var TR = [
+      { id: 'local', label: 'Local Markdown', desc: 'Default. Specs and tickets as .md files in the repo, no account needed.', icon: 'M4 1.5h5.5l2.5 2.5v10.5h-8zM9.5 1.5V4H12M6 8h4M6 10.5h4' },
+      { id: 'github', label: 'GitHub Issues', desc: 'Labels, sub-issues and PR links.', icon: 'M5 3.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM14 3.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM5 12.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM3.5 5v6M12.5 5c0 3-4 3-7.5 5.5' },
+      { id: 'gitlab', label: 'GitLab Issues', desc: 'Same flow through the glab CLI.', icon: 'M8 14L2 8.5 3.5 2.5 5.5 7h5l2-4.5L14 8.5z' },
+      { id: 'other', label: 'Something else', desc: 'Describe your tracker in plain words.', icon: 'M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z' }
+    ];
+    var trackers = TR.map(function (t) {
+      var on = t.id === tracker;
+      return { label: t.label, desc: t.desc, icon: t.icon, aria: on ? 'true' : 'false',
+        bd: on ? '1.5px solid var(--skill-fg)' : '1px solid var(--line)', ring: on ? '0 0 0 3px rgba(31,79,193,0.14)' : 'none',
+        radioBd: on ? '5px solid var(--skill-fg)' : '1.5px solid var(--line-strong)',
+        pick: function () { self.setState({ tracker: t.id }); } };
+    });
+    var roles = [['needs-triage', 'Needs triage'], ['needs-info', 'Needs info'], ['ready-for-agent', 'Ready for agent'], ['ready-for-human', 'Ready for human'], ['wontfix', 'Won’t fix']].map(function (r) { return { id: 'role-' + r[0], role: r[1], label: r[0] }; });
+    var steerSel = st.steer || 'AGENTS.md';
+    var steer = ['AGENTS.md', 'CLAUDE.md'].map(function (s) { var on = s === steerSel; return { label: s, aria: on ? 'true' : 'false', bg: on ? 'var(--surface)' : 'transparent', shadow: on ? '0 1px 2px rgba(23,24,28,0.12)' : 'none', pick: function () { self.setState({ steer: s }); } }; });
+    var BASE = [
+      { term: 'Invoice run', def: 'One batch of invoices generated for a billing period.', avoid: 'billing job', isNew: true },
+      { term: 'Ledger line', def: 'A single priced row on an invoice, after tax.', avoid: 'line item, entry', isNew: true },
+      { term: 'Export batch', def: 'A requested CSV export and its delivery status.', avoid: 'download', isNew: true },
+      { term: 'Customer', def: 'The paying account, never an individual user.', avoid: 'client, user' },
+      { term: 'Billing period', def: 'Calendar month in the customer’s time zone.', avoid: '—' }
+    ];
+    var list = st.terms || BASE;
+    var terms = list.map(function (g, i) {
+      return { term: g.term, def: g.def, avoid: g.avoid, isNew: !!g.isNew, editLabel: 'Edit ' + g.term, delLabel: 'Delete ' + g.term,
+        remove: function () { self.setState({ terms: list.filter(function (_, j) { return j !== i; }) }); } };
+    });
+    var draft = st.draft || { term: '', def: '', avoid: '' };
+    function setD(k) { return function (e) { var n = Object.assign({}, draft); n[k] = e.target.value; self.setState({ draft: n }); }; }
+    var PL = [
+      { id: 'align', label: 'Align', desc: 'Interview until the plan has no open branches; answer design questions first.', options: ['/grill-with-docs', '/grill-me'], gate: true },
+      { id: 'spec', label: 'Spec', desc: 'Publish the plan as a spec on the tracker.', options: ['/to-spec'], gate: true },
+      { id: 'tickets', label: 'Tickets', desc: 'Thin vertical slices with blocking edges.', options: ['/to-tickets'], gate: false },
+      { id: 'build', label: 'Build', desc: 'Red-green-refactor per ticket.', options: ['/implement', '/implement-spec'], gate: true },
+      { id: 'review', label: 'Review', desc: 'Diff checked against standards and the spec.', auto: 'Runs as the end of Build', gate: true },
+      { id: 'ship', label: 'Ship', desc: 'Rewrite the draft PR body with evidence and a merge-danger call, then mark it ready.', auto: 'Agent uses pr on the draft PR', gate: false },
+      { id: 'retro', label: 'Retro', desc: 'Ranked improvements for skills, glossary and steering file.', options: ['/retro'], gate: false }
+    ];
+    var EN = [
+      { id: 'triage', cmd: '/triage', label: 'Triage intake', desc: 'Bug reports, requests and outside PRs land here, not in a phase. Triage labels each one; ready-for-agent items then enter the flow.', selLabel: 'Ready-for-agent items enter at', options: ['Enter at Align', 'Bugs enter at Build, the rest at Align', 'Enter at Tickets'] },
+      { id: 'wayfinder', cmd: '/wayfinder', label: 'Wayfinder for large work', desc: 'Opens a parent rail above the 7 phases. Each decision ticket on its map becomes its own spec with its own rail.', selLabel: 'Suggest wayfinder', options: ['Suggest when a grill runs long', 'Only when I ask'] }
+    ];
+    var en = st.en || { triage: true, wayfinder: true };
+    var entries = EN.map(function (e, i) { var on = !!en[e.id], s = sw(on); return { cmd: e.cmd, label: e.label, desc: e.desc, options: e.options, selId: 'en-' + e.id, selLabel: e.selLabel, divider: i === 0 ? '0' : '1px solid var(--line-soft)', aria: s.aria, track: s.track, knob: s.knob, toggle: function () { var n = Object.assign({}, en); n[e.id] = !on; self.setState({ en: n }); } }; });
+    var helperGroups = [
+      { phase: 'Align', items: ['grilling', 'domain-modeling', 'prototype', 'research'] },
+      { phase: 'Build', items: ['tdd', 'diagnosing-bugs', 'codebase-design'] },
+      { phase: 'Review', items: ['code-review'] },
+      { phase: 'Ship', items: ['pr'] }
+    ];
+    var phOn = st.phOn || { align: true, spec: true, tickets: true, build: true, review: true, ship: true, retro: true };
+    var gates = st.gates || { align: true, spec: true, build: true, review: true };
+    var pipeline = PL.map(function (p, i) {
+      var on = !!phOn[p.id], g = !!gates[p.id], s = sw(on);
+      return { n: i + 1, label: p.label, desc: p.desc, options: p.options || [], selId: 'sk-' + p.id,
+        hasChoice: !p.auto, isAuto: !!p.auto, auto: p.auto || '',
+        divider: i === 0 ? '0' : '1px solid var(--line-soft)', opacity: on ? '1' : '0.55',
+        aria: s.aria, track: s.track, knob: s.knob, switchLabel: 'Use the ' + p.label + ' phase',
+        toggle: function () { var n = Object.assign({}, phOn); n[p.id] = !on; self.setState({ phOn: n }); },
+        gateAria: g ? 'true' : 'false', gateLabel: 'Gate after ' + p.label, gateText: g ? 'Gate' : 'No gate',
+        gateBd: g ? 'var(--hook-bd)' : 'var(--line)', gateBg: g ? 'var(--hook-bg)' : 'var(--surface)', gateFg: g ? 'var(--hook-fg)' : 'var(--text-2)',
+        lockPath: g ? 'M5.5 7V5a2.5 2.5 0 0 1 5 0v2' : 'M5.5 7V5a2.5 2.5 0 0 1 4.6-1.3',
+        toggleGate: function () { var n = Object.assign({}, gates); n[p.id] = !g; self.setState({ gates: n }); } };
+    });
+    var onCount = PL.filter(function (p) { return phOn[p.id]; }).length;
+    var AU = [
+      { id: 'next', label: 'Suggest the next phase', desc: 'When a phase finishes, the rail highlights the next one with its command ready to run.', def: true },
+      { id: 'agents', label: 'Live agents in phase details', desc: 'For phases that run subagents (Build, Review): each agent’s ticket, TDD step, token use against its budget, and status, updating as they work.', def: true },
+      { id: 'terms', label: 'Underline glossary terms in replies', desc: 'Hover a term for its definition; click to re-explain it in plain words with wait-what.', def: true },
+      { id: 'retro', label: 'Run retro when the PR opens', desc: 'Otherwise retro waits until you end the session or run /retro.', def: false },
+      { id: 'handoff', label: 'Write a handoff before context runs out', desc: 'At 80% context, condense the session so a fresh one can pick up the ticket.', def: false },
+      { id: 'arch', label: 'Weekly architecture check', desc: 'Runs improve-codebase-architecture and files what it finds with the needs-triage label.', def: false }
+    ];
+    var au = st.au || { next: true, agents: true, terms: true };
+    var autos = AU.map(function (a, i) { var on = !!au[a.id], s = sw(on); return { label: a.label, desc: a.desc, divider: i === 0 ? '0' : '1px solid var(--line-soft)', aria: s.aria, track: s.track, knob: s.knob, toggle: function () { var n = Object.assign({}, au); n[a.id] = !on; self.setState({ au: n }); } }; });
+    var WO = [
+      { id: 'remove', label: 'Remove a worktree after its ticket merges', desc: 'Its branch is kept until the PR merges.' },
+      { id: 'rebase', label: 'Rebase running worktrees when the integration branch moves', desc: 'Keeps parallel tickets close; a conflict pauses that agent and asks you.' },
+      { id: 'keep', label: 'Keep worktrees of failed tickets', desc: 'So you or diagnosing-bugs can inspect the exact state.' },
+      { id: 'prune', label: 'Prune stale worktrees', desc: 'Offers to remove worktrees with no commits for 5 days, including prototype spikes.' }
+    ];
+    var wo = st.wo || { remove: true, rebase: true, keep: true, prune: false };
+    var wtOpts = WO.map(function (w, i) { var on = !!wo[w.id], s = sw(on); return { label: w.label, desc: w.desc, divider: i === 0 ? '0' : '1px solid var(--line-soft)', aria: s.aria, track: s.track, knob: s.knob, toggle: function () { var n = Object.assign({}, wo); n[w.id] = !on; self.setState({ wo: n }); } }; });
+    var railOn = st.rail !== undefined ? st.rail : true;
+    return { theme: this.props.theme ?? 'auto',
+      rail: sw(railOn), toggleRail: function () { self.setState({ rail: !railOn }); },
+      trackers: trackers, isLocal: tracker === 'local', isGithub: tracker === 'github', isGitlab: tracker === 'gitlab', isOther: tracker === 'other',
+      roles: roles, steer: steer, terms: terms, termCount: list.length + 7, draft: draft,
+      setTerm: setD('term'), setDef: setD('def'), setAvoid: setD('avoid'),
+      addTerm: function () { if (!draft.term) return; self.setState({ terms: list.concat([{ term: draft.term, def: draft.def, avoid: draft.avoid || '—', isNew: true }]), draft: { term: '', def: '', avoid: '' } }); },
+      pipeline: pipeline, onCount: onCount, helperGroups: helperGroups, entries: entries,
+      autos: autos, wtOpts: wtOpts,
+      reset: function () { self.setState({ wo: null, en: null, tracker: 'local', steer: 'AGENTS.md', terms: BASE, draft: { term: '', def: '', avoid: '' }, phOn: null, gates: null, au: null, rail: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Craftory: states and variants</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.sa { color-scheme: light; --page: #F5F6F8; --surface: #FFFFFF; --surface-2: #F9FAFB; --tile: #F5F6F8; --fill: #F0F1F4; --fill-2: #E8EAEE; --line: #DADCE1; --line-soft: #ECEDF0; --line-strong: #CFD2D8; --line-dashed: #B9BCC4; --ink: #17181C; --ink-2: #2A2D35; --text-2: #3B3F48; --muted: #5A5E68; --inverse-bg: #17181C; --on-ink: #FFFFFF; --switch-on: #17181C; --switch-off: #B9BCC4; --count-bg: rgba(23,24,28,0.07); --link-hover: #163A8F; --skill-fg: #1F4FC1; --skill-bg: #EDF2FD; --skill-bd: #C9D7F7; --agent-fg: #5B3A99; --agent-bg: #F3EEFB; --agent-bd: #D9CCF0; --mcp-fg: #9C1F62; --mcp-bg: #FCEEF5; --mcp-bd: #F0C8DC; --perm-fg: #0E6159; --perm-bg: #E8F5F2; --perm-bd: #BCE0D8; --hook-fg: #9A4A0B; --hook-bg: #FDF1E6; --hook-bd: #F0CFAE; --danger: #B42318; --danger-bd: #E8A39C; }
+@media (prefers-color-scheme: dark) { .sa:not([data-theme="light"]) { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; } }
+.sa[data-theme="dark"] { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; }
+.sa a { color: var(--skill-fg); } .sa a:hover { color: var(--link-hover); }
+.mono{font-family: 'IBM Plex Mono', ui-monospace, monospace}
+.h2{margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500}
+.card{background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px}
+button{font:inherit}
+</style>
+</helmet>
+<div class="sa" data-theme="{{theme}}" style="min-height: 1900px; box-sizing: border-box; background: var(--page); color: var(--ink); font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; padding: 48px 40px">
+  <div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px">
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 class="h2">Phase step states</h2>
+      <div class="card" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px 24px">
+        <sc-for list="{{states}}" as="s" hint-placeholder-count="7">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <span style="align-self: flex-start; height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px 0 5px; border-radius: 8px; border: 1px solid {{s.btnBd}}; background: {{s.btnBg}}; color: {{s.labelColor}}; font-size: 13px; font-weight: {{s.weight}}; text-decoration: {{s.strike}}">
+              <span style="width: 22px; height: 22px; border-radius: 50%; border: 1.5px {{s.dotStyle}} {{s.dotBd}}; background: {{s.dotBg}}; color: {{s.dotFg}}; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{s.icon}}"></path></svg></span>
+              <span>{{s.phase}}</span>
+              <sc-if value="{{s.hasMeta}}" hint-placeholder-val="{{ false }}"><span class="mono" style="font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: {{s.metaBg}}; color: {{s.metaFg}}">{{s.meta}}</span></sc-if>
+            </span>
+            <span style="font-size: 14px; font-weight: 600">{{s.name}}</span>
+            <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">{{s.desc}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 class="h2">Rail variants</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px">
+        <div class="card" style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 14px; font-weight: 600">Plugin missing</span>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border: 1px solid var(--hook-bd); background: var(--hook-bg); border-radius: 12px; padding: 6px 6px 6px 12px">
+            <span style="font-size: 13px; color: var(--hook-fg); flex-grow: 1">Craftory needs <span class="mono">mattpocock-skills</span> 1.3.x</span>
+            <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: var(--inverse-bg); color: var(--on-ink); font-size: 12.5px; cursor: pointer">Install</button>
+            <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer">Not now</button>
+          </div>
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">Checked when the mod loads. Install runs <span class="mono">claude plugin install mattpocock-skills@claude-plugins-official</span> after your click, then asks for a restart. An installed version outside the tested range shows the same notice with Update.</span>
+        </div>
+        <div class="card" style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 14px; font-weight: 600">First run in a repo</span>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border: 1px dashed var(--line-dashed); border-radius: 12px; padding: 6px 6px 6px 12px">
+            <span style="font-size: 13px; color: var(--text-2); flex-grow: 1">No <span class="mono">docs/agents/</span> yet. Found a GitHub remote and <span class="mono">CONTEXT.md</span>.</span>
+            <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: var(--inverse-bg); color: var(--on-ink); font-size: 12.5px; cursor: pointer">Set up Craftory</button>
+          </div>
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">Opens the Settings tab pre-filled from what was found. Saving writes the same files as /setup-matt-pocock-skills.</span>
+        </div>
+        <div class="card" style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 14px; font-weight: 600">Started from a triaged issue</span>
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px">
+            <span style="color: var(--muted); text-decoration: line-through">Align</span><span style="color: var(--muted); text-decoration: line-through">Spec</span><span style="color: var(--muted); text-decoration: line-through">Tickets</span>
+            <span style="height: 30px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--skill-fg); background: var(--skill-bg); color: var(--skill-fg); font-weight: 600">Build<span class="mono" style="font-size: 11.5px">#52</span></span>
+            <span style="color: var(--text-2)">Review</span><span style="color: var(--text-2)">Ship</span><span style="color: var(--text-2)">Retro</span>
+          </div>
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">With Entry points set to “Bugs enter at Build”, a ready-for-agent bug from the Inbox starts here with /implement #52. Earlier phases show as skipped.</span>
+        </div>
+        <div class="card" style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 14px; font-weight: 600">No feature in flight</span>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border: 1px dashed var(--line-dashed); border-radius: 12px; padding: 6px 6px 6px 12px">
+            <span style="font-size: 13px; color: var(--text-2); flex-grow: 1">Start a feature: talk it through first.</span>
+            <span class="mono" style="height: 34px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 8px; background: var(--inverse-bg); color: var(--on-ink); font-size: 12.5px">/grill-with-docs</span>
+          </div>
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">Shown once per repo after setup, then hidden until the next feature starts.</span>
+        </div>
+        <div class="card" style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 14px; font-weight: 600">Collapsed summary</span>
+          <div style="display: flex">
+            <span style="height: 34px; display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-size: 13px; font-weight: 500">Export invoices as CSV<span style="color: var(--muted)">·</span><span style="color: var(--skill-fg); font-weight: 600">Build</span><span class="mono" style="font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: var(--count-bg)">2/5</span></span>
+          </div>
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">For narrow windows or when the user prefers less chrome. Click expands to the full rail.</span>
+        </div>
+        <div class="card" style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 14px; font-weight: 600">Large work: wayfinder map</span>
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+            <span style="height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 8px; background: var(--fill); font-size: 13px; font-weight: 600">Billing v2</span>
+            <span class="mono" style="height: 26px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 7px; border: 1px solid var(--perm-bd); background: var(--perm-bg); color: var(--perm-fg); font-size: 12px">3 decided</span>
+            <span class="mono" style="height: 26px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 7px; border: 1px solid var(--hook-bd); background: var(--hook-bg); color: var(--hook-fg); font-size: 12px">2 open</span>
+            <span class="mono" style="height: 26px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 7px; border: 1px solid var(--line); color: var(--text-2); font-size: 12px">4 specs</span>
+          </div>
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">Started with /wayfinder, outside the 7 phases: a parent rail tracks decision tickets, and each child spec gets its own 7-step rail.</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 class="h2">Glossary term on hover (Desktop, VS Code, mobile)</h2>
+        <div class="card" style="display: flex; flex-direction: column; gap: 12px; position: relative; min-height: 220px">
+          <p style="margin: 0; font-size: 15px; line-height: 1.6">Every ticket uses <span style="text-decoration: underline dotted; text-underline-offset: 3px; text-decoration-color: var(--skill-fg); background: var(--skill-bg); border-radius: 3px; padding: 0 2px">Ledger line</span> for priced rows.</p>
+          <div role="tooltip" style="width: 300px; max-width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 28px rgba(23,24,28,0.12); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+            <span class="mono" style="font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted)">GLOSSARY.md</span>
+            <span style="font-size: 14.5px; font-weight: 600">Ledger line</span>
+            <span style="font-size: 13px; line-height: 1.45; color: var(--ink-2)">A single priced row on an invoice, after tax.</span>
+            <span style="font-size: 12.5px; color: var(--muted)">Avoid: line item, entry</span>
+            <div style="display: flex; gap: 6px; padding-top: 4px">
+              <button class="mono" style="height: 32px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12px; cursor: pointer">/wait-what</button>
+              <button style="height: 32px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer">Edit term</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 class="h2">Glossary on the terminal</h2>
+        <div class="card" style="display: flex; flex-direction: column; gap: 10px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.55">
+          <span style="color: var(--muted)">Glossary · 12 terms · /craftory</span>
+          <span style="font-weight: 600">Used in last reply</span>
+          <span>Ledger line  <span style="color: var(--text-2)">A single priced row on an invoice, after tax.</span></span>
+          <span>Export batch <span style="color: var(--text-2)">A requested CSV export and its delivery status.</span></span>
+          <span style="font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; color: var(--text-2); line-height: 1.45">The terminal cannot hover, so replies are never rewritten there. The Glossary tab lists the terms the last reply used, each with /wait-what.</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 class="h2">Toasts</h2>
+        <div class="card" style="display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{toasts}}" as="t" hint-placeholder-count="4">
+            <div role="status" style="display: flex; align-items: flex-start; gap: 10px; border: 1px solid {{t.bd}}; background: {{t.bg}}; border-radius: 10px; padding: 10px 10px 10px 12px">
+              <span style="color: {{t.fg}}; padding-top: 2px"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
+              <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13.5px; font-weight: 600">{{t.title}}</span><span style="font-size: 12.5px; line-height: 1.4; color: var(--text-2)">{{t.body}}</span></div>
+              <span style="flex-shrink: 0; height: 30px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); font-size: 12.5px">{{t.action}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var CHECK = 'M3.5 8.5l3 3 6-7', DOT = 'M8 7.2v1.6', PLAY = 'M6 4.5l5 3.5-5 3.5z', LOCK = 'M4.5 8h7v4.5h-7zM6 8V6.5a2 2 0 0 1 4 0V8', Q = 'M6 6a2 2 0 1 1 2.8 1.8c-.5.3-.8.7-.8 1.2M8 11.5v.2', X = 'M5 5l6 6M11 5l-6 6', SKIP = 'M4 8h8';
+    var S = [
+      { name: 'Done', phase: 'Spec', meta: '#42', icon: CHECK, dotBg: 'var(--perm-bg)', dotBd: 'var(--perm-bd)', dotFg: 'var(--perm-fg)', labelColor: 'var(--ink)', desc: 'Its artifact exists on the tracker or in the repo. Click to open it or re-run.' },
+      { name: 'Up next', phase: 'Build', meta: '0/5', icon: PLAY, dotBg: 'var(--skill-bg)', dotBd: 'var(--skill-fg)', dotFg: 'var(--skill-fg)', labelColor: 'var(--skill-fg)', weight: '600', desc: 'The suggested next step, with its slash command ready in the popover.' },
+      { name: 'Running', phase: 'Build', meta: '#43 · green', icon: DOT, dotBg: 'var(--skill-fg)', dotBd: 'var(--skill-fg)', dotFg: 'var(--on-ink)', labelColor: 'var(--ink)', weight: '600', btnBd: 'var(--skill-bd)', btnBg: 'var(--skill-bg)', desc: 'A skill is working. The badge shows the ticket and its last TDD step.' },
+      { name: 'Needs you', phase: 'Align', meta: 'Q6 of ~14', icon: Q, dotBg: 'var(--hook-bg)', dotBd: 'var(--hook-fg)', dotFg: 'var(--hook-fg)', labelColor: 'var(--hook-fg)', weight: '600', desc: 'Waiting on your answer during a grill, or on a ready-for-human ticket.' },
+      { name: 'Gated', phase: 'Review', icon: LOCK, dotBg: 'var(--fill)', dotBd: 'var(--line-strong)', dotFg: 'var(--text-2)', labelColor: 'var(--text-2)', desc: 'Its gate is on and the phase before is not done. It still runs, after you confirm; the popover says why.' },
+      { name: 'Failed', phase: 'Build', meta: '2 tests red', icon: X, dotBg: 'var(--surface)', dotBd: 'var(--danger)', dotFg: 'var(--danger)', labelColor: 'var(--danger)', weight: '600', metaBg: 'transparent', metaFg: 'var(--danger)', desc: 'Offers diagnosing-bugs from the popover instead of moving on.' },
+      { name: 'Over budget', phase: 'Build', meta: '#44 · 80k', icon: 'M8 2.5v6M8 11.5v.5M2.5 13.5h11', dotBg: 'var(--surface)', dotBd: 'var(--danger)', dotFg: 'var(--danger)', labelColor: 'var(--danger)', weight: '600', metaBg: 'transparent', metaFg: 'var(--danger)', desc: 'An agent used its token budget. It was told to stop and report; its worktree is kept. Raise the budget or diagnose.' },
+      { name: 'Skipped', phase: 'Retro', icon: SKIP, dotBg: 'var(--surface)', dotBd: 'var(--line-dashed)', dotFg: 'var(--muted)', labelColor: 'var(--muted)', dashed: true, strike: 'line-through', desc: 'Turned off in Settings, skipped for this feature only, or before the phase where a triaged issue entered the flow.' }
+    ];
+    var states = S.map(function (s) { return { name: s.name, phase: s.phase, meta: s.meta || '', hasMeta: !!s.meta, icon: s.icon, desc: s.desc,
+      dotBg: s.dotBg, dotBd: s.dotBd, dotFg: s.dotFg, dotStyle: s.dashed ? 'dashed' : 'solid', labelColor: s.labelColor, weight: s.weight || '500',
+      btnBd: s.btnBd || 'var(--line)', btnBg: s.btnBg || 'var(--surface)', strike: s.strike || 'none',
+      metaBg: s.metaBg || 'var(--count-bg)', metaFg: s.metaFg || 'var(--text-2)' }; });
+    var toasts = [
+      { title: 'Spec #42 published', body: '6 user stories · linked from GLOSSARY.md terms', action: 'Open', icon: 'M3.5 8.5l3 3 6-7', fg: 'var(--perm-fg)', bg: 'var(--surface)', bd: 'var(--line)' },
+      { title: 'Agent #44 hit its 80k budget', body: 'Stopped and reported. Its worktree is kept at .worktrees/44-ledger-tax.', action: 'Raise budget', icon: 'M8 2.5v6M8 11.5v.5M2.5 13.5h11', fg: 'var(--danger)', bg: 'var(--surface)', bd: 'var(--danger-bd)' },
+      { title: 'Review is gated', body: '#44 has 2 failing tests. Run code-review anyway, or diagnose first?', action: 'Run anyway', icon: 'M4.5 8h7v4.5h-7zM6 8V6.5a2 2 0 0 1 4 0V8', fg: 'var(--hook-fg)', bg: 'var(--hook-bg)', bd: 'var(--hook-bd)' },
+      { title: 'Rebase conflict in .worktrees/45-date-filter', body: 'The #45 agent is paused: src/export/query.ts conflicts with #44, which just merged.', action: 'Resolve', icon: 'M4.5 3.5v9M11.5 3.5v3c0 2.5-7 2-7 4.5', fg: 'var(--hook-fg)', bg: 'var(--surface)', bd: 'var(--hook-bd)' },
+      { title: 'Glossary drift', body: 'The diff says “line item” 4 times. GLOSSARY.md says Ledger line.', action: 'Rename', icon: 'M8 2.5l6 11H2z M8 7v3', fg: 'var(--danger)', bg: 'var(--surface)', bd: 'var(--danger-bd)' },
+      { title: 'Retro ready', body: '3 ranked suggestions for your skills and AGENTS.md', action: 'Review', icon: 'M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v3h3', fg: 'var(--skill-fg)', bg: 'var(--surface)', bd: 'var(--line)' }
+    ];
+    return { theme: this.props.theme ?? 'auto', states: states, toasts: toasts };
+  }
+}
+</script>
+</body>
+</html>

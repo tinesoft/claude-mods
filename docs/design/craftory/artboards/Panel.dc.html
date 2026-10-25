@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Craftory: side panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.sa { color-scheme: light; --page: #F5F6F8; --surface: #FFFFFF; --surface-2: #F9FAFB; --tile: #F5F6F8; --fill: #F0F1F4; --fill-2: #E8EAEE; --line: #DADCE1; --line-soft: #ECEDF0; --line-strong: #CFD2D8; --line-dashed: #B9BCC4; --ink: #17181C; --ink-2: #2A2D35; --text-2: #3B3F48; --muted: #5A5E68; --inverse-bg: #17181C; --on-ink: #FFFFFF; --switch-on: #17181C; --switch-off: #B9BCC4; --count-bg: rgba(23,24,28,0.07); --link-hover: #163A8F; --skill-fg: #1F4FC1; --skill-bg: #EDF2FD; --skill-bd: #C9D7F7; --agent-fg: #5B3A99; --agent-bg: #F3EEFB; --agent-bd: #D9CCF0; --mcp-fg: #9C1F62; --mcp-bg: #FCEEF5; --mcp-bd: #F0C8DC; --perm-fg: #0E6159; --perm-bg: #E8F5F2; --perm-bd: #BCE0D8; --hook-fg: #9A4A0B; --hook-bg: #FDF1E6; --hook-bd: #F0CFAE; --danger: #B42318; --danger-bd: #E8A39C; }
+@media (prefers-color-scheme: dark) { .sa:not([data-theme="light"]) { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; } }
+.sa[data-theme="dark"] { color-scheme: dark; --page: #111214; --surface: #1B1D21; --surface-2: #1F2125; --tile: #26282D; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-soft: #2A2C31; --line-strong: #4A4E57; --line-dashed: #5A5F69; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --switch-on: #5B7FE0; --switch-off: #4A4E57; --count-bg: rgba(255,255,255,0.10); --link-hover: #B7CBFF; --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --skill-bd: #2D4373; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; --mcp-fg: #F29BC8; --mcp-bg: #3D1A2D; --mcp-bd: #63304A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --hook-fg: #F5B47A; --hook-bg: #3D2614; --hook-bd: #643F20; --danger: #F97066; --danger-bd: #7A2E28; }
+.sa a { color: var(--skill-fg); } .sa a:hover { color: var(--link-hover); }
+.sa input::placeholder, .sa textarea::placeholder { color: var(--muted); }
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mono{font-family: 'IBM Plex Mono', ui-monospace, monospace}
+button{font:inherit}
+</style>
+</helmet>
+<div class="sa" data-theme="{{theme}}" style="min-height: 900px; box-sizing: border-box; background: var(--page); color: var(--ink); font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; display: flex; flex-wrap: wrap; gap: 0">
+
+  <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 40px 24px 32px; box-sizing: border-box">
+    <div style="width: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+      <div style="font-size: 15px; line-height: 1.6">Split spec <a href="#">#42</a> into 5 tracer-bullet tickets. Only #43 is unblocked.</div>
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 14px 10px 16px; display: flex; flex-direction: column; gap: 10px">
+        <label for="prompt3" class="sr">Message Claude</label>
+        <textarea id="prompt3" rows="2" placeholder="Reply to Claude…" style="border: 0; outline: none; resize: none; font: inherit; font-size: 15px; line-height: 1.5; color: var(--ink); background: transparent"></textarea>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 12.5px; color: var(--muted); flex-grow: 1">Phase rail is hidden while the panel is open</span>
+          <button aria-label="Send message" style="width: 36px; height: 36px; border-radius: 10px; border: 0; background: var(--inverse-bg); color: var(--on-ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside aria-label="Craftory panel" style="flex: 1 1 360px; max-width: 460px; min-height: 900px; background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; box-sizing: border-box">
+    <div style="padding: 14px 12px 12px 18px; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid var(--line-soft)">
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+        <span class="mono" style="font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted)">Craftory · spec #42</span>
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">Export invoices as CSV</h2>
+        <span style="font-size: 12.5px; color: var(--text-2)">3 of 7 phases done · Build running, 2 agents</span>
+      </div>
+      <a href="Settings.dc.html" aria-label="Settings" style="width: 36px; height: 36px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2.5 4.5h6M11.5 4.5h2M2.5 11.5h2M7.5 11.5h6"></path><circle cx="10" cy="4.5" r="1.6"></circle><circle cx="6" cy="11.5" r="1.6"></circle></svg></a>
+      <a href="Main.dc.html" aria-label="Close panel" style="width: 36px; height: 36px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></a>
+    </div>
+
+    <div style="padding: 10px 18px 0; display: flex">
+      <div role="tablist" aria-label="Panel sections" style="display: flex; gap: 2px; background: var(--fill); padding: 3px; border-radius: 9px; width: 100%">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+          <button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="flex: 1 1 0; height: 32px; border: 0; border-radius: 7px; background: {{t.bg}}; color: var(--ink); font-size: 13px; font-weight: {{t.weight}}; box-shadow: {{t.shadow}}; cursor: pointer">{{t.label}} <span class="mono" style="font-size: 11.5px; color: var(--muted)">{{t.n}}</span></button>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{isFlow}}" hint-placeholder-val="{{ false }}">
+      <ol style="list-style: none; margin: 0; padding: 14px 18px 18px; display: flex; flex-direction: column">
+        <sc-for list="{{flow}}" as="f" hint-placeholder-count="7">
+          <li style="display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 12px">
+            <div style="display: flex; flex-direction: column; align-items: center">
+              <span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid {{f.dotBd}}; background: {{f.dotBg}}; color: {{f.dotFg}}; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px">{{f.mark}}</span>
+              <span aria-hidden="true" style="width: 2px; flex-grow: 1; min-height: 14px; background: {{f.lineColor}}; display: {{f.lineShow}}"></span>
+            </div>
+            <div style="padding: 1px 0 16px; display: flex; flex-direction: column; gap: 3px; min-width: 0">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap"><span style="font-size: 14px; font-weight: 600; color: {{f.titleColor}}">{{f.label}}</span><span class="mono" style="font-size: 12px; color: var(--muted)">{{f.skill}}</span></div>
+              <span style="font-size: 13px; line-height: 1.45; color: var(--text-2)">{{f.detail}}</span>
+            </div>
+          </li>
+        </sc-for>
+      </ol>
+    </sc-if>
+
+    <sc-if value="{{isTickets}}" hint-placeholder-val="{{ true }}">
+      <div style="padding: 12px 18px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.5h5.5l2.5 2.5v10.5h-8zM9.5 1.5V4H12M6 8h4M6 10.5h4"></path></svg><span style="flex-grow: 1">Local Markdown · <span class="mono">docs/issues/</span></span><button style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer">Open folder</button></div>
+        <section aria-label="Inbox" style="border: 1px solid var(--line); border-radius: 10px; overflow: hidden">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line-soft); font-size: 12.5px"><span style="font-weight: 600">Inbox</span><span style="color: var(--text-2); flex-grow: 1">Issues from outside the flow · triage roles</span></div>
+          <ul style="list-style: none; margin: 0; padding: 0">
+            <sc-for list="{{inbox}}" as="b" hint-placeholder-count="3">
+              <li style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px 8px 12px; border-top: 1px solid var(--line-soft)">
+                <span class="mono" style="font-size: 12.5px; color: var(--muted)">{{b.id}}</span>
+                <div style="flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 13.5px; font-weight: 600">{{b.title}}</span><span style="font-size: 12px; color: var(--text-2)"><span class="mono" style="color: {{b.roleFg}}">{{b.role}}</span> · {{b.note}}</span></div>
+                <sc-if value="{{b.hasCmd}}" hint-placeholder-val="{{ true }}"><button class="mono" style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12px; cursor: pointer">{{b.cmd}}</button></sc-if>
+              </li>
+            </sc-for>
+          </ul>
+        </section>
+        <span style="font-size: 12.5px; font-weight: 600; padding-top: 4px">Spec #42 · tickets</span>
+        <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+          <sc-for list="{{tickets}}" as="k" hint-placeholder-count="5">
+            <li style="border: 1px solid {{k.bd}}; background: {{k.bg}}; border-radius: 10px; padding: 10px 10px 10px 12px; display: flex; flex-direction: column; gap: 6px">
+              <div style="display: flex; align-items: flex-start; gap: 8px">
+                <span class="mono" style="font-size: 12.5px; color: var(--muted); padding-top: 1px">{{k.id}}</span>
+                <span style="flex-grow: 1; font-size: 14px; font-weight: 600; line-height: 1.4">{{k.title}}</span>
+                <span style="flex-shrink: 0; font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; color: {{k.stFg}}; background: {{k.stBg}}; border: 1px solid {{k.stBd}}">{{k.status}}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-2)">
+                <span class="mono">{{k.label}}</span>
+                <sc-if value="{{k.blocked}}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: 4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7L8 10.5 11.5 7M3 13.5h10"></path></svg>Blocked by {{k.by}}</span></sc-if>
+                <span style="flex-grow: 1"></span>
+                <sc-if value="{{k.ready}}" hint-placeholder-val="{{ false }}"><button class="mono" style="height: 30px; padding: 0 10px; border-radius: 7px; border: 0; background: var(--inverse-bg); color: var(--on-ink); font-size: 12px; cursor: pointer">/implement {{k.id}}</button></sc-if>
+              </div>
+            </li>
+          </sc-for>
+        </ul>
+        <button class="mono" style="height: 40px; border-radius: 8px; border: 1px dashed var(--line-dashed); background: transparent; color: var(--text-2); font-size: 12.5px; cursor: pointer">/implement-spec #42 · run all in parallel</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isWorktrees}}" hint-placeholder-val="{{ false }}">
+      <div style="padding: 12px 18px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4.5" cy="3.5" r="1.5"></circle><circle cx="4.5" cy="12.5" r="1.5"></circle><circle cx="11.5" cy="6" r="1.5"></circle><path d="M4.5 5v6M11.5 7.5c0 2.5-7 1.5-7 3.5"></path></svg>
+          <span style="flex-grow: 1">5 worktrees · 1.6 GB under <span class="mono">.worktrees/</span></span>
+          <button style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--hook-bd); background: var(--hook-bg); color: var(--hook-fg); font-size: 12.5px; cursor: pointer">Prune 1 stale</button>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+          <sc-for list="{{worktrees}}" as="w" hint-placeholder-count="5">
+            <li style="border: 1px solid {{w.bd}}; background: var(--surface); border-radius: 10px; padding: 10px 8px 8px 12px; display: flex; flex-direction: column; gap: 5px">
+              <div style="display: flex; align-items: flex-start; gap: 8px">
+                <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                  <span class="mono" style="font-size: 13px; font-weight: 500; overflow-wrap: anywhere">{{w.path}}</span>
+                  <span class="mono" style="font-size: 12px; color: var(--text-2)">{{w.branch}}</span>
+                </div>
+                <span style="flex-shrink: 0; font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; color: {{w.stFg}}; background: {{w.stBg}}; border: 1px solid {{w.stBd}}">{{w.status}}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px">
+                <span style="color: {{w.syncFg}}">{{w.sync}}</span>
+                <sc-if value="{{w.hasDiff}}" hint-placeholder-val="{{ false }}"><span class="mono" style="font-size: 12px"><span style="color: var(--perm-fg)">{{w.add}}</span> <span style="color: var(--danger)">{{w.del}}</span></span></sc-if>
+                <sc-if value="{{w.hasLink}}" hint-placeholder-val="{{ false }}"><span class="mono" style="font-size: 12px; color: var(--muted)">{{w.link}}</span></sc-if>
+                <sc-if value="{{w.hasSize}}" hint-placeholder-val="{{ false }}"><span class="mono" style="font-size: 12px; color: var(--muted)">{{w.size}}</span></sc-if>
+                <span style="flex-grow: 1"></span>
+                <sc-if value="{{w.notStale}}" hint-placeholder-val="{{ true }}">
+                  <button style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer">Diff</button>
+                  <button style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer">Open terminal</button>
+                </sc-if>
+                <sc-if value="{{w.stale}}" hint-placeholder-val="{{ false }}">
+                  <button style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer">Remove</button>
+                </sc-if>
+              </div>
+            </li>
+          </sc-for>
+        </ul>
+        <span style="font-size: 12.5px; line-height: 1.45; color: var(--text-2)">Each agent works in its own worktree, branched from the integration branch. When its ticket is green it merges back and the worktree is removed.</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isGlossary}}" hint-placeholder-val="{{ false }}">
+      <div style="padding: 12px 18px 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; gap: 8px">
+          <label for="gsearch" class="sr">Search glossary</label>
+          <input id="gsearch" type="search" placeholder="Search 12 terms" style="flex-grow: 1; min-width: 0; height: 36px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 13.5px; color: var(--ink); background: var(--surface)">
+          <a href="Settings.dc.html" style="height: 36px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 13px">Edit</a>
+        </div>
+        <span class="mono" style="font-size: 12px; color: var(--muted)">GLOSSARY.md · 3 added this session by grill-with-docs</span>
+        <div style="display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--skill-bd); background: var(--skill-bg); border-radius: 10px; padding: 10px 12px">
+          <span style="font-size: 12.5px; font-weight: 600; color: var(--skill-fg)">Used in last reply</span>
+          <sc-for list="{{used}}" as="u" hint-placeholder-count="2"><span style="font-size: 13px; line-height: 1.4"><span style="font-weight: 600">{{u.term}}</span> <span style="color: var(--text-2)">{{u.def}}</span></span></sc-for>
+          <span style="font-size: 12px; color: var(--text-2)">On the terminal this list stands in for underlined terms.</span>
+        </div>
+        <dl style="margin: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden">
+          <sc-for list="{{terms}}" as="g" hint-placeholder-count="5">
+            <div style="padding: 10px 12px; border-top: {{g.divider}}; display: flex; flex-direction: column; gap: 3px">
+              <dt style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600">{{g.term}}<sc-if value="{{g.isNew}}" hint-placeholder-val="{{ false }}"><span style="font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 5px; color: var(--perm-fg); background: var(--perm-bg); border: 1px solid var(--perm-bd)">New</span></sc-if></dt>
+              <dd style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-2)">{{g.def}}</dd>
+              <sc-if value="{{g.hasAvoid}}" hint-placeholder-val="{{ false }}"><dd style="margin: 0; font-size: 12.5px; color: var(--muted)">Avoid: {{g.avoid}}</dd></sc-if>
+            </div>
+          </sc-for>
+        </dl>
+      </div>
+    </sc-if>
+    <sc-if value="{{isSettings}}" hint-placeholder-val="{{ false }}">
+      <div style="padding: 12px 18px 18px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; line-height: 1.45; color: var(--text-2)">
+        <span>Issue tracker, docs layout, glossary, pipeline and gates, worktrees and automation.</span>
+        <span>Shared values are written to <span class="mono">docs/agents/*.md</span>, <span class="mono">GLOSSARY.md</span> and <span class="mono">.craftory/config.json</span>. The rail switch is yours alone.</span>
+        <a href="Settings.dc.html" style="align-self: flex-start; height: 36px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 13px">Open settings</a>
+      </div>
+    </sc-if>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var tab = (this.state && this.state.tab) || 'tickets';
+    var tabs = [['flow', 'Flow', '3/7'], ['tickets', 'Tickets', '5'], ['worktrees', 'Worktrees', '5'], ['glossary', 'Glossary', '12'], ['settings', 'Settings', '']].map(function (t) {
+      var on = tab === t[0];
+      return { label: t[1], n: t[2], sel: on ? 'true' : 'false', bg: on ? 'var(--surface)' : 'transparent', weight: on ? '600' : '500',
+        shadow: on ? '0 1px 2px rgba(23,24,28,0.12)' : 'none', pick: function () { self.setState({ tab: t[0] }); } };
+    });
+    var F = [
+      ['Align', 'grill-with-docs', 'done', '14 questions resolved. GLOSSARY.md +3 terms, ADR-0007 written.'],
+      ['Spec', 'to-spec', 'done', 'Published #42 with 6 user stories and an out-of-scope list.'],
+      ['Tickets', 'to-tickets', 'done', 'Created #43 to #47 with blocking edges.'],
+      ['Build', 'implement-spec · tdd', 'next', 'Running: #43 merged, #44 and #45 in parallel, #46 queued, #47 waits for you.'],
+      ['Review', 'code-review', 'todo', 'Close-out of implement-spec: checks the diff against spec #42 and AGENTS.md, then fixes what it finds.'],
+      ['Ship', 'pr', 'todo', 'Rewrites the draft PR body with before/after evidence and a merge-danger call, then marks it ready.'],
+      ['Retro', 'retro', 'todo', 'Ranked suggestions for skills, glossary and AGENTS.md.']
+    ];
+    var flow = F.map(function (f, i) {
+      var d = f[2] === 'done', n = f[2] === 'next';
+      return { label: f[0], skill: f[1], detail: f[3], mark: d ? '✓' : String(i + 1),
+        dotBg: d ? 'var(--perm-bg)' : (n ? 'var(--skill-bg)' : 'var(--surface)'),
+        dotBd: d ? 'var(--perm-bd)' : (n ? 'var(--skill-fg)' : 'var(--line-strong)'),
+        dotFg: d ? 'var(--perm-fg)' : (n ? 'var(--skill-fg)' : 'var(--muted)'),
+        titleColor: n ? 'var(--skill-fg)' : (d ? 'var(--ink)' : 'var(--text-2)'),
+        lineColor: d ? 'var(--perm-bd)' : 'var(--line)', lineShow: i === F.length - 1 ? 'none' : 'block' };
+    });
+    var ST = {
+      done: { t: 'Merged', fg: 'var(--perm-fg)', bg: 'var(--perm-bg)', bd: 'var(--perm-bd)' },
+      running: { t: 'Agent running', fg: 'var(--skill-fg)', bg: 'var(--skill-bg)', bd: 'var(--skill-bd)' },
+      ready: { t: 'Ready for agent', fg: 'var(--skill-fg)', bg: 'var(--skill-bg)', bd: 'var(--skill-bd)' },
+      blocked: { t: 'Blocked', fg: 'var(--muted)', bg: 'var(--fill)', bd: 'var(--line)' },
+      human: { t: 'Ready for human', fg: 'var(--hook-fg)', bg: 'var(--hook-bg)', bd: 'var(--hook-bd)' }
+    };
+    var K = [
+      { id: '#43', title: 'Export button streams one invoice run', s: 'done', label: 'slice 1 · 48.2k tokens' },
+      { id: '#44', title: 'Ledger lines include tax columns', s: 'running', label: 'slice 2 · TDD green · 31k tokens' },
+      { id: '#45', title: 'Filter export by date range', s: 'running', label: 'slice 3 · TDD red · 13k tokens' },
+      { id: '#46', title: 'Email the CSV when an export batch finishes', s: 'blocked', by: '#44', label: 'slice 4 · AFK' },
+      { id: '#47', title: 'Pick the default column order', s: 'human', label: 'decision · HITL' }
+    ];
+    var tickets = K.map(function (k) {
+      var s = ST[k.s];
+      return { id: k.id, title: k.title, label: k.label, status: s.t, stFg: s.fg, stBg: s.bg, stBd: s.bd,
+        blocked: k.s === 'blocked', by: k.by || '', ready: k.s === 'ready',
+        bd: k.s === 'running' ? 'var(--skill-bd)' : 'var(--line)', bg: 'var(--surface)' };
+    });
+    var G = [
+      { term: 'Invoice run', def: 'One batch of invoices generated for a billing period.', avoid: 'billing job, invoice batch', isNew: true },
+      { term: 'Ledger line', def: 'A single priced row on an invoice, after tax.', avoid: 'line item, entry', isNew: true },
+      { term: 'Export batch', def: 'A requested CSV export and its delivery status.', avoid: 'download', isNew: true },
+      { term: 'Customer', def: 'The paying account, never an individual user.', avoid: 'client, user' },
+      { term: 'Billing period', def: 'Calendar month in the customer’s time zone.', avoid: '' }
+    ];
+    var WK = {
+      you: { t: 'Your checkout', fg: 'var(--ink-2)', bg: 'var(--fill)', bd: 'var(--line)' },
+      base: { t: 'Integration', fg: 'var(--perm-fg)', bg: 'var(--perm-bg)', bd: 'var(--perm-bd)' },
+      agent: { t: 'Agent running', fg: 'var(--skill-fg)', bg: 'var(--skill-bg)', bd: 'var(--skill-bd)' },
+      stale: { t: 'Stale', fg: 'var(--hook-fg)', bg: 'var(--hook-bg)', bd: 'var(--hook-bd)' }
+    };
+    var W = [
+      { path: '~/code/billing', branch: 'main', k: 'you', sync: 'clean', size: '' },
+      { path: '.worktrees/_spec-42', branch: 'feat/invoice-csv', k: 'base', sync: '4 ahead of main · #43 merged', size: '402 MB', link: 'spec #42' },
+      { path: '.worktrees/44-ledger-tax', branch: 'craftory/44-ledger-tax', k: 'agent', sync: '3 ahead · 4 files changed', size: '410 MB', link: 'ticket #44', add: '+142', del: '−18' },
+      { path: '.worktrees/45-date-filter', branch: 'craftory/45-date-filter', k: 'agent', sync: '1 ahead · 1 behind · rebase queued', size: '398 MB', link: 'ticket #45', add: '+37', del: '−2', warn: true },
+      { path: '.worktrees/39-csv-spike', branch: 'prototype/csv-spike', k: 'stale', sync: 'no commits in 6 days · from prototype', size: '385 MB', link: 'prototype', stale: true }
+    ];
+    var worktrees = W.map(function (w, i) {
+      var s = WK[w.k];
+      return { path: w.path, branch: w.branch, sync: w.sync, size: w.size, hasSize: !!w.size, link: w.link || '', hasLink: !!w.link,
+        status: s.t, stFg: s.fg, stBg: s.bg, stBd: s.bd, hasDiff: !!w.add, add: w.add || '', del: w.del || '',
+        syncFg: w.warn ? 'var(--hook-fg)' : 'var(--text-2)', stale: !!w.stale, notStale: !w.stale && w.k !== 'you',
+        bd: w.k === 'agent' ? 'var(--skill-bd)' : 'var(--line)' };
+    });
+    var IB = [
+      { id: '#51', title: 'CSV export times out above 10k rows', role: 'needs-triage', cmd: '/triage #51', note: 'Filed by a teammate · bug' },
+      { id: '#52', title: 'Add a currency column to the export', role: 'ready-for-agent', cmd: 'Start feature', note: 'Enters the flow as set in Entry points' },
+      { id: '#53', title: 'Decide CSV delimiter for EU customers', role: 'ready-for-human', cmd: '', note: 'No agent · decision for you' }
+    ];
+    var inbox = IB.map(function (b) { return { id: b.id, title: b.title, role: b.role, note: b.note, hasCmd: !!b.cmd, cmd: b.cmd,
+      roleFg: b.role === 'ready-for-agent' ? 'var(--skill-fg)' : (b.role === 'ready-for-human' ? 'var(--hook-fg)' : 'var(--text-2)') }; });
+    var used = [G[1], G[2]].map(function (g) { return { term: g.term, def: g.def }; });
+    var terms = G.map(function (g, i) { return { term: g.term, def: g.def, avoid: g.avoid, hasAvoid: !!g.avoid, isNew: !!g.isNew, divider: i === 0 ? '0' : '1px solid var(--line-soft)' }; });
+    return { theme: this.props.theme ?? 'auto', tabs: tabs, flow: flow, tickets: tickets, terms: terms,
+      isFlow: tab === 'flow', isTickets: tab === 'tickets', isGlossary: tab === 'glossary', isWorktrees: tab === 'worktrees', isSettings: tab === 'settings', inbox: inbox, used: used,
+      worktrees: worktrees };
+  }
+}
+</script>
+</body>
+</html>
