@@ -94,12 +94,18 @@ import {
 import { GITIGNORE, isShared, isWritable, type FileWrite, type WritableContext } from '../src/files'
 import {
   assembleGit,
+  basesOf,
+  diffLine,
   gitStep2,
   parseRemote,
+  parseShortstat,
   parseWorktreeList,
+  prunable,
   removalTargets,
-  ticketOfBranch,
+  shortstatArgv,
   tipArgv,
+  worktreesView,
+  type WorktreesView,
   worktreeAddArgv,
   worktreeListArgv,
   worktreeRemoveArgv,
@@ -151,6 +157,8 @@ const REFRESH_DEBOUNCE_MS = 800
 const TRACKER_TIMEOUT_MS = 20_000
 const APPEARANCE_MS = 5_000
 const APPEARANCE_PROBE_TIMEOUT_MS = 1500
+const REMOVE_ANYWAY = 'Remove anyway'
+const KEEP_IT = 'Keep it'
 const RUN_ANYWAY = 'Run anyway'
 const DIAGNOSE_FIRST = 'Diagnose first'
 const DIAGNOSE_REASON =
@@ -182,6 +190,7 @@ const keptReason = (path: string, why: KeepWhy) =>
 // build       the Build hooks: tool.call Agent (pending, queued), agent.spawn (seated), turn.step
 //             (tokens), turn.complete (finish); Pause all
 // git         refreshGit (session.start, after a seat, a finish and a git command by an agent)
+// diffs       the Worktrees tab's Diff button
 // steeringNote  agent.spawn, when a worktree cannot be made
 
 // openStep    the rail's steps and the card's Close
@@ -212,6 +221,7 @@ const noticesState = atom({ plugin: 'craftory', key: 'notices' } as const, [])
 const signalsState = atom({ plugin: 'craftory', key: 'signals' } as const, null)
 const buildState = atom({ plugin: 'craftory', key: 'build' } as const, EMPTY_LEDGER)
 const gitState = atom({ plugin: 'craftory', key: 'git' } as const, null)
+const diffsState = atom({ plugin: 'craftory', key: 'diffs' } as const, {})
 const steeringNoteState = atom({ plugin: 'craftory', key: 'steeringNote' } as const, null)
 const openStepState = atom({ plugin: 'craftory', key: 'openStep' } as const, null)
 const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
@@ -766,26 +776,19 @@ async function refreshGit($: EngineInterface) {
   if (main === undefined) return
   const records = Object.values(features)
   const integrationBranches = [...new Set(records.map(r => r.integrationBranch).filter(Boolean))]
-  const baseOfBranch = new Map<string, string>()
-  for (const record of records)
-    for (const agent of Object.values(record.agents))
-      baseOfBranch.set(agent.branch, record.integrationBranch)
+  const runs = new Map<string, string>()
   for (const run of Object.values(ledger.runs)) {
     const parent = tracker?.rich ? tracker.issues.find(i => i.ref === run.ticket)?.parent : null
     const integration = parent ? features[parent]?.integrationBranch : undefined
-    if (integration) baseOfBranch.set(run.branch, integration)
+    if (integration) runs.set(run.branch, integration)
   }
-  const bases: Record<string, string> = {}
-  for (const e of entries) {
-    if (e.isMain || e.branch === null) continue
-    const base = integrationBranches.includes(e.branch)
-      ? main.branch
-      : (baseOfBranch.get(e.branch) ??
-        (ticketOfBranch(e.branch, config.worktrees.ticketBranch)
-          ? integrationBranches[0]
-          : undefined))
-    if (base) bases[e.path] = base
-  }
+  const bases = basesOf({
+    entries,
+    main: main.branch,
+    records,
+    runs,
+    ticketBranch: config.worktrees.ticketBranch,
+  })
   const asked = gitStep2({ entries, bases, integrationBranches })
   const answers = await Promise.all(asked.map(argv => sh($, argv)))
   const results = new Map<string, string>()
@@ -940,6 +943,120 @@ async function countStep(
   await settle($)
 }
 
+/** The Worktrees tab: every worktree git lists, with what Craftory knows about it. */
+async function worktreesViewOf($: EngineInterface): Promise<WorktreesView | null> {
+  const [git, features, repo, diffs] = await Promise.all([
+    read($, gitState),
+    read($, featuresState),
+    read($, repoState),
+    read($, diffsState),
+  ])
+  if (git === null) return null
+  const config = configOf(repo?.config)
+  const records = Object.values(features)
+  return worktreesView({
+    git,
+    records,
+    bases: basesOf({
+      entries: git.worktrees.map(w => ({
+        path: w.path,
+        branch: w.branch,
+        isMain: w.role === 'checkout',
+      })),
+      main: git.branch,
+      records,
+      runs: new Map(),
+      ticketBranch: config.worktrees.ticketBranch,
+    }),
+    kept: await keptWorktrees($),
+    diffs,
+    folder: config.worktrees.folder,
+    now: await $.clock.now(),
+  })
+}
+
+/** Diff toggles the shortstat line under a row. */
+async function toggleDiff($: EngineInterface, path: string) {
+  const view = await worktreesViewOf($)
+  const row = view?.rows.find(r => r.path === path)
+  if (row === undefined) return
+  if (row.diff !== null) {
+    await update($, diffsState, held =>
+      Object.fromEntries(Object.entries(held).filter(([p]) => p !== path)),
+    )
+    return $.ui.invalidate('ui.render')
+  }
+  const git = await read($, gitState)
+  const base = git === null ? undefined : (await currentBases($, git))[path]
+  const result =
+    base === undefined || row.branch === null ? null : await sh($, shortstatArgv(base, row.branch))
+  const line =
+    result?.exitCode === 0 ? diffLine(parseShortstat(result.stdout)) : 'could not read the diff'
+  await update($, diffsState, held => ({ ...held, [path]: line }))
+  $.ui.invalidate('ui.render')
+}
+
+async function currentBases($: EngineInterface, git: GitSnapshot) {
+  const [features, repo] = await Promise.all([read($, featuresState), read($, repoState)])
+  return basesOf({
+    entries: git.worktrees.map(w => ({
+      path: w.path,
+      branch: w.branch,
+      isMain: w.role === 'checkout',
+    })),
+    main: git.branch,
+    records: Object.values(features),
+    runs: new Map(),
+    ticketBranch: configOf(repo?.config).worktrees.ticketBranch,
+  })
+}
+
+/** A mod cannot open a terminal, so the row copies `cd <path>` for the user to paste. */
+async function copyTerminal($: EngineInterface, path: string, surface: RenderSurface) {
+  const copied = await $.ui.copy({ text: `cd ${path}`, surface }).catch(() => ({ isCopied: false }))
+  $.ui.toast(
+    copied.isCopied
+      ? `Copied cd ${path} · paste it in a terminal`
+      : `Could not copy · run cd ${path} in a terminal`,
+  )
+}
+
+/** Remove refuses a running or kept worktree unless the user confirms; only then is it forced. */
+async function removeWorktree($: EngineInterface, path: string) {
+  const row = (await worktreesViewOf($))?.rows.find(r => r.path === path)
+  if (row === undefined || !row.canRemove) return
+  if (row.isProtected) {
+    const answer = await $.ui
+      .ask(`Remove ${row.shown}? Its agent is running or its work is kept. Remove anyway?`, [
+        REMOVE_ANYWAY,
+        KEEP_IT,
+      ])
+      .catch(() => KEEP_IT)
+    if (answer !== REMOVE_ANYWAY) return
+  }
+  const result = await sh($, worktreeRemoveArgv(path, row.isProtected))
+  $.ui.toast(
+    result?.exitCode === 0
+      ? `Removed ${row.shown}`
+      : `Could not remove ${row.shown}: ${result?.stderr.trim() || 'git did not run'}`,
+  )
+  await refreshGit($)
+}
+
+/** Prune N stale: the stale worktrees Craftory does not keep, removed without force. */
+async function pruneStale($: EngineInterface) {
+  const git = await read($, gitState)
+  if (git === null) return
+  const stale = prunable(
+    git,
+    (await keptWorktrees($)).map(k => k.path),
+  )
+  let removed = 0
+  for (const w of stale) if ((await sh($, worktreeRemoveArgv(w.path)))?.exitCode === 0) removed++
+  if (stale.length > 0) $.ui.toast(`Pruned ${removed} of ${stale.length} stale worktrees`)
+  await refreshGit($)
+}
+
 /** Pause all stops new implementers and asks the running ones to report after their step; again resumes. */
 async function togglePause($: EngineInterface) {
   const isPausing = !(await read($, buildState)).isPaused
@@ -1084,6 +1201,7 @@ async function toneOf(
 
 async function openPane($: EngineInterface, tab: PaneTab) {
   await update($, paneTabState, () => tab)
+  if (tab === 'worktrees') await refreshGit($)
   await $.ui.open({ id: PANE, title: 'Craftory', focus: true, closeOnEscape: true })
 }
 
@@ -1240,6 +1358,7 @@ export const register: Register = (on, options) => {
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($)])
     await refreshTracker($)
     await refreshGit($)
+    if (configOf((await read($, repoState))?.config).worktrees.pruneStale) await pruneStale($)
     await settle($)
     return next(e)
   })
@@ -1522,7 +1641,14 @@ export const register: Register = (on, options) => {
       tab: await read($, paneTabState),
       pluginLine: pluginLine(await read($, pluginState)),
       setupNote: await read($, setupNoteState),
-      on: { writeSetup: () => writeSetup($) },
+      worktrees: await worktreesViewOf($),
+      on: {
+        writeSetup: () => writeSetup($),
+        diff: path => void toggleDiff($, path),
+        openTerminal: (path, surface) => void copyTerminal($, path, surface),
+        remove: path => void removeWorktree($, path),
+        prune: () => void pruneStale($),
+      },
     }),
   )
 }

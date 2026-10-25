@@ -6,6 +6,7 @@
  */
 import type {
   CraftoryConfig,
+  FeatureRecord,
   GitSnapshot,
   IssueRef,
   Millis,
@@ -305,4 +306,129 @@ export function removalTargets(command: string): string[] {
     )
   }
   return targets
+}
+
+// ─── The base each worktree is measured against ─────────────────────────────────────────
+
+/**
+ * Per worktree path, the branch its ahead/behind and diff are taken against: the integration
+ * worktree against the checkout's branch, an agent's against its feature's integration branch.
+ * `runs` maps a live agent's branch to its integration branch, for agents with no record yet.
+ */
+export function basesOf(args: {
+  entries: readonly { path: string; branch: string | null; isMain: boolean }[]
+  main: string | null
+  records: readonly FeatureRecord[]
+  runs: ReadonlyMap<string, string>
+  ticketBranch: string
+}): Record<string, string> {
+  const { entries, main, records, runs, ticketBranch } = args
+  const integrations = records.map(r => r.integrationBranch).filter(Boolean)
+  const byAgentBranch = new Map(runs)
+  for (const record of records)
+    for (const agent of Object.values(record.agents))
+      byAgentBranch.set(agent.branch, record.integrationBranch)
+  const bases: Record<string, string> = {}
+  for (const e of entries) {
+    if (e.isMain || e.branch === null) continue
+    const base = integrations.includes(e.branch)
+      ? main
+      : (byAgentBranch.get(e.branch) ??
+        (ticketOfBranch(e.branch, ticketBranch) ? integrations[0] : undefined))
+    if (base) bases[e.path] = base
+  }
+  return bases
+}
+
+// ─── The Worktrees tab ──────────────────────────────────────────────────────────────────
+
+export type WorktreeKind = 'checkout' | 'integration' | 'agent' | 'kept' | 'stale' | 'other'
+
+export const WORKTREE_LABELS: Record<WorktreeKind, string> = {
+  checkout: 'Your checkout',
+  integration: 'Integration',
+  agent: 'Agent running',
+  kept: 'Kept',
+  stale: 'Stale',
+  other: 'Other',
+}
+
+export type WorktreeRowView = {
+  path: string
+  /** The path as the row shows it: under the repo root it is relative. */
+  shown: string
+  branch: string | null
+  kind: WorktreeKind
+  sync: string
+  link: string | null
+  added: number | null
+  deleted: number | null
+  /** The Diff line, once the Diff button has been pressed. */
+  diff: string | null
+  /** Running or kept: Remove asks first. */
+  isProtected: boolean
+  canDiff: boolean
+  canRemove: boolean
+}
+
+export type WorktreesView = {
+  summary: string
+  prunable: number
+  rows: WorktreeRowView[]
+}
+
+export function worktreesView(args: {
+  git: GitSnapshot
+  records: readonly FeatureRecord[]
+  bases: Readonly<Record<string, string>>
+  /** Worktrees Craftory keeps, with why (running, failed, over budget, stopped). */
+  kept: readonly { path: string; why: string }[]
+  diffs: Readonly<Record<string, string>>
+  folder: string
+  now: Millis
+}): WorktreesView {
+  const { git, records, bases, kept, diffs, folder, now } = args
+  const rows = git.worktrees.map((w): WorktreeRowView => {
+    const hold = kept.find(k => samePath(w.path, k.path))
+    const kind: WorktreeKind =
+      hold === undefined
+        ? w.role
+        : hold.why === 'running'
+          ? 'agent'
+          : w.role === 'stale' || w.role === 'agent'
+            ? 'kept'
+            : w.role
+    const spec = records.find(r => r.integrationBranch === w.branch)?.spec
+    const link =
+      w.ticket !== null
+        ? `ticket ${w.ticket}`
+        : kind === 'integration' && spec
+          ? `spec ${spec}`
+          : null
+    const shown = w.path.startsWith(`${git.root}/`) ? w.path.slice(git.root.length + 1) : w.path
+    return {
+      path: w.path,
+      shown,
+      branch: w.branch,
+      kind,
+      sync: syncText(w, bases[w.path] ?? null, now),
+      link,
+      added: w.role === 'agent' || kind === 'kept' ? w.added : null,
+      deleted: w.role === 'agent' || kind === 'kept' ? w.deleted : null,
+      diff: diffs[w.path] ?? null,
+      isProtected: hold !== undefined,
+      canDiff: bases[w.path] !== undefined && w.branch !== null,
+      canRemove: kind !== 'checkout' && kind !== 'integration',
+    }
+  })
+  const stale = prunable(
+    git,
+    kept.map(k => k.path),
+  )
+  const linked = rows.filter(r => underFolder(r.path, folder)).length
+  return {
+    summary: `${rows.length} worktree${rows.length === 1 ? '' : 's'} · ${linked} under ${folder}`,
+    prunable: stale.length,
+    rows,
+  }
 }

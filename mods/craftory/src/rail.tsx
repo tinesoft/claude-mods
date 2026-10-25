@@ -986,17 +986,21 @@ const TokenBar = ({ ui, tone, ascii, row }: Omit<AgentArgs, 'on'> & { row: Agent
   )
 }
 
-const CardButton = ({
+export const CardButton = ({
   ui,
   tone,
   id,
   label,
   onPress,
-}: Pick<AgentArgs, 'ui' | 'tone'> & { id: string; label: string; onPress: () => void }) => {
+}: Pick<AgentArgs, 'ui' | 'tone'> & {
+  id: string
+  label: string
+  onPress: (surface: RenderSurface) => void
+}) => {
   const { Box, Button, Text } = ui
   if (!isRich(ui) || tone === undefined) {
     return (
-      <Button key={id} plain onPress={onPress}>
+      <Button key={id} plain onPress={press => onPress(press.surface)}>
         <Text {...inkOf(tone, 'ink')}>{`[ ${label} ]`}</Text>
       </Button>
     )
@@ -1010,7 +1014,7 @@ const CardButton = ({
       borderColor={t.line}
       backgroundColor={t.surface}
     >
-      <Button key={id} plain onPress={onPress}>
+      <Button key={id} plain onPress={press => onPress(press.surface)}>
         <Text color={t.ink}>{label}</Text>
       </Button>
     </Box>

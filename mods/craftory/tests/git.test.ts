@@ -1,8 +1,10 @@
 import { expect, test } from 'claude-code/testing'
+import type { FeatureRecord, IssueRef, Worktree } from '../types'
 import { DEFAULT_CONFIG } from '../src/config'
 import {
   aheadBehindArgv,
   assembleGit,
+  basesOf,
   classifyWorktree,
   diffLine,
   gitStep2,
@@ -23,6 +25,7 @@ import {
   ticketOfBranch,
   tipArgv,
   worktreeAddArgv,
+  worktreesView,
 } from '../src/git'
 
 const PORCELAIN = `worktree /repo
@@ -279,4 +282,113 @@ test('worktree removals are found in a shell line, in any spelling', () => {
   ).toEqual(['a', 'b'])
   expect(removalTargets('git worktree list')).toEqual([])
   expect(removalTargets('echo remove')).toEqual([])
+})
+
+const record = (over: Partial<FeatureRecord> = {}): FeatureRecord => ({
+  version: 1,
+  spec: '#42' as IssueRef,
+  title: 'CSV',
+  entry: 'align',
+  enteredFrom: null,
+  skipped: [],
+  integrationBranch: 'feat/csv',
+  pr: null,
+  marks: {},
+  agents: {},
+  ...over,
+})
+
+test('each worktree is measured against the branch it belongs under', () => {
+  const entries = [
+    { path: '/repo', branch: 'main', isMain: true },
+    { path: '/repo/.worktrees/_spec-42', branch: 'feat/csv', isMain: false },
+    { path: '/repo/.worktrees/44-a', branch: 'craftory/44-a', isMain: false },
+    { path: '/repo/.worktrees/45-b', branch: 'craftory/45-b', isMain: false },
+    { path: '/elsewhere/x', branch: 'prototype/x', isMain: false },
+  ]
+  expect(
+    basesOf({
+      entries,
+      main: 'main',
+      records: [record()],
+      runs: new Map([['craftory/44-a', 'feat/csv']]),
+      ticketBranch: 'craftory/{ticket}-{slug}',
+    }),
+  ).toEqual({
+    '/repo/.worktrees/_spec-42': 'main',
+    '/repo/.worktrees/44-a': 'feat/csv',
+    '/repo/.worktrees/45-b': 'feat/csv',
+  })
+})
+
+test('the Worktrees rows say what each is, what is kept, and how many are stale', () => {
+  const w = (path: string, over: Partial<Worktree>): Worktree => ({
+    path,
+    branch: null,
+    role: 'other',
+    ticket: null,
+    ahead: 0,
+    behind: 0,
+    added: 0,
+    deleted: 0,
+    commits: 0,
+    lastCommitAt: null,
+    isRebasing: false,
+    ...over,
+  })
+  const git = {
+    root: '/repo',
+    branch: 'main',
+    remote: null,
+    merged: {},
+    tips: {},
+    at: NOW,
+    worktrees: [
+      w('/repo', { role: 'checkout', branch: 'main' }),
+      w('/repo/.worktrees/_spec-42', { role: 'integration', branch: 'feat/csv', ahead: 4 }),
+      w('/repo/.worktrees/44-a', {
+        role: 'agent',
+        branch: 'craftory/44-a',
+        ticket: '#44' as IssueRef,
+        ahead: 3,
+        added: 142,
+        deleted: 18,
+      }),
+      w('/repo/.worktrees/45-b', {
+        role: 'stale',
+        ticket: '#45' as IssueRef,
+        lastCommitAt: NOW - 6 * 86_400_000,
+      }),
+      w('/repo/.worktrees/39-x', { role: 'stale', lastCommitAt: NOW - 6 * 86_400_000 }),
+    ],
+  }
+  const view = worktreesView({
+    git,
+    records: [record()],
+    bases: { '/repo/.worktrees/_spec-42': 'main', '/repo/.worktrees/44-a': 'feat/csv' },
+    kept: [
+      { path: '.worktrees/44-a', why: 'running' },
+      { path: '.worktrees/45-b', why: 'over-budget' },
+    ],
+    diffs: { '/repo/.worktrees/44-a': '4 files changed · +142 −18' },
+    folder: '.worktrees/',
+    now: NOW,
+  })
+  expect(view.summary).toBe('5 worktrees · 4 under .worktrees/')
+  expect(view.prunable).toBe(1)
+  expect(view.rows.map(r => [r.shown, r.kind, r.sync, r.link, r.isProtected])).toEqual([
+    ['/repo', 'checkout', 'your checkout', null, false],
+    ['.worktrees/_spec-42', 'integration', '4 ahead of main', 'spec #42', false],
+    ['.worktrees/44-a', 'agent', '3 ahead of feat/csv', 'ticket #44', true],
+    ['.worktrees/45-b', 'kept', 'no commits in 6 days', 'ticket #45', true],
+    ['.worktrees/39-x', 'stale', 'no commits in 6 days', null, false],
+  ])
+  expect(view.rows[2]).toMatchObject({
+    added: 142,
+    deleted: 18,
+    diff: '4 files changed · +142 −18',
+    canDiff: true,
+  })
+  expect(view.rows[0]).toMatchObject({ canRemove: false, canDiff: false })
+  expect(view.rows[1]!.canRemove).toBe(false)
 })

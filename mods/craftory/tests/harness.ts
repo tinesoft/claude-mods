@@ -35,6 +35,8 @@ export type WorldOptions = {
   store?: Record<string, unknown>
   /** What `gh` prints, by argv; absent means `gh` is not installed. */
   gh?: (argv: readonly string[]) => { exitCode: number; stdout: string } | undefined
+  /** The mock clock's start, in milliseconds. */
+  now?: number
   /** What git, cp and the setup command answer, by argv and cwd; absent means "not found". */
   shell?: (
     argv: readonly string[],
@@ -63,7 +65,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   /** A relative path reaches the hooks resolved against the session's folder, which is the plugin's here. */
   const rel = (path: string) => path.replace(/^\/.*?\/craftory\//, '')
   const dirs = (path: string) => rel(path).replace(/\/$/, '')
-  const clock = mock.clock(on, { now: 1_000_000 })
+  const clock = mock.clock(on, { now: options.now ?? 1_000_000 })
   const store = new Map(Object.entries(options.store ?? {}))
   on('store.get', (_$, e) => ({ value: store.get(e.key) }))
   on('store.set', (_$, e) => (store.set(e.key, e.value), { value: undefined }))
@@ -79,6 +81,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   const spawns: Record<string, unknown>[] = []
   const steps: { agentId?: string; index: number }[] = []
   const sent: { to: unknown; text: string }[] = []
+  const copied: { text: string; surface?: string }[] = []
   const registered: { name: string; immediate?: boolean }[] = []
   let commands = options.commands ?? []
 
@@ -123,6 +126,13 @@ export const world = (on: On, options: WorldOptions = {}) => {
     }
     return { result: 'ran' }
   })
+  on(
+    'ui.copy',
+    (_$, e) => (
+      copied.push({ text: e.text, ...(e.surface && { surface: e.surface }) }),
+      { value: { isCopied: true as const } }
+    ),
+  )
   on('session.cwd', () => ({ value: '/repo' }))
   on(
     'session.send',
@@ -228,6 +238,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
     spawns,
     steps,
     sent,
+    copied,
     registered,
     store,
     setCommands: (next: CommandInfo[]) => {

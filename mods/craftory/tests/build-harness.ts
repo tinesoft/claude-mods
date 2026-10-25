@@ -5,10 +5,21 @@ type Shell = NonNullable<WorldOptions['shell']>
 
 /** A repo that answers git the way the seat needs: worktrees appear when `worktree add` runs. */
 export const fakeGit = (
-  over: { behind?: (branch: string) => number; status?: (path: string) => string } = {},
+  over: {
+    behind?: (branch: string) => number
+    status?: (path: string) => string
+    /** Worktrees that exist before any agent starts. */
+    extra?: { path: string; branch: string }[]
+    /** Seconds since the epoch of each branch's last commit. */
+    committed?: Record<string, number>
+    stat?: string
+  } = {},
 ) => {
-  const worktrees = ['/repo']
-  const branches: Record<string, string> = { '/repo': 'main' }
+  const worktrees = ['/repo', ...(over.extra ?? []).map(e => e.path)]
+  const branches: Record<string, string> = {
+    '/repo': 'main',
+    ...Object.fromEntries((over.extra ?? []).map(e => [e.path, e.branch])),
+  }
   const shell: Shell = argv => {
     const [a, b, c] = argv
     if (argv[0] !== 'git') return { exitCode: 0 }
@@ -33,6 +44,8 @@ export const fakeGit = (
     }
     if (b === 'rev-list')
       return { exitCode: 0, stdout: `${over.behind?.(argv[4]!.split('...')[1]!) ?? 0}\t1\n` }
+    if (b === 'log') return { exitCode: 0, stdout: `${over.committed?.[argv.at(-1)!] ?? 0}\n` }
+    if (b === 'diff') return { exitCode: 0, stdout: over.stat ?? '' }
     if (b === '-C') return { exitCode: 0, stdout: over.status?.(argv[2]!) ?? '' }
     if (a === 'git' && b === 'branch') return { exitCode: 0, stdout: 'main\n' }
     return { exitCode: 0, stdout: '' }
