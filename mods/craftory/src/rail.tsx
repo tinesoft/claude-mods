@@ -8,7 +8,6 @@ import type { Color, ElementTable, RenderElement, RenderSurface, Space } from 'c
 import type { CraftoryConfig, FeatureKey, PhaseId, RailLayout, SkillName, Tone } from '../types'
 import type { Flow, Step } from './evidence'
 import {
-  gearSvg,
   helperSvg,
   hexOr,
   inboxSvg,
@@ -666,11 +665,7 @@ const Gear = ({ args }: { args: BandArgs }) => {
   const { Button, Text } = ui
   return (
     <Button key="gear" plain onPress={() => on.gear()}>
-      {isRich(ui) && tone !== undefined ? (
-        <Icon ui={ui} svg={gearSvg(hexOr(TOKENS[tone].text2))} alt="Settings" />
-      ) : (
-        <Text {...inkOf(tone, 'text2')}>{'⚙'}</Text>
-      )}
+      <Text {...inkOf(tone, 'text2')}>{'\u2699'}</Text>
     </Button>
   )
 }

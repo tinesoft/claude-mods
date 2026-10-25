@@ -232,3 +232,84 @@ export const texts = async (drawing: Finder) =>
 
 /** All the text a drawing shows, joined, for "does it say this" checks. */
 export const allText = async (drawing: Finder) => (await texts(drawing)).join(' ')
+
+export const IN_RANGE = [
+  { id: 'mattpocock-skills@claude-plugins-official', version: '1.3.1', enabled: true },
+]
+
+export const SETUP_FILES = {
+  'docs/agents/issue-tracker.md': '# Issue tracker: Local Markdown\n',
+  'docs/agents/domain.md': '# Domain Docs\n',
+  'CLAUDE.md': '# Rules\n',
+}
+
+export const MATT_SKILLS = [
+  'grill-with-docs',
+  'to-spec',
+  'to-tickets',
+  'implement-spec',
+  'code-review',
+  'triage',
+  'diagnosing-bugs',
+]
+
+const AT = '2026-10-24T10:00:00Z'
+
+export const featureJson = (over: Record<string, unknown> = {}) =>
+  JSON.stringify({
+    version: 1,
+    spec: '#42',
+    title: 'Export invoices as CSV',
+    entry: 'align',
+    integrationBranch: 'feat/csv',
+    marks: { align: { ranAt: AT }, spec: { ranAt: AT } },
+    agents: {},
+    ...over,
+  })
+
+export const specFile = '---\ntype: spec\nstatus: ready-for-agent\n---\n# Export invoices as CSV\n'
+
+export const ticketFile = (title: string, blockedBy: number[] = []) =>
+  `---\ntype: ticket\nstatus: ready-for-agent\nparent: 42\n${
+    blockedBy.length > 0 ? `blocked-by: [${blockedBy.join(', ')}]\n` : ''
+  }---\n# ${title}\n`
+
+/** A repo with Craftory set up and one feature with its spec; `tickets` adds three more. */
+export const featureRepo = (tickets = true, feature = featureJson()): Record<string, string> => ({
+  ...SETUP_FILES,
+  '.craftory/features/42.json': feature,
+  'docs/issues/42-export-invoices.md': specFile,
+  ...(tickets && {
+    'docs/issues/43-button.md': ticketFile('Export button'),
+    'docs/issues/44-ledger.md': ticketFile('Ledger tax', [43]),
+    'docs/issues/45-filter.md': ticketFile('Date filter', [43]),
+  }),
+})
+
+export const featureWorld = (on: On, options: WorldOptions = {}) =>
+  world(on, {
+    commands: mattCommands(...MATT_SKILLS),
+    plugins: IN_RANGE,
+    ...options,
+    files: { ...featureRepo(), ...options.files },
+  })
+
+export const skillPrompt = ($: Engine, skill: string) =>
+  $.skill.prompt({
+    skill: `${MATT}:${skill}`,
+    text: '',
+    frontmatter: {},
+    source: 'plugin',
+  } as never)
+
+export const turnComplete = ($: Engine, extra: Record<string, unknown> = {}) =>
+  $.turn.complete({
+    answer: 'ok',
+    durationMs: 1,
+    isAborted: false,
+    turnId: 't',
+    reason: 'answer',
+    ...extra,
+  } as never)
+
+export const submit = ($: Engine, text: string) => $.prompt.submit({ text } as never)

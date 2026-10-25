@@ -42,11 +42,6 @@ export const LOCK_PATH = 'M3 7h10v7H3zM5.5 7V5a2.5 2.5 0 0 1 5 0v2'
 
 export const inboxSvg = (color: string) => stroke(`<path d="${INBOX_PATH}"/>`, color)
 export const lockSvg = (color: string) => stroke(`<path d="${LOCK_PATH}"/>`, color)
-export const gearSvg = (color: string) =>
-  stroke(
-    '<circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.7M8 12.5v1.7M1.8 8h1.7M12.5 8h1.7M3.6 3.6l1.2 1.2M11.2 11.2l1.2 1.2M12.4 3.6l-1.2 1.2M4.8 11.2l-1.2 1.2"/>',
-    color,
-  )
 export const helperSvg = (color: string) =>
   stroke('<path d="M8 2L14 5 8 8 2 5zM2 8l6 3 6-3M2 11l6 3 6-3"/>', color)
 export const closeSvg = (color: string) => stroke('<path d="M4 4l8 8M12 4l-8 8"/>', color)
