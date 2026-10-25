@@ -468,6 +468,11 @@ declare module 'claude-code' {
       active: FeatureKey | null
       running: Running | null
       build: BuildLedger
+      /**
+       * Why Craftory cannot steer Build agents here (a worktree could not be made), shown as an
+       * info row on the Build card; null when steering works.
+       */
+      steeringNote: string | null
       passes: GatePass[]
       notices: EventNotice[]
       dismissed: NoticeKey[]
@@ -481,6 +486,8 @@ declare module 'claude-code' {
       openStep: PhaseId | 'triage' | null
       isPickingFeature: boolean
       paneTab: PaneTab
+      /** The Diff line a Worktrees row shows, by worktree path. */
+      diffs: Record<string, string>
       settingsSection: SettingsSection
       termDraft: TermDraft
       glossaryQuery: string

@@ -35,6 +35,22 @@ export type WorldOptions = {
   store?: Record<string, unknown>
   /** What `gh` prints, by argv; absent means `gh` is not installed. */
   gh?: (argv: readonly string[]) => { exitCode: number; stdout: string } | undefined
+  /** What git, cp and the setup command answer, by argv and cwd; absent means "not found". */
+  shell?: (
+    argv: readonly string[],
+    cwd: string | undefined,
+  ) => { exitCode: number; stdout?: string; stderr?: string } | undefined
+  /** The label `$.ui.ask` resolves to for a question; absent or undefined rejects, as in `-p`. */
+  ask?: (question: string) => string | undefined
+  /** What the engine answers an `agent.spawn` that reaches it. */
+  spawn?: (e: { tool_use_id: string; cwd?: string }) => { agentId: string } | { deny: string }
+  /** The usage a subagent's `turn.step` reports when it reaches the engine. */
+  usage?: (e: { agentId?: string; index: number }) => {
+    input_tokens: number
+    output_tokens: number
+    cache_creation_input_tokens: number
+    cache_read_input_tokens: number
+  }
   /** From its `onRead`th read on, `path` reads as `text`: someone else edited it meanwhile. */
   racy?: { path: string; onRead: number; text: string }
 }
@@ -56,6 +72,11 @@ export const world = (on: On, options: WorldOptions = {}) => {
   const toastTimeouts: (number | undefined)[] = []
   const statuses: (string | undefined)[] = []
   const commandsRun: { command: string; args: string }[] = []
+  const ranIn: { argv: string[]; cwd: string | undefined }[] = []
+  const calls: Record<string, unknown>[] = []
+  const spawns: Record<string, unknown>[] = []
+  const steps: { agentId?: string; index: number }[] = []
+  const sent: { to: unknown; text: string }[] = []
   const registered: { name: string; immediate?: boolean }[] = []
   let commands = options.commands ?? []
 
@@ -88,7 +109,41 @@ export const world = (on: On, options: WorldOptions = {}) => {
     (_$, e) => (toasts.push(e.text), toastTimeouts.push(e.timeoutMs), { value: undefined }),
   )
   on('ui.status', (_$, e) => (statuses.push(e.text), { value: undefined }))
-  on('tool.call', () => ({ result: 'ran' }))
+  on('tool.call', (_$, e) => {
+    calls.push({ ...e })
+    if (e.tool === 'AskUserQuestion') {
+      const question = (e as unknown as { questions: { question: string }[] }).questions[0]!
+        .question
+      const label = options.ask?.(question)
+      return label === undefined
+        ? { deny: 'no one to ask' }
+        : { result: { questions: [], answers: { [question]: label } } as never }
+    }
+    return { result: 'ran' }
+  })
+  on('session.cwd', () => ({ value: '/repo' }))
+  on(
+    'session.send',
+    (_$, e) => (sent.push({ to: e.to, text: e.text }), { isDelivered: true as const }),
+  )
+  on('agent.spawn', (_$, e) => {
+    spawns.push({ ...e })
+    const answer = options.spawn?.(e) ?? { agentId: `agent-${e.tool_use_id}` }
+    return 'deny' in answer ? answer : { model: 'sonnet', agentId: answer.agentId }
+  })
+  on('turn.step', async function* (_$, e) {
+    yield* []
+    steps.push({ ...(e.agentId && { agentId: e.agentId }), index: e.index })
+    const usage = options.usage?.(e) ?? null
+    return {
+      turnId: e.turnId,
+      index: e.index,
+      answer: '',
+      toolUses: [],
+      stopReason: 'end_turn',
+      usage: usage && { ...usage, model: 'sonnet' },
+    } as never
+  })
   on('skill.prompt', (_$, e) => ({ text: `body of ${e.skill}` }))
   on('turn.complete', (_$, e) => ({ text: e.answer }))
   on('prompt.submit', (_$, e) => ({ text: e.text }))
@@ -131,6 +186,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   })
   on('process.run', (_$, e) => {
     ran.push([...e.argv])
+    ranIn.push({ argv: [...e.argv], cwd: e.init?.cwd })
     const done = (exitCode: number, stdout = '', stderr = '') => ({
       value: { exitCode, stdout, stderr, isStdoutTruncated: false, isStderrTruncated: false },
     })
@@ -146,6 +202,8 @@ export const world = (on: On, options: WorldOptions = {}) => {
       const outcome = options.install ?? { exitCode: 0, stderr: '' }
       return done(outcome.exitCode, '', outcome.stderr)
     }
+    const shelled = a === 'claude' || a === 'gh' ? undefined : options.shell?.(e.argv, e.init?.cwd)
+    if (shelled) return done(shelled.exitCode, shelled.stdout ?? '', shelled.stderr ?? '')
     if (a === 'gh') {
       const answer = options.gh?.(e.argv)
       if (answer) return done(answer.exitCode, answer.stdout)
@@ -163,6 +221,11 @@ export const world = (on: On, options: WorldOptions = {}) => {
     toastTimeouts,
     statuses,
     commandsRun,
+    ranIn,
+    calls,
+    spawns,
+    steps,
+    sent,
     registered,
     store,
     setCommands: (next: CommandInfo[]) => {

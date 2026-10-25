@@ -11,6 +11,35 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderSurface, Timer } from 'claude-code'
 
 import {
+  addPending,
+  budgetFor,
+  cleanupPlan,
+  conflictText,
+  decideSpawn,
+  dropPending,
+  EMPTY_LEDGER,
+  finishRun,
+  freshTokens,
+  isBuilding,
+  markStopping,
+  moveNotices,
+  patchRun,
+  recordOf,
+  recordUsage,
+  samePath,
+  seated,
+  stopText,
+  stoppedAnswer,
+  stoppedStep,
+  tddStepOf,
+  withoutIsolation,
+  addQueued,
+  type FinishReason,
+  type KeepWhy,
+  type SpawnDecision,
+} from '../src/build'
+
+import {
   configOf,
   configWrite,
   CONFIG_PATH,
@@ -57,6 +86,18 @@ import {
   type SetupSignals,
 } from '../src/agents-md'
 import { GITIGNORE, isShared, isWritable, type FileWrite, type WritableContext } from '../src/files'
+import {
+  assembleGit,
+  gitStep2,
+  parseRemote,
+  parseWorktreeList,
+  removalTargets,
+  ticketOfBranch,
+  tipArgv,
+  worktreeAddArgv,
+  worktreeListArgv,
+  worktreeRemoveArgv,
+} from '../src/git'
 import { checkRun, consumePass, dropText, issuePass, type RunRequest } from '../src/gates'
 import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
@@ -81,16 +122,20 @@ import { parseColorFgBg, SYSTEM_PROBES } from '../src/appearance'
 import { resolveTone, SPIN_MS, type Tone } from '../src/theme'
 import { parseGlossary } from '../src/glossary'
 import type {
+  AgentId,
+  AgentRun,
   EventNotice,
   FeatureKey,
   FeatureRecord,
   GateSignalBasis,
+  GitSnapshot,
   InstallState,
   IsoTime,
   PaneTab,
   PhaseId,
   RepoSnapshot,
   Running,
+  SeatPlan,
   SkillName,
 } from '../types'
 
@@ -100,6 +145,12 @@ const REFRESH_DEBOUNCE_MS = 800
 const TRACKER_TIMEOUT_MS = 20_000
 const APPEARANCE_MS = 5_000
 const APPEARANCE_PROBE_TIMEOUT_MS = 1500
+const RUN_ANYWAY = 'Run anyway'
+const DIAGNOSE_FIRST = 'Diagnose first'
+const DIAGNOSE_REASON =
+  'The user chose to diagnose first, so code-review does not run yet. Tell them what is failing in Build and run the mattpocock-skills:diagnosing-bugs skill on it.'
+const keptReason = (path: string, why: KeepWhy) =>
+  `Craftory keeps ${path}: ${why === 'running' ? 'an agent is still working in it' : `its agent ${why === 'failed' ? 'failed' : why === 'over-budget' ? 'ran out of token budget' : 'was stopped'}, and the user decides what happens to its work`}. Do not remove it. Clean up the other worktrees and leave this one.`
 
 // ─── Atoms (one owner each, listed with the code that writes them) ──────────────────────
 //
@@ -122,6 +173,11 @@ const APPEARANCE_PROBE_TIMEOUT_MS = 1500
 // passes      Run anyway (issue), prompt.submit (consume)
 // notices     addNotice (a held gate, a published spec) and the Dismiss buttons
 // signals     settle (the toast basis)
+// build       the Build hooks: tool.call Agent (pending, queued), agent.spawn (seated), turn.step
+//             (tokens), turn.complete (finish); Pause all
+// git         refreshGit (session.start, after a seat, a finish and a git command by an agent)
+// steeringNote  agent.spawn, when a worktree cannot be made
+
 // openStep    the rail's steps and the card's Close
 // isPickingFeature  the feature switcher
 
@@ -148,6 +204,9 @@ const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
 const passesState = atom({ plugin: 'craftory', key: 'passes' } as const, [])
 const noticesState = atom({ plugin: 'craftory', key: 'notices' } as const, [])
 const signalsState = atom({ plugin: 'craftory', key: 'signals' } as const, null)
+const buildState = atom({ plugin: 'craftory', key: 'build' } as const, EMPTY_LEDGER)
+const gitState = atom({ plugin: 'craftory', key: 'git' } as const, null)
+const steeringNoteState = atom({ plugin: 'craftory', key: 'steeringNote' } as const, null)
 const openStepState = atom({ plugin: 'craftory', key: 'openStep' } as const, null)
 const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
 
@@ -346,17 +405,18 @@ async function writeSetup($: EngineInterface) {
 const isoOf = (ms: number): IsoTime => new Date(ms).toISOString()
 
 async function currentFlow($: EngineInterface): Promise<Flow | null> {
-  const [repo, features, drafts, active, tracker, running] = await Promise.all([
+  const [repo, features, drafts, active, tracker, running, build] = await Promise.all([
     read($, repoState),
     read($, featuresState),
     read($, draftsState),
     read($, activeState),
     read($, trackerState),
     read($, runningState),
+    read($, buildState),
   ])
   const feature = featureOf(active, features, drafts)
   if (feature === null) return null
-  return deriveFlow({ feature, config: configOf(repo?.config), tracker, running })
+  return deriveFlow({ feature, config: configOf(repo?.config), tracker, running, build })
 }
 
 /** The tracker kind named in `docs/agents/issue-tracker.md`; Local until setup says otherwise. */
@@ -424,6 +484,7 @@ async function refreshTracker($: EngineInterface) {
     await update($, trackerState, () => snapshot)
   }
   await bindDrafts($)
+  await cleanupMerged($)
   await settle($)
 }
 
@@ -617,6 +678,279 @@ async function requestRun($: EngineInterface, skill: SkillName, args: string) {
   if (await holdForGate($, req, await currentFlow($))) return
   await update($, openStepState, () => null)
   await $.command.run({ command: namespaced(skill), args })
+}
+
+// ─── Build: seats, budgets and worktrees ────────────────────────────────────────────────
+
+const GIT_MS = 15_000
+const SETUP_MS = 600_000
+const GIT_DEBOUNCE_MS = 1_500
+
+/** The integration tip last announced to each agent, so a moved tip is told once. */
+const told = new Map<string, string>()
+let gitTimer: Timer | undefined
+
+type Shell = { exitCode: number; stdout: string; stderr: string }
+
+/** One command; null when it cannot start, which every caller treats as a failed command. */
+const sh = (
+  $: EngineInterface,
+  argv: readonly string[],
+  init?: { cwd?: string; timeoutMs?: number },
+): Promise<Shell | null> => $.process.run(argv, { timeoutMs: GIT_MS, ...init }).catch(() => null)
+
+async function activeRecord($: EngineInterface): Promise<FeatureRecord | null> {
+  const feature = featureOf(
+    await read($, activeState),
+    await read($, featuresState),
+    await read($, draftsState),
+  )
+  return feature?.kind === 'specced' ? feature.record : null
+}
+
+/** The feature a ticket belongs to: its spec is the ticket's parent in the tracker. */
+async function featureOfTicket($: EngineInterface, ticket: string): Promise<FeatureRecord | null> {
+  const tracker = await read($, trackerState)
+  const parent = tracker?.rich ? tracker.issues.find(i => i.ref === ticket)?.parent : null
+  return parent ? ((await read($, featuresState))[parent] ?? null) : null
+}
+
+async function persistRun($: EngineInterface, run: AgentRun) {
+  const record = (await featureOfTicket($, run.ticket)) ?? (await activeRecord($))
+  if (record !== null)
+    await recordChange($, specKey(record.spec), { kind: 'agent', record: recordOf(run) })
+}
+
+type Seat = { ok: true; isFresh: boolean; path: string } | { ok: false; reason: string }
+
+/**
+ * Makes the worktree an implementer will work in: `git worktree add -b <branch> <path> <base>`,
+ * the files to copy, then the setup command in it. A worktree that is already there (a retry of
+ * a kept one) is reused as it is.
+ */
+async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
+  const root = await $.session.cwd()
+  const path = `${root}/${plan.path}`
+  const listed = await sh($, worktreeListArgv)
+  if (listed === null || listed.exitCode !== 0) return { ok: false, reason: 'git is not available' }
+  if (parseWorktreeList(listed.stdout).some(w => samePath(w.path, plan.path)))
+    return { ok: true, isFresh: false, path }
+  const hasBranch = (await sh($, tipArgv(plan.branch)))?.exitCode === 0
+  const added = await sh($, worktreeAddArgv(plan.branch, plan.path, plan.base, hasBranch))
+  if (added === null || added.exitCode !== 0)
+    return { ok: false, reason: added?.stderr.trim() || 'git worktree add failed' }
+  for (const file of plan.copy) {
+    if (await exists($, file)) await sh($, ['cp', '--', file, `${plan.path}/${file}`])
+  }
+  if (plan.setup !== null) {
+    const setup = await sh($, plan.setup, { cwd: path, timeoutMs: SETUP_MS })
+    if (setup === null || setup.exitCode !== 0)
+      $.ui.toast(`Setup failed in ${plan.path} · the agent starts anyway`)
+  }
+  return { ok: true, isFresh: true, path }
+}
+
+async function refreshGit($: EngineInterface) {
+  const [repo, features, tracker, ledger] = await Promise.all([
+    read($, repoState),
+    read($, featuresState),
+    read($, trackerState),
+    read($, buildState),
+  ])
+  const config = configOf(repo?.config)
+  const listed = await sh($, worktreeListArgv)
+  if (listed === null || listed.exitCode !== 0) return
+  const entries = parseWorktreeList(listed.stdout)
+  const main = entries[0]
+  if (main === undefined) return
+  const records = Object.values(features)
+  const integrationBranches = [...new Set(records.map(r => r.integrationBranch).filter(Boolean))]
+  const baseOfBranch = new Map<string, string>()
+  for (const record of records)
+    for (const agent of Object.values(record.agents))
+      baseOfBranch.set(agent.branch, record.integrationBranch)
+  for (const run of Object.values(ledger.runs)) {
+    const parent = tracker?.rich ? tracker.issues.find(i => i.ref === run.ticket)?.parent : null
+    const integration = parent ? features[parent]?.integrationBranch : undefined
+    if (integration) baseOfBranch.set(run.branch, integration)
+  }
+  const bases: Record<string, string> = {}
+  for (const e of entries) {
+    if (e.isMain || e.branch === null) continue
+    const base = integrationBranches.includes(e.branch)
+      ? main.branch
+      : (baseOfBranch.get(e.branch) ??
+        (ticketOfBranch(e.branch, config.worktrees.ticketBranch)
+          ? integrationBranches[0]
+          : undefined))
+    if (base) bases[e.path] = base
+  }
+  const asked = gitStep2({ entries, bases, integrationBranches })
+  const answers = await Promise.all(asked.map(argv => sh($, argv)))
+  const results = new Map<string, string>()
+  asked.forEach((argv, i) => {
+    const answer = answers[i]
+    if (answer?.exitCode === 0) results.set(argv.join(' '), answer.stdout)
+  })
+  const live = Object.values(ledger.runs).filter(r => r.status === 'running')
+  const snapshot = assembleGit({
+    root: main.path,
+    branch: main.branch,
+    remote: parseRemote(await remoteUrl($)),
+    entries,
+    bases,
+    results,
+    config: configOf(repo?.config),
+    integrationBranches,
+    runningPaths: new Set(
+      entries.filter(e => live.some(r => samePath(e.path, r.worktree))).map(e => e.path),
+    ),
+    now: await $.clock.now(),
+  })
+  await update($, gitState, () => snapshot)
+  await afterGit($, snapshot, config.worktrees.rebaseOnMove)
+  $.ui.invalidate('ui.render')
+}
+
+/** What a new look at git asks of the running agents: merge the moved tip, or stop on a conflict. */
+async function afterGit($: EngineInterface, snapshot: GitSnapshot, rebaseOnMove: boolean) {
+  const ledger = await read($, buildState)
+  for (const run of Object.values(ledger.runs)) {
+    if (run.status !== 'running' || run.isStopping) continue
+    const w = snapshot.worktrees.find(x => samePath(x.path, run.worktree))
+    if (w?.isRebasing) {
+      await update($, buildState, held => markStopping(held, run.agentId))
+      await $.session.send({ to: { agentId: run.agentId }, text: conflictText(run.ticket) })
+      await addNotice($, {
+        kind: 'rebase-conflict',
+        id: `conflict-${run.ticket}`,
+        ticket: run.ticket,
+        worktree: run.worktree,
+      })
+      await settle($)
+      continue
+    }
+    if (!rebaseOnMove) continue
+    const integration = (await featureOfTicket($, run.ticket))?.integrationBranch
+    const tip = integration === undefined ? undefined : snapshot.tips[integration]
+    if (integration === undefined || !tip || told.get(run.agentId) === tip) continue
+    const [note] = moveNotices(
+      { ...ledger, runs: { [run.agentId]: run } },
+      snapshot.worktrees,
+      integration,
+    )
+    if (note === undefined) continue
+    told.set(run.agentId, tip)
+    await $.session.send({ to: { agentId: note.agentId }, text: note.text })
+  }
+}
+
+/** Reads git a moment after the last git command an agent ran, so a burst costs one read. */
+function scheduleGit($: EngineInterface) {
+  gitTimer?.cancel()
+  gitTimer = $.clock.after(GIT_DEBOUNCE_MS, () => void refreshGit($))
+}
+
+async function cleanupInputs($: EngineInterface) {
+  const [repo, features, tracker, ledger, git] = await Promise.all([
+    read($, repoState),
+    read($, featuresState),
+    read($, trackerState),
+    read($, buildState),
+    read($, gitState),
+  ])
+  const merged = new Set(
+    tracker?.rich
+      ? tracker.issues
+          .filter(i => i.status === 'done' || i.status === 'closed')
+          .map(i => i.ref as string)
+      : [],
+  )
+  const plan = cleanupPlan({
+    records: Object.values(features).flatMap(f => Object.values(f.agents)),
+    merged,
+    config: configOf(repo?.config),
+    running: new Set(
+      Object.values(ledger.runs)
+        .filter(r => r.status === 'running')
+        .map(r => r.worktree),
+    ),
+  })
+  return { plan, git }
+}
+
+/** Removes the worktrees of merged tickets (removeAfterMerge). A dirty one refuses, which is right. */
+async function cleanupMerged($: EngineInterface) {
+  const { plan, git } = await cleanupInputs($)
+  if (git === null) return
+  const gone = plan.remove.filter(p => git.worktrees.some(w => samePath(w.path, p)))
+  for (const path of gone) await sh($, worktreeRemoveArgv(path))
+  if (gone.length > 0) await refreshGit($)
+}
+
+/** Worktrees a `git worktree remove` must not touch: running, failed, over-budget or stopped ones. */
+async function keptWorktrees($: EngineInterface): Promise<{ path: string; why: KeepWhy }[]> {
+  const { plan } = await cleanupInputs($)
+  return plan.keep.filter(k => k.why !== 'unmerged')
+}
+
+async function countStep(
+  $: EngineInterface,
+  agentId: AgentId,
+  result: {
+    answer: string
+    usage: {
+      input_tokens: number
+      output_tokens: number
+      cache_creation_input_tokens: number
+    } | null
+  },
+) {
+  const at = await $.clock.now()
+  const tdd = tddStepOf(result.answer)
+  const seen: { crossed: 'near' | 'over' | null; run: AgentRun | null } = {
+    crossed: null,
+    run: null,
+  }
+  await update($, buildState, ledger => {
+    const used = recordUsage(
+      ledger,
+      agentId,
+      result.usage === null ? 0 : freshTokens(result.usage),
+      at,
+    )
+    seen.crossed = used.crossed
+    seen.run = used.run
+    return tdd === null ? used.ledger : patchRun(used.ledger, agentId, { tddStep: tdd })
+  })
+  const { crossed, run } = seen
+  if (run === null) return
+  if (crossed === null) return $.ui.invalidate('ui.render')
+  if (crossed === 'over') {
+    await $.session.send({ to: { agentId }, text: stopText(run.ticket, run.budget) })
+    await addNotice($, {
+      kind: 'budget',
+      id: `budget-${run.ticket}`,
+      ticket: run.ticket,
+      budget: run.budget,
+    })
+  }
+  await persistRun($, run)
+  await settle($)
+}
+
+async function finishAgent($: EngineInterface, agentId: AgentId, reason: FinishReason) {
+  const at = await $.clock.now()
+  const done: { run: AgentRun | null } = { run: null }
+  await update($, buildState, ledger => {
+    const finished = finishRun(ledger, agentId, reason, at)
+    done.run = finished.run
+    return finished.ledger
+  })
+  if (done.run === null) return
+  await persistRun($, done.run)
+  await refreshGit($)
+  await refreshTracker($)
 }
 
 // ─── UI helpers ─────────────────────────────────────────────────────────────────────────
@@ -815,6 +1149,7 @@ export const register: Register = (on, options) => {
     }
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($)])
     await refreshTracker($)
+    await refreshGit($)
     await settle($)
     return next(e)
   })
@@ -873,7 +1208,10 @@ export const register: Register = (on, options) => {
 
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
-    if (e.agentId !== undefined) return result
+    if (e.agentId !== undefined) {
+      await finishAgent($, e.agentId as AgentId, e.reason)
+      return result
+    }
     const running = await read($, runningState)
     if (running !== null && !running.isAwaitingUser) {
       const grillAsksNext = running.phase === 'align' && !e.isAborted
@@ -902,7 +1240,139 @@ export const register: Register = (on, options) => {
       ...('file_path' in e && typeof e.file_path === 'string' && { path: e.file_path }),
     }
     if (await touchesTracker($, tool)) scheduleRefresh($)
+    if (e.tool === 'Bash' && /\bgit\b/.test(tool.command ?? '')) {
+      const ledger = await read($, buildState)
+      if (Object.keys(ledger.runs).length > 0) scheduleGit($)
+    }
     return result
+  })
+
+  on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
+    if (e.agentId !== undefined) return next(e)
+    const [flow, repo, record] = await Promise.all([
+      currentFlow($),
+      read($, repoState),
+      activeRecord($),
+    ])
+    if (flow === null || record === null) return next(e)
+    const at = await $.clock.now()
+    const decided: { value: SpawnDecision } = { value: { kind: 'pass' } }
+    await update($, buildState, ledger => {
+      const decision = decideSpawn({
+        call: {
+          toolUseId: e.tool_use_id,
+          description: e.description,
+          prompt: e.prompt,
+          ...(e.name !== undefined && { name: e.name }),
+          ...(e.isolation !== undefined && { isolation: e.isolation }),
+        },
+        ledger,
+        config: configOf(repo?.config),
+        isBuildRunning: isBuilding(flow),
+        tickets: flow.tickets,
+        integrationBranch: record.integrationBranch,
+      })
+      decided.value = decision
+      if (decision.kind === 'steer') return addPending(ledger, e.tool_use_id, decision.plan, at)
+      if (decision.kind === 'deny' && decision.isQueued) return addQueued(ledger, decision.ticket)
+      return ledger
+    })
+    const decision = decided.value
+    if (decision.kind === 'pass') return next(e)
+    if (decision.kind === 'deny') {
+      await settle($)
+      return { deny: decision.reason }
+    }
+    // On success the spawn already moved the seat to a run; only a refused or failed call is forgotten.
+    const forget = () => update($, buildState, ledger => dropPending(ledger, e.tool_use_id))
+    try {
+      const result = await next({ ...withoutIsolation(e), name: decision.name })
+      if (result.deny !== undefined || result.isError === true) await forget()
+      return result
+    } catch (error) {
+      await forget()
+      throw error
+    }
+  })
+
+  on('agent.spawn', async ($, e, next) => {
+    const seat = (await read($, buildState)).pending[e.tool_use_id]
+    if (seat === undefined) return next(e)
+    const { plan } = seat
+    const placed = await seatWorktree($, plan)
+    if (!placed.ok) {
+      const note = `Craftory could not make ${plan.path}: ${placed.reason}`
+      await update($, steeringNoteState, () => note)
+      await settle($)
+      return {
+        deny: `${note}. Do not start ${plan.ticket} until that is fixed; tell the user what git said.`,
+      }
+    }
+    await update($, steeringNoteState, () => null)
+    const undo = async () => {
+      if (placed.isFresh) await sh($, worktreeRemoveArgv(plan.path, true))
+    }
+    let result
+    try {
+      result = await next({ ...e, cwd: placed.path })
+    } catch (error) {
+      await undo()
+      throw error
+    }
+    if (result.deny !== undefined || result.agentId === undefined) {
+      await undo()
+      return result
+    }
+    const repo = await read($, repoState)
+    const old = (await featureOfTicket($, plan.ticket))?.agents[plan.ticket]
+    const budget = budgetFor(configOf(repo?.config), old)
+    const at = await $.clock.now()
+    const agentId = result.agentId as AgentId
+    await update($, buildState, ledger => seated(ledger, e.tool_use_id, agentId, budget, at))
+    const run = (await read($, buildState)).runs[agentId]
+    if (run !== undefined) await persistRun($, run)
+    await refreshGit($)
+    await settle($)
+    return result
+  })
+
+  on('turn.step', async function* ($, e, next) {
+    const agentId = e.agentId as AgentId | undefined
+    const run = agentId === undefined ? undefined : (await read($, buildState)).runs[agentId]
+    if (agentId === undefined || run === undefined || run.status !== 'running')
+      return yield* next(e)
+    if (run.isStopping) {
+      yield { kind: 'text', index: 0, text: stoppedAnswer(run) }
+      return stoppedStep(e.turnId, e.index, run)
+    }
+    const result = yield* next(e)
+    await countStep($, agentId, result)
+    return result
+  })
+
+  on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
+    const found = recognise(e.skill, { strict: false })
+    if (found?.kind !== 'phase' || found.phase !== 'review') return next(e)
+    const req: RunRequest = { skill: found.skill, args: e.args ?? '', phase: 'review' }
+    const verdict = checkRun(
+      req,
+      await currentFlow($),
+      await read($, passesState),
+      await $.clock.now(),
+    )
+    if (verdict.kind === 'go') return next(e)
+    const answer = await $.ui
+      .ask(verdict.text, [RUN_ANYWAY, DIAGNOSE_FIRST])
+      .catch(() => RUN_ANYWAY)
+    return answer === DIAGNOSE_FIRST ? { deny: DIAGNOSE_REASON } : next(e)
+  })
+
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const targets = removalTargets(e.command)
+    if (targets.length === 0) return next(e)
+    const kept = await keptWorktrees($)
+    const hit = kept.find(k => targets.some(t => samePath(t, k.path) || samePath(k.path, t)))
+    return hit === undefined ? next(e) : { deny: keptReason(hit.path, hit.why) }
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {

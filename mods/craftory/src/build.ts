@@ -29,7 +29,7 @@ import type {
   Worktree,
 } from '../types'
 import { slugify, ticketBranchFor } from './config'
-import type { TicketRow } from './evidence'
+import type { Flow, TicketRow } from './evidence'
 
 export const EMPTY_LEDGER: BuildLedger = { pending: {}, runs: {}, queued: [], isPaused: false }
 
@@ -130,6 +130,22 @@ export const runOf = (ledger: BuildLedger, ticket: IssueRef): AgentRun | undefin
   Object.values(ledger.runs)
     .filter(run => run.ticket === ticket)
     .sort((a, b) => b.startedAt - a.startedAt)[0]
+
+/** Build is under way: the skill runs, agents work, or one needs the user. */
+export const isBuilding = (flow: Flow | null): boolean => {
+  const kind = flow?.steps.find(s => s.phase === 'build')?.state.kind
+  return kind === 'running' || kind === 'needs-you' || kind === 'over-budget' || kind === 'failed'
+}
+
+/**
+ * The Agent input without `isolation`: the engine refuses a spawn that has both `cwd` and
+ * `isolation: 'worktree'`, and Craftory seats the agent through `cwd` (M4 spike).
+ */
+export const withoutIsolation = <T extends object>(call: T): Omit<T, 'isolation'> =>
+  Object.fromEntries(Object.entries(call).filter(([key]) => key !== 'isolation')) as Omit<
+    T,
+    'isolation'
+  >
 
 // ─── Deciding a spawn ───────────────────────────────────────────────────────────────────
 
