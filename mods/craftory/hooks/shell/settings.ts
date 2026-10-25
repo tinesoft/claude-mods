@@ -120,14 +120,23 @@ async function confirmFirstWrites(
   return true
 }
 
+type WriteResult =
+  | { kind: 'noop' }
+  | { kind: 'declined' }
+  | {
+      kind: 'refused'
+      cause: { kind: 'not-json'; path: string } | { kind: 'write'; problem: string }
+    }
+  | { kind: 'saved'; wrote: string[] }
+
 async function commitWrites(
   $: EngineInterface,
   writes: readonly FileWrite[],
   ctx: WritableContext,
-): Promise<string> {
+): Promise<WriteResult> {
   const real = writes.filter(w => w.after !== w.before)
-  if (real.length === 0) return 'Everything is already as you set it.'
-  if (!(await confirmFirstWrites($, real, ctx))) return 'Not written. Nothing changed.'
+  if (real.length === 0) return { kind: 'noop' }
+  if (!(await confirmFirstWrites($, real, ctx))) return { kind: 'declined' }
   const settled: FileWrite[] = []
   for (const write of real) {
     if (write.replan === undefined) {
@@ -138,12 +147,33 @@ async function commitWrites(
     try {
       settled.push({ path: write.path, before: current, after: write.replan(current) })
     } catch {
-      return `${write.path} is not valid JSON any more. Nothing was written.`
+      return { kind: 'refused', cause: { kind: 'not-json', path: write.path } }
     }
   }
   const { wrote, refused } = await applyWrites($, settled, ctx)
   await loadRepo($)
-  return refused ? `${refused}. Nothing more was written; try again.` : `Saved ${wrote.join(', ')}.`
+  return refused === null
+    ? { kind: 'saved', wrote }
+    : { kind: 'refused', cause: { kind: 'write', problem: refused } }
+}
+
+function writeNote(result: WriteResult): string {
+  switch (result.kind) {
+    case 'noop':
+      return 'Everything is already as you set it.'
+    case 'declined':
+      return 'Not written. Nothing changed.'
+    case 'refused':
+      return result.cause.kind === 'not-json'
+        ? `${result.cause.path} is not valid JSON any more. Nothing was written.`
+        : `${result.cause.problem}. Nothing more was written; try again.`
+    case 'saved':
+      return `Saved ${result.wrote.join(', ')}.`
+    default: {
+      const _exhaustive: never = result
+      return _exhaustive
+    }
+  }
 }
 
 async function say($: EngineInterface, note: string | null) {
@@ -181,7 +211,7 @@ async function commitChange($: EngineInterface, change: SettingsChange) {
   })
   if (change.setup && current.isDraft) await update($, setupDraftState, () => nextSetup)
   const ctx = await settingsContext($, nextSetup, nextConfig.tracker.local.folder)
-  await say($, writes.length === 0 ? null : await commitWrites($, writes, ctx))
+  await say($, writes.length === 0 ? null : writeNote(await commitWrites($, writes, ctx)))
   if (writes.length > 0) await refreshTracker($)
   await settle($)
 }
@@ -219,9 +249,9 @@ async function saveSetup($: EngineInterface) {
       ...configWrite(configText),
     ]
     const ctx = await settingsContext($, current.setup, config.tracker.local.folder)
-    const note = await commitWrites($, writes, ctx)
+    const result = await commitWrites($, writes, ctx)
     await update($, setupDraftState, () => null)
-    await say($, note)
+    await say($, writeNote(result))
     await refreshTracker($)
   } catch (error) {
     await say($, `Setup failed: ${error instanceof Error ? error.message : String(error)}`)
@@ -242,13 +272,13 @@ async function resetSettings($: EngineInterface) {
   const config = configOf(parseConfig(configText))
   const defaults = patchConfig(null, {})
   const ctx = await settingsContext($, setup, config.tracker.local.folder)
-  const note = await commitWrites(
+  const result = await commitWrites(
     $,
     [{ path: CONFIG_PATH, before: configText, after: defaults }],
     ctx,
   )
   await resetPrefs($)
-  await say($, note === 'Everything is already as you set it.' ? 'Already at the defaults.' : note)
+  await say($, result.kind === 'noop' ? 'Already at the defaults.' : writeNote(result))
   await refreshTracker($)
   await settle($)
 }
@@ -337,14 +367,14 @@ async function changeGlossary(
     return $.ui.invalidate('ui.render')
   }
   const config = configOf((await repoSnapshot($))?.config)
-  const note = await commitWrites(
+  const result = await commitWrites(
     $,
     [{ path, before: raw, after: serialiseGlossary(next) }],
     await settingsContext($, setup, config.tracker.local.folder),
   )
   await update($, termErrorState, () => null)
   await update($, termDraftState, () => EMPTY_DRAFT)
-  await say($, done?.(path) ?? note)
+  await say($, done?.(path) ?? writeNote(result))
   $.ui.invalidate('ui.render')
 }
 
