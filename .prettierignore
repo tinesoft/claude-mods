@@ -3,3 +3,5 @@ tools/claude-code-types
 **/CHANGELOG.md
 .nx
 design
+mods/craftory/tests/fixtures
+mods/craftory/tests/upstream-fixtures.ts
