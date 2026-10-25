@@ -7,66 +7,85 @@
  *
  * Hooks are `($, e, next)` and return `next(e)`'s result unless they deliberately answer.
  */
-import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderSurface, Timer } from 'claude-code'
-
+import {
+  atom,
+  type EngineInterface,
+  read,
+  type Register,
+  type RenderSurface,
+  type Timer,
+  update,
+} from 'claude-code'
+import {
+  AGENT_DOCS,
+  DEFAULT_DOCS,
+  DEFAULT_LABELS,
+  draftSetup,
+  ensureGitignore,
+  firstRunText,
+  planSetup,
+  readSetup,
+  remoteHostOf,
+  retargetTracker,
+  type SetupFiles,
+  type SetupSignals,
+  steeringOf,
+} from '../src/agents-md'
 import {
   addPending,
+  addQueued,
+  agentRows,
+  type AgentsView,
+  agentsView,
   budgetFor,
+  budgetK,
   budgetState,
   cleanupPlan,
   conflictText,
   decideSpawn,
   dropPending,
   EMPTY_LEDGER,
+  type FinishReason,
   finishRun,
   freshTokens,
   isBuilding,
+  type KeepWhy,
   markStopping,
-  pauseText,
   moveNotices,
   patchRun,
+  pauseText,
   recordOf,
   recordUsage,
   samePath,
   seated,
-  stopText,
+  type SpawnDecision,
   stoppedAnswer,
   stoppedStep,
+  stopText,
   tddStepOf,
   withoutIsolation,
-  addQueued,
-  agentRows,
-  agentsView,
-  budgetK,
-  type AgentsView,
-  type FinishReason,
-  type KeepWhy,
-  type SpawnDecision,
 } from '../src/build'
-
 import {
+  CONFIG_PATH,
   configOf,
   configWrite,
-  CONFIG_PATH,
   integrationBranchFor,
   parseConfig,
-  parsePrefOverrides,
   patchConfig,
-  resolvePrefs,
-  STORE_PREFS,
 } from '../src/config'
-import { deriveFlow, waitingForTriage, type Flow } from '../src/evidence'
+import { driftDiffArgv, findDrift, retroSuggestions } from '../src/drift'
 import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
+import { deriveFlow, type Flow, waitingForTriage } from '../src/evidence'
 import {
   applyChange,
   applyDraftChange,
   bindSpec,
   draftKey,
   enteredRecord,
-  FEATURES_DIR,
+  type FeatureChange,
   featureOf,
   featurePath,
+  FEATURES_DIR,
   isFeatureKey,
   mergeFeature,
   newDraft,
@@ -78,30 +97,16 @@ import {
   specKey,
   STORE_DRAFTS,
   STORE_LAST_ACTIVE,
-  type FeatureChange,
 } from '../src/features'
 import {
-  AGENT_DOCS,
-  DEFAULT_DOCS,
-  draftSetup,
-  ensureGitignore,
-  firstRunText,
-  planSetup,
-  readSetup,
-  remoteHostOf,
-  retargetTracker,
-  steeringOf,
-  type SetupFiles,
-  type SetupSignals,
-} from '../src/agents-md'
-import {
   diffSummary,
+  type FileWrite,
   GITIGNORE,
   isShared,
   isWritable,
-  type FileWrite,
   type WritableContext,
 } from '../src/files'
+import { checkRun, consumePass, dropText, issuePass, type RunRequest } from '../src/gates'
 import {
   assembleGit,
   basesOf,
@@ -114,22 +119,25 @@ import {
   removalTargets,
   shortstatArgv,
   tipArgv,
-  worktreesView,
-  type WorktreesView,
   worktreeAddArgv,
   worktreeListArgv,
   worktreeRemoveArgv,
+  type WorktreesView,
+  worktreesView,
 } from '../src/git'
-import { checkRun, consumePass, dropText, issuePass, type RunRequest } from '../src/gates'
+import {
+  addTerm,
+  deleteTerm,
+  editTerm,
+  type GlossaryEditError,
+  parseGlossary,
+  serialiseGlossary,
+  termKey,
+  termsOf,
+} from '../src/glossary'
 import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
-import { glossaryView, tabCounts, ticketsView, type InboxAction } from '../src/pane-view'
-import {
-  checkText,
-  type SettingsChange,
-  type SettingsFacts,
-  type SettingsRow,
-} from '../src/sections'
+import { glossaryView, type InboxAction, tabCounts, ticketsView } from '../src/pane-view'
 import { namespaced, recognise } from '../src/phases'
 import {
   hasSkill,
@@ -137,32 +145,25 @@ import {
   INSTALL_TIMEOUT_MS,
   installOutcome,
   LIST_ARGV,
-  PROBE_TIMEOUT_MS,
   pluginLine,
   pluginStatus,
+  PROBE_TIMEOUT_MS,
   UPDATE_ARGV,
 } from '../src/plugin'
-import { renderBand, spinFrameOf, type BandActions, type FeatureChoice, type Ui } from '../src/rail'
+import { type BandActions, type FeatureChoice, renderBand, spinFrameOf } from '../src/rail'
+import { linkTerms, Reply, termKeysIn } from '../src/reply'
+import { planScratchImport, type ScratchFile, scratchSummary } from '../src/scratch'
+import {
+  checkText,
+  type SettingsChange,
+  type SettingsFacts,
+  type SettingsRow,
+} from '../src/sections'
 import type { SettingsArgs } from '../src/settings'
 import { diffSignals, signalBasis, TOAST_MS, toastText } from '../src/signals'
 import { markdownSummary, statusLine } from '../src/summary'
-import { readTracker, TRACKERS, type Read, type ReadContext, type ReadResult } from '../src/tracker'
-import { DEFAULT_LABELS } from '../src/agents-md'
-import { parseColorFgBg, SYSTEM_PROBES } from '../src/appearance'
-import { resolveTone, SPIN_MS, type Tone } from '../src/theme'
-import {
-  addTerm,
-  deleteTerm,
-  editTerm,
-  parseGlossary,
-  serialiseGlossary,
-  termKey,
-  termsOf,
-  type GlossaryEditError,
-} from '../src/glossary'
-import { driftDiffArgv, findDrift, retroSuggestions } from '../src/drift'
-import { linkTerms, Reply, termKeysIn } from '../src/reply'
-import { planScratchImport, scratchSummary, type ScratchFile } from '../src/scratch'
+import { SPIN_MS } from '../src/theme'
+import { type Read, type ReadContext, type ReadResult, readTracker, TRACKERS } from '../src/tracker'
 import type {
   AgentId,
   AgentRun,
@@ -173,8 +174,8 @@ import type {
   GitSnapshot,
   GlossaryDoc,
   InstallState,
-  IssueRef,
   IsoTime,
+  IssueRef,
   PaneTab,
   PhaseId,
   PluginStatus,
@@ -184,105 +185,105 @@ import type {
   SkillName,
   TermDraft,
 } from '../types'
+import {
+  loadPrefs,
+  resetPrefs,
+  resolvedPrefs,
+  savePrefs,
+  toneOf,
+  uiFor,
+  watchAppearance,
+} from './shell/ui'
 
 const PANE = 'craftory'
+
 const COMMAND = 'craftory'
+
 const REFRESH_DEBOUNCE_MS = 800
+
 const TRACKER_TIMEOUT_MS = 20_000
-const APPEARANCE_MS = 5_000
-const APPEARANCE_PROBE_TIMEOUT_MS = 1500
+
 const REMOVE_ANYWAY = 'Remove anyway'
+
 const KEEP_IT = 'Keep it'
+
 const RUN_ANYWAY = 'Run anyway'
+
 const DIAGNOSE_FIRST = 'Diagnose first'
+
 const DIAGNOSE_REASON =
   'The user chose to diagnose first, so code-review does not run yet. Tell them what is failing in Build and run the mattpocock-skills:diagnosing-bugs skill on it.'
+
 const keptReason = (path: string, why: KeepWhy) =>
   `Craftory keeps ${path}: ${why === 'running' ? 'an agent is still working in it' : `its agent ${why === 'failed' ? 'failed' : why === 'over-budget' ? 'ran out of token budget' : 'was stopped'}, and the user decides what happens to its work`}. Do not remove it. Clean up the other worktrees and leave this one.`
 
-// ─── Atoms (one owner each, listed with the code that writes them) ──────────────────────
-//
-// repo        loadRepo (session.start, after any write)
-// features    loadFeatures (session.start)
-// drafts      loadFeatures (session.start)
-// active      loadFeatures (session.start)
-// plugin      detectPlugin (session.start, after an install)
-// install     installPlugin (notice buttons)
-// prefs       session.start
-// dismissed   Not now (notice button); the session only
-// appearance  watchAppearance (every five seconds)
-// paneTab     openPane
-// setupNote   writeSetup (pane button)
-// tracker     refreshTracker (session.start, turn.complete, tool.call after a debounce)
-// drafts      also startDraft (skill.prompt) and bindDrafts (after a tracker read)
-// features    also recordChange and bindDrafts
-// active      also startDraft, bindDrafts and the feature switcher
-// running     skill.prompt, prompt.submit, turn.complete
-// passes      Run anyway (issue), prompt.submit (consume)
-// notices     addNotice (a held gate, a published spec) and the Dismiss buttons
-// signals     settle (the toast basis)
-// build       the Build hooks: tool.call Agent (pending, queued), agent.spawn (seated), turn.step
-//             (tokens), turn.complete (finish); Pause all
-// git         refreshGit (session.start, after a seat, a finish and a git command by an agent)
-// diffs       the Worktrees tab's Diff button
-// steeringNote  agent.spawn, when a worktree cannot be made
-// setupDraft   Settings, before docs/agents/ exists (the edits to the pre-fill)
-// askedFiles   the first-write ask: shared files confirmed this session
-// termDraft, termError, settingsSection  Settings › Glossary and its section tabs
-// glossaryQuery  the Glossary tab's search
-// lastReplyTerms  turn.complete (the terms the last reply used)
-// glossaryAtStart  session.start, once the repo is read
-
-// openStep    the rail's steps and the card's Close
-// isPickingFeature  the feature switcher
-
 const repoState = atom({ plugin: 'craftory', key: 'repo' } as const, null)
-const featuresState = atom({ plugin: 'craftory', key: 'features' } as const, {})
-const draftsState = atom({ plugin: 'craftory', key: 'drafts' } as const, {})
-const activeState = atom({ plugin: 'craftory', key: 'active' } as const, null)
-const pluginState = atom({ plugin: 'craftory', key: 'plugin' } as const, { kind: 'checking' })
-const installState = atom({ plugin: 'craftory', key: 'install' } as const, { kind: 'idle' })
-const prefsState = atom({ plugin: 'craftory', key: 'prefs' } as const, null)
-const dismissedState = atom({ plugin: 'craftory', key: 'dismissed' } as const, [])
-const appearanceState = atom({ plugin: 'craftory', key: 'appearance' } as const, {
-  system: null,
-  colorFgBg: null,
-})
 
-let appearanceTimer: Timer | undefined
+const featuresState = atom({ plugin: 'craftory', key: 'features' } as const, {})
+
+const draftsState = atom({ plugin: 'craftory', key: 'drafts' } as const, {})
+
+const activeState = atom({ plugin: 'craftory', key: 'active' } as const, null)
+
+const pluginState = atom({ plugin: 'craftory', key: 'plugin' } as const, { kind: 'checking' })
+
+const installState = atom({ plugin: 'craftory', key: 'install' } as const, { kind: 'idle' })
+
+const dismissedState = atom({ plugin: 'craftory', key: 'dismissed' } as const, [])
+
 let spinner: Timer | undefined
+
 let refreshTimer: Timer | undefined
+
 const paneTabState = atom({ plugin: 'craftory', key: 'paneTab' } as const, 'flow')
+
 const setupNoteState = atom({ plugin: 'craftory', key: 'setupNote' } as const, null)
+
 const trackerState = atom({ plugin: 'craftory', key: 'tracker' } as const, null)
+
 const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
+
 const passesState = atom({ plugin: 'craftory', key: 'passes' } as const, [])
+
 const noticesState = atom({ plugin: 'craftory', key: 'notices' } as const, [])
+
 const signalsState = atom({ plugin: 'craftory', key: 'signals' } as const, null)
+
 const buildState = atom({ plugin: 'craftory', key: 'build' } as const, EMPTY_LEDGER)
+
 const gitState = atom({ plugin: 'craftory', key: 'git' } as const, null)
+
 const diffsState = atom({ plugin: 'craftory', key: 'diffs' } as const, {})
+
 const steeringNoteState = atom({ plugin: 'craftory', key: 'steeringNote' } as const, null)
+
 const openStepState = atom({ plugin: 'craftory', key: 'openStep' } as const, null)
+
 const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
+
 const settingsSectionState = atom(
   { plugin: 'craftory', key: 'settingsSection' } as const,
   'tracker',
 )
+
 const termDraftState = atom({ plugin: 'craftory', key: 'termDraft' } as const, {
   name: '',
   definition: '',
   avoid: '',
   editing: null,
 })
-const setupDraftState = atom({ plugin: 'craftory', key: 'setupDraft' } as const, null)
-const askedFilesState = atom({ plugin: 'craftory', key: 'askedFiles' } as const, [])
-const termErrorState = atom({ plugin: 'craftory', key: 'termError' } as const, null)
-const glossaryQueryState = atom({ plugin: 'craftory', key: 'glossaryQuery' } as const, '')
-const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } as const, [])
-const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
 
-// ─── Reads ──────────────────────────────────────────────────────────────────────────────
+const setupDraftState = atom({ plugin: 'craftory', key: 'setupDraft' } as const, null)
+
+const askedFilesState = atom({ plugin: 'craftory', key: 'askedFiles' } as const, [])
+
+const termErrorState = atom({ plugin: 'craftory', key: 'termError' } as const, null)
+
+const glossaryQueryState = atom({ plugin: 'craftory', key: 'glossaryQuery' } as const, '')
+
+const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } as const, [])
+
+const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
 
 const readText = ($: EngineInterface, path: string): Promise<string | null> =>
   $.fs.read(path).catch(() => null)
@@ -380,8 +381,6 @@ async function installPlugin($: EngineInterface, argv: readonly string[]) {
   $.ui.invalidate('ui.render')
 }
 
-// ─── Writes ─────────────────────────────────────────────────────────────────────────────
-
 async function writableContext($: EngineInterface, steering?: WritableContext['steering']) {
   const repo = await read($, repoState)
   const config = configOf(repo?.config)
@@ -424,9 +423,8 @@ async function applyWrites($: EngineInterface, writes: readonly FileWrite[], ctx
   return { wrote, refused: null }
 }
 
-// ─── Settings: writes ───────────────────────────────────────────────────────────────────
-
 const WRITE_IT = 'Write'
+
 const NOT_NOW = 'Not now'
 
 const signalsOf = (repo: RepoSnapshot | null, plugin: PluginStatus): SetupSignals => ({
@@ -454,14 +452,14 @@ async function settingsFacts(
 ): Promise<SettingsFacts & { isDraft: boolean }> {
   const [repo, prefs, current] = await Promise.all([
     read($, repoState),
-    read($, prefsState),
+    resolvedPrefs($, options),
     currentSetup($),
   ])
   return {
     config: configOf(repo?.config),
     setup: current.setup,
     isDraft: current.isDraft,
-    prefs: resolvePrefs(options, prefs),
+    prefs,
   }
 }
 
@@ -527,9 +525,7 @@ async function commitChange($: EngineInterface, change: SettingsChange) {
   const oldConfig = configOf(repo?.config)
   let nextConfig = oldConfig
   if (change.prefs !== undefined) {
-    const merged = { ...(await read($, prefsState)), ...change.prefs }
-    await $.store.set(STORE_PREFS, merged)
-    await update($, prefsState, () => merged)
+    await savePrefs($, change.prefs)
   }
   if (change.config !== undefined) {
     if (repo?.config.state === 'invalid')
@@ -643,8 +639,7 @@ async function resetSettings($: EngineInterface) {
     [{ path: CONFIG_PATH, before: configText, after: defaults }],
     ctx,
   )
-  await $.store.set(STORE_PREFS, {})
-  await update($, prefsState, () => ({}))
+  await resetPrefs($)
   await say($, note === 'Everything is already as you set it.' ? 'Already at the defaults.' : note)
   await refreshTracker($)
   await settle($)
@@ -655,8 +650,6 @@ async function rerunSetup($: EngineInterface) {
     return void $.ui.toast('Install mattpocock-skills first: the setup skill comes with it')
   await $.command.run({ command: namespaced('setup-matt-pocock-skills' as SkillName), args: '' })
 }
-
-// ─── Settings: the .scratch/ import ─────────────────────────────────────────────────────
 
 async function readScratch($: EngineInterface): Promise<ScratchFile[]> {
   const found: ScratchFile[] = []
@@ -711,8 +704,6 @@ async function importScratch($: EngineInterface) {
   await refreshTracker($)
   await settle($)
 }
-
-// ─── Settings: the glossary ─────────────────────────────────────────────────────────────
 
 const TERM_ERRORS: Record<GlossaryEditError, string> = {
   duplicate: 'A term with that name is already in the glossary.',
@@ -823,8 +814,6 @@ async function copyGlossaryPath($: EngineInterface, surface: RenderSurface) {
     copied.isCopied ? `Copied ${setup.docs.glossary}` : `The glossary is ${setup.docs.glossary}`,
   )
 }
-
-// ─── Flow, tracker and feature facts ────────────────────────────────────────────────────
 
 const isoOf = (ms: number): IsoTime => new Date(ms).toISOString()
 
@@ -1058,8 +1047,6 @@ async function settle($: EngineInterface) {
   $.ui.invalidate('ui.render')
 }
 
-// ─── Running a command ──────────────────────────────────────────────────────────────────
-
 /** A typed or pressed command as a gate sees it; undefined for anything that is not a Matt phase. */
 function requestOf(name: string | undefined, args: string): RunRequest | undefined {
   const found = name === undefined ? undefined : recognise(name, { strict: false })
@@ -1098,14 +1085,15 @@ async function requestRun($: EngineInterface, skill: SkillName, args: string) {
   await $.command.run({ command: namespaced(skill), args })
 }
 
-// ─── Build: seats, budgets and worktrees ────────────────────────────────────────────────
-
 const GIT_MS = 15_000
+
 const SETUP_MS = 600_000
+
 const GIT_DEBOUNCE_MS = 1_500
 
 /** The integration tip last announced to each agent, so a moved tip is told once. */
 const told = new Map<string, string>()
+
 let gitTimer: Timer | undefined
 
 type Shell = { exitCode: number; stdout: string; stderr: string }
@@ -1547,70 +1535,6 @@ async function finishAgent($: EngineInterface, agentId: AgentId, reason: FinishR
   await refreshTracker($)
 }
 
-// ─── UI helpers ─────────────────────────────────────────────────────────────────────────
-
-/** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */
-function uiFor($: EngineInterface, event: Parameters<EngineInterface['ui']['resolve']>[0]): Ui {
-  const table = $.ui.resolve(event)
-  const { Box, Text, Button, Link } = table
-  return {
-    Box,
-    Text,
-    Button,
-    Link,
-    ...(event.surface !== 'terminal' && 'Svg' in table && { Svg: table.Svg }),
-    ...('Input' in table && { Input: table.Input }),
-  }
-}
-
-async function probeSystem($: EngineInterface): Promise<Tone | null> {
-  for (const probe of SYSTEM_PROBES) {
-    try {
-      const result = await $.process.run(probe.argv, { timeoutMs: APPEARANCE_PROBE_TIMEOUT_MS })
-      const tone = probe.read(result)
-      if (tone !== undefined) return tone
-    } catch {
-      // The command is not installed here, or this surface cannot run commands.
-    }
-  }
-  return null
-}
-
-async function refreshAppearance($: EngineInterface) {
-  const current = {
-    system: await probeSystem($),
-    colorFgBg: parseColorFgBg(await $.env.get('COLORFGBG')) ?? null,
-  }
-  const old = await read($, appearanceState)
-  if (old.system === current.system && old.colorFgBg === current.colorFgBg) return
-  await update($, appearanceState, () => current)
-  $.ui.invalidate('ui.render')
-}
-
-/** Reads the system appearance off the render path, now and every five seconds. */
-function watchAppearance($: EngineInterface) {
-  appearanceTimer?.cancel()
-  appearanceTimer = $.clock.every(APPEARANCE_MS, () => refreshAppearance($))
-  $.clock.after(0, () => refreshAppearance($))
-}
-
-async function toneOf(
-  $: EngineInterface,
-  options: Readonly<Record<string, unknown>>,
-  surface: RenderSurface,
-): Promise<Tone | undefined> {
-  const theme = (await $.config.list()).find(row => row.key === 'theme')
-  const prefs = resolvePrefs(options, await read($, prefsState))
-  const { system, colorFgBg } = await read($, appearanceState)
-  return resolveTone({
-    theme: prefs.theme,
-    claudeTheme: theme?.value,
-    surface,
-    colorFgBg: colorFgBg ?? undefined,
-    system: system ?? undefined,
-  })
-}
-
 async function openPane($: EngineInterface, tab: PaneTab) {
   await update($, paneTabState, () => tab)
   if (tab === 'worktrees') await refreshGit($)
@@ -1689,8 +1613,6 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
     }
   }
 }
-
-// ─── Pane tabs ──────────────────────────────────────────────────────────────────────────
 
 async function glossaryTerms($: EngineInterface) {
   const repo = await read($, repoState)
@@ -1872,8 +1794,6 @@ async function scanDrift($: EngineInterface) {
   await settle($)
 }
 
-// ─── Hooks ──────────────────────────────────────────────────────────────────────────────
-
 const isSupported = async ($: EngineInterface) => meetsFloor((await $.session.version()).base)
 
 const drawsAnything = async ($: EngineInterface) =>
@@ -1954,8 +1874,7 @@ export const register: Register = (on, options) => {
       description: "Show the active feature's phases, tickets, worktrees, glossary and settings",
       immediate: true,
     })
-    const prefs = parsePrefOverrides(await $.store.get(STORE_PREFS))
-    await update($, prefsState, () => prefs)
+    await loadPrefs($)
     watchAppearance($)
     if (!(await isSupported($))) {
       $.ui.toast(`Craftory needs Claude Code ${ENGINE_FLOOR} or later. Run claude update.`)
@@ -2209,7 +2128,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     if (e.props.hasSurvey || !(await isSupported($))) return below
-    const prefs = resolvePrefs(options, await read($, prefsState))
+    const prefs = await resolvedPrefs($, options)
     if (!prefs.rail) return below
     const [repo, plugin, flow] = await Promise.all([
       read($, repoState),
@@ -2281,15 +2200,14 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const [flow, git, glossary, prefs] = await Promise.all([
+    const [flow, git, glossary, resolved] = await Promise.all([
       currentFlow($),
       read($, gitState),
       glossaryViewOf($),
-      read($, prefsState),
+      resolvedPrefs($, options),
     ])
     const worktrees = await worktreesViewOf($)
     const tickets = await ticketsViewOf($, flow)
-    const resolved = resolvePrefs(options, prefs)
     const actions = bandActions($)
     return renderPane({
       ui: uiFor($, e),
