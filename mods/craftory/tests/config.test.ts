@@ -133,3 +133,19 @@ test('the gate guarding a phase is the nearest enabled one before it', () => {
   expect(predecessor('build', p => p !== 'tickets')).toBe('spec')
   expect(predecessor('align', () => true)).toBeUndefined()
 })
+
+test('a committed branch template that git would read as an option falls back to the default', () => {
+  const loaded = parseConfig(
+    JSON.stringify({
+      worktrees: {
+        integrationBranch: '--upload-pack={spec-slug}',
+        ticketBranch: 'ok/{ticket}-{slug}',
+      },
+    }),
+  )
+  expect(loaded.state).toBe('ok')
+  if (loaded.state !== 'ok') return
+  expect(loaded.value.worktrees.integrationBranch).toBe(DEFAULT_CONFIG.worktrees.integrationBranch)
+  expect(loaded.value.worktrees.ticketBranch).toBe('ok/{ticket}-{slug}')
+  expect(loaded.problem).toContain('worktrees.integrationBranch: not a safe branch name')
+})

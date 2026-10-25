@@ -331,3 +331,11 @@ test('a key resolves to its feature, and marks read the same from either kind', 
   expect(featureOf(null, features, drafts)).toBeNull()
   expect(featureOf(specKey(ref(1)), features, drafts)).toBeNull()
 })
+
+test('a committed integration branch that git would read as an option is dropped with a note', () => {
+  const loaded = parseFeature(
+    JSON.stringify({ version: 1, spec: '42', integrationBranch: '--output=/etc/x' }),
+  )
+  expect(loaded.state === 'ok' && loaded.value.integrationBranch).toBe('')
+  expect(loaded.state === 'ok' && loaded.problem).toContain('integrationBranch')
+})

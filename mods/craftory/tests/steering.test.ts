@@ -38,6 +38,7 @@ test('agent.spawn is seated in the worktree: git adds it from the integration br
     'add',
     '-b',
     'craftory/43-export-button',
+    '--',
     '.worktrees/43-export-button',
     'feat/csv',
   ])
@@ -89,6 +90,7 @@ test('a spawn the engine refuses takes its fresh worktree away again', async ($,
     'worktree',
     'remove',
     '--force',
+    '--',
     '.worktrees/43-export-button',
   ])
 })

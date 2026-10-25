@@ -14,6 +14,7 @@ import type {
   PhaseMark,
   TrackerSnapshot,
 } from '../types'
+import { isSafeRef } from './git'
 import { PHASE_ORDER } from './phases'
 import { parseIssueRef } from './tracker/refs'
 
@@ -112,6 +113,10 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
       else problems.push(`agents.${key}: dropped`)
     }
   }
+  const rawBranch = text(json.integrationBranch) ?? ''
+  const branch = isSafeRef(rawBranch) ? rawBranch : ''
+  if (rawBranch !== '' && branch === '')
+    problems.push(`integrationBranch: ${JSON.stringify(rawBranch)} is not a safe branch name`)
   const value: FeatureRecord = {
     version: 1,
     spec,
@@ -119,7 +124,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     entry: isPhase(json.entry) ? json.entry : 'align',
     enteredFrom: parseIssueRef(text(json.enteredFrom) ?? '') ?? null,
     skipped: inPhaseOrder(Array.isArray(json.skipped) ? json.skipped.filter(isPhase) : []),
-    integrationBranch: text(json.integrationBranch) ?? '',
+    integrationBranch: branch,
     pr: parseIssueRef(text(json.pr) ?? '') ?? null,
     marks: parseMarks(json.marks),
     agents,

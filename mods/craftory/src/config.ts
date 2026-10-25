@@ -8,6 +8,7 @@ import type {
   Prefs,
 } from '../types'
 import type { FileWrite } from './files'
+import { isSafeRef } from './git'
 import { PHASE_ORDER, PHASES } from './phases'
 
 export const CONFIG_PATH = '.craftory/config.json'
@@ -119,6 +120,16 @@ export function parseConfig(raw: string | null): Loaded<CraftoryConfig> {
       gate: value.phases[id].gate,
       ...(command !== undefined && { command: command as PhaseConfig['command'] }),
     }
+  }
+  const templates = [
+    ['integrationBranch', value.worktrees.integrationBranch, { '{spec-slug}': 'spec' }],
+    ['ticketBranch', value.worktrees.ticketBranch, { '{ticket}': '1', '{slug}': 'slug' }],
+  ] as const
+  for (const [key, template, fill] of templates) {
+    const sample = Object.entries(fill).reduce((t, [from, to]) => t.replace(from, to), template)
+    if (isSafeRef(sample)) continue
+    problems.push(`worktrees.${key}: not a safe branch name, using the default`)
+    value.worktrees[key] = DEFAULT_CONFIG.worktrees[key]
   }
   const text = problems.join('; ')
   return { state: 'ok', value, raw, ...(text && { problem: text }) }

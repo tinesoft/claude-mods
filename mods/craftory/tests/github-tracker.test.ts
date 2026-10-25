@@ -207,3 +207,14 @@ test('only gh and git push commands refresh the GitHub tracker', () => {
   expect(touches('ls docs')).toBe(false)
   expect(TRACKERS.github!.touches(ctx, { name: 'Write', path: 'docs/issues/1-a.md' })).toBe(false)
 })
+
+test('a branch that git would read as an option is never handed to gh pr view', () => {
+  const ctx: ReadContext = {
+    config: DEFAULT_CONFIG,
+    labels: DEFAULT_LABELS,
+    now: 9,
+    focus: { specs: ['#42' as IssueRef], branch: '--web' },
+  }
+  const reads = TRACKERS.github!.plan(ctx, [])
+  expect(reads.some(r => r.kind === 'run' && r.argv[1] === 'pr')).toBe(false)
+})

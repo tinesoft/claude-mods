@@ -92,7 +92,7 @@ test('Remove on a stale worktree runs git without asking; the checkout and integ
   expect(await pane.find({ key: 'wt-remove-/repo' })).toBeUndefined()
   expect(await pane.find({ key: 'wt-remove-.worktrees/_spec-42' })).toBeUndefined()
   await pane.press({ key: 'wt-remove-.worktrees/39-csv-spike' })
-  expect(w.ran).toContainEqual(['git', 'worktree', 'remove', '/repo/.worktrees/39-csv-spike'])
+  expect(w.ran).toContainEqual(['git', 'worktree', 'remove', '--', '/repo/.worktrees/39-csv-spike'])
   expect(w.calls.some(c => c.tool === 'AskUserQuestion')).toBe(false)
   expect(w.toasts.at(-1)).toBe('Removed .worktrees/39-csv-spike')
 })
@@ -117,6 +117,7 @@ test('confirming Remove anyway forces the removal of a kept worktree', async ($,
     'worktree',
     'remove',
     '--force',
+    '--',
     '/repo/.worktrees/44-ledger-tax',
   ])
 })
@@ -126,7 +127,7 @@ test('Prune 1 stale removes the stale worktree and nothing Craftory keeps', asyn
   const pane = await openTab($)
   await pane.press({ key: 'wt-prune' })
   const removals = w.ran.filter(a => a[1] === 'worktree' && a[2] === 'remove')
-  expect(removals).toEqual([['git', 'worktree', 'remove', '/repo/.worktrees/39-csv-spike']])
+  expect(removals).toEqual([['git', 'worktree', 'remove', '--', '/repo/.worktrees/39-csv-spike']])
   expect(w.toasts.at(-1)).toBe('Pruned 1 of 1 stale worktrees')
   await pane.redraw()
   expect(await allText(pane)).not.toContain('Prune 1 stale')
@@ -144,5 +145,5 @@ test('Settings › prune stale worktrees runs the prune when the session starts'
       files: { '.craftory/config.json': JSON.stringify({ worktrees: { pruneStale: true } }) },
     })
   ).w
-  expect(w.ran).toContainEqual(['git', 'worktree', 'remove', '/repo/.worktrees/39-csv-spike'])
+  expect(w.ran).toContainEqual(['git', 'worktree', 'remove', '--', '/repo/.worktrees/39-csv-spike'])
 })

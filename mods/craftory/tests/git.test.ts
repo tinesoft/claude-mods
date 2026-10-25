@@ -24,6 +24,7 @@ import {
   syncText,
   ticketOfBranch,
   tipArgv,
+  isSafeRef,
   worktreeAddArgv,
   worktreesView,
 } from '../src/git'
@@ -122,6 +123,7 @@ test('worktree add makes the branch from the base, or checks an existing branch 
     'add',
     '-b',
     'craftory/44-a',
+    '--',
     '.worktrees/44-a',
     'feat/x',
   ])
@@ -129,6 +131,7 @@ test('worktree add makes the branch from the base, or checks an existing branch 
     'git',
     'worktree',
     'add',
+    '--',
     '.worktrees/44-a',
     'craftory/44-a',
   ])
@@ -391,4 +394,33 @@ test('the Worktrees rows say what each is, what is kept, and how many are stale'
   })
   expect(view.rows[0]).toMatchObject({ canRemove: false, canDiff: false })
   expect(view.rows[1]!.canRemove).toBe(false)
+})
+
+test('a branch name git would read as an option or reject is not a safe ref', () => {
+  for (const good of ['feat/csv', 'craftory/44-ledger-tax', 'release/1.2', 'a'])
+    expect(isSafeRef(good), good).toBe(true)
+  for (const bad of [
+    '',
+    '-D',
+    '--upload-pack=x',
+    'feat/a b',
+    'feat/a\tb',
+    'a..b',
+    'a~1',
+    'a^',
+    'a:b',
+    'a?',
+    'a*',
+    'a[0]',
+    'a\\b',
+    'a.lock',
+    'feat/',
+    '/feat',
+    'a//b',
+    'a@{1}',
+    '.hidden',
+    'feat/.x',
+    'end.',
+  ])
+    expect(isSafeRef(bad), JSON.stringify(bad)).toBe(false)
 })

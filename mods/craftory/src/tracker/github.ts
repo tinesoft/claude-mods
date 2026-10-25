@@ -7,6 +7,7 @@ import type {
   TriageLabels,
   TriageRole,
 } from '../../types'
+import { isSafeRef } from '../git'
 import type { ReadContext, ReadResult, TrackerSpec } from './index'
 import { isSpecBody, parseIssueRef, refsIn, storiesIn } from './refs'
 
@@ -186,7 +187,8 @@ export const spec: TrackerSpec = {
   rich: true,
   steps: 3,
   plan: (ctx, previous) => {
-    const branch = ctx.focus?.branch
+    const focused = ctx.focus?.branch
+    const branch = focused && isSafeRef(focused) ? focused : null
     const specs = ctx.focus?.specs ?? []
     if (previous.length === 0) {
       return [

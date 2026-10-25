@@ -33,11 +33,37 @@ export const worktreeAddArgv = (
   branchExists: boolean,
 ) =>
   branchExists
-    ? (['git', 'worktree', 'add', path, branch] as const)
-    : (['git', 'worktree', 'add', '-b', branch, path, base] as const)
+    ? (['git', 'worktree', 'add', '--', path, branch] as const)
+    : (['git', 'worktree', 'add', '-b', branch, '--', path, base] as const)
 
 export const worktreeRemoveArgv = (path: string, force = false) =>
-  ['git', 'worktree', 'remove', ...(force ? ['--force'] : []), path] as const
+  ['git', 'worktree', 'remove', ...(force ? ['--force'] : []), '--', path] as const
+
+export const branchCreateArgv = (branch: string, from: string) =>
+  ['git', 'branch', '--', branch, from] as const
+
+const hasUnsafeChar = (ref: string) =>
+  [...ref].some(
+    ch => ch.charCodeAt(0) <= 0x20 || ch.charCodeAt(0) === 0x7f || '~^:?*[\\'.includes(ch),
+  )
+
+/**
+ * Whether `ref` is a branch name that is safe to put in a git argument: git's own rules for a
+ * ref name, plus no leading dash, which git would read as an option.
+ */
+export const isSafeRef = (ref: string): boolean =>
+  ref !== '' &&
+  !ref.startsWith('-') &&
+  !ref.startsWith('/') &&
+  !ref.endsWith('/') &&
+  !ref.endsWith('.') &&
+  !ref.endsWith('.lock') &&
+  !ref.includes('..') &&
+  !ref.includes('//') &&
+  !ref.includes('@{') &&
+  ref !== '@' &&
+  !hasUnsafeChar(ref) &&
+  ref.split('/').every(part => !part.startsWith('.') && !part.endsWith('.lock'))
 
 export const worktreePruneArgv = ['git', 'worktree', 'prune'] as const
 

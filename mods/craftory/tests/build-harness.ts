@@ -10,8 +10,15 @@ export const fakeGit = (
     extra?: { path: string; branch: string }[]
     committed?: Record<string, number>
     stat?: string
+    missing?: string[]
   } = {},
 ) => {
+  const exists = new Set(
+    ['main', 'feat/csv', 'feat/other', ...(over.extra ?? []).map(e => e.branch)].filter(
+      b => !over.missing?.includes(b),
+    ),
+  )
+  const created: string[][] = []
   const worktrees = ['/repo', ...(over.extra ?? []).map(e => e.path)]
   const branches: Record<string, string> = {
     '/repo': 'main',
@@ -28,10 +35,19 @@ export const fakeGit = (
           .join('\n'),
       }
     if (b === 'rev-parse')
-      return argv[4]?.startsWith('feat/') ? { exitCode: 0, stdout: 'tip1\n' } : { exitCode: 1 }
+      return exists.has(argv.at(-1)!) ? { exitCode: 0, stdout: 'tip1\n' } : { exitCode: 1 }
+    if (b === 'branch' && argv[2] === '--') {
+      created.push([...argv])
+      if (!exists.has(argv[4]!)) return { exitCode: 128, stderr: `fatal: not a valid object name` }
+      exists.add(argv[3]!)
+      return { exitCode: 0 }
+    }
     if (b === 'worktree' && c === 'add' && argv[3] === '-b') {
-      worktrees.push(`/repo/${argv[5]}`)
-      branches[`/repo/${argv[5]}`] = argv[4]!
+      if (!exists.has(argv[7]!))
+        return { exitCode: 128, stderr: `fatal: invalid reference: ${argv[7]}` }
+      exists.add(argv[4]!)
+      worktrees.push(`/repo/${argv[6]}`)
+      branches[`/repo/${argv[6]}`] = argv[4]!
       return { exitCode: 0 }
     }
     if (b === 'worktree' && c === 'remove') {
@@ -47,7 +63,7 @@ export const fakeGit = (
     if (a === 'git' && b === 'branch') return { exitCode: 0, stdout: 'main\n' }
     return { exitCode: 0, stdout: '' }
   }
-  return { shell, worktrees }
+  return { shell, worktrees, exists, created }
 }
 
 export const READY = {
