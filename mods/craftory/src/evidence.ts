@@ -315,6 +315,9 @@ export function deriveFlow(input: FlowInput): Flow {
     StepState
   >
   const on = (p: PhaseId) => states[p].kind !== 'skipped'
+  const clearsGate = (p: PhaseId) =>
+    states[p].kind === 'done' ||
+    (PHASES[p].gateClears === 'ran' && facts.marks[p]?.ranAt !== undefined)
   const blockersOf = (p: PhaseId) => {
     const e = evidence[p]
     const state = states[p]
@@ -329,7 +332,7 @@ export function deriveFlow(input: FlowInput): Flow {
   for (const phase of PHASE_ORDER) {
     if (states[phase].kind !== 'todo') continue
     const by = predecessor(phase, on)
-    if (by !== undefined && config.phases[by].gate && states[by].kind !== 'done') {
+    if (by !== undefined && config.phases[by].gate && !clearsGate(by)) {
       states[phase] = { kind: 'gated', by, blockers: blockersOf(by) }
     }
   }

@@ -12,7 +12,8 @@ import {
   type TicketRowView,
   type TicketsView,
 } from './pane-view'
-import { CardButton, isRich, PaneRail, type BandActions, type Ui } from './rail'
+import type { NoticeAction, NoticeView } from './notices'
+import { CardButton, isRich, NoticeRow, PaneRail, type BandActions, type Ui } from './rail'
 import { SettingsTab, type SettingsArgs } from './settings'
 import { paint, SPACE, STEP_LOOKS, TOKENS, type Role } from './theme'
 import { inkOf } from './widgets'
@@ -30,6 +31,7 @@ export type PaneActions = {
   search: (text: string) => void
   editTerm: (name: string) => void
   rail: Pick<BandActions, 'step' | 'triage'>
+  notice: (action: NoticeAction) => void
 }
 
 export type PaneArgs = {
@@ -42,6 +44,7 @@ export type PaneArgs = {
   pluginLine: string
   flow: Flow | null
   waiting: number
+  notices: readonly NoticeView[]
   counts: TabCounts
   tickets: TicketsView
   worktrees: WorktreesView | null
@@ -272,10 +275,11 @@ const FlowTab = ({
   spinFrame,
   flow,
   waiting,
+  notices,
   on,
 }: Pick<
   PaneArgs,
-  'ui' | 'tone' | 'surface' | 'ascii' | 'spinFrame' | 'flow' | 'waiting' | 'on'
+  'ui' | 'tone' | 'surface' | 'ascii' | 'spinFrame' | 'flow' | 'waiting' | 'notices' | 'on'
 >) => {
   const { Box, Text } = ui
   if (flow === null) {
@@ -288,6 +292,9 @@ const FlowTab = ({
   const rich = isRich(ui) && tone !== undefined
   return (
     <Box key="flow" flexDirection="column" rowGap={SPACE.paneGap}>
+      {notices.map(notice => (
+        <NoticeRow key={notice.id} ui={ui} tone={tone} notice={notice} on={on.notice} />
+      ))}
       {surface === 'mobile' && (
         <PaneRail
           ui={ui}

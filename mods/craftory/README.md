@@ -110,6 +110,8 @@ When the plugin is missing, setup has not run, or no feature is in flight, a not
 
 A gate is soft. When you start a phase whose gated predecessor is not done, Craftory drops the command and asks in the band, for example "Review is gated: #44 has 2 failing tests. Run anyway?". **Run anyway** runs the command once. **Diagnose** runs `/diagnosing-bugs`. When Claude itself reaches for `code-review` before Build is done, Craftory asks in a dialog instead. If the dialog cannot be shown, the call goes ahead.
 
+Craftory asks in the band, so it gates a typed command only where a band is drawn: the terminal and Claude Desktop. On mobile and in VS Code a typed command always runs. On mobile, a gated button in the pane shows the same question, with **Run anyway** and **Diagnose**, at the top of the Flow tab. Align gates the next phase only until it has run. A grill ends when you move on, so typing `/to-spec` after a grill that ran is not gated, and Spec stays gated if no grill ran.
+
 ### Build
 
 `/implement-spec` starts one implementer per ticket. Craftory steers each one:
@@ -209,7 +211,7 @@ It starts no other program. The `setup` command is the one in `.craftory/config.
 
 **What its hooks decide**
 
-- `prompt.submit` drops a gated command and offers **Run anyway**. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder. It answers nothing else.
+- `prompt.submit` drops a gated command, where a band can show **Run anyway**. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder. It answers nothing else.
 - `tool.call` on `Agent` gives a Build implementer its name and drops `isolation`, or refuses it when the queue is full, the ticket is blocked, or the ticket is for a human. Other Agent calls pass through.
 - `agent.spawn` points a Build implementer at its worktree with `cwd`.
 - `turn.step` ends an agent's step only after that agent passed its token budget.

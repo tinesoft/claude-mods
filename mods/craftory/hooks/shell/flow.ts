@@ -512,10 +512,12 @@ export async function skillStarted($: EngineInterface, skill: string) {
 export async function gatePrompt(
   $: EngineInterface,
   e: { text: string; command?: { name: string; args: string } },
+  canAsk: boolean,
 ): Promise<string | undefined> {
   const typed = typedCommand(e)
   const req = typed && requestOf(typed.name, typed.args, bareIsOurs(await pluginOf($)))
   if (req) {
+    if (!canAsk) return undefined
     const verdict = await holdForGate($, req, await currentFlow($))
     if (verdict) return dropText(verdict)
     const now = await $.clock.now()

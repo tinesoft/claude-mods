@@ -191,6 +191,10 @@ async function openFolder($: EngineInterface, folder: string, surface: RenderSur
 
 const isSupported = async ($: EngineInterface) => meetsFloor((await $.session.version()).base)
 
+const canAskInBand = async ($: EngineInterface) =>
+  (await isSupported($)) &&
+  (await $.session.surfaces()).some(surface => surface === 'terminal' || surface === 'desktop')
+
 const drawsAnything = async ($: EngineInterface) =>
   (await isSupported($)) && (await $.session.surfaces()).length > 0
 
@@ -275,7 +279,7 @@ export const register: Register = (on, options) => {
   })
 
   on('prompt.submit', async ($, e, next) => {
-    const drop = await gatePrompt($, e)
+    const drop = await gatePrompt($, e, await canAskInBand($))
     if (drop !== undefined) return { drop }
     const context = await startContext($, e)
     return next(context === undefined ? e : { ...e, context: [...(e.context ?? []), ...context] })
@@ -489,7 +493,9 @@ export const register: Register = (on, options) => {
       glossary,
       query: await glossaryQueryOf($),
       settings: await settingsArgs($, options),
+      notices: eventNotices((await heldNotices($)).filter(n => n.kind === 'gate')),
       on: {
+        notice: actions.notice,
         tab: tab => void openPane($, tab),
         diff: path => void toggleDiff($, path),
         openTerminal: (path, surface) => void copyTerminal($, path, surface),

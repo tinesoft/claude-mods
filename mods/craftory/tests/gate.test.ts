@@ -1,15 +1,17 @@
 import { expect, test } from 'claude-code/testing'
 import { TRIPLES } from '../src/theme'
-import type { world } from './harness'
+import type { world, WorldOptions } from './harness'
 import {
   allText,
   BAND_SURFACES,
   featureWorld,
   mattCommands,
   mountBand,
+  mountPane,
   skillPrompt,
   startSession,
   submit,
+  ticketFile,
   turnComplete,
 } from './harness'
 
@@ -22,13 +24,14 @@ const DRAFT = {
   },
 }
 
-const gatedWorld = (on: Parameters<typeof world>[0]) =>
+const gatedWorld = (on: Parameters<typeof world>[0], options: WorldOptions = {}) =>
   featureWorld(on, {
     files: {
       '.craftory/features/42.json': '',
       'docs/issues/42-export-invoices.md': '# unrelated\n',
     },
     store: { drafts: DRAFT },
+    ...options,
   })
 
 const GATE = 'Tickets is gated: no spec has been published yet. Run anyway?'
@@ -179,4 +182,71 @@ test('with the plugin missing a bare name is nobody Craftory knows', async ($, o
   })
   await startSession($)
   expect((await submit($, '/to-tickets #42')).drop).toBeUndefined()
+})
+
+for (const surfaces of [[], ['mobile'], ['vscode']] as const) {
+  test(`with ${surfaces.join(', ') || 'no surface'} there is no band to answer in, so a typed gated command passes`, async ($, on) => {
+    gatedWorld(on, { surfaces })
+    await startSession($)
+    expect((await submit($, '/mattpocock-skills:to-tickets #42')).drop).toBeUndefined()
+  })
+}
+
+test('a desktop session still gates, and a terminal beside a mobile pane does too', async ($, on) => {
+  gatedWorld(on, { surfaces: ['desktop'] })
+  await startSession($, 'desktop')
+  expect((await submit($, '/to-tickets #42')).drop).toContain('Tickets is gated')
+})
+
+test('a terminal and a phone together still gate: the band is there to answer in', async ($, on) => {
+  gatedWorld(on, { surfaces: ['mobile', 'terminal'] })
+  await startSession($)
+  expect((await submit($, '/to-tickets #42')).drop).toContain('Tickets is gated')
+})
+
+test('a grill that ran and awaits the user does not gate Spec: typing /to-spec is how it ends', async ($, on) => {
+  featureWorld(on, {
+    files: {
+      '.craftory/features/42.json': '',
+      'docs/issues/42-export-invoices.md': '# unrelated\n',
+    },
+  })
+  await startSession($)
+  await skillPrompt($, 'grill-with-docs')
+  await turnComplete($)
+  expect(await submit($, '/mattpocock-skills:to-spec')).toEqual({
+    text: '/mattpocock-skills:to-spec',
+  })
+  expect(await allText(await mountBand($))).not.toContain('is gated')
+})
+
+test('an Align that never ran still gates Spec, naming why', async ($, on) => {
+  gatedWorld(on, { store: { drafts: { d1: { ...DRAFT.d1, marks: {} } } } })
+  await startSession($)
+  expect((await submit($, '/mattpocock-skills:to-spec')).drop).toBe(
+    'Spec is gated: not run yet. Run anyway? Use Run anyway in the Craftory band above the prompt.',
+  )
+})
+
+test('mobile has no band, so the gate notice is in the pane with Run anyway', async ($, on) => {
+  const w = featureWorld(on, {
+    surfaces: ['mobile'],
+    files: {
+      '.craftory/config.json': JSON.stringify({ phases: { tickets: { gate: true } } }),
+      'docs/issues/43-button.md': ticketFile('Export button'),
+      'docs/issues/44-ledger.md': ticketFile('Ledger tax'),
+      'docs/issues/45-filter.md': ticketFile('Date filter'),
+    },
+  })
+  await startSession($, 'mobile')
+  const pane = await mountPane($, 'mobile')
+  await pane.press({ key: 'tab-tickets' })
+  await pane.redraw()
+  await pane.press({ key: 'implement-spec' })
+  await pane.press({ key: 'tab-flow' })
+  await pane.redraw()
+  expect(w.commandsRun).toEqual([])
+  expect(await allText(pane)).toContain('Build is gated: the tickets have no blocking edges')
+  await pane.press({ key: 'notice-run-anyway-build' })
+  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:implement-spec', args: '#42' }])
 })

@@ -26,8 +26,11 @@ const draft: Feature = {
   },
 }
 
-const flow = (config = DEFAULT_CONFIG): Flow =>
-  deriveFlow({ feature: draft, config, tracker: null, running: null })
+const flow = (config = DEFAULT_CONFIG, feature: Feature = draft): Flow =>
+  deriveFlow({ feature, config, tracker: null, running: null })
+
+const untouched: Feature =
+  draft.kind === 'draft' ? { ...draft, draft: { ...draft.draft, marks: {} } } : draft
 
 const request = (skill: string, phase: RunRequest['phase'], args = ''): RunRequest => ({
   skill: skill as SkillName,
@@ -56,13 +59,20 @@ test('a run of a gated phase asks, in the design wording, naming what is not don
 })
 
 test('a phase that is not gated, helpers, entries and a missing feature go', () => {
-  expect(checkRun(request('to-spec', 'spec'), flow(), [], NOW).kind).toBe('ask')
+  expect(checkRun(request('to-spec', 'spec'), flow(), [], NOW).kind).toBe('go')
+  expect(
+    checkRun(request('to-spec', 'spec'), flow(DEFAULT_CONFIG, untouched), [], NOW),
+  ).toMatchObject({
+    kind: 'ask',
+    by: 'align',
+    reason: 'not run yet',
+  })
   expect(checkRun(request('grill-with-docs', 'align'), flow(), [], NOW).kind).toBe('go')
   expect(checkRun(request('tdd', null), flow(), [], NOW).kind).toBe('go')
   expect(checkRun(request('to-tickets', 'tickets'), null, [], NOW).kind).toBe('go')
   const open = structuredClone(DEFAULT_CONFIG)
   open.phases.align.gate = false
-  expect(checkRun(request('to-spec', 'spec'), flow(open), [], NOW).kind).toBe('go')
+  expect(checkRun(request('to-spec', 'spec'), flow(open, untouched), [], NOW).kind).toBe('go')
 })
 
 test('Run anyway grants a pass for that exact request, which consumes once', () => {

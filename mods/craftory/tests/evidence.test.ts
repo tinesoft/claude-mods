@@ -295,6 +295,27 @@ test('a grill that ran but has not ended is not done, and its blocker says so', 
   expect(flow.steps[0]!.blockers).toEqual(['the grill has not ended'])
 })
 
+test('a grill that ran does not gate Spec, one that never ran does, and every other phase waits for done', () => {
+  const ranOnly = flowOf({ feature: draft(ran('align')) })
+  expect(ranOnly.steps[1]!.state.kind).not.toBe('gated')
+  const never = flowOf({ feature: draft() })
+  expect(never.steps[1]!.state).toMatchObject({ kind: 'gated', by: 'align' })
+  const specOnly = flowOf({ feature: specced({ marks: ran('align') }), issues: [SPEC] })
+  expect(specOnly.steps[2]!.state.kind).not.toBe('gated')
+  const ticketsRan = flowOf({
+    feature: specced({ marks: ran('align', 'spec') }),
+    issues: [SPEC],
+    config: {
+      ...DEFAULT_CONFIG,
+      phases: {
+        ...DEFAULT_CONFIG.phases,
+        tickets: { ...DEFAULT_CONFIG.phases.tickets, gate: true },
+      },
+    },
+  })
+  expect(ticketsRan.steps[3]!.state).toMatchObject({ kind: 'gated', by: 'tickets' })
+})
+
 test('a running skill shows its progress and wins over done evidence; waiting on the user is needs-you', () => {
   const running = flowOf({
     feature: specced({ marks: ran('align', 'spec') }),
