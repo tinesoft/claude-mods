@@ -17,7 +17,7 @@ import { DetailCard, type CardActions } from './card'
 import type { Flow, Step } from './evidence'
 import { hexOr, inboxSvg, OFF_TRACK, spinnerSvg, stepSvg } from './icons'
 import { NoticeRow } from './notice-row'
-import type { NoticeAction, NoticeView } from './notices'
+import type { NoticeView } from './notices'
 import { PHASES } from './phases'
 import {
   CONNECTOR,
@@ -50,7 +50,6 @@ export type BandActions = CardActions & {
   gear: () => void
   pickFeature: () => void
   switchFeature: (key: FeatureKey) => void
-  notice: (action: NoticeAction) => void
 }
 
 export type BandArgs = {
@@ -402,7 +401,7 @@ export function renderBand(args: BandArgs) {
   const replacing = notices.find(n => n.replacesRail)
   const above = notices.filter(n => !n.replacesRail)
   const noticeRows = (list: readonly NoticeView[]) =>
-    list.map(n => <NoticeRow key={n.id} ui={ui} tone={tone} notice={n} on={on.notice} />)
+    list.map(n => <NoticeRow key={n.id} ui={ui} tone={tone} notice={n} on={on} />)
   if (replacing !== undefined || flow === null) {
     return (
       <Box flexDirection="column">

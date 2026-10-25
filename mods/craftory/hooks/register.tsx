@@ -12,7 +12,8 @@ import { waitingForTriage } from '../src/evidence'
 import { draftKey, specKey } from '../src/features'
 import type { RunRequest } from '../src/gates'
 import { removalTargets, worktreeRemoveArgv } from '../src/git'
-import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
+import type { Action } from '../src/action'
+import { derivedNotices, eventNotices } from '../src/notices'
 import { renderPane } from '../src/pane'
 import { type InboxAction, tabCounts } from '../src/pane-view'
 import { namespaced, recognise, SKILLS } from '../src/phases'
@@ -54,7 +55,7 @@ import {
   hasAgentRuns,
   heldNotices,
   loadFeatures,
-  noticeOf,
+  dropNotices,
   pendingSeat,
   planSpawn,
   raiseBudget,
@@ -122,7 +123,7 @@ const DIAGNOSE_REASON =
 const keptReason = (path: string, why: KeepWhy) =>
   `Craftory keeps ${path}: ${why === 'running' ? 'an agent is still working in it' : `its agent ${why === 'failed' ? 'failed' : why === 'over-budget' ? 'ran out of token budget' : 'was stopped'}, and the user decides what happens to its work`}. Do not remove it. Clean up the other worktrees and leave this one.`
 
-async function onNotice($: EngineInterface, action: NoticeAction) {
+async function dispatch($: EngineInterface, action: Action) {
   switch (action.kind) {
     case 'install':
       return installPlugin($, INSTALL_ARGV)
@@ -131,48 +132,50 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
     case 'not-now':
       return dismissNotice($, action.key)
     case 'setup':
-      await openPane($, 'settings')
-      return
+      return openPane($, 'settings')
     case 'run':
       return requestRun($, action.skill, action.args)
+    case 'run-phase':
+      return runFromCard($, action.phase)
     case 'run-anyway': {
-      const notice = await allowGate($, action.id)
-      if (notice === undefined) return
-      await $.command.run({ command: namespaced(notice.skill), args: notice.args })
+      const { noticeId, ...req } = action
+      if (await allowGate($, noticeId, req))
+        await $.command.run({ command: namespaced(req.skill), args: req.args })
       return
     }
     case 'diagnose': {
-      await dropNotice($, action.id)
-      await $.command.run({ command: namespaced(SKILLS.diagnosingBugs), args: '' })
-      return
+      if (action.noticeId !== undefined) await dropNotice($, action.noticeId)
+      return requestRun($, SKILLS.diagnosingBugs, '')
     }
     case 'raise-budget': {
-      const notice = await noticeOf($, action.id)
-      if (notice?.kind !== 'budget') return
-      await raiseBudget($, notice.ticket)
-      return dropNotice($, notice.id)
+      await raiseBudget($, action.ticket)
+      return dropNotices($, n => n.kind === 'budget' && n.ticket === action.ticket)
     }
     case 'resolve': {
-      await dropNotice($, action.id)
+      await dropNotice($, action.noticeId)
       await refreshGit($)
-      await openPane($, 'worktrees')
-      return
+      return openPane($, 'worktrees')
     }
-    case 'open-tickets':
-      await openPane($, 'tickets')
-      return
     case 'rename': {
-      const notice = await noticeOf($, action.id)
-      if (notice?.kind !== 'drift') return
-      await dropNotice($, notice.id)
-      return jumpToTerm($, notice.term)
+      await dropNotice($, action.noticeId)
+      return jumpToTerm($, action.term)
     }
     case 'review-retro': {
-      await dropNotice($, action.id)
+      await dropNotice($, action.noticeId)
       return openPane($, 'flow')
     }
     case 'dismiss':
-      return dropNotice($, action.id)
+      return dropNotice($, action.noticeId)
+    case 'mark-done':
+      return markDone($, action.phase)
+    case 'write-pr':
+      return requestRun($, SKILLS.pr, '')
+    case 'open-tickets':
+      return openPane($, 'tickets')
+    case 'open-panel':
+      return openPane($, 'worktrees')
+    case 'pause-all':
+      return togglePause($)
     default: {
       const _exhaustive: never = action
       return _exhaustive
@@ -229,8 +232,6 @@ const bandActions = ($: EngineInterface): BandActions => ({
   triage: fitsCard => void pressStep($, 'triage', fitsCard),
   summary: () => void openPane($, 'flow'),
   gear: () => void openPane($, 'settings'),
-  run: phase => void runFromCard($, phase),
-  openTickets: () => void openPane($, 'tickets'),
   closeCard: () => void closeCard($),
   pickFeature: () => void togglePicker($),
   switchFeature: key => {
@@ -239,17 +240,7 @@ const bandActions = ($: EngineInterface): BandActions => ({
       await switchFeature($, key)
     })()
   },
-  notice: action => void onNotice($, action),
-  pauseAll: () => void togglePause($),
-  openPanel: () => void openPane($, 'worktrees'),
-  raiseBudget: ticket => {
-    void raiseBudget($, ticket).then(() => dropNotice($, `budget-${ticket}`))
-  },
-  diagnose: () => {
-    void $.command.run({ command: namespaced(SKILLS.diagnosingBugs), args: '' })
-  },
-  markDone: phase => void markDone($, phase),
-  writePr: () => void requestRun($, SKILLS.pr, ''),
+  act: action => void dispatch($, action),
 })
 
 export const register: Register = (on, options) => {
@@ -505,7 +496,7 @@ export const register: Register = (on, options) => {
       settings: await settingsArgs($, options),
       notices: eventNotices((await heldNotices($)).filter(n => n.kind === 'gate')),
       on: {
-        notice: actions.notice,
+        act: actions.act,
         tab: tab => void openPane($, tab),
         diff: path => void toggleDiff($, path),
         openTerminal: (path, surface) => void copyTerminal($, path, surface),

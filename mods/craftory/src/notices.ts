@@ -1,33 +1,12 @@
-import type {
-  EventNotice,
-  InstallState,
-  NoticeKey,
-  PluginStatus,
-  RepoSnapshot,
-  SkillName,
-} from '../types'
+import type { EventNotice, InstallState, NoticeKey, PluginStatus, RepoSnapshot } from '../types'
+import type { Action } from './action'
 import { budgetK } from './build'
 import { driftText, retroText } from './drift'
 import { gateText } from './gates'
 import { PLUGIN, SKILLS, TESTED_RANGE } from './phases'
 import type { Role } from './theme'
 
-export type NoticeAction =
-  | { kind: 'install' }
-  | { kind: 'update' }
-  | { kind: 'not-now'; key: NoticeKey }
-  | { kind: 'setup' }
-  | { kind: 'run'; skill: SkillName; args: string }
-  | { kind: 'run-anyway'; id: string }
-  | { kind: 'diagnose'; id: string }
-  | { kind: 'raise-budget'; id: string }
-  | { kind: 'resolve'; id: string }
-  | { kind: 'rename'; id: string }
-  | { kind: 'review-retro'; id: string }
-  | { kind: 'open-tickets' }
-  | { kind: 'dismiss'; id: string }
-
-export type NoticeButton = { id: string; label: string; action: NoticeAction; primary?: true }
+export type NoticeButton = { id: string; label: string; action: Action; primary?: true }
 
 export type NoticeView = {
   id: string
@@ -158,7 +137,7 @@ export function derivedNotices(args: {
 const dismiss = (id: string): NoticeButton => ({
   id: `dismiss-${id}`,
   label: 'Dismiss',
-  action: { kind: 'dismiss', id },
+  action: { kind: 'dismiss', noticeId: id },
 })
 
 export function eventNotice(notice: EventNotice): NoticeView | undefined {
@@ -173,13 +152,19 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
           {
             id: `run-anyway-${notice.phase}`,
             label: 'Run anyway',
-            action: { kind: 'run-anyway', id: notice.id },
+            action: {
+              kind: 'run-anyway',
+              noticeId: notice.id,
+              phase: notice.phase,
+              skill: notice.skill,
+              args: notice.args,
+            },
             primary: true,
           },
           {
             id: `diagnose-${notice.phase}`,
             label: 'Diagnose',
-            action: { kind: 'diagnose', id: notice.id },
+            action: { kind: 'diagnose', noticeId: notice.id },
           },
           dismiss(notice.id),
         ],
@@ -205,13 +190,13 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
           {
             id: `raise-budget-${notice.ticket}`,
             label: 'Raise budget',
-            action: { kind: 'raise-budget', id: notice.id },
+            action: { kind: 'raise-budget', ticket: notice.ticket },
             primary: true,
           },
           {
             id: `diagnose-${notice.ticket}`,
             label: 'Diagnose',
-            action: { kind: 'diagnose', id: notice.id },
+            action: { kind: 'diagnose', noticeId: notice.id },
           },
           dismiss(notice.id),
         ],
@@ -226,7 +211,7 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
           {
             id: `resolve-${notice.ticket}`,
             label: 'Resolve',
-            action: { kind: 'resolve', id: notice.id },
+            action: { kind: 'resolve', noticeId: notice.id },
             primary: true,
           },
           dismiss(notice.id),
@@ -242,7 +227,7 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
           {
             id: `rename-${notice.id}`,
             label: 'Rename',
-            action: { kind: 'rename', id: notice.id },
+            action: { kind: 'rename', noticeId: notice.id, term: notice.term },
             primary: true,
           },
           dismiss(notice.id),
@@ -258,7 +243,7 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
           {
             id: 'review-retro',
             label: 'Review',
-            action: { kind: 'review-retro', id: notice.id },
+            action: { kind: 'review-retro', noticeId: notice.id },
             primary: true,
           },
           dismiss(notice.id),

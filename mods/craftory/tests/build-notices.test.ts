@@ -36,3 +36,35 @@ test('a merge conflict stops the agent, toasts once, and Resolve opens the Workt
   await band.press({ key: 'notice-resolve-#44' })
   expect(w.opens).toEqual([expect.objectContaining({ id: 'craftory' })])
 })
+
+const DIAGNOSE = { command: 'mattpocock-skills:diagnosing-bugs', args: '' }
+
+test('Diagnose on a budget notice drops the notice and runs diagnosing-bugs', async ($, on) => {
+  const { w } = await building(on, $, { usage: () => OVER })
+  await start($, 44, 'Ledger tax')
+  await step($, 'agent-tu44', 0)
+  await (await mountBand($, 'terminal', 200)).press({ key: 'notice-diagnose-#44' })
+  expect(w.commandsRun.at(-1)).toEqual(DIAGNOSE)
+  expect(await allText(await mountBand($, 'terminal', 200))).not.toContain('hit its 80k budget')
+})
+
+test('Raise budget on the card clears the budget notice, as it does from the notice', async ($, on) => {
+  const { w } = await building(on, $, { usage: () => OVER })
+  await start($, 44, 'Ledger tax')
+  await step($, 'agent-tu44', 0)
+  await (await mountBand($, 'terminal', 200, 60)).press({ key: 'step-build' })
+  await (await mountBand($, 'terminal', 200, 60)).press({ key: 'agent-raise-#44' })
+  const record = JSON.parse(w.files.get('.craftory/features/42.json')!)
+  expect(record.agents['#44'].budget).toBe(160_000)
+  expect(await allText(await mountBand($, 'terminal', 200, 60))).not.toContain('hit its 80k budget')
+})
+
+test('Diagnose on the card closes the card and goes through the same run request as the notice', async ($, on) => {
+  const { w } = await building(on, $, { usage: () => OVER })
+  await start($, 44, 'Ledger tax')
+  await step($, 'agent-tu44', 0)
+  await (await mountBand($, 'terminal', 200, 60)).press({ key: 'step-build' })
+  await (await mountBand($, 'terminal', 200, 60)).press({ key: 'diagnose' })
+  expect(w.commandsRun.at(-1)).toEqual(DIAGNOSE)
+  expect(await (await mountBand($, 'terminal', 200, 60)).find({ key: 'card' })).toBeUndefined()
+})

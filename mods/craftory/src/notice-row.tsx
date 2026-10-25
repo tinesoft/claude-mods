@@ -1,6 +1,7 @@
 import type { Tone } from '../types'
 import { noticeSvg, hexOr, type NoticeIcon } from './icons'
-import type { NoticeAction, NoticeView } from './notices'
+import type { Acts } from './action'
+import type { NoticeView } from './notices'
 import { PLUGIN } from './phases'
 import { paint, type Role, SPACE } from './theme'
 import type { Ui } from './ui'
@@ -22,7 +23,7 @@ type NoticeArgs = {
   ui: Ui
   tone: Tone | undefined
   notice: NoticeView
-  on: (action: NoticeAction) => void
+  on: Acts
 }
 
 const NoticeLabel = ({ ui, notice, color }: { ui: Ui; notice: NoticeView; color: string }) => {
@@ -72,7 +73,7 @@ export const NoticeRow = ({ ui, tone, notice, on }: NoticeArgs) => {
           id={`notice-${button.id}`}
           label={button.label}
           primary={button.primary === true}
-          onPress={() => on(button.action)}
+          onPress={() => on.act(button.action)}
         />
       ))}
     </Box>

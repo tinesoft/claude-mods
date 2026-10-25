@@ -12,7 +12,8 @@ import {
   type TicketRowView,
   type TicketsView,
 } from './pane-view'
-import type { NoticeAction, NoticeView } from './notices'
+import type { Action } from './action'
+import type { NoticeView } from './notices'
 import { NoticeRow } from './notice-row'
 import { StepStrip, type BandActions } from './rail'
 import { SettingsTab, type SettingsArgs } from './settings'
@@ -33,7 +34,7 @@ export type PaneActions = {
   search: (text: string) => void
   editTerm: (name: string) => void
   rail: Pick<BandActions, 'step' | 'triage'>
-  notice: (action: NoticeAction) => void
+  act: (action: Action) => void
 }
 
 export type PaneArgs = {
@@ -295,7 +296,7 @@ const FlowTab = ({
   return (
     <Box key="flow" flexDirection="column" rowGap={SPACE.paneGap}>
       {notices.map(notice => (
-        <NoticeRow key={notice.id} ui={ui} tone={tone} notice={notice} on={on.notice} />
+        <NoticeRow key={notice.id} ui={ui} tone={tone} notice={notice} on={on} />
       ))}
       {surface === 'mobile' && (
         <StepStrip

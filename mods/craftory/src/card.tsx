@@ -1,8 +1,9 @@
 import type { RenderElement } from 'claude-code'
-import type { PhaseId, Tone } from '../types'
+import type { Tone } from '../types'
 import { helperSvg, hexOr } from './icons'
 import { CARD_SPACE, type CardDensity, type CardView } from './card-model'
-import { AgentsList, type AgentsActions } from './agents-list'
+import type { Acts } from './action'
+import { AgentsList } from './agents-list'
 import { paint, SPACE, TOKENS, TRIPLES } from './theme'
 import { Icon, inkOf, isRich, roleInk, withTint, type Ui } from './ui'
 import { HookNote } from './widgets'
@@ -65,13 +66,7 @@ const CardRow = ({
     </Box>
   )
 }
-export type CardActions = AgentsActions & {
-  closeCard: () => void
-  run: (phase: PhaseId | 'triage') => void
-  openTickets: () => void
-  writePr: () => void
-  markDone: (phase: PhaseId) => void
-}
+export type CardActions = Acts & { closeCard: () => void }
 
 export const DetailCard = ({
   ui,
@@ -164,20 +159,11 @@ export const DetailCard = ({
               key="primary"
               hotkey="r"
               label={`r: ${card.primary.label}`}
-              onPress={() => on.run(card.primary!.phase)}
+              onPress={() => on.act(card.primary!.action)}
             />
           )}
           {card.secondary.map(button => (
-            <Button
-              key={button.id}
-              label={button.label}
-              onPress={() => {
-                if (button.action === 'diagnose') on.diagnose()
-                else if (button.action === 'pr') on.writePr()
-                else if (button.action === 'mark-done') on.markDone(button.phase)
-                else on.openTickets()
-              }}
-            />
+            <Button key={button.id} label={button.label} onPress={() => on.act(button.action)} />
           ))}
         </Box>
       )}

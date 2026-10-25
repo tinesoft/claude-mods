@@ -1,4 +1,5 @@
-import type { IssueRef, Tone } from '../types'
+import type { Tone } from '../types'
+import type { Acts } from './action'
 import {
   barPercent,
   barRole,
@@ -17,18 +18,11 @@ import { Badge, CardButton, HookNote } from './widgets'
 const BAR_CELLS = { terminal: 12, rich: 16 } as const
 const BAR_GLYPHS = { full: '█', empty: '░', fullAscii: '#', emptyAscii: '-' } as const
 
-export type AgentsActions = {
-  raiseBudget: (ticket: IssueRef) => void
-  diagnose: () => void
-  pauseAll: () => void
-  openPanel: () => void
-}
-
 type AgentArgs = {
   ui: Ui
   tone: Tone | undefined
   ascii: boolean
-  on: AgentsActions
+  on: Acts
 }
 
 const TokenBar = ({
@@ -88,7 +82,7 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
               tone={tone}
               id={`agent-raise-${row.ref}`}
               label="Raise budget"
-              onPress={() => on.raiseBudget(row.ref)}
+              onPress={() => on.act({ kind: 'raise-budget', ticket: row.ref })}
             />
           )}
           {row.status === 'failed' && (
@@ -97,7 +91,7 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
               tone={tone}
               id={`agent-diagnose-${row.ref}`}
               label="Diagnose"
-              onPress={() => on.diagnose()}
+              onPress={() => on.act({ kind: 'diagnose' })}
             />
           )}
           <Badge
@@ -219,14 +213,14 @@ export const AgentsList = ({
             tone={tone}
             id="agents-pause"
             label={view.isPaused ? 'Resume' : 'Pause all'}
-            onPress={() => on.pauseAll()}
+            onPress={() => on.act({ kind: 'pause-all' })}
           />
           <CardButton
             ui={ui}
             tone={tone}
             id="agents-open-panel"
             label="Open panel"
-            onPress={() => on.openPanel()}
+            onPress={() => on.act({ kind: 'open-panel' })}
           />
         </Box>
       </Box>

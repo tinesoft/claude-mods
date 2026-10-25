@@ -1,5 +1,6 @@
 import type { Space } from 'claude-code'
 import type { CraftoryConfig, PhaseId, SkillName } from '../types'
+import type { Action } from './action'
 import { hasMeterLine, hasWorktreeLine, type AgentRow, type AgentsView } from './build'
 import type { Flow, Step } from './evidence'
 import { PHASE_ORDER, PHASES, type PhaseSpec } from './phases'
@@ -115,11 +116,8 @@ export type CardView = {
   artifactLabel: string | null
   artifact: string | null
   gate: string | null
-  primary: { label: string; phase: PhaseId | 'triage' } | null
-  secondary: (
-    | { id: string; label: string; action: 'open-tickets' | 'diagnose' | 'pr' }
-    | { id: string; label: string; action: 'mark-done'; phase: PhaseId }
-  )[]
+  primary: { label: string; action: Action } | null
+  secondary: { id: string; label: string; action: Action }[]
   agents: AgentsView | null
 }
 
@@ -138,7 +136,7 @@ export function triageCard(waiting: number): CardView {
     artifactLabel: 'Waiting',
     artifact: waiting > 0 ? `${waiting} new · labelled needs-triage` : 'Nothing waiting',
     gate: null,
-    primary: { label: '/triage', phase: 'triage' },
+    primary: { label: '/triage', action: { kind: 'run-phase', phase: 'triage' } },
     secondary: [],
     agents: null,
   }
@@ -149,18 +147,18 @@ type Secondary = CardView['secondary']
 function secondaryOf(step: Step, specRef: string | null, isDone: boolean): Secondary {
   const kind = step.state.kind
   if (step.phase === 'spec' && isDone && specRef !== null)
-    return [{ id: 'open-spec', label: `Open ${specRef}`, action: 'open-tickets' }]
+    return [{ id: 'open-spec', label: `Open ${specRef}`, action: { kind: 'open-tickets' } }]
   if (step.phase === 'tickets' && isDone)
-    return [{ id: 'open-tickets', label: 'Open in panel', action: 'open-tickets' }]
+    return [{ id: 'open-tickets', label: 'Open in panel', action: { kind: 'open-tickets' } }]
   if (step.phase === 'build' && (kind === 'failed' || kind === 'over-budget'))
-    return [{ id: 'diagnose', label: 'Diagnose', action: 'diagnose' }]
+    return [{ id: 'diagnose', label: 'Diagnose', action: { kind: 'diagnose' } }]
   if (step.phase === 'ship' && step.artifact !== null)
-    return [{ id: 'pr', label: 'Rewrite the body with /pr', action: 'pr' }]
+    return [{ id: 'pr', label: 'Rewrite the body with /pr', action: { kind: 'write-pr' } }]
   return []
 }
 
 const markDoneButton = (phase: PhaseId): Secondary => [
-  { id: 'mark-done', label: 'Mark done', action: 'mark-done', phase },
+  { id: 'mark-done', label: 'Mark done', action: { kind: 'mark-done', phase } },
 ]
 
 export function phaseCard(
@@ -198,7 +196,10 @@ export function phaseCard(
     primary:
       command === null
         ? null
-        : { label: isDone ? `Re-run ${command}` : command, phase: step.phase },
+        : {
+            label: isDone ? `Re-run ${command}` : command,
+            action: { kind: 'run-phase', phase: step.phase },
+          },
     secondary: [
       ...secondaryOf(step, specRef, isDone),
       ...(step.canMarkDone ? markDoneButton(step.phase) : []),

@@ -35,18 +35,10 @@ const on: BandActions = {
   triage: fits => void calls.push(`triage ${fits}`),
   summary: () => void calls.push('summary'),
   gear: () => void calls.push('gear'),
-  run: phase => void calls.push(`run ${phase}`),
-  openTickets: () => void calls.push('open-tickets'),
   closeCard: () => void calls.push('close'),
   pickFeature: () => void calls.push('pick'),
   switchFeature: key => void calls.push(`switch ${key}`),
-  notice: () => undefined,
-  pauseAll: () => void calls.push('pause-all'),
-  openPanel: () => void calls.push('open-panel'),
-  raiseBudget: ticket => void calls.push(`raise ${ticket}`),
-  diagnose: () => void calls.push('diagnose'),
-  writePr: () => void calls.push('write-pr'),
-  markDone: phase => void calls.push(`mark-done ${phase}`),
+  act: action => void calls.push(action.kind === 'run-phase' ? `run ${action.phase}` : action.kind),
 }
 
 const args = (over: Partial<BandArgs> = {}): BandArgs => ({

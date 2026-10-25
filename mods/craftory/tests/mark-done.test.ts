@@ -55,7 +55,7 @@ for (const kind of ['local', 'github', 'gitlab', 'other'] as const) {
     expect(offered).toEqual(honoured[kind])
     for (const step of flow.steps)
       expect(
-        phaseCard(step, flow, DEFAULT_CONFIG).secondary.some(b => b.action === 'mark-done'),
+        phaseCard(step, flow, DEFAULT_CONFIG).secondary.some(b => b.action.kind === 'mark-done'),
       ).toBe(step.canMarkDone)
   })
 }

@@ -485,14 +485,13 @@ export async function dismissNotice($: EngineInterface, key: NoticeKey) {
   $.ui.invalidate('ui.render')
 }
 
-export async function allowGate($: EngineInterface, id: string) {
-  const notice = await noticeOf($, id)
-  if (notice?.kind !== 'gate') return undefined
-  const req = { skill: notice.skill, args: notice.args, phase: notice.phase }
+/** Lets the one gated run through and drops its notice; false when the notice is already gone. */
+export async function allowGate($: EngineInterface, noticeId: string, req: RunRequest) {
+  if (!(await read($, noticesState)).some(n => n.id === noticeId)) return false
   const now = await $.clock.now()
   await update($, passesState, held => issuePass(held, req, now))
-  await dropNotice($, notice.id)
-  return notice
+  await dropNotice($, noticeId)
+  return true
 }
 
 export async function gateVerdict($: EngineInterface, req: RunRequest) {
@@ -970,13 +969,13 @@ export async function finishAgent($: EngineInterface, agentId: AgentId, reason: 
   scheduleRefresh($)
 }
 
-export async function noticeOf($: EngineInterface, id: string) {
-  return (await read($, noticesState)).find(n => n.id === id)
+export async function dropNotices($: EngineInterface, drops: (notice: EventNotice) => boolean) {
+  await update($, noticesState, held => held.filter(n => !drops(n)))
+  await settle($)
 }
 
-export async function dropNotice($: EngineInterface, id: string) {
-  await update($, noticesState, held => held.filter(n => n.id !== id))
-  await settle($)
+export function dropNotice($: EngineInterface, id: string) {
+  return dropNotices($, n => n.id === id)
 }
 
 async function scanDrift($: EngineInterface) {
