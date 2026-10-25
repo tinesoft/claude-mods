@@ -40,6 +40,10 @@ const on: BandActions = {
   pickFeature: () => void calls.push('pick'),
   switchFeature: key => void calls.push(`switch ${key}`),
   notice: () => undefined,
+  pauseAll: () => void calls.push('pause-all'),
+  openPanel: () => void calls.push('open-panel'),
+  raiseBudget: ticket => void calls.push(`raise ${ticket}`),
+  diagnose: () => void calls.push('diagnose'),
 }
 
 const args = (over: Partial<BandArgs> = {}): BandArgs => ({
@@ -55,6 +59,7 @@ const args = (over: Partial<BandArgs> = {}): BandArgs => ({
   flow: baseFlow(),
   config: DEFAULT_CONFIG,
   waiting: 0,
+  agents: null,
   notices: [],
   open: null,
   features: [],

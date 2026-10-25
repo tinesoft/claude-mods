@@ -13,6 +13,7 @@ import type { EngineInterface, Register, RenderSurface, Timer } from 'claude-cod
 import {
   addPending,
   budgetFor,
+  budgetState,
   cleanupPlan,
   conflictText,
   decideSpawn,
@@ -22,6 +23,7 @@ import {
   freshTokens,
   isBuilding,
   markStopping,
+  pauseText,
   moveNotices,
   patchRun,
   recordOf,
@@ -34,7 +36,10 @@ import {
   tddStepOf,
   withoutIsolation,
   addQueued,
+  agentRows,
+  agentsView,
   budgetK,
+  type AgentsView,
   type FinishReason,
   type KeepWhy,
   type SpawnDecision,
@@ -935,6 +940,47 @@ async function countStep(
   await settle($)
 }
 
+/** Pause all stops new implementers and asks the running ones to report after their step; again resumes. */
+async function togglePause($: EngineInterface) {
+  const isPausing = !(await read($, buildState)).isPaused
+  await update($, buildState, ledger => ({ ...ledger, isPaused: isPausing }))
+  if (isPausing) {
+    const ledger = await read($, buildState)
+    for (const run of Object.values(ledger.runs))
+      if (run.status === 'running')
+        await $.session.send({ to: { agentId: run.agentId }, text: pauseText })
+  } else {
+    $.ui.toast('Build resumed · ask Claude to start the queued tickets')
+  }
+  await settle($)
+}
+
+/** The Agents list for the Build card, from the ledger, the stored records and the last look at git. */
+async function agentsViewOf($: EngineInterface, flow: Flow | null): Promise<AgentsView | null> {
+  const [repo, ledger, git, note] = await Promise.all([
+    read($, repoState),
+    read($, buildState),
+    read($, gitState),
+    read($, steeringNoteState),
+  ])
+  const config = configOf(repo?.config)
+  if (flow === null || !config.automation.liveAgents || flow.tickets.length === 0) return null
+  const build = flow.steps.find(s => s.phase === 'build')?.state.kind
+  // Before any agent exists the list would only repeat the tickets.
+  if (build === 'todo' || build === 'next' || build === 'gated' || build === 'skipped') return null
+  const record = flow.feature.kind === 'specced' ? flow.feature.record : null
+  const rows = agentRows({
+    tickets: flow.tickets,
+    ledger,
+    records: record?.agents ?? {},
+    worktrees: git?.worktrees ?? [],
+    config,
+    integrationBranch: record?.integrationBranch ?? '',
+    now: await $.clock.now(),
+  })
+  return agentsView({ rows, config, isPaused: ledger.isPaused, note })
+}
+
 /** One more `tokenBudget` step for a ticket, stored in the feature record so a restart keeps it. */
 async function raiseBudget($: EngineInterface, ticket: IssueRef) {
   const record = await featureOfTicket($, ticket)
@@ -943,6 +989,17 @@ async function raiseBudget($: EngineInterface, ticket: IssueRef) {
   const step = configOf((await read($, repoState))?.config).worktrees.tokenBudget
   const budget = old.budget + step
   await recordChange($, specKey(record.spec), { kind: 'agent', record: { ...old, budget } })
+  await update($, buildState, ledger => ({
+    ...ledger,
+    runs: Object.fromEntries(
+      Object.entries(ledger.runs).map(([id, run]) => [
+        id,
+        run.ticket === ticket && run.status === 'running'
+          ? { ...run, budget, budgetState: budgetState(run.tokens, budget) }
+          : run,
+      ]),
+    ),
+  }))
   $.ui.toast(`Budget for ${ticket} raised to ${budgetK(budget)} · run it again to continue`)
 }
 
@@ -1157,6 +1214,14 @@ const bandActions = ($: EngineInterface): BandActions => ({
     })()
   },
   notice: action => void onNotice($, action),
+  pauseAll: () => void togglePause($),
+  openPanel: () => void openPane($, 'worktrees'),
+  raiseBudget: ticket => {
+    void raiseBudget($, ticket).then(() => dropNotice($, `budget-${ticket}`))
+  },
+  diagnose: () => {
+    void $.command.run({ command: namespaced('diagnosing-bugs' as SkillName), args: '' })
+  },
 })
 
 export const register: Register = (on, options) => {
@@ -1441,6 +1506,7 @@ export const register: Register = (on, options) => {
       flow,
       config: configOf(repo?.config),
       waiting: waitingForTriage(await read($, trackerState)),
+      agents: await agentsViewOf($, flow),
       notices: [...events, ...derived],
       open: await read($, openStepState),
       features: await featureChoices($),

@@ -6,6 +6,7 @@
  */
 import type { Color, RenderSurface, Space } from 'claude-code'
 import type { ThemeChoice, Tone } from '../types'
+import type { RowStatus } from './build'
 import type { StepState } from './evidence'
 
 export type { Tone }
@@ -164,6 +165,19 @@ export const STEP_LOOKS: Record<StepState['kind'], StateLook> = {
   todo: { label: 'Not started', glyph: '·', ascii: '.', role: 'muted', bold: false },
 }
 
+/** The badge colour of an agent row; the words come from `ROW_LABELS`. */
+export const ROW_ROLES: Record<RowStatus, Role> = {
+  merged: 'perm',
+  'awaiting-merge': 'skill',
+  running: 'skill',
+  queued: 'muted',
+  'needs-you': 'hook',
+  near: 'hook',
+  over: 'danger',
+  failed: 'danger',
+  stopped: 'muted',
+}
+
 export const SPINNER = ['◐', '◓', '◑', '◒'] as const
 export const SPINNER_ASCII = ['|', '/', '-', '\\'] as const
 export const SPIN_MS = 150
@@ -191,6 +205,10 @@ export const SPACE = {
   chipPadX: 'sm',
   gateGap: 'sm',
   gatePadX: 'sm',
+  agentsGap: 'xs',
+  agentsPadX: 'sm',
+  agentsPadY: 'xs',
+  agentLineGap: 'xs',
   buttonsGap: 'sm',
   pickerGap: 'sm',
   paneLeft: 'md',

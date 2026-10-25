@@ -5,7 +5,26 @@
  * out (session-activity's `renderBand` contract); nothing here touches `$`.
  */
 import type { Color, ElementTable, RenderElement, RenderSurface, Space } from 'claude-code'
-import type { CraftoryConfig, FeatureKey, PhaseId, RailLayout, SkillName, Tone } from '../types'
+import type {
+  CraftoryConfig,
+  FeatureKey,
+  IssueRef,
+  PhaseId,
+  RailLayout,
+  SkillName,
+  Tone,
+} from '../types'
+import {
+  barPercent,
+  barRole,
+  elapsedText,
+  hasMeterLine,
+  hasWorktreeLine,
+  kTokens,
+  ROW_LABELS,
+  type AgentRow,
+  type AgentsView,
+} from './build'
 import type { Flow, Step } from './evidence'
 import {
   helperSvg,
@@ -28,6 +47,7 @@ import {
   mix,
   paint,
   type Role,
+  ROW_ROLES,
   SPACE,
   SPINNER,
   SPINNER_ASCII,
@@ -218,6 +238,8 @@ export type CardView = {
   /** The primary button: its label, and what it runs. Null when nothing is typed for the phase. */
   primary: { label: string; phase: PhaseId | 'triage' } | null
   secondary: { id: string; label: string; action: 'open-tickets' }[]
+  /** Build's live Agents list; null on every other card and with Settings › live agents off. */
+  agents: AgentsView | null
 }
 
 const TRIAGE_WHY =
@@ -237,10 +259,16 @@ export function triageCard(waiting: number): CardView {
     gate: null,
     primary: { label: '/triage', phase: 'triage' },
     secondary: [],
+    agents: null,
   }
 }
 
-export function phaseCard(step: Step, flow: Flow, config: CraftoryConfig): CardView {
+export function phaseCard(
+  step: Step,
+  flow: Flow,
+  config: CraftoryConfig,
+  agents: AgentsView | null = null,
+): CardView {
   const spec: PhaseSpec = PHASES[step.phase]
   const look = STEP_LOOKS[step.state.kind]
   const next = PHASE_ORDER.slice(PHASE_ORDER.indexOf(step.phase) + 1).find(
@@ -277,8 +305,19 @@ export function phaseCard(step: Step, flow: Flow, config: CraftoryConfig): CardV
         : step.phase === 'tickets' && isDone
           ? [{ id: 'open-tickets', label: 'Open in panel', action: 'open-tickets' }]
           : [],
+    agents: step.phase === 'build' ? agents : null,
   }
 }
+
+const agentLines = (row: AgentRow) =>
+  1 + (hasMeterLine(row) ? 1 : 0) + (hasWorktreeLine(row) ? 1 : 0)
+
+/** Terminal rows the Agents list takes: head, one block per row, the cap line, the note, the foot. */
+export const agentsRows = (view: AgentsView) =>
+  2 +
+  view.rows.reduce((sum, row) => sum + agentLines(row), 0) +
+  (view.more > 0 ? 1 : 0) +
+  (view.note === null ? 0 : 1)
 
 /** Terminal rows the card takes: border, padding, its parts and the gaps between them. */
 export function cardRows(card: CardView, columns: number, density: CardDensity): number {
@@ -292,6 +331,7 @@ export function cardRows(card: CardView, columns: number, density: CardDensity):
     1, // command row
     card.helpers.length > 0 ? 1 : 0,
     card.artifact === null ? 0 : 1,
+    card.agents === null ? 0 : agentsRows(card.agents),
     lines(card.gate),
     card.primary !== null || card.secondary.length > 0 ? 1 : 0,
   ].filter(n => n > 0)
@@ -316,9 +356,24 @@ const DESKTOP_PT = {
   buttons: 36,
   band: 13,
   railRow: 36,
+  agentsHead: 34,
+  agentsFoot: 46,
+  agentLine: 24,
+  agentGap: 14,
+  agentsNote: 34,
 } as const
 
 const points = (space: Space) => (typeof space === 'number' ? space : DESKTOP_PT.step[space])
+
+const agentsPoints = (view: AgentsView) =>
+  DESKTOP_PT.agentsHead +
+  DESKTOP_PT.agentsFoot +
+  view.rows.reduce(
+    (sum, row) => sum + agentLines(row) * DESKTOP_PT.agentLine + DESKTOP_PT.agentGap,
+    0,
+  ) +
+  (view.more > 0 ? DESKTOP_PT.agentLine : 0) +
+  (view.note === null ? 0 : DESKTOP_PT.agentsNote)
 
 /** Points the card takes on desktop, where the band shows `maxRows` lines whole and scrolls the rest. */
 export function cardPoints(card: CardView, columns: number, density: CardDensity): number {
@@ -332,6 +387,7 @@ export function cardPoints(card: CardView, columns: number, density: CardDensity
     DESKTOP_PT.row,
     card.helpers.length > 0 ? DESKTOP_PT.row : 0,
     card.artifact === null ? 0 : DESKTOP_PT.row + 16,
+    card.agents === null ? 0 : agentsPoints(card.agents),
     wrapped(card.gate, DESKTOP_PT.whyPerCell, DESKTOP_PT.gateLine),
     card.primary !== null || card.secondary.length > 0 ? DESKTOP_PT.buttons : 0,
   ].filter(n => n > 0)
@@ -383,6 +439,12 @@ export type BandActions = {
   pickFeature: () => void
   switchFeature: (key: FeatureKey) => void
   notice: (action: NoticeAction) => void
+  /** The Agents list footer: stop every running agent after its step, or let Build go on. */
+  pauseAll: () => void
+  /** The Agents list footer: the pane on its Worktrees tab. */
+  openPanel: () => void
+  raiseBudget: (ticket: IssueRef) => void
+  diagnose: () => void
 }
 
 export type BandArgs = {
@@ -400,6 +462,8 @@ export type BandArgs = {
   flow: Flow | null
   config: CraftoryConfig
   waiting: number
+  /** Build's Agents list for the card; null when there is none to draw. */
+  agents: AgentsView | null
   notices: readonly NoticeView[]
   open: PhaseId | 'triage' | null
   features: readonly FeatureChoice[]
@@ -857,18 +921,305 @@ const CardRow = ({
   )
 }
 
+// ─── Build's Agents list ────────────────────────────────────────────────────────────────
+
+const BAR_CELLS = { terminal: 12, rich: 16 } as const
+const BAR_GLYPHS = { full: '█', empty: '░', fullAscii: '#', emptyAscii: '-' } as const
+
+type AgentArgs = {
+  ui: Ui
+  tone: Tone | undefined
+  ascii: boolean
+  on: Pick<BandActions, 'raiseBudget' | 'diagnose'>
+}
+
+const StatusBadge = ({ ui, tone, row }: Pick<AgentArgs, 'ui' | 'tone'> & { row: AgentRow }) => {
+  const { Box, Text } = ui
+  const role = ROW_ROLES[row.status]
+  const colours = paint(role, tone)
+  const label = ROW_LABELS[row.status]
+  if (!isRich(ui) || tone === undefined) {
+    return (
+      <Text bold {...roleInk(role, tone)}>
+        {`[${label}]`}
+      </Text>
+    )
+  }
+  return (
+    <Box
+      key={`agent-status-${row.ref}`}
+      paddingX={SPACE.chipPadX}
+      borderStyle="round"
+      {...(colours.bd !== undefined && { borderColor: colours.bd })}
+      backgroundColor={colours.bg ?? TOKENS[tone].fill}
+    >
+      <Text bold color={colours.fg}>
+        {label}
+      </Text>
+    </Box>
+  )
+}
+
+/** Skill colour, amber from 80%, danger at 100%: glyph cells on the terminal, Box widths on desktop. */
+const TokenBar = ({ ui, tone, ascii, row }: Omit<AgentArgs, 'on'> & { row: AgentRow }) => {
+  const { Box, Text } = ui
+  const colour = paint(barRole(row), tone).fg
+  const pct = barPercent(row)
+  if (isRich(ui) && tone !== undefined) {
+    return (
+      <Box key={`agent-bar-${row.ref}`} width={BAR_CELLS.rich} backgroundColor={TOKENS[tone].fill2}>
+        <Box key={`agent-bar-fill-${row.ref}`} width={`${pct}%`} backgroundColor={colour}>
+          <Text backgroundColor={colour}> </Text>
+        </Box>
+      </Box>
+    )
+  }
+  const cells = BAR_CELLS.terminal
+  const filled = pct === 0 ? 0 : Math.min(cells, Math.max(1, Math.round((pct / 100) * cells)))
+  return (
+    <Box key={`agent-bar-${row.ref}`} flexDirection="row">
+      <Text color={colour}>{(ascii ? BAR_GLYPHS.fullAscii : BAR_GLYPHS.full).repeat(filled)}</Text>
+      <Text dimColor>
+        {(ascii ? BAR_GLYPHS.emptyAscii : BAR_GLYPHS.empty).repeat(cells - filled)}
+      </Text>
+    </Box>
+  )
+}
+
+const CardButton = ({
+  ui,
+  tone,
+  id,
+  label,
+  onPress,
+}: Pick<AgentArgs, 'ui' | 'tone'> & { id: string; label: string; onPress: () => void }) => {
+  const { Box, Button, Text } = ui
+  if (!isRich(ui) || tone === undefined) {
+    return (
+      <Button key={id} plain onPress={onPress}>
+        <Text {...inkOf(tone, 'ink')}>{`[ ${label} ]`}</Text>
+      </Button>
+    )
+  }
+  const t = TOKENS[tone]
+  return (
+    <Box
+      key={`${id}-box`}
+      paddingX={SPACE.buttonPadX}
+      borderStyle="round"
+      borderColor={t.line}
+      backgroundColor={t.surface}
+    >
+      <Button key={id} plain onPress={onPress}>
+        <Text color={t.ink}>{label}</Text>
+      </Button>
+    </Box>
+  )
+}
+
+const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow }) => {
+  const { Box, Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  const t = tone === undefined ? undefined : TOKENS[tone]
+  const stepInk =
+    row.status === 'over' || row.status === 'failed'
+      ? roleInk('danger', tone)
+      : row.status === 'running' || row.status === 'near'
+        ? inkOf(tone, 'ink2')
+        : inkOf(tone, 'muted')
+  return (
+    <Box key={`agent-${row.ref}`} flexDirection="column" rowGap={SPACE.agentLineGap}>
+      <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowLabelGap}>
+        <Box flexDirection="row" columnGap={SPACE.rowLabelGap} flexShrink={1} minWidth={0}>
+          <Text mono={rich} {...inkOf(tone, 'muted')}>
+            {row.ref}
+          </Text>
+          <Text bold wrap="truncate-end" {...inkOf(tone, 'ink')}>
+            {row.title}
+          </Text>
+        </Box>
+        <Box flexDirection="row" columnGap={SPACE.rowLabelGap} alignItems="center">
+          {row.status === 'over' && (
+            <CardButton
+              ui={ui}
+              tone={tone}
+              id={`agent-raise-${row.ref}`}
+              label="Raise budget"
+              onPress={() => on.raiseBudget(row.ref)}
+            />
+          )}
+          {row.status === 'failed' && (
+            <CardButton
+              ui={ui}
+              tone={tone}
+              id={`agent-diagnose-${row.ref}`}
+              label="Diagnose"
+              onPress={() => on.diagnose()}
+            />
+          )}
+          <StatusBadge ui={ui} tone={tone} row={row} />
+        </Box>
+      </Box>
+      {hasMeterLine(row) && (
+        <Box flexDirection="row" columnGap={SPACE.rowLabelGap} alignItems="center">
+          {row.step !== null && (
+            <Text mono={rich} wrap="truncate-end" {...stepInk}>
+              {row.step}
+            </Text>
+          )}
+          <Box flexGrow={1} />
+          {row.tokens > 0 && <TokenBar ui={ui} tone={tone} ascii={ascii} row={row} />}
+          <Text mono={rich} {...inkOf(tone, 'text2')}>
+            {`${kTokens(row.tokens)} · ${elapsedText(row.elapsedMs)}`}
+          </Text>
+        </Box>
+      )}
+      {hasWorktreeLine(row) && (
+        <Box flexDirection="row" columnGap={SPACE.rowLabelGap} flexWrap="wrap">
+          {row.worktree !== null && (
+            <Text mono={rich} {...inkOf(tone, 'ink2')}>
+              {row.worktree}
+            </Text>
+          )}
+          {row.branch !== null && (
+            <Text
+              mono={rich}
+              {...inkOf(tone, 'text2')}
+              {...(t !== undefined && rich && { backgroundColor: t.fill })}
+            >
+              {row.branch}
+            </Text>
+          )}
+          {row.added !== null && (
+            <Text mono={rich} {...roleInk('perm', tone)}>{`+${row.added}`}</Text>
+          )}
+          {row.deleted !== null && (
+            <Text mono={rich} {...roleInk('danger', tone)}>{`−${row.deleted}`}</Text>
+          )}
+          {row.commits !== null && (
+            <Text mono={rich} {...inkOf(tone, 'muted')}>
+              {row.commits}
+            </Text>
+          )}
+          {row.note !== null && <Text {...inkOf(tone, 'muted')}>{row.note}</Text>}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+export const AgentsList = ({
+  ui,
+  tone,
+  ascii,
+  view,
+  on,
+}: AgentArgs & {
+  view: AgentsView
+  on: Pick<BandActions, 'raiseBudget' | 'diagnose' | 'pauseAll' | 'openPanel'>
+}) => {
+  const { Box, Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  const t = tone === undefined ? undefined : TOKENS[tone]
+  const skill = paint('skill', tone)
+  return (
+    <Box
+      key="agents"
+      flexDirection="column"
+      rowGap={SPACE.agentsGap}
+      {...(t !== undefined &&
+        rich && {
+          borderStyle: 'round' as const,
+          borderColor: t.line,
+          paddingX: SPACE.agentsPadX,
+          paddingY: SPACE.agentsPadY,
+        })}
+    >
+      <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowLabelGap}>
+        <Box flexDirection="row" columnGap={SPACE.rowLabelGap}>
+          <Text color={skill.fg}>{rich ? '●' : ascii ? '*' : '●'}</Text>
+          <Text bold {...inkOf(tone, 'ink')}>
+            Agents
+          </Text>
+          <Text {...inkOf(tone, 'text2')}>{view.summary}</Text>
+        </Box>
+        <Text mono={rich} {...inkOf(tone, 'text2')}>
+          {view.tokens}
+        </Text>
+      </Box>
+      {view.note !== null && (
+        <Box
+          key="agents-note"
+          flexDirection="row"
+          columnGap={SPACE.gateGap}
+          paddingX={SPACE.gatePadX}
+          {...(tone !== undefined && {
+            borderStyle: 'round' as const,
+            borderColor: TRIPLES.hook[tone].bd,
+            backgroundColor: TRIPLES.hook[tone].bg,
+          })}
+        >
+          <Text {...roleInk('hook', tone)}>{'!'}</Text>
+          <Text wrap="wrap" {...roleInk('hook', tone)}>
+            {view.note}
+          </Text>
+        </Box>
+      )}
+      {view.rows.map(row => (
+        <AgentRowView key={row.ref} ui={ui} tone={tone} ascii={ascii} on={on} row={row} />
+      ))}
+      {view.more > 0 && (
+        <Text {...inkOf(tone, 'muted')}>{`and ${view.more} more · Open panel`}</Text>
+      )}
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="center"
+        columnGap={SPACE.rowLabelGap}
+      >
+        <Box flexShrink={1} minWidth={0}>
+          <Text size="footnote" wrap="truncate-end" {...inkOf(tone, 'muted')}>
+            {view.footer}
+          </Text>
+        </Box>
+        <Box flexDirection="row" columnGap={SPACE.buttonsGap}>
+          <CardButton
+            ui={ui}
+            tone={tone}
+            id="agents-pause"
+            label={view.isPaused ? 'Resume' : 'Pause all'}
+            onPress={() => on.pauseAll()}
+          />
+          <CardButton
+            ui={ui}
+            tone={tone}
+            id="agents-open-panel"
+            label="Open panel"
+            onPress={() => on.openPanel()}
+          />
+        </Box>
+      </Box>
+    </Box>
+  )
+}
+
 export const DetailCard = ({
   ui,
   tone,
   card,
   density,
   on,
+  ascii = false,
 }: {
   ui: Ui
   tone: Tone | undefined
   card: CardView
   density: CardDensity
-  on: Pick<BandActions, 'closeCard' | 'run' | 'openTickets'>
+  on: Pick<
+    BandActions,
+    'closeCard' | 'run' | 'openTickets' | 'pauseAll' | 'openPanel' | 'raiseBudget' | 'diagnose'
+  >
+  ascii?: boolean
 }) => {
   const { Box, Button, Text } = ui
   const space = CARD_SPACE[density]
@@ -934,6 +1285,9 @@ export const DetailCard = ({
             {card.artifact}
           </Text>
         </Box>
+      )}
+      {card.agents !== null && (
+        <AgentsList ui={ui} tone={tone} ascii={ascii} view={card.agents} on={on} />
       )}
       {card.gate !== null && (
         <Box
@@ -1007,6 +1361,7 @@ export function renderBand(args: BandArgs) {
           flow.steps.find(s => s.phase === phase)!,
           flow,
           config,
+          args.agents,
         )
   const extraRows = above.length + (args.isPickingFeature ? 1 : 0)
   const fits = (phase: PhaseId | 'triage') =>
@@ -1023,7 +1378,14 @@ export function renderBand(args: BandArgs) {
       {args.isPickingFeature && args.features.length > 1 && <FeaturePicker args={args} />}
       {open !== null && density !== undefined && (
         <Box key="card-slot" flexDirection="column" marginBottom={SPACE.cardAbove}>
-          <DetailCard ui={ui} tone={tone} card={cardOf(open)} density={density} on={on} />
+          <DetailCard
+            ui={ui}
+            tone={tone}
+            ascii={args.ascii}
+            card={cardOf(open)}
+            density={density}
+            on={on}
+          />
         </Box>
       )}
       {asChip ? <Summary args={railArgs} flow={flow} /> : <Rail args={railArgs} fits={fits} />}

@@ -680,3 +680,51 @@ export function elapsedText(ms: number | null): string {
   const s = Math.round(ms / 1000)
   return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`
 }
+
+/** What the Build card's Agents list draws: rows already worded, and the lines around them. */
+export type AgentsView = {
+  summary: string
+  tokens: string
+  rows: AgentRow[]
+  /** Rows past the cap, named in a last line. */
+  more: number
+  footer: string
+  isPaused: boolean
+  /** Why steering is limited here, as an info row; null when it works. */
+  note: string | null
+}
+
+export const MAX_AGENT_ROWS = 8
+
+export function agentsView(args: {
+  rows: readonly AgentRow[]
+  config: CraftoryConfig
+  isPaused: boolean
+  note: string | null
+}): AgentsView {
+  const { rows, config, isPaused, note } = args
+  return {
+    summary: agentSummary(rows),
+    tokens: `${kTokens(rows.reduce((sum, r) => sum + r.tokens, 0))} tokens`,
+    rows: rows.slice(0, MAX_AGENT_ROWS),
+    more: Math.max(0, rows.length - MAX_AGENT_ROWS),
+    footer: `One git worktree per agent · ${budgetK(config.worktrees.tokenBudget)} token budget each`,
+    isPaused,
+    note,
+  }
+}
+
+export const hasMeterLine = (row: AgentRow) =>
+  row.tokens > 0 || row.step !== null || row.elapsedMs !== null
+
+export const hasWorktreeLine = (row: AgentRow) => row.worktree !== null || row.note !== null
+
+/** The role of a row's token bar: skill, amber from 80%, danger at 100%; teal once merged. */
+export function barRole(row: AgentRow): 'skill' | 'hook' | 'danger' | 'perm' {
+  if (row.status === 'merged') return 'perm'
+  const state = budgetState(row.tokens, row.budget)
+  return state === 'over' ? 'danger' : state === 'near' ? 'hook' : 'skill'
+}
+
+export const barPercent = (row: AgentRow) =>
+  Math.min(100, Math.round((row.tokens / Math.max(1, row.budget)) * 100))

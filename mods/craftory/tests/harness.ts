@@ -51,6 +51,8 @@ export type WorldOptions = {
     cache_creation_input_tokens: number
     cache_read_input_tokens: number
   }
+  /** The visible text of a subagent's step; absent means none. */
+  answer?: (e: { agentId?: string; index: number }) => string
   /** From its `onRead`th read on, `path` reads as `text`: someone else edited it meanwhile. */
   racy?: { path: string; onRead: number; text: string }
 }
@@ -138,7 +140,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
     return {
       turnId: e.turnId,
       index: e.index,
-      answer: '',
+      answer: options.answer?.(e) ?? '',
       toolUses: [],
       stopReason: 'end_turn',
       usage: usage && { ...usage, model: 'sonnet' },
@@ -254,6 +256,7 @@ export const mountBand = async <S extends BandSurface = 'terminal'>(
   $: Engine,
   surface: S = 'terminal' as S,
   columns = 100,
+  maxRows = 24,
 ) => {
   if (!(BAND_SURFACES as readonly string[]).includes(surface))
     throw new Error(`the engine never raises AbovePrompt on ${surface}`)
@@ -261,7 +264,7 @@ export const mountBand = async <S extends BandSurface = 'terminal'>(
     plugin: 'craftory',
     surface,
     component: 'AbovePrompt',
-    props: bandProps(columns),
+    props: bandProps(columns, maxRows),
   })
 }
 
