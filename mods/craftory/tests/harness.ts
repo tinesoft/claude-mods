@@ -33,6 +33,10 @@ export type WorldOptions = {
   surfaces?: readonly RenderSurface[]
   version?: string
   store?: Record<string, unknown>
+  /** What `gh` prints, by argv; absent means `gh` is not installed. */
+  gh?: (argv: readonly string[]) => { exitCode: number; stdout: string } | undefined
+  /** A command Craftory runs re-enters its own `prompt.submit`, as `$.command.run` does on 2.1.302. */
+  reenter?: boolean
   /** From its `onRead`th read on, `path` reads as `text`: someone else edited it meanwhile. */
   racy?: { path: string; onRead: number; text: string }
 }
@@ -51,6 +55,10 @@ export const world = (on: On, options: WorldOptions = {}) => {
   const writes: { path: string; text: string }[] = []
   const opens: { id: string; title?: string }[] = []
   const toasts: string[] = []
+  const toastTimeouts: (number | undefined)[] = []
+  const statuses: (string | undefined)[] = []
+  const commandsRun: { command: string; args: string }[] = []
+  const reentered: unknown[] = []
   const registered: { name: string; immediate?: boolean }[] = []
   let commands = options.commands ?? []
 
@@ -78,8 +86,22 @@ export const world = (on: On, options: WorldOptions = {}) => {
   on('ui.render', ($, e) => $.ui.resolve(e).Box({}))
   on('ui.open', (_$, e) => (opens.push(e), { value: { isPlaced: true } }))
   on('ui.invalidate', () => ({ value: undefined }))
-  on('ui.toast', (_$, e) => (toasts.push(e.text), { value: undefined }))
-  on('ui.status', () => ({ value: undefined }))
+  on(
+    'ui.toast',
+    (_$, e) => (toasts.push(e.text), toastTimeouts.push(e.timeoutMs), { value: undefined }),
+  )
+  on('ui.status', (_$, e) => (statuses.push(e.text), { value: undefined }))
+  on('tool.call', () => ({ result: 'ran' }))
+  on('skill.prompt', (_$, e) => ({ text: `body of ${e.skill}` }))
+  on('turn.complete', (_$, e) => ({ text: e.answer }))
+  on('prompt.submit', (_$, e) => ({ text: e.text }))
+  on('command.run', async ($, e) => {
+    commandsRun.push({ command: e.command, args: e.args })
+    if (options.reenter) {
+      reentered.push(await $.prompt.submit({ text: `/${e.command} ${e.args}`.trim() }))
+    }
+    return { text: 'ran' }
+  })
   let reads = 0
   on('fs.read', (_$, e) => {
     const path = rel(e.path)
@@ -130,6 +152,10 @@ export const world = (on: On, options: WorldOptions = {}) => {
       const outcome = options.install ?? { exitCode: 0, stderr: '' }
       return done(outcome.exitCode, '', outcome.stderr)
     }
+    if (a === 'gh') {
+      const answer = options.gh?.(e.argv)
+      if (answer) return done(answer.exitCode, answer.stdout)
+    }
     return { deny: `${a}: not found` }
   })
 
@@ -140,6 +166,10 @@ export const world = (on: On, options: WorldOptions = {}) => {
     writes,
     opens,
     toasts,
+    toastTimeouts,
+    statuses,
+    commandsRun,
+    reentered,
     registered,
     store,
     setCommands: (next: CommandInfo[]) => {

@@ -146,7 +146,7 @@ test('a repo that is set up but has no feature says how to start one', async ($,
   expect((await band.find({ key: 'notice-run' }))!.text).toContain('/grill-with-docs')
 })
 
-test('with a feature in flight there is nothing to say, and the band is only what was below', async ($, on) => {
+test('with a feature in flight the band is the rail, and no notice', async ($, on) => {
   const feature = {
     version: 1,
     spec: '#42',
@@ -163,8 +163,8 @@ test('with a feature in flight there is nothing to say, and the band is only wha
   })
   await startSession($)
   const band = await mountBand($)
-  expect(await band.findAll({ type: 'Text' })).toEqual([])
-  expect((await band.drawn()) as { type: string }).toMatchObject({ type: 'Box' })
+  expect(await band.find({ key: 'rail' })).toBeDefined()
+  expect(await allText(band)).not.toContain('Start a feature')
 })
 
 test('the rail pref turns the notices off', async ($, on) => {

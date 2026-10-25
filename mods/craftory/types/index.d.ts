@@ -116,7 +116,7 @@ export type RailLayout = 'row' | 'summary'
 export type ThemeChoice = 'auto' | 'light' | 'dark'
 export type Tone = 'light' | 'dark'
 
-export type Prefs = { rail: boolean; railLayout: RailLayout; theme: ThemeChoice }
+export type Prefs = { rail: boolean; railLayout: RailLayout; theme: ThemeChoice; ascii: boolean }
 export type PrefOverrides = Partial<Prefs>
 
 // ─── docs/agents/*.md + "## Agent skills" block (shared with setup-matt-pocock-skills) ──
@@ -411,6 +411,17 @@ export type EventNotice =
   | { kind: 'spec-published'; id: string; spec: IssueRef; stories: number | null }
   | { kind: 'retro-ready'; id: string; suggestions: number | null }
 
+/** A held gate, as the toast basis sees it. */
+export type GateSignalBasis = { id: string; phase: PhaseId; by: PhaseId; reason: string }
+
+/** What a toast is derived from, taken from the same facts as the Flow (src/signals.ts). */
+export type SignalBasis = {
+  /** The specs that belong to a feature in flight, with their user stories when known. */
+  specs: { ref: IssueRef; stories: number | null }[]
+  /** The gates the band is holding. */
+  gates: GateSignalBasis[]
+}
+
 export type NoticeKey = EventNotice['kind'] | 'plugin' | 'first-run' | 'no-feature' | 'duplicates'
 
 // ─── Pane ───────────────────────────────────────────────────────────────────────────────
@@ -462,6 +473,9 @@ declare module 'claude-code' {
       dismissed: NoticeKey[]
       lastReplyTerms: string[]
       glossaryAtStart: string[]
+
+      /** The toast basis last seen; null until the first look after the tracker was read. */
+      signals: SignalBasis | null
 
       // View state
       openStep: PhaseId | 'triage' | null

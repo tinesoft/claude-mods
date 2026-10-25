@@ -1,21 +1,418 @@
 /**
- * The AbovePrompt band. For now only the notices (the full rail is M3): other mods' row
- * (`below`) always sits in its own row above, then one row per notice. Plain args and callbacks
- * in, a tree out (session-activity's `renderBand` contract).
+ * The AbovePrompt band. Row order, top to bottom: other mods' row (`below`, always its own
+ * row), event notices, the feature picker, the detail card, then the rail, the collapsed
+ * summary chip, or the derived notice that replaces both. Plain args and callbacks in, a tree
+ * out (session-activity's `renderBand` contract); nothing here touches `$`.
  */
-import type { ElementTable, RenderElement, RenderSurface } from 'claude-code'
-import type { Tone } from '../types'
-import { hexOr, noticeSvg, type NoticeIcon } from './icons'
+import type { Color, ElementTable, RenderElement, RenderSurface, Space } from 'claude-code'
+import type { CraftoryConfig, FeatureKey, PhaseId, RailLayout, SkillName, Tone } from '../types'
+import type { Flow, Step } from './evidence'
+import {
+  gearSvg,
+  helperSvg,
+  hexOr,
+  inboxSvg,
+  lockSvg,
+  noticeSvg,
+  OFF_TRACK,
+  spinnerSvg,
+  stepSvg,
+  type NoticeIcon,
+} from './icons'
 import type { NoticeAction, NoticeButton, NoticeView } from './notices'
-import { PLUGIN } from './phases'
-import { paint, SPACE, TOKENS, type Role } from './theme'
+import { PHASE_ORDER, PHASES, PLUGIN, type PhaseSpec } from './phases'
+import {
+  across,
+  CONNECTOR,
+  down,
+  HOVER_MIX,
+  mix,
+  paint,
+  type Role,
+  SPACE,
+  SPINNER,
+  SPINNER_ASCII,
+  SPIN_MS,
+  STEP_LOOKS,
+  TOKENS,
+  TRIPLES,
+} from './theme'
 
 /** `Svg` exists on every surface that draws rich (remote) elements, never on the terminal. */
 export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button'> & {
   Svg?: ElementTable<'desktop'>['Svg']
 }
 
-const GLYPH: Record<Role, string> = {
+export const isRich = (ui: Ui) => ui.Svg !== undefined
+
+export const clip = (text: string, max: number) =>
+  text.length <= max ? text : `${text.slice(0, Math.max(1, max - 1))}…`
+
+const TITLE_MAX = 24
+const PROMPT_ROWS = 6
+const ICON_PX = 14
+
+// ─── Paint ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Text colour for a role. The terminal keeps its own colours for neutral and dims the quiet
+ * roles; a known tone pins the design's tokens.
+ */
+const roleInk = (role: Role, tone: Tone | undefined) => {
+  if (tone === undefined) {
+    if (role === 'muted') return { dimColor: true }
+    return role === 'neutral' ? {} : { color: paint(role, tone).fg }
+  }
+  return { color: paint(role, tone).fg }
+}
+
+const inkOf = (tone: Tone | undefined, key: 'ink' | 'ink2' | 'text2' | 'muted') =>
+  tone === undefined
+    ? key === 'ink' || key === 'ink2'
+      ? {}
+      : { dimColor: true }
+    : { color: TOKENS[tone][key] }
+
+const withTint = (tint: Color | undefined) => (tint === undefined ? {} : { backgroundColor: tint })
+
+const Icon = ({
+  ui,
+  svg,
+  alt,
+  px = ICON_PX,
+}: {
+  ui: Ui
+  svg: string
+  alt: string
+  px?: number
+}) => {
+  const { Svg } = ui
+  return Svg && <Svg source={svg} alt={alt} width={px} height={px} />
+}
+
+// ─── Step text ──────────────────────────────────────────────────────────────────────────
+
+/** Step label meta: `#42`, `5`, `1/5`, `Q6 of ~14`, `#44 · 80k`, or the issue a triaged feature entered from. */
+export function stepMeta(step: Step, flow: Flow): string | null {
+  const s = step.state
+  switch (s.kind) {
+    case 'done':
+      if (step.phase === 'spec')
+        return flow.feature.kind === 'specced' ? flow.feature.record.spec : null
+      return step.phase === 'tickets' && flow.tickets.length > 0
+        ? String(flow.tickets.length)
+        : null
+    case 'running':
+      return s.progress
+    case 'needs-you':
+    case 'failed':
+      return s.meta
+    case 'over-budget':
+      return `${s.ticket} · ${Math.round(s.budget / 1000)}k`
+    case 'next':
+      return flow.feature.kind === 'specced' &&
+        flow.feature.record.entry === step.phase &&
+        flow.feature.record.enteredFrom !== null
+        ? flow.feature.record.enteredFrom
+        : null
+    case 'gated':
+    case 'skipped':
+    case 'todo':
+      return null
+    default: {
+      const _exhaustive: never = s
+      return _exhaustive
+    }
+  }
+}
+
+const glyphOf = (step: Step, frame: number, ascii: boolean) => {
+  const look = STEP_LOOKS[step.state.kind]
+  if (step.state.kind === 'running')
+    return (ascii ? SPINNER_ASCII : SPINNER)[frame % SPINNER.length]!
+  return ascii ? look.ascii : look.glyph
+}
+
+/** The phase the collapsed chip names: what runs, else what is next, else the last done. */
+export function focusStep(flow: Flow): Step {
+  const pick = (phase: PhaseId | null) => flow.steps.find(s => s.phase === phase)
+  return (
+    pick(flow.current) ??
+    pick(flow.next) ??
+    [...flow.steps].reverse().find(s => s.state.kind === 'done') ??
+    flow.steps[0]!
+  )
+}
+
+/** `Export invoices as CSV · Build 2/5`. */
+export function chipText(flow: Flow): string {
+  const step = focusStep(flow)
+  const meta = stepMeta(step, flow)
+  return `${clip(flow.title, TITLE_MAX)} · ${PHASES[step.phase].label}${meta ? ` ${meta}` : ''}`
+}
+
+// ─── Fitting ────────────────────────────────────────────────────────────────────────────
+
+const RICH_STEP_EXTRA = 4
+const GEAR_RESERVE = 3
+
+const stepWidth = (step: Step, flow: Flow, rich: boolean) => {
+  const meta = stepMeta(step, flow)
+  return (
+    2 +
+    PHASES[step.phase].label.length +
+    (meta ? 1 + meta.length : 0) +
+    (rich ? RICH_STEP_EXTRA : 0)
+  )
+}
+
+const MIN_TITLE = 8
+
+/**
+ * Whether the seven steps, triage button and gear fit `columns` with at least a short title
+ * (the title takes what is left, up to 24), else the chip.
+ */
+export function fitRail(args: {
+  flow: Flow
+  columns: number
+  rich: boolean
+  waiting: number
+  features: number
+}): { mode: 'row' | 'chip'; titleMax: number } {
+  const { flow, columns, rich, waiting, features } = args
+  const steps = flow.steps.reduce((sum, s) => sum + stepWidth(s, flow, rich), 0)
+  const connectors = flow.steps.length - 1
+  // Triage, divider, one group per step and the title sit one gap apart, then the gear.
+  const items = flow.steps.length + 3
+  const triage =
+    'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0) + (rich ? RICH_STEP_EXTRA : 0)
+  const gaps = across(SPACE.railGap) * items
+  const fixed = triage + 1 + steps + connectors + GEAR_RESERVE + gaps + (features > 1 ? 2 : 0)
+  const titleMax = Math.min(TITLE_MAX, columns - fixed)
+  return titleMax >= Math.min(MIN_TITLE, flow.title.length)
+    ? { mode: 'row', titleMax }
+    : { mode: 'chip', titleMax: 0 }
+}
+
+export type CardDensity = 'roomy' | 'compact'
+
+const CARD_SPACE = {
+  roomy: { padX: 'lg', padY: 'lg', gap: 'md' },
+  // `xs` is no row on the terminal, and a little air on desktop.
+  compact: { padX: 'lg', padY: 'xs', gap: 'xs' },
+} as const satisfies Record<CardDensity, { padX: Space; padY: Space; gap: Space }>
+
+const DENSITIES = ['roomy', 'compact'] as const satisfies readonly CardDensity[]
+
+/** What the card says, before any surface draws it. */
+export type CardView = {
+  kicker: string
+  role: Role
+  title: string
+  why: string
+  commands: string[]
+  noCommand: string | null
+  helpers: readonly SkillName[]
+  artifactLabel: string | null
+  artifact: string | null
+  gate: string | null
+  /** The primary button: its label, and what it runs. Null when nothing is typed for the phase. */
+  primary: { label: string; phase: PhaseId | 'triage' } | null
+  secondary: { id: string; label: string; action: 'open-tickets' }[]
+}
+
+const TRIAGE_WHY =
+  'Intake for work that comes from outside the flow: bug reports, requests and outside PRs. Triage labels each one. Ready-for-agent items then enter the flow at Align; a small bug can go straight to Build.'
+
+export function triageCard(waiting: number): CardView {
+  return {
+    kicker: 'Entry point · outside the 7 phases',
+    role: 'hook',
+    title: 'Triage inbox',
+    why: TRIAGE_WHY,
+    commands: ['/triage'],
+    noCommand: null,
+    helpers: [],
+    artifactLabel: 'Waiting',
+    artifact: waiting > 0 ? `${waiting} new · labelled needs-triage` : 'Nothing waiting',
+    gate: null,
+    primary: { label: '/triage', phase: 'triage' },
+    secondary: [],
+  }
+}
+
+export function phaseCard(step: Step, flow: Flow, config: CraftoryConfig): CardView {
+  const spec: PhaseSpec = PHASES[step.phase]
+  const look = STEP_LOOKS[step.state.kind]
+  const next = PHASE_ORDER.slice(PHASE_ORDER.indexOf(step.phase) + 1).find(
+    p => config.phases[p].enabled,
+  )
+  const gate =
+    step.state.kind === 'gated'
+      ? `Gated: ${step.state.blockers.join(', ') || `${PHASES[step.state.by].label} is not done`}. It still runs after you confirm.`
+      : config.phases[step.phase].gate && next !== undefined
+        ? `Gate on: if ${spec.label} is not done when ${PHASES[next].label} starts, Craftory asks you to confirm first.`
+        : null
+  const command =
+    step.command === null ? null : `/${step.command}${step.args ? ` ${step.args}` : ''}`
+  const isDone = step.state.kind === 'done'
+  const specRef = flow.feature.kind === 'specced' ? flow.feature.record.spec : null
+  return {
+    kicker: `Phase ${spec.n} of ${PHASE_ORDER.length} · ${look.label}`,
+    role: look.role,
+    title: spec.label,
+    why: spec.why,
+    commands: step.command === null ? [] : [`/${step.command}`],
+    noCommand: step.command === null ? `None to type. ${spec.startedBy ?? ''}`.trim() : null,
+    helpers: spec.helpers,
+    artifactLabel: step.artifact === null ? null : spec.artifactLabel,
+    artifact: step.artifact,
+    gate,
+    primary:
+      command === null
+        ? null
+        : { label: isDone ? `Re-run ${command}` : command, phase: step.phase },
+    secondary:
+      step.phase === 'spec' && isDone && specRef !== null
+        ? [{ id: 'open-spec', label: `Open ${specRef}`, action: 'open-tickets' }]
+        : step.phase === 'tickets' && isDone
+          ? [{ id: 'open-tickets', label: 'Open in panel', action: 'open-tickets' }]
+          : [],
+  }
+}
+
+/** Terminal rows the card takes: border, padding, its parts and the gaps between them. */
+export function cardRows(card: CardView, columns: number, density: CardDensity): number {
+  const space = CARD_SPACE[density]
+  const inner = Math.max(10, columns - 2 - 2 * across(space.padX))
+  const lines = (text: string | null) =>
+    text === null ? 0 : Math.max(1, Math.ceil(text.length / inner))
+  const parts = [
+    1 + 1 + down(SPACE.lineGap), // kicker and title
+    lines(card.why),
+    1, // command row
+    card.helpers.length > 0 ? 1 : 0,
+    card.artifact === null ? 0 : 1,
+    lines(card.gate),
+    card.primary !== null || card.secondary.length > 0 ? 1 : 0,
+  ].filter(n => n > 0)
+  return (
+    2 +
+    2 * down(space.padY) +
+    parts.reduce((a, b) => a + b, 0) +
+    (parts.length - 1) * down(space.gap)
+  )
+}
+
+const DESKTOP_PT = {
+  line: 20.5,
+  step: { xs: 6, sm: 9, md: 12, lg: 16, xl: 24 },
+  border: 2,
+  header: 36,
+  whyLine: 20,
+  /** The proportional font fits about 1.25 characters per code-font cell. */
+  whyPerCell: 1.2,
+  row: 28,
+  gateLine: 20,
+  buttons: 36,
+  band: 13,
+  railRow: 36,
+} as const
+
+const points = (space: Space) => (typeof space === 'number' ? space : DESKTOP_PT.step[space])
+
+/** Points the card takes on desktop, where the band shows `maxRows` lines whole and scrolls the rest. */
+export function cardPoints(card: CardView, columns: number, density: CardDensity): number {
+  const space = CARD_SPACE[density]
+  const inner = Math.max(10, columns - 2 * across(space.padX))
+  const wrapped = (text: string | null, perLine: number, line: number) =>
+    text === null ? 0 : Math.max(1, Math.ceil(text.length / (inner * perLine))) * line
+  const parts = [
+    DESKTOP_PT.header,
+    wrapped(card.why, DESKTOP_PT.whyPerCell, DESKTOP_PT.whyLine),
+    DESKTOP_PT.row,
+    card.helpers.length > 0 ? DESKTOP_PT.row : 0,
+    card.artifact === null ? 0 : DESKTOP_PT.row + 16,
+    wrapped(card.gate, DESKTOP_PT.whyPerCell, DESKTOP_PT.gateLine),
+    card.primary !== null || card.secondary.length > 0 ? DESKTOP_PT.buttons : 0,
+  ].filter(n => n > 0)
+  return (
+    DESKTOP_PT.border +
+    2 * points(space.padY) +
+    parts.reduce((a, b) => a + b, 0) +
+    (parts.length - 1) * points(space.gap)
+  )
+}
+
+/** The densest card that fits the band, or undefined when the pane should show it instead. */
+export function fitCard(args: {
+  card: CardView
+  columns: number
+  maxRows: number
+  rich: boolean
+  extraRows: number
+}): CardDensity | undefined {
+  const { card, columns, maxRows, rich, extraRows } = args
+  return DENSITIES.find(density =>
+    rich
+      ? maxRows * DESKTOP_PT.line >=
+        DESKTOP_PT.band +
+          DESKTOP_PT.railRow +
+          extraRows * DESKTOP_PT.line +
+          points(SPACE.cardAbove) +
+          cardPoints(card, columns, density)
+      : maxRows >=
+        PROMPT_ROWS + 1 + extraRows + down(SPACE.cardAbove) + cardRows(card, columns, density),
+  )
+}
+
+// ─── Args ───────────────────────────────────────────────────────────────────────────────
+
+/** One feature in the switcher. */
+export type FeatureChoice = { key: FeatureKey; title: string; isActive: boolean }
+
+export type BandActions = {
+  /** A step was pressed; `fitsCard` says whether the card has room in the band. */
+  step: (phase: PhaseId, fitsCard: boolean) => void
+  triage: (fitsCard: boolean) => void
+  /** The summary chip opens the pane. */
+  summary: () => void
+  gear: () => void
+  run: (phase: PhaseId | 'triage') => void
+  openTickets: () => void
+  closeCard: () => void
+  pickFeature: () => void
+  switchFeature: (key: FeatureKey) => void
+  notice: (action: NoticeAction) => void
+}
+
+export type BandArgs = {
+  ui: Ui
+  surface: RenderSurface
+  columns: number
+  maxRows: number
+  tone: Tone | undefined
+  ascii: boolean
+  /** `floor(now / SPIN_MS)`: the spinner frame, so a redraw alone moves it. */
+  spinFrame: number
+  below: RenderElement | undefined
+  layout: RailLayout
+  /** Null when no feature is in flight. */
+  flow: Flow | null
+  config: CraftoryConfig
+  waiting: number
+  notices: readonly NoticeView[]
+  open: PhaseId | 'triage' | null
+  features: readonly FeatureChoice[]
+  isPickingFeature: boolean
+  on: BandActions
+}
+
+export const spinFrameOf = (now: number) => Math.floor(now / SPIN_MS)
+
+// ─── Notices (unchanged from M2, plus the event rows) ───────────────────────────────────
+
+const NOTICE_GLYPH: Record<Role, string> = {
   hook: '!',
   danger: '!',
   skill: '>',
@@ -24,17 +421,17 @@ const GLYPH: Record<Role, string> = {
   muted: '>',
 }
 
-const iconOf = (notice: NoticeView): NoticeIcon =>
+const noticeIcon = (notice: NoticeView): NoticeIcon =>
   notice.isBusy ? 'busy' : notice.role === 'hook' || notice.role === 'danger' ? 'warn' : 'info'
 
-type RowArgs = {
+type NoticeArgs = {
   ui: Ui
   tone: Tone | undefined
   notice: NoticeView
   on: (action: NoticeAction) => void
 }
 
-const Label = ({ ui, notice, color }: { ui: Ui; notice: NoticeView; color: string }) => {
+const NoticeLabel = ({ ui, notice, color }: { ui: Ui; notice: NoticeView; color: string }) => {
   const { Text } = ui
   const at = notice.text.indexOf(PLUGIN)
   if (at === -1) return <Text color={color}>{notice.text}</Text>
@@ -50,12 +447,12 @@ const Label = ({ ui, notice, color }: { ui: Ui; notice: NoticeView; color: strin
   )
 }
 
-const ActionButton = ({
+const NoticeButtonView = ({
   ui,
   tone,
   button,
   on,
-}: Omit<RowArgs, 'notice'> & { button: NoticeButton }) => {
+}: Omit<NoticeArgs, 'notice'> & { button: NoticeButton }) => {
   const { Box, Button, Text } = ui
   const key = `notice-${button.id}`
   if (ui.Svg === undefined || tone === undefined) {
@@ -86,13 +483,13 @@ const ActionButton = ({
   )
 }
 
-export const NoticeRow = ({ ui, tone, notice, on }: RowArgs) => {
+export const NoticeRow = ({ ui, tone, notice, on }: NoticeArgs) => {
   const { Box, Text, Svg } = ui
   const colours = paint(notice.role, tone)
   const lead = Svg ? (
-    <Svg source={noticeSvg(iconOf(notice), hexOr(colours.fg))} alt="" width={14} height={14} />
+    <Svg source={noticeSvg(noticeIcon(notice), hexOr(colours.fg))} alt="" width={14} height={14} />
   ) : (
-    <Text color={colours.fg}>{GLYPH[notice.role]}</Text>
+    <Text color={colours.fg}>{NOTICE_GLYPH[notice.role]}</Text>
   )
   return (
     <Box
@@ -107,32 +504,534 @@ export const NoticeRow = ({ ui, tone, notice, on }: RowArgs) => {
     >
       {lead}
       <Box flexGrow={1}>
-        <Label ui={ui} notice={notice} color={colours.fg} />
+        <NoticeLabel ui={ui} notice={notice} color={colours.fg} />
       </Box>
       {notice.actions.map(button => (
-        <ActionButton key={button.id} ui={ui} tone={tone} button={button} on={on} />
+        <NoticeButtonView key={button.id} ui={ui} tone={tone} button={button} on={on} />
       ))}
     </Box>
   )
 }
 
-export type BandArgs = {
+// ─── Rail ───────────────────────────────────────────────────────────────────────────────
+
+type RailArgs = BandArgs & { flow: Flow; titleMax: number }
+
+const Connector = ({
+  ui,
+  tone,
+  ascii,
+  before,
+}: {
   ui: Ui
-  surface: RenderSurface
   tone: Tone | undefined
-  below: RenderElement | undefined
-  notices: readonly NoticeView[]
-  on: { notice: (action: NoticeAction) => void }
+  ascii: boolean
+  before: Step
+}) => {
+  const { Text } = ui
+  const isDone = before.state.kind === 'done'
+  const color = isDone
+    ? tone === undefined
+      ? paint('perm', tone).fg
+      : TRIPLES.perm[tone].bd
+    : tone === undefined
+      ? undefined
+      : TOKENS[tone].line
+  return (
+    <Text
+      key={`connector-${before.phase}`}
+      {...(color !== undefined && { color })}
+      {...(color === undefined && { dimColor: true })}
+    >
+      {ascii ? CONNECTOR.ascii : CONNECTOR.glyph}
+    </Text>
+  )
 }
 
-export function renderBand({ ui, tone, below, notices, on }: BandArgs) {
+const stepIcon = (step: Step, frame: number, color: string, track: string) =>
+  step.state.kind === 'running'
+    ? spinnerSvg(frame, hexOr(color), track)
+    : stepSvg(step.state.kind === 'next' ? 'next' : step.state.kind, hexOr(color))
+
+const StepButton = ({ args, step, fits }: { args: RailArgs; step: Step; fits: boolean }) => {
+  const { ui, tone, ascii, spinFrame, flow, open, on } = args
+  const { Box, Button, Text } = ui
+  const look = STEP_LOOKS[step.state.kind]
+  const colours = paint(look.role, tone)
+  const meta = stepMeta(step, flow)
+  const isOpen = open === step.phase
+  const label = PHASES[step.phase].label
+  const rich = isRich(ui) && tone !== undefined
+  const labelInk =
+    step.state.kind === 'done'
+      ? inkOf(tone, 'ink')
+      : step.state.kind === 'gated' || step.state.kind === 'todo'
+        ? inkOf(tone, 'text2')
+        : roleInk(look.role, tone)
+  const ink = {
+    ...labelInk,
+    bold: look.bold,
+    ...(look.strike && { strikethrough: true }),
+  }
+  const press = () => on.step(step.phase, fits)
+  if (!rich) {
+    return (
+      <Button key={`step-${step.phase}`} plain onPress={press}>
+        <Text
+          {...roleInk(look.role, tone)}
+          bold={look.bold}
+        >{`${glyphOf(step, spinFrame, ascii)} `}</Text>
+        <Text {...ink} underline={isOpen}>
+          {label}
+        </Text>
+        {meta !== null && <Text {...inkOf(tone, 'text2')}>{` ${meta}`}</Text>}
+      </Button>
+    )
+  }
+  const t = TOKENS[tone]
+  const selected = isOpen
+  return (
+    <Box
+      key={`box-step-${step.phase}`}
+      flexDirection="row"
+      alignItems="center"
+      columnGap={SPACE.stepGap}
+      paddingX={SPACE.stepPadX}
+      borderStyle="round"
+      borderColor={selected ? t.lineStrong : t.surface}
+      backgroundColor={selected ? t.fill : t.surface}
+      hover={{ backgroundColor: mix(t.surface, colours.fg, HOVER_MIX) }}
+    >
+      <Icon ui={ui} svg={stepIcon(step, spinFrame, colours.fg, OFF_TRACK)} alt={look.label} />
+      <Button key={`step-${step.phase}`} plain onPress={press}>
+        <Text {...ink}>{label}</Text>
+      </Button>
+      {meta !== null && (
+        <Text
+          mono
+          size="caption"
+          color={t.text2}
+          backgroundColor={mix(t.surface, t.countBg.base, t.countBg.alpha)}
+        >
+          {` ${meta} `}
+        </Text>
+      )}
+    </Box>
+  )
+}
+
+const TriageButton = ({ args, fits }: { args: RailArgs; fits: boolean }) => {
+  const { ui, tone, waiting, open, on } = args
+  const { Box, Button, Text } = ui
+  const isOpen = open === 'triage'
+  const label = waiting > 0 ? `Inbox ${waiting}` : 'Inbox'
+  const rich = isRich(ui) && tone !== undefined
+  if (!rich) {
+    return (
+      <Button key="triage" plain onPress={() => on.triage(fits)}>
+        <Text {...roleInk('hook', tone)} underline={isOpen}>
+          {label}
+        </Text>
+      </Button>
+    )
+  }
+  const t = TOKENS[tone]
+  const hook = TRIPLES.hook[tone]
+  return (
+    <Box
+      key="box-triage"
+      flexDirection="row"
+      alignItems="center"
+      columnGap={SPACE.stepGap}
+      paddingX={SPACE.stepPadX}
+      borderStyle="dashed"
+      borderColor={isOpen ? hook.fg : t.lineDashed}
+      backgroundColor={isOpen ? t.fill : t.surface}
+    >
+      <Icon ui={ui} svg={inboxSvg(hexOr(t.ink2))} alt="Inbox" />
+      <Button key="triage" plain onPress={() => on.triage(fits)}>
+        <Text color={t.ink2}>Inbox</Text>
+      </Button>
+      {waiting > 0 && (
+        <Text mono bold size="caption" color={hook.fg} backgroundColor={hook.bg}>
+          {` ${waiting} `}
+        </Text>
+      )}
+    </Box>
+  )
+}
+
+const Gear = ({ args }: { args: BandArgs }) => {
+  const { ui, tone, on } = args
+  const { Button, Text } = ui
+  return (
+    <Button key="gear" plain onPress={() => on.gear()}>
+      {isRich(ui) && tone !== undefined ? (
+        <Icon ui={ui} svg={gearSvg(hexOr(TOKENS[tone].text2))} alt="Settings" />
+      ) : (
+        <Text {...inkOf(tone, 'text2')}>{'⚙'}</Text>
+      )}
+    </Button>
+  )
+}
+
+const Title = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
+  const { ui, tone, features, isPickingFeature, on } = args
+  const { Button, Text } = ui
+  const text = clip(flow.title, args.titleMax)
+  if (features.length < 2) {
+    return (
+      <Text key="title" bold {...inkOf(tone, 'ink')}>
+        {text}
+      </Text>
+    )
+  }
+  return (
+    <Button key="title-switch" plain onPress={() => on.pickFeature()}>
+      <Text bold underline={isPickingFeature} {...inkOf(tone, 'ink')}>
+        {`${text} ▾`}
+      </Text>
+    </Button>
+  )
+}
+
+const FeaturePicker = ({ args }: { args: BandArgs }) => {
+  const { ui, tone, features, on } = args
+  const { Box, Button, Text } = ui
+  return (
+    <Box key="feature-picker" flexDirection="row" columnGap={SPACE.pickerGap}>
+      {features.map(feature => (
+        <Button key={`feature-${feature.key}`} plain onPress={() => on.switchFeature(feature.key)}>
+          <Text bold={feature.isActive} underline={feature.isActive} {...inkOf(tone, 'ink2')}>
+            {clip(feature.title, TITLE_MAX)}
+          </Text>
+        </Button>
+      ))}
+    </Box>
+  )
+}
+
+const Rail = ({ args, fits }: { args: RailArgs; fits: (phase: PhaseId | 'triage') => boolean }) => {
+  const { ui, tone, flow } = args
+  const { Box, Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  return (
+    <Box
+      key="rail"
+      flexDirection="row"
+      alignItems="center"
+      justifyContent="space-between"
+      columnGap={SPACE.railGap}
+      {...(rich && {
+        borderStyle: 'round' as const,
+        borderColor: TOKENS[tone].line,
+        backgroundColor: TOKENS[tone].surface,
+        paddingX: SPACE.railPadX,
+      })}
+    >
+      <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap}>
+        <TriageButton args={args} fits={fits('triage')} />
+        <Text
+          key="divider"
+          {...(tone === undefined ? { dimColor: true } : { color: TOKENS[tone].line })}
+        >
+          {'│'}
+        </Text>
+        {flow.steps.map((step, index) => (
+          <Box key={`group-${step.phase}`} flexDirection="row" alignItems="center">
+            {index > 0 && (
+              <Connector ui={ui} tone={tone} ascii={args.ascii} before={flow.steps[index - 1]!} />
+            )}
+            <StepButton args={args} step={step} fits={fits(step.phase)} />
+          </Box>
+        ))}
+        <Title args={args} flow={flow} />
+      </Box>
+      <Gear args={args} />
+    </Box>
+  )
+}
+
+const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
+  const { ui, tone, columns, on } = args
+  const { Box, Button, Text } = ui
+  const step = focusStep(flow)
+  const look = STEP_LOOKS[step.state.kind]
+  const colours = paint(look.role, tone)
+  const rich = isRich(ui) && tone !== undefined
+  const text = clip(chipText(flow), Math.max(10, columns - GEAR_RESERVE - 6))
+  return (
+    <Box
+      key="summary-row"
+      flexDirection="row"
+      justifyContent="space-between"
+      columnGap={SPACE.railGap}
+    >
+      <Box
+        key="summary-chip"
+        flexDirection="row"
+        alignItems="center"
+        columnGap={SPACE.stepGap}
+        {...(rich && {
+          paddingX: SPACE.summaryGap,
+          borderStyle: 'round' as const,
+          borderColor: TOKENS[tone].line,
+          backgroundColor: TOKENS[tone].surface,
+        })}
+      >
+        {rich ? (
+          <Icon
+            ui={ui}
+            svg={stepIcon(step, args.spinFrame, colours.fg, OFF_TRACK)}
+            alt={look.label}
+          />
+        ) : (
+          <Text
+            {...roleInk(look.role, tone)}
+          >{`${glyphOf(step, args.spinFrame, args.ascii)} `}</Text>
+        )}
+        <Button key="summary" plain onPress={() => on.summary()}>
+          <Text {...inkOf(tone, 'ink')} bold>
+            {text}
+          </Text>
+        </Button>
+      </Box>
+      <Gear args={args} />
+    </Box>
+  )
+}
+
+// ─── Card ───────────────────────────────────────────────────────────────────────────────
+
+const CommandChip = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => {
+  const { Box, Text } = ui
+  if (!isRich(ui) || tone === undefined) return <Text bold>{text}</Text>
+  const t = TOKENS[tone]
+  return (
+    <Box key={`cmd-${text}`} paddingX={SPACE.chipPadX} backgroundColor={t.inverseBg}>
+      <Text mono color={t.onInk}>
+        {text}
+      </Text>
+    </Box>
+  )
+}
+
+const HelperChip = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => {
+  const { Box, Text } = ui
+  if (!isRich(ui) || tone === undefined) return <Text {...roleInk('skill', tone)}>{text}</Text>
+  const skill = TRIPLES.skill[tone]
+  return (
+    <Box
+      key={`helper-${text}`}
+      flexDirection="row"
+      columnGap={SPACE.chipGap}
+      paddingX={SPACE.chipPadX}
+      borderStyle="round"
+      borderColor={skill.bd}
+      backgroundColor={skill.bg}
+    >
+      <Icon ui={ui} svg={helperSvg(hexOr(skill.fg))} alt="" px={12} />
+      <Text mono color={skill.fg}>
+        {text}
+      </Text>
+    </Box>
+  )
+}
+
+const CardRow = ({
+  ui,
+  tone,
+  label,
+  children,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  label: string
+  children: RenderElement
+}) => {
+  const { Box, Text } = ui
+  return (
+    <Box key={`row-${label}`} flexDirection="row" columnGap={SPACE.rowLabelGap} flexWrap="wrap">
+      <Box width={9}>
+        <Text {...inkOf(tone, 'muted')}>{label}</Text>
+      </Box>
+      <Box flexDirection="row" columnGap={SPACE.rowLabelGap} flexWrap="wrap" flexShrink={1}>
+        {[children]}
+      </Box>
+    </Box>
+  )
+}
+
+export const DetailCard = ({
+  ui,
+  tone,
+  card,
+  density,
+  on,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  card: CardView
+  density: CardDensity
+  on: Pick<BandActions, 'closeCard' | 'run' | 'openTickets'>
+}) => {
+  const { Box, Button, Text } = ui
+  const space = CARD_SPACE[density]
+  const rich = isRich(ui) && tone !== undefined
+  const surface = rich ? TOKENS[tone].surface : undefined
+  const colours = paint(card.role, tone)
+  const t = tone === undefined ? undefined : TOKENS[tone]
+  return (
+    <Box
+      key="card"
+      flexDirection="column"
+      borderStyle="round"
+      borderColor={t === undefined ? colours.fg : t.line}
+      paddingX={space.padX}
+      paddingY={space.padY}
+      rowGap={space.gap}
+      {...withTint(surface)}
+    >
+      <Box flexDirection="column" rowGap={SPACE.lineGap}>
+        <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.cardHeadGap}>
+          <Box flexShrink={1} minWidth={0}>
+            <Text mono size="caption" color={colours.fg} wrap="truncate-end" {...withTint(surface)}>
+              {card.kicker}
+            </Text>
+          </Box>
+          <Button key="close" plain hotkey="x" label="Close" onPress={() => on.closeCard()} />
+        </Box>
+        <Text bold size={rich ? 'heading' : 'body'} {...inkOf(tone, 'ink')} {...withTint(surface)}>
+          {card.title}
+        </Text>
+      </Box>
+      <Text {...inkOf(tone, 'ink2')} {...withTint(surface)}>
+        {card.why}
+      </Text>
+      <Box flexDirection="column" rowGap={SPACE.lineGap}>
+        <CardRow ui={ui} tone={tone} label="Command">
+          {card.noCommand !== null ? (
+            <Text {...inkOf(tone, 'text2')}>{card.noCommand}</Text>
+          ) : (
+            <>
+              {card.commands.map(c => (
+                <CommandChip key={c} ui={ui} tone={tone} text={c} />
+              ))}
+            </>
+          )}
+        </CardRow>
+        {card.helpers.length > 0 && (
+          <CardRow ui={ui} tone={tone} label="Helpers">
+            <>
+              {card.helpers.map(helper => (
+                <HelperChip key={helper} ui={ui} tone={tone} text={helper} />
+              ))}
+            </>
+          </CardRow>
+        )}
+      </Box>
+      {card.artifact !== null && (
+        <Box key="artifact" flexDirection="column" paddingX={SPACE.chipPadX} {...withTint(t?.tile)}>
+          <Text size="footnote" {...inkOf(tone, 'muted')} {...withTint(t?.tile)}>
+            {card.artifactLabel ?? ''}
+          </Text>
+          <Text bold size="footnote" {...inkOf(tone, 'ink')} {...withTint(t?.tile)}>
+            {card.artifact}
+          </Text>
+        </Box>
+      )}
+      {card.gate !== null && (
+        <Box
+          key="gate-line"
+          flexDirection="row"
+          columnGap={SPACE.gateGap}
+          paddingX={SPACE.gatePadX}
+          {...(tone !== undefined && {
+            borderStyle: 'round' as const,
+            borderColor: TRIPLES.hook[tone].bd,
+            backgroundColor: TRIPLES.hook[tone].bg,
+          })}
+        >
+          {rich ? (
+            <Icon ui={ui} svg={lockSvg(hexOr(TRIPLES.hook[tone].fg))} alt="" />
+          ) : (
+            <Text {...roleInk('hook', tone)}>{'!'}</Text>
+          )}
+          <Text
+            wrap="wrap"
+            {...roleInk('hook', tone)}
+            {...withTint(rich ? TRIPLES.hook[tone].bg : undefined)}
+          >
+            {card.gate}
+          </Text>
+        </Box>
+      )}
+      {(card.primary !== null || card.secondary.length > 0) && (
+        <Box flexDirection="row" columnGap={SPACE.buttonsGap}>
+          {card.primary !== null && (
+            <Button
+              key="primary"
+              hotkey="r"
+              label={`r: ${card.primary.label}`}
+              onPress={() => on.run(card.primary!.phase)}
+            />
+          )}
+          {card.secondary.map(button => (
+            <Button key={button.id} label={button.label} onPress={() => on.openTickets()} />
+          ))}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+// ─── Band ───────────────────────────────────────────────────────────────────────────────
+
+export function renderBand(args: BandArgs) {
+  const { ui, columns, maxRows, tone, below, layout, flow, config, waiting, notices, open, on } =
+    args
   const { Box } = ui
+  const replacing = notices.find(n => n.replacesRail)
+  const above = notices.filter(n => !n.replacesRail)
+  const noticeRows = (list: readonly NoticeView[]) =>
+    list.map(n => <NoticeRow key={n.id} ui={ui} tone={tone} notice={n} on={on.notice} />)
+  if (replacing !== undefined || flow === null) {
+    return (
+      <Box flexDirection="column">
+        {below}
+        {noticeRows(replacing ? [replacing] : above)}
+      </Box>
+    )
+  }
+  const rail = fitRail({ flow, columns, rich: isRich(ui), waiting, features: args.features.length })
+  const asChip = layout === 'summary' || rail.mode === 'chip'
+  const cardOf = (phase: PhaseId | 'triage'): CardView =>
+    phase === 'triage'
+      ? triageCard(waiting)
+      : phaseCard(
+          flow.steps.find(s => s.phase === phase)!,
+          flow,
+          config,
+        )
+  const extraRows = above.length + (args.isPickingFeature ? 1 : 0)
+  const fits = (phase: PhaseId | 'triage') =>
+    fitCard({ card: cardOf(phase), columns, maxRows, rich: isRich(ui), extraRows }) !== undefined
+  const density =
+    open === null || asChip
+      ? undefined
+      : fitCard({ card: cardOf(open), columns, maxRows, rich: isRich(ui), extraRows })
+  const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
   return (
     <Box flexDirection="column">
       {below}
-      {notices.map(notice => (
-        <NoticeRow key={notice.id} ui={ui} tone={tone} notice={notice} on={on.notice} />
-      ))}
+      {noticeRows(above)}
+      {args.isPickingFeature && args.features.length > 1 && <FeaturePicker args={args} />}
+      {open !== null && density !== undefined && (
+        <Box key="card-slot" flexDirection="column" marginBottom={SPACE.cardAbove}>
+          <DetailCard ui={ui} tone={tone} card={cardOf(open)} density={density} on={on} />
+        </Box>
+      )}
+      {asChip ? <Summary args={railArgs} flow={flow} /> : <Rail args={railArgs} fits={fits} />}
     </Box>
   )
 }

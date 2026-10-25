@@ -3,7 +3,15 @@
  * restart needed, install failed, first run and no feature in flight. `dismissed` hides the
  * "Not now" ones for the session. Event notices (gates, budget, drift) arrive with later milestones.
  */
-import type { InstallState, NoticeKey, PluginStatus, RepoSnapshot, SkillName } from '../types'
+import type {
+  EventNotice,
+  InstallState,
+  NoticeKey,
+  PluginStatus,
+  RepoSnapshot,
+  SkillName,
+} from '../types'
+import { gateText } from './gates'
 import { PLUGIN, TESTED_RANGE } from './phases'
 import type { Role } from './theme'
 
@@ -13,6 +21,10 @@ export type NoticeAction =
   | { kind: 'not-now'; key: NoticeKey }
   | { kind: 'setup' } // opens the Settings tab
   | { kind: 'run'; skill: SkillName; args: string }
+  | { kind: 'run-anyway'; id: string }
+  | { kind: 'diagnose'; id: string }
+  | { kind: 'open-tickets' } // opens the pane on the Tickets tab
+  | { kind: 'dismiss'; id: string }
 
 export type NoticeButton = { id: string; label: string; action: NoticeAction; primary?: true }
 
@@ -148,3 +160,60 @@ export function derivedNotices(args: {
   }
   return []
 }
+
+const dismiss = (id: string): NoticeButton => ({
+  id: `dismiss-${id}`,
+  label: 'Dismiss',
+  action: { kind: 'dismiss', id },
+})
+
+/** The band row of a stored event notice. Budget, rebase and drift rows arrive with later milestones. */
+export function eventNotice(notice: EventNotice): NoticeView | undefined {
+  switch (notice.kind) {
+    case 'gate':
+      return {
+        id: notice.id,
+        role: 'hook',
+        text: gateText(notice.phase, notice.reason),
+        replacesRail: false,
+        actions: [
+          {
+            id: `run-anyway-${notice.phase}`,
+            label: 'Run anyway',
+            action: { kind: 'run-anyway', id: notice.id },
+            primary: true,
+          },
+          {
+            id: `diagnose-${notice.phase}`,
+            label: 'Diagnose',
+            action: { kind: 'diagnose', id: notice.id },
+          },
+          dismiss(notice.id),
+        ],
+      }
+    case 'spec-published':
+      return {
+        id: notice.id,
+        role: 'perm',
+        text: `Spec ${notice.spec} published${notice.stories ? ` · ${notice.stories} user stories` : ''}`,
+        replacesRail: false,
+        actions: [
+          { id: 'open', label: 'Open', action: { kind: 'open-tickets' }, primary: true },
+          dismiss(notice.id),
+        ],
+      }
+    case 'budget':
+    case 'rebase-conflict':
+    case 'drift':
+    case 'retro-ready':
+      return undefined
+    default: {
+      const _exhaustive: never = notice
+      return _exhaustive
+    }
+  }
+}
+
+/** The two newest event notices, oldest first. */
+export const eventNotices = (notices: readonly EventNotice[]): NoticeView[] =>
+  notices.slice(-2).flatMap(n => eventNotice(n) ?? [])

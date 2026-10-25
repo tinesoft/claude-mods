@@ -32,6 +32,12 @@
       "description": "Light or dark colours; auto follows the Claude Code theme",
       "options": ["auto", "light", "dark"],
       "default": "auto"
+    },
+    "ascii_glyphs": {
+      "type": "boolean",
+      "title": "ASCII glyphs",
+      "description": "Draw the rail with plain characters (> x ! v) for terminals that draw symbols two cells wide",
+      "default": false
     }
   }
 }

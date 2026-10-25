@@ -14,20 +14,34 @@ import {
   configOf,
   configWrite,
   CONFIG_PATH,
+  integrationBranchFor,
   parseConfig,
   parsePrefOverrides,
   resolvePrefs,
   STORE_PREFS,
 } from '../src/config'
+import { deriveFlow, waitingForTriage, type Flow } from '../src/evidence'
 import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
 import {
+  applyChange,
+  applyDraftChange,
+  bindSpec,
+  draftKey,
   FEATURES_DIR,
+  featureOf,
+  featurePath,
   isFeatureKey,
+  mergeFeature,
+  newDraft,
   parseDrafts,
   parseFeature,
   pickActive,
+  promote,
+  serialiseFeature,
+  specKey,
   STORE_DRAFTS,
   STORE_LAST_ACTIVE,
+  type FeatureChange,
 } from '../src/features'
 import {
   AGENT_DOCS,
@@ -43,9 +57,10 @@ import {
   type SetupSignals,
 } from '../src/agents-md'
 import { GITIGNORE, isShared, isWritable, type FileWrite, type WritableContext } from '../src/files'
-import { derivedNotices, type NoticeAction } from '../src/notices'
+import { checkRun, consumePass, dropText, issuePass, type RunRequest } from '../src/gates'
+import { derivedNotices, eventNotices, type NoticeAction } from '../src/notices'
 import { renderPane } from '../src/pane'
-import { namespaced } from '../src/phases'
+import { namespaced, recognise } from '../src/phases'
 import {
   hasSkill,
   INSTALL_ARGV,
@@ -57,14 +72,32 @@ import {
   pluginStatus,
   UPDATE_ARGV,
 } from '../src/plugin'
-import { renderBand, type Ui } from '../src/rail'
+import { renderBand, spinFrameOf, type BandActions, type FeatureChoice, type Ui } from '../src/rail'
+import { diffSignals, signalBasis, TOAST_MS, toastText } from '../src/signals'
+import { markdownSummary, statusLine } from '../src/summary'
+import { readTracker, TRACKERS, type Read, type ReadContext, type ReadResult } from '../src/tracker'
+import { DEFAULT_LABELS } from '../src/agents-md'
 import { parseColorFgBg, SYSTEM_PROBES } from '../src/appearance'
-import { resolveTone, type Tone } from '../src/theme'
+import { resolveTone, SPIN_MS, type Tone } from '../src/theme'
 import { parseGlossary } from '../src/glossary'
-import type { FeatureRecord, InstallState, PaneTab, RepoSnapshot } from '../types'
+import type {
+  EventNotice,
+  FeatureKey,
+  FeatureRecord,
+  GateSignalBasis,
+  InstallState,
+  IsoTime,
+  PaneTab,
+  PhaseId,
+  RepoSnapshot,
+  Running,
+  SkillName,
+} from '../types'
 
 const PANE = 'craftory'
 const COMMAND = 'craftory'
+const REFRESH_DEBOUNCE_MS = 800
+const TRACKER_TIMEOUT_MS = 20_000
 const APPEARANCE_MS = 5_000
 const APPEARANCE_PROBE_TIMEOUT_MS = 1500
 
@@ -81,6 +114,16 @@ const APPEARANCE_PROBE_TIMEOUT_MS = 1500
 // appearance  watchAppearance (every five seconds)
 // paneTab     openPane
 // setupNote   writeSetup (pane button)
+// tracker     refreshTracker (session.start, turn.complete, tool.call after a debounce)
+// drafts      also startDraft (skill.prompt) and bindDrafts (after a tracker read)
+// features    also recordChange and bindDrafts
+// active      also startDraft, bindDrafts and the feature switcher
+// running     skill.prompt, prompt.submit, turn.complete
+// passes      Run anyway (issue), prompt.submit (consume)
+// notices     addNotice (a held gate, a published spec) and the Dismiss buttons
+// signals     settle (the toast basis)
+// openStep    the rail's steps and the card's Close
+// isPickingFeature  the feature switcher
 
 const repoState = atom({ plugin: 'craftory', key: 'repo' } as const, null)
 const featuresState = atom({ plugin: 'craftory', key: 'features' } as const, {})
@@ -96,8 +139,17 @@ const appearanceState = atom({ plugin: 'craftory', key: 'appearance' } as const,
 })
 
 let appearanceTimer: Timer | undefined
+let spinner: Timer | undefined
+let refreshTimer: Timer | undefined
 const paneTabState = atom({ plugin: 'craftory', key: 'paneTab' } as const, 'flow')
 const setupNoteState = atom({ plugin: 'craftory', key: 'setupNote' } as const, null)
+const trackerState = atom({ plugin: 'craftory', key: 'tracker' } as const, null)
+const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
+const passesState = atom({ plugin: 'craftory', key: 'passes' } as const, [])
+const noticesState = atom({ plugin: 'craftory', key: 'notices' } as const, [])
+const signalsState = atom({ plugin: 'craftory', key: 'signals' } as const, null)
+const openStepState = atom({ plugin: 'craftory', key: 'openStep' } as const, null)
+const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
 
 // ─── Reads ──────────────────────────────────────────────────────────────────────────────
 
@@ -289,6 +341,284 @@ async function writeSetup($: EngineInterface) {
   $.ui.invalidate('ui.render')
 }
 
+// ─── Flow, tracker and feature facts ────────────────────────────────────────────────────
+
+const isoOf = (ms: number): IsoTime => new Date(ms).toISOString()
+
+async function currentFlow($: EngineInterface): Promise<Flow | null> {
+  const [repo, features, drafts, active, tracker, running] = await Promise.all([
+    read($, repoState),
+    read($, featuresState),
+    read($, draftsState),
+    read($, activeState),
+    read($, trackerState),
+    read($, runningState),
+  ])
+  const feature = featureOf(active, features, drafts)
+  if (feature === null) return null
+  return deriveFlow({ feature, config: configOf(repo?.config), tracker, running })
+}
+
+/** The tracker kind named in `docs/agents/issue-tracker.md`; Local until setup says otherwise. */
+const trackerKindOf = (repo: RepoSnapshot | null) =>
+  repo?.setup.state === 'ok' ? repo.setup.value.tracker.kind : 'local'
+
+async function readContext($: EngineInterface, repo: RepoSnapshot): Promise<ReadContext> {
+  const [features, active] = await Promise.all([read($, featuresState), read($, activeState)])
+  const record = active?.startsWith('spec:') ? features[active.slice(5)] : undefined
+  return {
+    config: configOf(repo.config),
+    labels: (repo.setup.state === 'ok' ? repo.setup.value.triage : null) ?? DEFAULT_LABELS,
+    now: await $.clock.now(),
+    focus: {
+      specs: Object.values(features).map(f => f.spec),
+      branch: record?.integrationBranch || null,
+    },
+  }
+}
+
+/** One executor for every tracker's reads: the filesystem for Local, `gh` for GitHub. */
+const executeReads = ($: EngineInterface) => (reads: readonly Read[]) =>
+  Promise.all(
+    reads.map(async (item): Promise<ReadResult> => {
+      switch (item.kind) {
+        case 'list': {
+          const entries = await $.fs.list(item.dir).catch(() => null)
+          return {
+            kind: 'list',
+            entries:
+              entries?.map(e => ({
+                name: e.name,
+                kind: e.kind === 'file' || e.kind === 'dir' ? e.kind : 'other',
+                mtimeMs: e.mtimeMs,
+              })) ?? null,
+          }
+        }
+        case 'read':
+          return { kind: 'read', text: await readText($, item.path) }
+        case 'run': {
+          const result = await $.process
+            .run(item.argv, { timeoutMs: TRACKER_TIMEOUT_MS })
+            .catch(() => ({ exitCode: 1, stdout: '' }))
+          return { kind: 'run', argv: item.argv, exitCode: result.exitCode, stdout: result.stdout }
+        }
+        default: {
+          const _exhaustive: never = item
+          return _exhaustive
+        }
+      }
+    }),
+  )
+
+async function refreshTracker($: EngineInterface) {
+  const repo = await read($, repoState)
+  if (repo === null) return
+  const kind = trackerKindOf(repo)
+  if (kind === 'gitlab' || kind === 'other') {
+    const at = await $.clock.now()
+    await update($, trackerState, () => ({ kind, rich: false as const, links: [], at }))
+  } else {
+    const spec = TRACKERS[kind]
+    if (spec === undefined) return
+    const snapshot = await readTracker(spec, await readContext($, repo), executeReads($))
+    await update($, trackerState, () => snapshot)
+  }
+  await bindDrafts($)
+  await settle($)
+}
+
+/** Reads the tracker a moment after the last change, so a burst of tool calls costs one read. */
+function scheduleRefresh($: EngineInterface) {
+  refreshTimer?.cancel()
+  refreshTimer = $.clock.after(REFRESH_DEBOUNCE_MS, () => void refreshTracker($))
+}
+
+/** A tool call that may have changed the tracker: a write under the issues folder, `gh`, `git push`. */
+async function touchesTracker(
+  $: EngineInterface,
+  tool: { name: string; command?: string; path?: string },
+) {
+  const repo = await read($, repoState)
+  const kind = trackerKindOf(repo)
+  if (repo === null || kind === 'gitlab' || kind === 'other') return false
+  return TRACKERS[kind]?.touches(await readContext($, repo), tool) === true
+}
+
+async function persistDrafts($: EngineInterface) {
+  await $.store.set(STORE_DRAFTS, await read($, draftsState))
+}
+
+/** The one place a feature record is written: merged with what is on disk, so two sessions converge. */
+async function saveFeature($: EngineInterface, record: FeatureRecord): Promise<FeatureRecord> {
+  const path = featurePath(record.spec)
+  const raw = await readText($, path)
+  const disk = raw === null ? null : parseFeature(raw)
+  const merged = mergeFeature(disk?.state === 'ok' ? disk.value : null, record)
+  const after = serialiseFeature(merged)
+  if (after !== raw) await writeRepoFile($, { path, before: raw, after }, await writableContext($))
+  return merged
+}
+
+/** Applies one change to the active feature: a record is saved, a draft goes to the store. */
+async function recordChange($: EngineInterface, key: FeatureKey, change: FeatureChange) {
+  const feature = featureOf(key, await read($, featuresState), await read($, draftsState))
+  if (feature === null) return
+  if (feature.kind === 'draft') {
+    const next = applyDraftChange(feature.draft, change)
+    await update($, draftsState, held => ({ ...held, [next.draftId]: next }))
+    await persistDrafts($)
+    return
+  }
+  const saved = await saveFeature($, applyChange(feature.record, change))
+  await update($, featuresState, held => ({ ...held, [saved.spec]: saved }))
+}
+
+/** A feature that starts from a command with none in flight is a draft until its spec exists. */
+async function startDraft($: EngineInterface, phase: PhaseId): Promise<FeatureKey> {
+  const now = await $.clock.now()
+  const draft = newDraft({
+    draftId: `d${now}`,
+    title: 'New feature',
+    entry: phase,
+    enteredFrom: null,
+    at: isoOf(now),
+  })
+  await update($, draftsState, held => ({ ...held, [draft.draftId]: draft }))
+  await persistDrafts($)
+  const key = draftKey(draft.draftId)
+  await update($, activeState, () => key)
+  return key
+}
+
+/** A draft whose spec now exists becomes a record on disk, and the active feature follows it. */
+async function bindDrafts($: EngineInterface) {
+  const [tracker, repo, drafts] = await Promise.all([
+    read($, trackerState),
+    read($, repoState),
+    read($, draftsState),
+  ])
+  if (!tracker?.rich) return
+  const bound = new Set(Object.keys(await read($, featuresState)))
+  for (const draft of Object.values(drafts)) {
+    const spec = bindSpec(draft, tracker, bound)
+    if (spec === undefined) continue
+    const config = configOf(repo?.config)
+    const record = await saveFeature(
+      $,
+      promote(draft, spec, integrationBranchFor(config, spec.title)),
+    )
+    bound.add(spec.ref)
+    await update($, featuresState, held => ({ ...held, [record.spec]: record }))
+    await update($, draftsState, held =>
+      Object.fromEntries(Object.entries(held).filter(([id]) => id !== draft.draftId)),
+    )
+    const from = draftKey(draft.draftId)
+    await update($, activeState, key => (key === from ? specKey(record.spec) : key))
+    await update($, runningState, run =>
+      run?.feature === from ? { ...run, feature: specKey(record.spec) } : run,
+    )
+    await persistDrafts($)
+  }
+}
+
+async function addNotice($: EngineInterface, notice: EventNotice) {
+  await update($, noticesState, held => [...held.filter(n => n.id !== notice.id), notice])
+}
+
+const gateBasis = (notices: readonly EventNotice[]): GateSignalBasis[] =>
+  notices.flatMap(n =>
+    n.kind === 'gate' ? [{ id: n.id, phase: n.phase, by: n.by, reason: n.reason }] : [],
+  )
+
+/**
+ * Everything that follows from a changed fact: the status line, the spinner, the toasts and the
+ * redraw. The toast basis is first taken only once the tracker has been read, so a restart seeds
+ * it and announces nothing that was already there.
+ */
+async function settle($: EngineInterface) {
+  const flow = await currentFlow($)
+  $.ui.status(statusLine(flow))
+  const isRunning = flow?.steps.some(s => s.state.kind === 'running') === true
+  if (isRunning && spinner === undefined) {
+    spinner = $.clock.every(SPIN_MS, () => $.ui.invalidate('ui.render'))
+  } else if (!isRunning && spinner !== undefined) {
+    spinner.cancel()
+    spinner = undefined
+  }
+  const held = await read($, noticesState)
+  const stale = new Set(
+    held.flatMap(n =>
+      n.kind === 'gate' && flow?.steps.find(s => s.phase === n.phase)?.state.kind !== 'gated'
+        ? [n.id]
+        : [],
+    ),
+  )
+  if (stale.size > 0) await update($, noticesState, list => list.filter(n => !stale.has(n.id)))
+  const tracker = await read($, trackerState)
+  if (tracker !== null) {
+    const next = signalBasis({
+      features: await read($, featuresState),
+      drafts: await read($, draftsState),
+      tracker,
+      gates: gateBasis(await read($, noticesState)),
+    })
+    const signals = diffSignals(await read($, signalsState), next)
+    await update($, signalsState, () => next)
+    for (const signal of signals) {
+      $.ui.toast(toastText(signal), { timeoutMs: TOAST_MS })
+      if (signal.kind === 'spec-published') {
+        await addNotice($, {
+          kind: 'spec-published',
+          id: `spec-${signal.spec}`,
+          spec: signal.spec,
+          stories: signal.stories,
+        })
+      }
+    }
+  }
+  $.ui.invalidate('ui.render')
+}
+
+// ─── Running a command ──────────────────────────────────────────────────────────────────
+
+/** A typed or pressed command as a gate sees it; undefined for anything that is not a Matt phase. */
+function requestOf(name: string | undefined, args: string): RunRequest | undefined {
+  const found = name === undefined ? undefined : recognise(name, { strict: false })
+  return found?.kind === 'phase' ? { skill: found.skill, args, phase: found.phase } : undefined
+}
+
+/** The command a `prompt.submit` runs: the engine's parse, else the typed `/name args` line. */
+function typedCommand(e: { text: string; command?: { name: string; args: string } }) {
+  if (e.command !== undefined) return { name: e.command.name, args: e.command.args }
+  const match = /^\/(\S+)(?:\s+([\s\S]*))?$/.exec(e.text.trim())
+  return match ? { name: match[1]!, args: (match[2] ?? '').trim() } : undefined
+}
+
+async function holdForGate($: EngineInterface, req: RunRequest, flow: Flow | null) {
+  const now = await $.clock.now()
+  const verdict = checkRun(req, flow, await read($, passesState), now)
+  if (verdict.kind === 'go') return undefined
+  await addNotice($, {
+    kind: 'gate',
+    id: `gate-${verdict.phase}`,
+    phase: verdict.phase,
+    by: verdict.by,
+    reason: verdict.reason,
+    skill: req.skill,
+    args: req.args,
+  })
+  await settle($)
+  return verdict
+}
+
+/** A rail press or a notice button: the same gate as a typed command, then the namespaced command. */
+async function requestRun($: EngineInterface, skill: SkillName, args: string) {
+  const req = requestOf(skill, args) ?? { skill, args, phase: null }
+  if (await holdForGate($, req, await currentFlow($))) return
+  await update($, openStepState, () => null)
+  await $.command.run({ command: namespaced(skill), args })
+}
+
 // ─── UI helpers ─────────────────────────────────────────────────────────────────────────
 
 /** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */
@@ -353,23 +683,50 @@ async function openPane($: EngineInterface, tab: PaneTab) {
   await $.ui.open({ id: PANE, title: 'Craftory', focus: true, closeOnEscape: true })
 }
 
+async function noticeOf($: EngineInterface, id: string) {
+  return (await read($, noticesState)).find(n => n.id === id)
+}
+
+async function dropNotice($: EngineInterface, id: string) {
+  await update($, noticesState, held => held.filter(n => n.id !== id))
+  await settle($)
+}
+
 async function onNotice($: EngineInterface, action: NoticeAction) {
   switch (action.kind) {
     case 'install':
       return installPlugin($, INSTALL_ARGV)
     case 'update':
       return installPlugin($, UPDATE_ARGV)
-    case 'not-now': {
+    case 'not-now':
       await update($, dismissedState, held => [...held.filter(k => k !== action.key), action.key])
       $.ui.invalidate('ui.render')
       return
-    }
     case 'setup':
       await openPane($, 'settings')
       return
     case 'run':
-      await $.command.run({ command: namespaced(action.skill), args: action.args })
+      return requestRun($, action.skill, action.args)
+    case 'run-anyway': {
+      const notice = await noticeOf($, action.id)
+      if (notice?.kind !== 'gate') return
+      const req = { skill: notice.skill, args: notice.args, phase: notice.phase }
+      const now = await $.clock.now()
+      await update($, passesState, held => issuePass(held, req, now))
+      await dropNotice($, notice.id)
+      await $.command.run({ command: namespaced(notice.skill), args: notice.args })
       return
+    }
+    case 'diagnose': {
+      await dropNotice($, action.id)
+      await $.command.run({ command: namespaced('diagnosing-bugs' as SkillName), args: '' })
+      return
+    }
+    case 'open-tickets':
+      await openPane($, 'tickets')
+      return
+    case 'dismiss':
+      return dropNotice($, action.id)
     default: {
       const _exhaustive: never = action
       return _exhaustive
@@ -381,6 +738,68 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
 
 const isSupported = async ($: EngineInterface) => meetsFloor((await $.session.version()).base)
 
+const drawsAnything = async ($: EngineInterface) =>
+  (await isSupported($)) && (await $.session.surfaces()).length > 0
+
+async function featureChoices($: EngineInterface): Promise<FeatureChoice[]> {
+  const [features, drafts, active] = await Promise.all([
+    read($, featuresState),
+    read($, draftsState),
+    read($, activeState),
+  ])
+  return [
+    ...Object.values(features).map(f => ({
+      key: specKey(f.spec),
+      title: f.title || f.spec,
+      isActive: specKey(f.spec) === active,
+    })),
+    ...Object.values(drafts).map(d => ({
+      key: draftKey(d.draftId),
+      title: d.title,
+      isActive: draftKey(d.draftId) === active,
+    })),
+  ]
+}
+
+async function pressStep($: EngineInterface, step: PhaseId | 'triage', fitsCard: boolean) {
+  if (!fitsCard) return openPane($, 'flow')
+  await update($, openStepState, open => (open === step ? null : step))
+  $.ui.invalidate('ui.render')
+}
+
+async function runFromCard($: EngineInterface, phase: PhaseId | 'triage') {
+  if (phase === 'triage') return requestRun($, 'triage' as SkillName, '')
+  const step = (await currentFlow($))?.steps.find(s => s.phase === phase)
+  if (step?.command) await requestRun($, step.command, step.args)
+}
+
+const bandActions = ($: EngineInterface): BandActions => ({
+  step: (phase, fitsCard) => void pressStep($, phase, fitsCard),
+  triage: fitsCard => void pressStep($, 'triage', fitsCard),
+  summary: () => void openPane($, 'flow'),
+  gear: () => void openPane($, 'settings'),
+  run: phase => void runFromCard($, phase),
+  openTickets: () => void openPane($, 'tickets'),
+  closeCard: () => {
+    void update($, openStepState, () => null).then(() => $.ui.invalidate('ui.render'))
+  },
+  pickFeature: () => {
+    void update($, isPickingFeatureState, picking => !picking).then(() =>
+      $.ui.invalidate('ui.render'),
+    )
+  },
+  switchFeature: key => {
+    void (async () => {
+      await update($, activeState, () => key)
+      await update($, isPickingFeatureState, () => false)
+      await update($, openStepState, () => null)
+      await $.store.set(STORE_LAST_ACTIVE, key)
+      await settle($)
+    })()
+  },
+  notice: action => void onNotice($, action),
+})
+
 export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -388,7 +807,6 @@ export const register: Register = (on, options) => {
       description: "Show the active feature's phases, tickets, worktrees, glossary and settings",
       immediate: true,
     })
-    await update($, prefsState, () => parsePrefOverrides(null))
     const prefs = parsePrefOverrides(await $.store.get(STORE_PREFS))
     await update($, prefsState, () => prefs)
     watchAppearance($)
@@ -396,25 +814,112 @@ export const register: Register = (on, options) => {
       $.ui.toast(`Craftory needs Claude Code ${ENGINE_FLOOR} or later. Run claude update.`)
     }
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($)])
-    $.ui.invalidate('ui.render')
+    await refreshTracker($)
+    await settle($)
     return next(e)
   })
 
   on('command.run', { command: COMMAND }, async $ => {
+    if (!(await drawsAnything($))) {
+      return {
+        text: markdownSummary(await currentFlow($), await read($, pluginState)),
+      }
+    }
     await openPane($, 'flow')
     return { text: 'Opened the Craftory pane.' }
+  })
+
+  on('skill.prompt', async ($, e, next) => {
+    const found = recognise(e.skill)
+    if (found?.kind === 'phase' || found?.kind === 'entry') {
+      const now = await $.clock.now()
+      const phase = found.kind === 'phase' ? found.phase : null
+      let key = await read($, activeState)
+      if (key === null && (phase === 'align' || phase === 'spec')) key = await startDraft($, phase)
+      await update($, runningState, (): Running => ({
+        phase,
+        entry: found.kind === 'entry' ? found.entry : null,
+        skill: found.skill,
+        args: '',
+        feature: key,
+        startedAt: now,
+        isAwaitingUser: false,
+        progress: null,
+      }))
+      if (key !== null && phase !== null)
+        await recordChange($, key, { kind: 'ran', phase, at: isoOf(now) })
+      await settle($)
+    }
+    return next(e)
+  })
+
+  on('prompt.submit', async ($, e, next) => {
+    const typed = typedCommand(e)
+    const req = typed && requestOf(typed.name, typed.args)
+    if (req) {
+      const verdict = await holdForGate($, req, await currentFlow($))
+      if (verdict) return { drop: dropText(verdict) }
+      const now = await $.clock.now()
+      await update($, passesState, held => consumePass(held, req, now))
+    } else if (typed === undefined) {
+      const running = await read($, runningState)
+      if (running?.isAwaitingUser) {
+        await update($, runningState, held => held && { ...held, isAwaitingUser: false })
+        await settle($)
+      }
+    }
+    return next(e)
+  })
+
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    if (e.agentId !== undefined) return result
+    const running = await read($, runningState)
+    if (running !== null && !running.isAwaitingUser) {
+      const grillAsksNext = running.phase === 'align' && !e.isAborted
+      if (grillAsksNext) {
+        await update($, runningState, held => held && { ...held, isAwaitingUser: true })
+      } else {
+        await update($, runningState, () => null)
+        if (running.feature !== null && running.phase !== null) {
+          await recordChange($, running.feature, {
+            kind: 'ended',
+            phase: running.phase,
+            at: isoOf(await $.clock.now()),
+          })
+        }
+      }
+    }
+    await refreshTracker($)
+    return result
+  })
+
+  on('tool.call', async ($, e, next) => {
+    const result = await next(e)
+    const tool = {
+      name: e.tool,
+      ...('command' in e && typeof e.command === 'string' && { command: e.command }),
+      ...('file_path' in e && typeof e.file_path === 'string' && { path: e.file_path }),
+    }
+    if (await touchesTracker($, tool)) scheduleRefresh($)
+    return result
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     if (e.props.hasSurvey || !(await isSupported($))) return below
-    if (!resolvePrefs(options, await read($, prefsState)).rail) return below
-    const [repo, plugin] = await Promise.all([read($, repoState), read($, pluginState)])
-    const notices = derivedNotices({
+    const prefs = resolvePrefs(options, await read($, prefsState))
+    if (!prefs.rail) return below
+    const [repo, plugin, flow] = await Promise.all([
+      read($, repoState),
+      read($, pluginState),
+      currentFlow($),
+    ])
+    const derived = derivedNotices({
       plugin,
       install: await read($, installState),
       repo,
-      hasFeature: (await read($, activeState)) !== null,
+      hasFeature: flow !== null,
       firstRunText: firstRunText({
         remoteHost: repo?.remoteHost ?? null,
         hasScratch: repo?.hasScratch ?? false,
@@ -424,14 +929,28 @@ export const register: Register = (on, options) => {
       }),
       dismissed: await read($, dismissedState),
     })
-    if (notices.length === 0) return below
+    const events = derived.some(n => n.replacesRail)
+      ? []
+      : eventNotices(await read($, noticesState))
+    if (flow === null && derived.length === 0 && events.length === 0) return below
     return renderBand({
       ui: uiFor($, e),
       surface: e.surface,
+      columns: e.props.bodyColumns,
+      maxRows: e.props.maxRows,
       tone: await toneOf($, options, e.surface),
+      ascii: prefs.ascii,
+      spinFrame: spinFrameOf(await $.clock.now()),
       below,
-      notices,
-      on: { notice: action => onNotice($, action) },
+      layout: prefs.railLayout,
+      flow,
+      config: configOf(repo?.config),
+      waiting: waitingForTriage(await read($, trackerState)),
+      notices: [...events, ...derived],
+      open: await read($, openStepState),
+      features: await featureChoices($),
+      isPickingFeature: await read($, isPickingFeatureState),
+      on: bandActions($),
     })
   })
 

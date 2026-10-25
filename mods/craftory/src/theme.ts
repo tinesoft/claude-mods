@@ -6,6 +6,7 @@
  */
 import type { Color, RenderSurface, Space } from 'claude-code'
 import type { ThemeChoice, Tone } from '../types'
+import type { StepState } from './evidence'
 
 export type { Tone }
 
@@ -140,12 +141,58 @@ export function paint(role: Role, tone: Tone | undefined): Paint {
   }
 }
 
+export type StateLook = {
+  label: string
+  glyph: string
+  /** One cell wide in every terminal: `▸ ⊘ ▲ ◐ –` are ambiguous-width in some, so `ascii` backs them. */
+  ascii: string
+  role: Role
+  bold: boolean
+  strike?: true
+}
+
+/** DESIGN "Phase step states": glyph, colour role and words per state. */
+export const STEP_LOOKS: Record<StepState['kind'], StateLook> = {
+  done: { label: 'Done', glyph: '✓', ascii: 'v', role: 'perm', bold: false },
+  next: { label: 'Up next', glyph: '▸', ascii: '>', role: 'skill', bold: true },
+  running: { label: 'Running', glyph: '◐', ascii: '|', role: 'skill', bold: true },
+  'needs-you': { label: 'Needs you', glyph: '?', ascii: '?', role: 'hook', bold: false },
+  gated: { label: 'Gated', glyph: '⊘', ascii: 'x', role: 'neutral', bold: false },
+  failed: { label: 'Failed', glyph: '▲', ascii: '!', role: 'danger', bold: true },
+  'over-budget': { label: 'Over budget', glyph: '▲', ascii: '!', role: 'danger', bold: true },
+  skipped: { label: 'Skipped', glyph: '–', ascii: '-', role: 'muted', bold: false, strike: true },
+  todo: { label: 'Not started', glyph: '·', ascii: '.', role: 'muted', bold: false },
+}
+
+export const SPINNER = ['◐', '◓', '◑', '◒'] as const
+export const SPINNER_ASCII = ['|', '/', '-', '\\'] as const
+export const SPIN_MS = 150
+
+export const CONNECTOR = { glyph: '─', ascii: '-' } as const
+
 /** Layout spacing by design role, as the step each board pixel value rounds to. */
 export const SPACE = {
   noticeGap: 'sm',
   noticePadX: 'md',
   noticeAbove: 'xs',
   buttonPadX: 'sm',
+  railGap: 'xs',
+  railPadX: 'sm',
+  stepGap: 'xs',
+  stepPadX: 'sm',
+  summaryGap: 'sm',
+  cardAbove: 'sm',
+  cardPadX: 'lg',
+  cardGap: 'xs',
+  cardHeadGap: 'sm',
+  lineGap: 'xs',
+  rowLabelGap: 'sm',
+  chipGap: 'xs',
+  chipPadX: 'sm',
+  gateGap: 'sm',
+  gatePadX: 'sm',
+  buttonsGap: 'sm',
+  pickerGap: 'sm',
   paneLeft: 'md',
   paneRight: 'sm',
   paneGap: 'md',
@@ -183,3 +230,27 @@ export function resolveTone({
   if (surface !== 'terminal') return system ?? claude ?? 'light'
   return isAnsi ? undefined : (claude ?? colorFgBg ?? system ?? 'dark')
 }
+
+const ACROSS = { xs: 1, sm: 1, md: 2, lg: 3, xl: 4 } as const
+const DOWN = { xs: 0, sm: 0, md: 1, lg: 1, xl: 2 } as const
+
+/** Cells a step takes along a row on the terminal, and a plain number as itself. */
+export const across = (space: Space) => (typeof space === 'number' ? space : ACROSS[space])
+
+/** Cells a step takes down a column on the terminal. */
+export const down = (space: Space) => (typeof space === 'number' ? space : DOWN[space])
+
+const channels = (hex: string) => [1, 3, 5].map(at => Number.parseInt(hex.slice(at, at + 2), 16))
+
+/** Blends `#RRGGBB` a toward b by t (0 is a, 1 is b). */
+export const mix = (a: string, b: string, t: number) => {
+  const [from, to] = [channels(a), channels(b)]
+  const hex = from.map((c, i) =>
+    Math.round(c + (to[i]! - c) * t)
+      .toString(16)
+      .padStart(2, '0'),
+  )
+  return `#${hex.join('').toUpperCase()}`
+}
+
+export const HOVER_MIX = 0.1

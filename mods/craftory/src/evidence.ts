@@ -262,3 +262,9 @@ export function deriveFlow(input: FlowInput): Flow {
     tickets: facts.tickets,
   }
 }
+
+/** Issues outside every feature that wait for triage: the number on the rail's Inbox button. */
+export const waitingForTriage = (tracker: TrackerSnapshot | null): number =>
+  tracker?.rich
+    ? tracker.issues.filter(i => i.kind === 'issue' && i.role === 'needs-triage').length
+    : 0

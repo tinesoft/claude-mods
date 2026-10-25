@@ -175,17 +175,19 @@ export function resolvePrefs(
     rail: overrides?.rail ?? options.rail !== false,
     railLayout: overrides?.railLayout ?? (options.rail_layout === 'summary' ? 'summary' : 'row'),
     theme: overrides?.theme ?? theme,
+    ascii: overrides?.ascii ?? options.ascii_glyphs === true,
   }
 }
 
 /** `$.store.get(STORE_PREFS)` is unknown data: keep only known keys with valid values. */
 export function parsePrefOverrides(stored: unknown): PrefOverrides {
   if (!isRecord(stored)) return {}
-  const { rail, railLayout, theme } = stored
+  const { rail, railLayout, theme, ascii } = stored
   return {
     ...(typeof rail === 'boolean' && { rail }),
     ...(railLayout === 'row' || railLayout === 'summary' ? { railLayout } : {}),
     ...(theme === 'auto' || theme === 'light' || theme === 'dark' ? { theme } : {}),
+    ...(typeof ascii === 'boolean' && { ascii }),
   }
 }
 

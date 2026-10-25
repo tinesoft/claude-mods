@@ -90,11 +90,15 @@ test('personal prefs: store overrides userConfig, junk in the store is dropped',
     rail: false,
     railLayout: 'summary',
     theme: 'dark',
+    ascii: false,
   })
+  expect(resolvePrefs({ ascii_glyphs: true }, null).ascii).toBe(true)
+  expect(resolvePrefs({ ascii_glyphs: true }, { ascii: false }).ascii).toBe(false)
   expect(resolvePrefs({ rail: false }, { rail: true, theme: 'light' })).toEqual({
     rail: true,
     railLayout: 'row',
     theme: 'light',
+    ascii: false,
   })
   expect(parsePrefOverrides({ rail: 'yes', theme: 'neon', railLayout: 'row' })).toEqual({
     railLayout: 'row',
