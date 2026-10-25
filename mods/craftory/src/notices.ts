@@ -1,7 +1,7 @@
 /**
  * Band notices computed from facts, never stored: plugin missing or out of range, installing,
  * restart needed, install failed, first run and no feature in flight. `dismissed` hides the
- * "Not now" ones for the session. Event notices (gates, budget, drift) arrive with later milestones.
+ * "Not now" ones for the session. Event notices (gates, budget, rebase conflicts) are stored; drift and retro arrive with M5.
  */
 import type {
   EventNotice,
@@ -11,6 +11,7 @@ import type {
   RepoSnapshot,
   SkillName,
 } from '../types'
+import { budgetK } from './build'
 import { gateText } from './gates'
 import { PLUGIN, TESTED_RANGE } from './phases'
 import type { Role } from './theme'
@@ -23,6 +24,8 @@ export type NoticeAction =
   | { kind: 'run'; skill: SkillName; args: string }
   | { kind: 'run-anyway'; id: string }
   | { kind: 'diagnose'; id: string }
+  | { kind: 'raise-budget'; id: string }
+  | { kind: 'resolve'; id: string } // opens the Worktrees tab
   | { kind: 'open-tickets' } // opens the pane on the Tickets tab
   | { kind: 'dismiss'; id: string }
 
@@ -167,7 +170,7 @@ const dismiss = (id: string): NoticeButton => ({
   action: { kind: 'dismiss', id },
 })
 
-/** The band row of a stored event notice. Budget, rebase and drift rows arrive with later milestones. */
+/** The band row of a stored event notice. Drift and retro-ready rows arrive with M5. */
 export function eventNotice(notice: EventNotice): NoticeView | undefined {
   switch (notice.kind) {
     case 'gate':
@@ -203,7 +206,42 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
         ],
       }
     case 'budget':
+      return {
+        id: notice.id,
+        role: 'danger',
+        text: `Agent ${notice.ticket} hit its ${budgetK(notice.budget)} budget · worktree kept`,
+        replacesRail: false,
+        actions: [
+          {
+            id: `raise-budget-${notice.ticket}`,
+            label: 'Raise budget',
+            action: { kind: 'raise-budget', id: notice.id },
+            primary: true,
+          },
+          {
+            id: `diagnose-${notice.ticket}`,
+            label: 'Diagnose',
+            action: { kind: 'diagnose', id: notice.id },
+          },
+          dismiss(notice.id),
+        ],
+      }
     case 'rebase-conflict':
+      return {
+        id: notice.id,
+        role: 'hook',
+        text: `Rebase conflict in ${notice.worktree} · agent paused`,
+        replacesRail: false,
+        actions: [
+          {
+            id: `resolve-${notice.ticket}`,
+            label: 'Resolve',
+            action: { kind: 'resolve', id: notice.id },
+            primary: true,
+          },
+          dismiss(notice.id),
+        ],
+      }
     case 'drift':
     case 'retro-ready':
       return undefined

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
-import { derivedNotices } from '../src/notices'
-import type { InstallState, NoticeKey, PluginStatus, RepoSnapshot } from '../types'
+import { derivedNotices, eventNotice } from '../src/notices'
+import type { InstallState, IssueRef, NoticeKey, PluginStatus, RepoSnapshot } from '../types'
 
 const PRESENT: PluginStatus = {
   kind: 'present',
@@ -121,4 +121,31 @@ test('with the repo set up but no feature, it says how to start one', () => {
   })
   expect(notice!.actions[0]).toMatchObject({ label: '/grill-with-docs', action: { kind: 'run' } })
   expect(notices({ hasFeature: true })).toEqual([])
+})
+
+test('a budget notice says which agent, keeps the worktree, and offers Raise budget first', () => {
+  const view = eventNotice({
+    kind: 'budget',
+    id: 'budget-#44',
+    ticket: '#44' as IssueRef,
+    budget: 80_000,
+  })
+  expect(view?.text).toBe('Agent #44 hit its 80k budget · worktree kept')
+  expect(view?.role).toBe('danger')
+  expect(view?.actions.map(a => [a.label, a.primary === true])).toEqual([
+    ['Raise budget', true],
+    ['Diagnose', false],
+    ['Dismiss', false],
+  ])
+})
+
+test('a rebase conflict notice names the worktree and offers Resolve', () => {
+  const view = eventNotice({
+    kind: 'rebase-conflict',
+    id: 'conflict-#45',
+    ticket: '#45' as IssueRef,
+    worktree: '.worktrees/45-date-filter',
+  })
+  expect(view?.text).toBe('Rebase conflict in .worktrees/45-date-filter · agent paused')
+  expect(view?.actions.map(a => a.label)).toEqual(['Resolve', 'Dismiss'])
 })

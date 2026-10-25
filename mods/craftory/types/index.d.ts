@@ -414,12 +414,22 @@ export type EventNotice =
 /** A held gate, as the toast basis sees it. */
 export type GateSignalBasis = { id: string; phase: PhaseId; by: PhaseId; reason: string }
 
+/** A budget notice, as the toast basis sees it. */
+export type BudgetSignalBasis = { id: string; ticket: IssueRef; budget: number }
+
+/** A rebase-conflict notice, as the toast basis sees it. */
+export type ConflictSignalBasis = { id: string; ticket: IssueRef; worktree: string }
+
 /** What a toast is derived from, taken from the same facts as the Flow (src/signals.ts). */
 export type SignalBasis = {
   /** The specs that belong to a feature in flight, with their user stories when known. */
   specs: { ref: IssueRef; stories: number | null }[]
   /** The gates the band is holding. */
   gates: GateSignalBasis[]
+  /** The agents that hit their token budget. */
+  budgets: BudgetSignalBasis[]
+  /** The worktrees whose agent stopped on a merge conflict. */
+  conflicts: ConflictSignalBasis[]
 }
 
 export type NoticeKey = EventNotice['kind'] | 'plugin' | 'first-run' | 'no-feature' | 'duplicates'

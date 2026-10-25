@@ -34,6 +34,7 @@ import {
   tddStepOf,
   withoutIsolation,
   addQueued,
+  budgetK,
   type FinishReason,
   type KeepWhy,
   type SpawnDecision,
@@ -127,9 +128,9 @@ import type {
   EventNotice,
   FeatureKey,
   FeatureRecord,
-  GateSignalBasis,
   GitSnapshot,
   InstallState,
+  IssueRef,
   IsoTime,
   PaneTab,
   PhaseId,
@@ -586,11 +587,6 @@ async function addNotice($: EngineInterface, notice: EventNotice) {
   await update($, noticesState, held => [...held.filter(n => n.id !== notice.id), notice])
 }
 
-const gateBasis = (notices: readonly EventNotice[]): GateSignalBasis[] =>
-  notices.flatMap(n =>
-    n.kind === 'gate' ? [{ id: n.id, phase: n.phase, by: n.by, reason: n.reason }] : [],
-  )
-
 /**
  * Everything that follows from a changed fact: the status line, the spinner, the toasts and the
  * redraw. The toast basis is first taken only once the tracker has been read, so a restart seeds
@@ -621,7 +617,7 @@ async function settle($: EngineInterface) {
       features: await read($, featuresState),
       drafts: await read($, draftsState),
       tracker,
-      gates: gateBasis(await read($, noticesState)),
+      notices: await read($, noticesState),
     })
     const signals = diffSignals(await read($, signalsState), next)
     await update($, signalsState, () => next)
@@ -939,11 +935,28 @@ async function countStep(
   await settle($)
 }
 
+/** One more `tokenBudget` step for a ticket, stored in the feature record so a restart keeps it. */
+async function raiseBudget($: EngineInterface, ticket: IssueRef) {
+  const record = await featureOfTicket($, ticket)
+  const old = record?.agents[ticket]
+  if (record === null || old === undefined) return
+  const step = configOf((await read($, repoState))?.config).worktrees.tokenBudget
+  const budget = old.budget + step
+  await recordChange($, specKey(record.spec), { kind: 'agent', record: { ...old, budget } })
+  $.ui.toast(`Budget for ${ticket} raised to ${budgetK(budget)} · run it again to continue`)
+}
+
 async function finishAgent($: EngineInterface, agentId: AgentId, reason: FinishReason) {
+  const paused = (await read($, buildState)).isPaused
   const at = await $.clock.now()
   const done: { run: AgentRun | null } = { run: null }
   await update($, buildState, ledger => {
-    const finished = finishRun(ledger, agentId, reason, at)
+    const finished = finishRun(
+      ledger,
+      agentId,
+      paused && reason === 'answer' ? 'aborted' : reason,
+      at,
+    )
     done.run = finished.run
     return finished.ledger
   })
@@ -1054,6 +1067,18 @@ async function onNotice($: EngineInterface, action: NoticeAction) {
     case 'diagnose': {
       await dropNotice($, action.id)
       await $.command.run({ command: namespaced('diagnosing-bugs' as SkillName), args: '' })
+      return
+    }
+    case 'raise-budget': {
+      const notice = await noticeOf($, action.id)
+      if (notice?.kind !== 'budget') return
+      await raiseBudget($, notice.ticket)
+      return dropNotice($, notice.id)
+    }
+    case 'resolve': {
+      await dropNotice($, action.id)
+      await refreshGit($)
+      await openPane($, 'worktrees')
       return
     }
     case 'open-tickets':
