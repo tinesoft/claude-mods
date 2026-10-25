@@ -145,12 +145,12 @@ const RULES: Record<PhaseId, Rule> = {
   align: f => {
     const mark = f.marks.align
     const artifact = mark?.artifacts?.join(' · ') ?? null
-    if (mark?.markedDoneAt !== undefined) return { done: true, artifact }
     if (mark?.ranAt !== undefined && (laterStarted(f, 'align') || f.spec !== null))
       return { done: true, artifact }
     return {
       done: false,
       blockers: [mark?.ranAt !== undefined ? 'the grill has not ended' : 'not run yet'],
+      artifact,
     }
   },
   spec: f => {
@@ -176,22 +176,20 @@ const RULES: Record<PhaseId, Rule> = {
   review: f => {
     const mark = f.marks.review
     const branch = integrationBranchOf(f)
-    if (mark?.markedDoneAt !== undefined) return { done: true, artifact: branch }
-    const build = EVIDENCE.build(f)
-    if (!build.done) return { done: false, blockers: ['Build is not done'] }
+    const blocked = (why: string): Evidence => ({ done: false, blockers: [why], artifact: branch })
+    if (!EVIDENCE.build(f).done) return blocked('Build is not done')
     if (mark?.ranAt === undefined)
-      return { done: false, blockers: ['code-review has not run on the integration branch'] }
-    if (mark.endedAt === undefined)
-      return { done: false, blockers: ['the review has not finished'] }
+      return blocked('code-review has not run on the integration branch')
+    if (mark.endedAt === undefined) return blocked('the review has not finished')
     if (lastMergeAt(f) > Date.parse(mark.endedAt))
-      return { done: false, blockers: ['a ticket merged after the last review'] }
+      return blocked('a ticket merged after the last review')
     return { done: true, artifact: branch }
   },
   ship: f => {
-    if (f.marks.ship?.markedDoneAt !== undefined) return { done: true, artifact: f.pr?.url ?? null }
     const pr = f.pr
     if (pr === null) return { done: false, blockers: ['no pull request yet'] }
-    if (pr.state === 'closed') return { done: false, blockers: ['the pull request was closed'] }
+    if (pr.state === 'closed')
+      return { done: false, blockers: ['the pull request was closed'], artifact: pr.url }
     if (pr.state === 'open' && pr.isDraft)
       return {
         done: false,
@@ -202,7 +200,6 @@ const RULES: Record<PhaseId, Rule> = {
   },
   retro: f => {
     const mark = f.marks.retro
-    if (mark?.markedDoneAt !== undefined) return { done: true, artifact: null }
     if (!EVIDENCE.ship(f).done) return { done: false, blockers: ['Ship is not done'] }
     if (mark?.ranAt === undefined) return { done: false, blockers: ['not run yet'] }
     if (mark.endedAt === undefined) return { done: false, blockers: ['the retro has not finished'] }
@@ -213,6 +210,7 @@ const RULES: Record<PhaseId, Rule> = {
 export const canMark = (f: Facts, phase: PhaseId): boolean =>
   PHASES[phase].markDone === 'always' || !f.hasTrackerEvidence
 
+/** The one place a person's mark stands in for evidence that is not there yet. */
 export const EVIDENCE = Object.fromEntries(
   PHASE_ORDER.map((phase): [PhaseId, Rule] => [
     phase,
