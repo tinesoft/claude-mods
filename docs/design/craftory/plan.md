@@ -103,11 +103,17 @@ mods/craftory/
 ├── .claude-plugin/plugin.json      # name, userConfig (personal defaults), types
 ├── hooks/
 │   ├── hooks.json                  # modules: ["./register.tsx"]
-│   ├── register.tsx                # registers every hook; hook-only helpers (notice buttons, band actions)
+│   ├── register.tsx                # registers every hook; the one dispatch that answers an Action
 │   └── shell/                      # every other $ call, grouped by the atoms each module owns
 │       ├── repo.ts                 # atoms repo, plugin, install; fs reads, the one fs.write, git/gh probes
-│       ├── flow.ts                 # atoms tracker, features, drafts, active, running, passes, notices,
-│       │                           #   signals, dismissed, build (agent ledger), git; settle, tracker and git reads
+│       ├── tracker.ts              # atom tracker; reads the tracker the repo uses
+│       ├── features.ts             # atoms features, drafts, active; saves records, the active-feature rule
+│       ├── ledger.ts               # atom build (agent ledger); spawn, usage, finish and budget updates
+│       ├── notices.ts              # atoms notices, dismissed, passes, signals
+│       ├── git.ts                  # atom git; reads worktrees and branches, the cleanup plan
+│       ├── flow.ts                 # atom running; currentFlow, settle, gates, skill and turn lifecycle
+│       ├── sync.ts                 # tracker and git refresh, debounced; tells agents when their branch moves
+│       ├── agents.ts               # agent lifecycle: spawn, seat, count, finish, pause, raise budget
 │       ├── build.ts                # atoms diffs, steeringNote; seats, Worktrees tab, Agents list
 │       ├── settings.ts             # atoms setupDraft, askedFiles, setupNote, settingsSection, termDraft,
 │       │                           #   termError; Settings writes, .scratch/ import, glossary edits
@@ -118,15 +124,23 @@ mods/craftory/
 │   ├── evidence.ts                 # tracker + git + event facts → phase status per feature
 │   ├── features.ts                 # feature state reducer, (de)serialise .craftory/features/*.json
 │   ├── config.ts                   # .craftory/config.json schema, defaults, resolve with $.store overrides
-│   ├── agents-md.ts                # read/write docs/agents/*.md and the "## Agent skills" block
+│   ├── agents-md.ts                # read/write docs/agents/*.md and the "## Agent skills" block; plan of a Settings change
 │   ├── glossary.ts                 # parse/serialise GLOSSARY.md (Language, Relationships, Flagged ambiguities)
 │   ├── tracker/local.ts            # docs/issues front matter, numbering, blocking edges
 │   ├── tracker/github.ts           # gh issue/label/sub-issue/PR command builders and parsers
-│   ├── tracker/gitlab.ts           # glab command builders (links only in v1)
+│   ├── tracker/links.ts            # GitLab and Other: links only in v1
 │   ├── build.ts                    # agent steering: slots, queue, names, budget state
 │   ├── gates.ts                    # gate check → confirm text
 │   ├── drift.ts                    # avoid-words in a diff → findings
-│   ├── rail.tsx                    # band: rail, notices, detail card, agents list
+│   ├── action.ts                   # the one Action union every button hands back
+│   ├── notices.ts                  # notice views and their buttons
+│   ├── ui.tsx                      # Ui table type, ink helpers, Icon
+│   ├── widgets.tsx                 # Badge, CardButton, HookNote, Settings controls
+│   ├── card-model.ts               # pure card and rail layout: step meta, card view, fit
+│   ├── agents-list.tsx             # the Agents list on the card
+│   ├── card.tsx                    # the detail card
+│   ├── notice-row.tsx              # a notice row and its buttons
+│   ├── rail.tsx                    # band: rail, summary chip, step strip, renderBand
 │   ├── pane.tsx                    # tabs 1–4
 │   ├── settings.tsx                # tab 5
 │   ├── summary.ts                  # text summaries (cloud, /craftory where nothing draws)
