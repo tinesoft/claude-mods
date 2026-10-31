@@ -92,6 +92,16 @@ export const fromSkill = (e: {
   status: 'active',
 })
 
+/** A Skill tool call, for when `skill.prompt` is not registered; it knows only the name. */
+export const fromSkillCall = (skill: string): Observed => ({
+  kind: 'skill',
+  key: skill,
+  label: skill,
+  meta: 'Loaded',
+  detail: 'Claude loaded this skill.',
+  status: 'active',
+})
+
 export const fromSpawn = (
   e: {
     subagentType: string

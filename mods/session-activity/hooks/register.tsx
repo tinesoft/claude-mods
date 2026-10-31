@@ -15,6 +15,7 @@ import {
   fromModel,
   fromPermission,
   fromSkill,
+  fromSkillCall,
   fromSpawn,
   hookCommands,
   hookTarget,
@@ -290,12 +291,6 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('classic.SessionStart', async ($, e, next) => {
-    if (e.source === 'fork') await resetActivity($, options)
-    await loadOverrides($, options)
-    return next(e)
-  })
-
   on('command.run', { command: 'session-activity' }, async $ => {
     if (!(await drawsAnything($))) {
       const settings = await settingsOf($, options)
@@ -312,11 +307,6 @@ export const register: Register = (on, options) => {
 
   on('session.end', async ($, e, next) => {
     if (e.reason === 'clear' || e.reason === 'resume') await resetActivity($, options)
-    return next(e)
-  })
-
-  on('skill.prompt', async ($, e, next) => {
-    await observe($, options, fromSkill(e))
     return next(e)
   })
 
@@ -361,6 +351,10 @@ export const register: Register = (on, options) => {
         fromMcpCall(e.tool, ran.isError === true, await read($, hostServers)),
       )
       if (ran.isError !== true) await observe($, options, fromMemoryWrite(e.tool, e))
+      // `skill.prompt` is the richer source; the call stands in only where it is not registered.
+      if (options.hook_events === false && e.tool === 'Skill' && ran.isError !== true) {
+        await observe($, options, fromSkillCall(e.skill))
+      }
       if (e.tool === 'Bash' && e.run_in_background === true) {
         await observe($, options, fromBackground(e.command, await $.session.cwd()))
       }
@@ -375,64 +369,79 @@ export const register: Register = (on, options) => {
     return ran
   })
 
-  on('classic.*', async ($, e, next) => {
-    const host = hostServerOf('mcp_server' in e ? e.mcp_server : undefined)
-    if (host !== undefined) await learnHostServer($, options, host)
-    const event = 'hook_event_name' in e ? String(e.hook_event_name) : 'PreToolUse'
-    const target = hookTarget(e)
-    const commands = hookCommands(await $.settings.read(), event, target)
-    const isStarted = commands.length > 0
-    if (isStarted) await observe($, options, fromHook(event, commands, 'running', target))
-    const result = (await next(e)) as Record<string, unknown>
-    const blocked = blockedBy(result)
-    await observe(
-      $,
-      options,
-      fromHook(event, commands, blocked === undefined ? {} : { blocked }, target),
-      { isSettling: isStarted },
-    )
-    return result as never
-  })
+  // Claude Code's `cc-plugin-sec-default` guard, on Team and Enterprise plans, sends these events past
+  // every user mod and prints a notice for each hook registered here. A mod cannot detect it.
+  if (options.hook_events !== false) {
+    on('classic.SessionStart', async ($, e, next) => {
+      if (e.source === 'fork') await resetActivity($, options)
+      await loadOverrides($, options)
+      return next(e)
+    })
 
-  on('classic.InstructionsLoaded', async ($, e, next) => {
-    const lines = await $.fs.read(e.file_path).then(lineCount, () => undefined)
-    const seen = fromInstructions(
-      { path: e.file_path, tier: e.memory_type, reason: e.load_reason, lines },
-      await $.session.cwd(),
-    )
-    // `prompt.context` may have listed it already.
-    if (e.load_reason === 'session_start') await observeOnce($, options, seen)
-    else await observe($, options, seen)
-    return next(e)
-  })
+    on('skill.prompt', async ($, e, next) => {
+      await observe($, options, fromSkill(e))
+      return next(e)
+    })
 
-  // On Desktop and under `claude -p`, no `InstructionsLoaded` reaches the mod for the files
-  // loaded at session start; the first message's context still lists them.
-  on('prompt.context', async ($, e, next) => {
-    const cwd = await $.session.cwd()
-    for (const file of e.instructionFiles ?? []) {
-      await observeOnce(
+    on('classic.*', async ($, e, next) => {
+      const host = hostServerOf('mcp_server' in e ? e.mcp_server : undefined)
+      if (host !== undefined) await learnHostServer($, options, host)
+      const event = 'hook_event_name' in e ? String(e.hook_event_name) : 'PreToolUse'
+      const target = hookTarget(e)
+      const commands = hookCommands(await $.settings.read(), event, target)
+      const isStarted = commands.length > 0
+      if (isStarted) await observe($, options, fromHook(event, commands, 'running', target))
+      const result = (await next(e)) as Record<string, unknown>
+      const blocked = blockedBy(result)
+      await observe(
         $,
         options,
-        fromInstructions(
-          {
-            path: file.path,
-            tier: file.kind,
-            reason: 'session_start',
-            lines: lineCount(file.content),
-          },
-          cwd,
-        ),
+        fromHook(event, commands, blocked === undefined ? {} : { blocked }, target),
+        { isSettling: isStarted },
       )
-    }
-    return next(e)
-  })
+      return result as never
+    })
 
-  on('session.compact', async ($, e, next) => {
-    const compacted = await next(e)
-    if (!('skip' in compacted)) await observe($, options, fromCompaction(e.trigger))
-    return compacted
-  })
+    on('classic.InstructionsLoaded', async ($, e, next) => {
+      const lines = await $.fs.read(e.file_path).then(lineCount, () => undefined)
+      const seen = fromInstructions(
+        { path: e.file_path, tier: e.memory_type, reason: e.load_reason, lines },
+        await $.session.cwd(),
+      )
+      // `prompt.context` may have listed it already.
+      if (e.load_reason === 'session_start') await observeOnce($, options, seen)
+      else await observe($, options, seen)
+      return next(e)
+    })
+
+    // On Desktop and under `claude -p`, no `InstructionsLoaded` reaches the mod for the files
+    // loaded at session start; the first message's context still lists them.
+    on('prompt.context', async ($, e, next) => {
+      const cwd = await $.session.cwd()
+      for (const file of e.instructionFiles ?? []) {
+        await observeOnce(
+          $,
+          options,
+          fromInstructions(
+            {
+              path: file.path,
+              tier: file.kind,
+              reason: 'session_start',
+              lines: lineCount(file.content),
+            },
+            cwd,
+          ),
+        )
+      }
+      return next(e)
+    })
+
+    on('session.compact', async ($, e, next) => {
+      const compacted = await next(e)
+      if (!('skip' in compacted)) await observe($, options, fromCompaction(e.trigger))
+      return compacted
+    })
+  }
 
   on('session.measure', async ($, e, next) => {
     if (e.context.percent !== undefined) {

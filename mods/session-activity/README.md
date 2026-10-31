@@ -141,17 +141,18 @@ Open it with `/session-activity`, `+N more`, or a chip when the band is too shor
 
 The plugin options (`/config`, or `pluginConfigs` in settings) are the defaults. Changes made in the pane override them, persist across sessions, and are reloaded when a session starts, including after `/clear`.
 
-| Option           | Default               | Effect                                                                                                                             |
-| ---------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `enabled`        | `true`                | Show chips above the prompt                                                                                                        |
-| `layout`         | `row`                 | `row` of chips, or one `summary` chip such as `▤2 ◉2 ⇌2 · ● 1 blocked`                                                             |
-| `max_chips`      | `6`                   | Chips shown before `+N more` (1 to 20)                                                                                             |
-| `show_<type>`    | core on, optional off | Show that type: skills, agents, mcp, permissions, hooks, rules, commands, memory, plugins, context, checkpoints, model, background |
-| `chip_theme`     | `auto`                | `light` or `dark` chip colours, or `auto` to follow the Claude Code theme, then the terminal, then the system                      |
-| `chip_style`     | `tinted`              | `tinted` chips, or `text` for coloured text only                                                                                   |
-| `chip_hotkeys`   | `false`               | Digit hotkeys on chips                                                                                                             |
-| `toast_on_block` | `true`                | Toast when an action is blocked or denied                                                                                          |
-| `text_summary`   | `false`               | Where nothing can be drawn, add a one-line `Activity: ▤ docx · ◉ code-reviewer · ↯ block-secrets BLOCKED` beneath each answer      |
+| Option           | Default               | Effect                                                                                                                                     |
+| ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`        | `true`                | Show chips above the prompt                                                                                                                |
+| `layout`         | `row`                 | `row` of chips, or one `summary` chip such as `▤2 ◉2 ⇌2 · ● 1 blocked`                                                                     |
+| `max_chips`      | `6`                   | Chips shown before `+N more` (1 to 20)                                                                                                     |
+| `hook_events`    | `true`                | Watch hook, rule and compaction events. Turn it off if your organization's security guard skips them (see Limits); Hooks and Rules need it |
+| `show_<type>`    | core on, optional off | Show that type: skills, agents, mcp, permissions, hooks, rules, commands, memory, plugins, context, checkpoints, model, background         |
+| `chip_theme`     | `auto`                | `light` or `dark` chip colours, or `auto` to follow the Claude Code theme, then the terminal, then the system                              |
+| `chip_style`     | `tinted`              | `tinted` chips, or `text` for coloured text only                                                                                           |
+| `chip_hotkeys`   | `false`               | Digit hotkeys on chips                                                                                                                     |
+| `toast_on_block` | `true`                | Toast when an action is blocked or denied                                                                                                  |
+| `text_summary`   | `false`               | Where nothing can be drawn, add a one-line `Activity: ▤ docx · ◉ code-reviewer · ↯ block-secrets BLOCKED` beneath each answer              |
 
 Chips belong to one conversation. `/clear` and `/resume` empty them; muting lasts until then too.
 
@@ -200,6 +201,7 @@ It starts no other program. If a command is missing, the mod falls back to `COLO
 - Permission chips leave out calls your permission mode allows on its own, such as reads, to keep the band readable. A call a hook allowed or denied shows on that hook's chip instead. Whether you approved "once" or "always" is not visible to a mod.
 - Rule chips mean a file was loaded, not that a line in it shaped an action.
 - Where an organization manages Claude Code, skill, hook, rule and compaction events reach only plugins the organization lists, so those chips stay empty.
+- On Team and Enterprise plans, or under managed settings, Claude Code's security guard can send hook and prompt events past every plugin and print a notice such as `its classic.SessionStart hook was skipped` for each hook this plugin registers. Setting `hook_events` to `false` registers none of them, which silences the notices at the cost of the Hook, Rules and compaction chips; skills then come from Skill tool calls instead.
 - Checkpoints are not supported yet: Claude Code 2.1.302 sends no event for them, so the toggle exists and records nothing. Memory chips come only from writes Claude makes with `Write`, `Edit` or `MultiEdit`.
 - Claude Code draws the band above the prompt only in the terminal and on Desktop. On VS Code and mobile, use the status line and `/session-activity`.
 - Background task chips never show as running, because no event reports a background shell exiting.

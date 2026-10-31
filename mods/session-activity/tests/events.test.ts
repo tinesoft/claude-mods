@@ -270,3 +270,72 @@ test('an interrupted subagent ends as an error, not a success', async ($, on) =>
   })
   expect(await band($, clock)).toEqual(['agent:code-reviewer|▲ code-reviewerError'])
 })
+
+const skillCall = { tool: 'Skill', skill: 'docx' } as never
+const skillPrompt = { skill: 'docx', text: 'x', frontmatter: {}, source: 'plugin' } as never
+const instructions = {
+  file_path: '/repo/CLAUDE.md',
+  memory_type: 'Project',
+  load_reason: 'session_start',
+} as never
+
+test('with hook_events on, a Skill tool call adds no second chip beside skill.prompt', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on)
+  await $.skill.prompt(skillPrompt)
+  await $.tool.call(skillCall)
+  expect(await band($, clock)).toEqual(['skill:docx|▤ docx'])
+})
+
+test(
+  'with hook_events off, a successful Skill tool call becomes a skill chip',
+  { options: { hook_events: false } },
+  async ($, on) => {
+    const clock = session(on)
+    stubEngine(on)
+    await $.tool.call(skillCall)
+    expect(await band($, clock)).toEqual(['skill:docx|▤ docx'])
+  },
+)
+
+test(
+  'with hook_events off, a failed Skill tool call records nothing',
+  { options: { hook_events: false } },
+  async ($, on) => {
+    const clock = session(on)
+    stubEngine(on, { call: { result: 'no such skill', isError: true } })
+    await $.tool.call(skillCall)
+    expect(await band($, clock)).toEqual([])
+  },
+)
+
+test(
+  'with hook_events off, skill.prompt is not observed, so a skill counts once',
+  { options: { hook_events: false } },
+  async ($, on) => {
+    const clock = session(on)
+    stubEngine(on)
+    await $.skill.prompt(skillPrompt)
+    expect(await band($, clock)).toEqual([])
+    await $.tool.call(skillCall)
+    expect(await band($, clock)).toEqual(['skill:docx|▤ docx'])
+  },
+)
+
+test(
+  'with hook_events off, classic events record no rule chip',
+  { options: { hook_events: false } },
+  async ($, on) => {
+    const clock = session(on)
+    stubEngine(on)
+    await $.classic.InstructionsLoaded(instructions)
+    expect(await band($, clock)).toEqual([])
+  },
+)
+
+test('with hook_events on, classic events record the rule chip', async ($, on) => {
+  const clock = session(on)
+  stubEngine(on)
+  await $.classic.InstructionsLoaded(instructions)
+  expect(await band($, clock)).toEqual(['rule:/repo/CLAUDE.md|▣ CLAUDE.md'])
+})

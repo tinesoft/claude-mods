@@ -104,6 +104,12 @@
       "description": "Optional",
       "default": false
     },
+    "hook_events": {
+      "type": "boolean",
+      "title": "Hook and prompt events",
+      "description": "Turn off if your organization's security guard skips them and prints a notice per hook. Hooks and Rules need it",
+      "default": true
+    },
     "max_chips": {
       "type": "number",
       "title": "Chips before overflow",
