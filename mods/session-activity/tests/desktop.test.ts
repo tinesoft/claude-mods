@@ -157,6 +157,9 @@ test("on desktop a blocked hook's card opens whole in the band's 12 rows, compac
   expect(opens).toEqual([])
   expect(card?.props).toMatchObject({ paddingY: 'xs', rowGap: 'xs' })
   expect(card?.text).toContain('./.claude/hooks/block-secrets.sh')
+  const texts = (await desktop.findAll({ type: 'Text' })).map(t => t.text)
+  expect(texts.filter(t => t === './.claude/hooks/block-secrets.sh')).toEqual([])
+  expect(await desktop.find({ key: 'open' })).toBeDefined()
 })
 
 const blockedOnDesktop = async ($: Engine, on: Parameters<typeof session>[0]) => {

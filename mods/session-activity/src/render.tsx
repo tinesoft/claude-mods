@@ -550,6 +550,13 @@ const Tile = ({
 
 const canMute = (a: Activation) => !isUrgent(a.status)
 
+/**
+ * The compact desktop card of a blocked call drops its source line: the band cannot grow, the
+ * reason already names the source, and "Open source" still copies it.
+ */
+const hasSourceLine = (a: Activation, density: CardDensity, isDesktop: boolean) =>
+  a.source !== undefined && !(isDesktop && density === 'compact' && isUrgent(a.status))
+
 const hasActions = (a: Activation) => a.source !== undefined || canMute(a)
 
 /** Terminal rows the card takes: border, padding, its parts and the gaps between them. */
@@ -600,8 +607,9 @@ export const cardPoints = (
   const whyLines = isWhyBrief ? 1 : Math.max(1, Math.ceil(a.detail.length / perLine))
   const why = whyLines * DESKTOP_PT.whyLine
   const lines =
-    (a.source !== undefined ? DESKTOP_PT.source : 0) + (hasActions(a) ? DESKTOP_PT.actions : 0)
-  const parts = 3 + [a.source !== undefined, hasActions(a)].filter(Boolean).length
+    (hasSourceLine(a, density, true) ? DESKTOP_PT.source : 0) +
+    (hasActions(a) ? DESKTOP_PT.actions : 0)
+  const parts = 3 + [hasSourceLine(a, density, true), hasActions(a)].filter(Boolean).length
   const content = DESKTOP_PT.header + why + DESKTOP_PT.tiles + lines
   return DESKTOP_PT.border + 2 * points(space.padY) + content + (parts - 1) * points(space.gap)
 }
@@ -707,7 +715,7 @@ export const DetailCard = ({
         <Tile ui={ui} tone={tone} title="Activations" value={String(a.count)} />
         <Tile ui={ui} tone={tone} title="Last" value={agoLabel(now - a.lastAt)} />
       </Box>
-      {a.source !== undefined && (
+      {hasSourceLine(a, density, isRich(ui)) && (
         <Text mono size="footnote" wrap="truncate-middle" {...inkOf(ui, tone, 'muted', surface)}>
           {a.source}
         </Text>
