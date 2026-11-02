@@ -234,7 +234,8 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: COMMAND,
-      description: "Show the active feature's phases, tickets, worktrees, glossary and settings",
+      description:
+        "Open the Craftory SDLC pane: the active feature's phases, tickets, worktrees, glossary and settings",
       immediate: true,
     })
     await loadPrefs($)

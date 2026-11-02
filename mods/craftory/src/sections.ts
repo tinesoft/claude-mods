@@ -561,7 +561,7 @@ const pref = (patch: PrefOverrides): SettingsChange => ({ prefs: patch })
 const PERSONAL_ROWS: readonly SettingsRow[] = [
   {
     id: 'pref-rail',
-    label: 'Show the phase rail above the prompt bar',
+    label: 'Show the SDLC phase rail above the prompt bar',
     hint: 'Off: phases still run from slash commands and show in the side panel.',
     file: 'prefs',
     header: true,

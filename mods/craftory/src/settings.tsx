@@ -367,9 +367,9 @@ export const SettingsTab = (args: SettingsArgs) => {
   return (
     <Box key="settings" flexDirection="column" rowGap={SPACE.paneGap}>
       <Text wrap="wrap" {...inkOf(tone, 'text2')}>
-        A guided flow from idea to merged PR, built on Matt Pocock’s skills. Shared values are
-        written to docs/agents/*.md, the glossary and .craftory/config.json, so every skill and
-        every teammate reads the same ones.
+        An SDLC framework, built on top of Matt Pocock’s skills, as a mod. Shared values are written
+        to docs/agents/*.md, the glossary and .craftory/config.json, so every skill and every
+        teammate reads the same ones.
       </Text>
       {readOnly && (
         <Text wrap="wrap" color={paint('hook', tone).fg}>
