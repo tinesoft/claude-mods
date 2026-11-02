@@ -40,8 +40,8 @@ import {
   type Tone,
 } from './theme'
 
-/** Cells, not a step: the why line lines up under the row's name, past the icon and the cursor. */
-const WHY_INDENT = 6
+/** Cells, not a step: the why line lines up under the row's name, past the cursor. */
+const WHY_INDENT = 1
 
 /** The row's type mark: the terminal's ` ◉ ` is three cells. */
 const ICON_CELLS = 3
@@ -181,22 +181,14 @@ const Filters = ({ ui, tone, activations, settings, filter, on }: PaneArgs) => {
   return <Segmented ui={ui} tone={tone} segments={segments} />
 }
 
-/** The row's type mark: a rounded tile holding the icon on rich surfaces, a tinted glyph in the terminal. */
+/** The row's type mark: the same tile the settings rows use, so both tabs size and center it alike. */
 const RowIcon = ({ args, a, muted }: { args: PaneArgs; a: Activation; muted: boolean }) => {
   const { ui, tone } = args
-  const { Box, Text } = ui
-  const look = lookOf(a.kind, tone)
   if (isRich(ui)) {
-    return (
-      <Box
-        paddingX={SPACE.tilePadX}
-        {...withTint(look.tint)}
-        {...(tone !== undefined && { borderStyle: 'round', borderColor: look.border })}
-      >
-        {kindIcon(ui, a.kind, look)}
-      </Box>
-    )
+    return <ToggleMark ui={ui} tone={tone} toggle={a.kind} />
   }
+  const { Text } = ui
+  const look = lookOf(a.kind, tone)
   return (
     <Text color={look.color} dimColor={look.dim || muted} {...withTint(look.tint)}>
       {` ${TOGGLES[a.kind].glyph} `}
@@ -251,74 +243,80 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
           hover: { backgroundColor: mix(TOKENS[tone].surface, TOKENS[tone].ink, HOVER_MIX) },
         })}
     >
-      <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowSide}>
+      <Box flexDirection="row" columnGap={SPACE.rowGrid}>
+        <RowIcon args={args} a={a} muted={isMuted} />
         <Box
-          flexDirection="row"
-          columnGap={SPACE.rowGrid}
+          flexDirection="column"
+          rowGap={SPACE.rowTextGap}
+          flexGrow={1}
           flexShrink={1}
           minWidth={0}
-          overflow="hidden"
         >
-          <RowIcon args={args} a={a} muted={isMuted} />
-          <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
-            <Text>{isSelected ? '▸' : ' '}</Text>
-            <Text bold dimColor={isMuted}>{` ${clip(a.label, 28)}`}</Text>
-            {a.meta !== undefined && metaRoom >= MIN_META && (
-              <Text mono size="footnote" {...inkOf(ui, tone, 'muted')}>
-                {` ${clip(a.meta, metaRoom)}`}
+          <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowSide}>
+            <Box flexDirection="row" flexShrink={1} minWidth={0} overflow="hidden">
+              <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
+                <Text>{isSelected ? '▸' : ' '}</Text>
+                <Text bold dimColor={isMuted}>{` ${clip(a.label, 28)}`}</Text>
+                {a.meta !== undefined && metaRoom >= MIN_META && (
+                  <Text mono size="footnote" {...inkOf(ui, tone, 'muted')}>
+                    {` ${clip(a.meta, metaRoom)}`}
+                  </Text>
+                )}
+                {badgeText !== '' && (
+                  <Badge ui={ui} text={badgeText} tone={tone} status={a.status} />
+                )}
+                {isMuted && <MutedBadge ui={ui} tone={tone} />}
+              </Button>
+            </Box>
+            <Box flexDirection="row" columnGap={SPACE.rowSide} flexShrink={0}>
+              <Text mono size="footnote" {...inkOf(ui, tone, 'text2')}>
+                {tally}
               </Text>
-            )}
-            {badgeText !== '' && <Badge ui={ui} text={badgeText} tone={tone} status={a.status} />}
-            {isMuted && <MutedBadge ui={ui} tone={tone} />}
-          </Button>
-        </Box>
-        <Box flexDirection="row" columnGap={SPACE.rowSide} flexShrink={0}>
-          <Text mono size="footnote" {...inkOf(ui, tone, 'text2')}>
-            {tally}
-          </Text>
-          {!urgent && (
-            <Button
-              key={`mute-${a.kind}-${a.key}`}
-              plain
-              {...(isSelected && { hotkey: 'm' })}
-              label={isMuted ? 'Unmute' : 'Mute'}
-              onPress={() => on.mute(id)}
-            />
-          )}
-        </Box>
-      </Box>
-      <Box flexDirection="column" rowGap={SPACE.rowTextGap} paddingLeft={WHY_INDENT}>
-        <Text
-          size="footnote"
-          wrap={isSelected ? 'wrap' : 'truncate-end'}
-          {...inkOf(ui, tone, isSelected ? 'ink2' : 'text2')}
-        >
-          {a.detail}
-        </Text>
-        {urgent && (
-          <Text {...inkOf(ui, tone, 'muted')}>Stopped and errored chips always show.</Text>
-        )}
-        {isSelected && (
-          <Box flexDirection="column">
-            {a.plugin !== undefined && (
-              <Text {...inkOf(ui, tone, 'muted')}>{`from plugin ${a.plugin}`}</Text>
-            )}
-            {a.source !== undefined && (
-              <>
-                <Text wrap="truncate-middle" {...inkOf(ui, tone, 'muted')}>
-                  {a.source}
-                </Text>
+              {!urgent && (
                 <Button
-                  key="copy"
+                  key={`mute-${a.kind}-${a.key}`}
                   plain
-                  hotkey="c"
-                  label="Copy path"
-                  onPress={() => on.copy(a.source!)}
+                  {...(isSelected && { hotkey: 'm' })}
+                  label={isMuted ? 'Unmute' : 'Mute'}
+                  onPress={() => on.mute(id)}
                 />
-              </>
+              )}
+            </Box>
+          </Box>
+          <Box flexDirection="column" rowGap={SPACE.rowTextGap} paddingLeft={WHY_INDENT}>
+            <Text
+              size="footnote"
+              wrap={isSelected ? 'wrap' : 'truncate-end'}
+              {...inkOf(ui, tone, isSelected ? 'ink2' : 'text2')}
+            >
+              {a.detail}
+            </Text>
+            {urgent && (
+              <Text {...inkOf(ui, tone, 'muted')}>Stopped and errored chips always show.</Text>
+            )}
+            {isSelected && (
+              <Box flexDirection="column">
+                {a.plugin !== undefined && (
+                  <Text {...inkOf(ui, tone, 'muted')}>{`from plugin ${a.plugin}`}</Text>
+                )}
+                {a.source !== undefined && (
+                  <>
+                    <Text wrap="truncate-middle" {...inkOf(ui, tone, 'muted')}>
+                      {a.source}
+                    </Text>
+                    <Button
+                      key="copy"
+                      plain
+                      hotkey="c"
+                      label="Copy path"
+                      onPress={() => on.copy(a.source!)}
+                    />
+                  </>
+                )}
+              </Box>
             )}
           </Box>
-        )}
+        </Box>
       </Box>
     </Box>
   )
