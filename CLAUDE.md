@@ -2,6 +2,8 @@
 
 One Nx workspace and one plugin marketplace (`tinesoft-mods`). Each mod lives in `mods/<name>/` and is an Nx project.
 
+`craftory` is an SDLC framework, built on top of Matt Pocock's skills, as a mod.
+
 ## Branches and commits
 
 - Branch from `develop` as `feat/...`, `fix/...` or `chore/...`. PRs target `develop`. `main` is release-only.
