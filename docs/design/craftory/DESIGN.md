@@ -5,8 +5,8 @@ decisions behind it are in [`plan.md`](./plan.md); where this file and `plan.md`
 The interactive canvas lives at https://claude.ai/artifact/4DU8JVRxfgtaKVKQcVkrbw (owner access), and a
 copy of its boards is in [`artboards/`](./artboards/README.md).
 
-Craftory is a guided flow from idea to merged PR on top of Matt Pocock's skills
-(`mattpocock-skills`). It never does the work itself: each phase is started by one of his
+Craftory is an SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod
+(`mattpocock-skills`), guiding a feature from idea to merged PR. It never does the work itself: each phase is started by one of his
 user-invoked skills, and his model-invoked skills are its helpers. Craftory tracks where a feature is,
 suggests the next step, steers parallel Build agents, and edits the repo files his skills read.
 
@@ -19,7 +19,7 @@ and interaction logic, which is the most useful part to read.
 
 | Board | File | Becomes in the mod |
 | --- | --- | --- |
-| Phase rail above the prompt, Build open | `Main.dc.html` | `AbovePrompt` band: the triage button, seven phase steps, the feature title, a gear. A pressed step opens its detail card above the rail; Build's card holds the live agents list |
+| SDLC phase rail above the prompt, Build open | `Main.dc.html` | `AbovePrompt` band: the triage button, seven phase steps, the feature title, a gear. A pressed step opens its detail card above the rail; Build's card holds the live agents list |
 | Panel beside the chat | `Panel.dc.html` | `Pane` id `craftory`, opened by `/craftory`: tabs `1 Flow`, `2 Tickets` (with Inbox), `3 Worktrees`, `4 Glossary`, `5 Settings` |
 | Settings | `Settings.dc.html` | Tab `5 Settings` of the same pane. Claude Code has no settings page a mod can join, so the left nav of the board is the pane's tab list |
 | Phase states, rail variants, glossary, toasts | `States.dc.html` | State glyph + colour + text rules below; band notices for plugin missing and first run; `$.ui.toast` |

@@ -4,11 +4,11 @@ Oct 25, 2026 · @Tine Kondo
 
 ## Summary
 
-Build `craftory`, the second mod in `tinesoft/claude-mods`. It guides a feature from idea to merged PR
+Build `craftory`, the second mod in `tinesoft/claude-mods`: an SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. It guides a feature from idea to merged PR
 through seven phases (Align → Spec → Tickets → Build → Review → Ship → Retro), each powered by a skill
 from Matt Pocock's `mattpocock-skills` plugin, which Craftory depends on and does not vendor.
 
-Craftory adds four things his skills do not have: a **phase rail** above the prompt that shows where
+Craftory adds four things his skills do not have: an **SDLC phase rail** above the prompt that shows where
 the active feature is and what to run next; a **pane** with the flow, tickets (plus a triage Inbox),
 worktrees and glossary; **settings** that edit the files his skills read; and **steering** for the
 parallel agents `implement-spec` starts (worktree layout, parallelism, token budget).

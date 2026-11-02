@@ -14,9 +14,9 @@
     {
       "name": "craftory",
       "source": "./mods/craftory",
-      "description": "A phase rail above the prompt that guides a feature from idea to merged PR (Align, Spec, Tickets, Build, Review, Ship, Retro) with Matt Pocock's skills.",
+      "description": "An SDLC framework, built on top of Matt Pocock's skills, as a mod. A phase rail above the prompt takes a feature from idea to merged PR (Align, Spec, Tickets, Build, Review, Ship, Retro).",
       "category": "productivity",
-      "tags": ["mod", "workflow", "ui"]
+      "tags": ["mod", "sdlc", "workflow", "ui"]
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../assets/images/craftory-dark.svg">
-  <img alt="craftory — guide a feature from idea to merged PR" src="../../assets/images/craftory-light.svg" width="128">
+  <img alt="craftory — an SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod" src="../../assets/images/craftory-light.svg" width="128">
 </picture>
 
 # Craftory
@@ -13,7 +13,7 @@
 
 </div>
 
-A Claude Code mod that guides a feature from idea to merged PR in seven phases: Align, Spec, Tickets, Build, Review, Ship and Retro. Each phase runs one of Matt Pocock's skills from the [`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Craftory does not do the work itself. A phase rail above the prompt shows where the active feature is and what to run next, the `/craftory` pane holds the tickets, worktrees, glossary and settings, and Craftory steers the parallel agents that `/implement-spec` starts.
+An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. It guides a feature from idea to merged PR in seven phases: Align, Spec, Tickets, Build, Review, Ship and Retro. Each phase runs one of Matt Pocock's skills from the [`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Craftory does not do the work itself. A phase rail above the prompt shows where the active feature is and what to run next, the `/craftory` pane holds the tickets, worktrees, glossary and settings, and Craftory steers the parallel agents that `/implement-spec` starts.
 
 ```text
  Inbox 3 │ ✓ Align ─ ✓ Spec #42 ─ ✓ Tickets 5 ─ ◐ Build 1/5 ─ ⊘ Review ─ Ship ─ Retro   Export invoices as CSV ⚙
@@ -27,7 +27,8 @@ A Claude Code mod that guides a feature from idea to merged PR in seven phases: 
 
 ## ✨ Features
 
-- 🧭 **A rail for the active feature.** Seven steps, each with a state glyph, a text badge and what it produced, such as `#42` or `1/5`.
+- 🔄 **A full SDLC, not just a rail.** Seven phases cover the lifecycle from idea to retro, each started by one of Matt's skills.
+- 🧭 **An SDLC rail for the active feature.** Seven steps, each with a state glyph, a text badge and what it produced, such as `#42` or `1/5`.
 - 🔍 **A card per phase.** Press a step to see what the phase does, the command that starts it, the skills it uses, what it wrote, and its gate.
 - 🚦 **Soft gates.** Starting a phase whose gated predecessor is not done asks first, with **Run anyway** and **Diagnose**. Nothing is refused.
 - 🤖 **Build steering.** One git worktree and branch per implementer, at most `maxParallel` at a time, and a token budget per agent with a live Agents list.
