@@ -121,6 +121,18 @@ test('the gear opens the pane and the triage button opens its card', async ($, o
   expect(w.opens).toHaveLength(1)
 })
 
+test('the gear hides the pane when Settings is showing, and shows it again', async ($, on) => {
+  const w = featureWorld(on)
+  await startSession($)
+  const band = await mountBand($, 'terminal', 200)
+  await band.press({ key: 'gear' })
+  await band.press({ key: 'gear' })
+  expect(w.panes.size).toBe(0)
+  await band.press({ key: 'gear' })
+  expect(w.opens).toHaveLength(2)
+  expect(w.panes.size).toBe(1)
+})
+
 test('rail_layout summary draws one chip, and so does a narrow band', async ($, on) => {
   featureWorld(on, { store: { prefs: { railLayout: 'summary' } } })
   await startSession($)

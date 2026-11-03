@@ -102,7 +102,20 @@ export const world = (on: On, options: WorldOptions = {}) => {
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('command.list', () => ({ value: commands }))
   on('ui.render', ($, e) => $.ui.resolve(e).Box({}))
-  on('ui.open', (_$, e) => (opens.push(e), { value: { isPlaced: true } }))
+  const panes = new Set<string>()
+  on('ui.open', (_$, e) => (opens.push(e), panes.add(e.id), { value: { isPlaced: true } }))
+  on('ui.close', (_$, e) => (panes.delete(e.id), { value: undefined }))
+  on('ui.panes', () => ({
+    value: [...panes].map(id => ({
+      id,
+      title: id,
+      isShown: true,
+      isFocused: true,
+      isPlaced: true,
+      plugin: 'craftory',
+      element: 'Pane',
+    })),
+  }))
   on('ui.invalidate', () => ({ value: undefined }))
   on(
     'ui.toast',
@@ -229,6 +242,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
     ran,
     writes,
     opens,
+    panes,
     toasts,
     toastTimeouts,
     statuses,

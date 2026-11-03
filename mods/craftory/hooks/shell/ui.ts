@@ -213,6 +213,13 @@ export async function openPane($: EngineInterface, tab: PaneTab) {
   await $.ui.open({ id: PANE, title: 'Craftory', focus: true, closeOnEscape: true })
 }
 
+/** Opens the pane on `tab`, or closes it when that tab is already showing. */
+export async function togglePane($: EngineInterface, tab: PaneTab) {
+  const isUp = (await $.ui.panes()).some(pane => pane.id === PANE)
+  if (isUp && (await read($, paneTabState)) === tab) await $.ui.close({ id: PANE })
+  else await openPane($, tab)
+}
+
 export async function glossaryViewOf($: EngineInterface) {
   const { repo, docs } = await repoFacts($)
   return glossaryView({

@@ -96,6 +96,7 @@ import {
   loadPrefs,
   noteReplyTerms,
   openPane,
+  togglePane,
   openPhaseOf,
   PANE,
   paneTabOf,
@@ -218,7 +219,7 @@ const bandActions = ($: EngineInterface): BandActions => ({
   phase: (phase, fitsCard) => void pressPhase($, phase, fitsCard),
   triage: fitsCard => void pressPhase($, 'triage', fitsCard),
   summary: () => void openPane($, 'flow'),
-  gear: () => void openPane($, 'settings'),
+  gear: () => void togglePane($, 'settings'),
   closeCard: () => void closeCard($),
   pickFeature: () => void togglePicker($),
   switchFeature: key => {
