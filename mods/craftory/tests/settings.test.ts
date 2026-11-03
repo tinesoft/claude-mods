@@ -252,7 +252,7 @@ test('config.json edited between that re-read and the write is not overwritten',
     on,
     $,
     'local',
-    { files: { [CONFIG]: MINE }, racy: { path: CONFIG, onRead: 4, text: THEIRS } },
+    { files: { [CONFIG]: MINE }, racy: { path: CONFIG, onRead: 5, text: THEIRS } },
     'terminal',
     'worktrees',
   )

@@ -126,7 +126,7 @@ test('AGENTS.md is edited when it is the only steering file, and CLAUDE.md is no
 test('a shared file edited after it was planned is not overwritten, and the rest waits', async ($, on) => {
   const w: World = world(on, {
     ...github,
-    racy: { path: 'CLAUDE.md', onRead: 3, text: '# Rules\n\nSomeone added this meanwhile.\n' },
+    racy: { path: 'CLAUDE.md', onRead: 4, text: '# Rules\n\nSomeone added this meanwhile.\n' },
   })
   await startSession($)
   const pane = await openSettings($)

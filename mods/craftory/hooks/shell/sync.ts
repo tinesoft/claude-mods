@@ -6,12 +6,12 @@ import { type ReadContext, TRACKERS } from '../../src/tracker'
 import { DEFAULT_LABELS } from '../../src/agents-md'
 import { worktreeRemoveArgv } from '../../src/git'
 import type { GitSnapshot, RepoSnapshot } from '../../types'
-import { activeKey, draftsOf, featureOfTicket, featuresOf } from './features'
+import { activeKey, draftsOf, featureOfTicket, featuresOf, reloadFeatures } from './features'
 import { bindDrafts, settle } from './flow'
 import { cleanupInputs, gitOf, loadGit } from './git'
 import { ledgerOf, stopForConflict } from './ledger'
 import { addNotice } from './notices'
-import { repoFacts, repoSnapshot, sh } from './repo'
+import { loadRepo, repoFacts, repoSnapshot, sh } from './repo'
 import { loadTracker, trackerKindOf } from './tracker'
 
 const REFRESH_DEBOUNCE_MS = 800
@@ -45,6 +45,12 @@ export async function readContext($: EngineInterface, repo: RepoSnapshot): Promi
   }
 }
 
+/** Re-reads what skills and the user write on disk: repo docs and config, and the feature records. */
+export async function refreshFiles($: EngineInterface) {
+  await Promise.all([loadRepo($), reloadFeatures($)])
+  $.ui.invalidate('ui.render')
+}
+
 export async function refreshTracker($: EngineInterface) {
   const repo = await repoSnapshot($)
   if (repo === null) return
@@ -54,9 +60,14 @@ export async function refreshTracker($: EngineInterface) {
   await settle($)
 }
 
+async function refreshAll($: EngineInterface) {
+  await refreshFiles($)
+  await refreshTracker($)
+}
+
 export function scheduleRefresh($: EngineInterface) {
   refreshTimer?.cancel()
-  refreshTimer = $.clock.after(REFRESH_DEBOUNCE_MS, () => void refreshTracker($))
+  refreshTimer = $.clock.after(REFRESH_DEBOUNCE_MS, () => void refreshAll($))
 }
 
 export async function touchesTracker(

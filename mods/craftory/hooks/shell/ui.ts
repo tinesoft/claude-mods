@@ -24,7 +24,7 @@ import type { PaneTab, PhaseId, PrefOverrides, SkillName } from '../../types'
 import { featuresOf } from './features'
 import { currentFlow, holdForGate, requestOf } from './flow'
 import { glossaryTerms, repoFacts } from './repo'
-import { readContext, refreshGit } from './sync'
+import { readContext, refreshFiles, refreshGit, refreshTracker } from './sync'
 import { trackerKindOf, trackerOf } from './tracker'
 
 const APPEARANCE_MS = 5_000
@@ -209,6 +209,8 @@ export async function copyWithToast(
 
 export async function openPane($: EngineInterface, tab: PaneTab) {
   await update($, paneTabState, () => tab)
+  await refreshFiles($)
+  await refreshTracker($)
   if (tab === 'worktrees') await refreshGit($)
   await $.ui.open({ id: PANE, title: 'Craftory', focus: true, closeOnEscape: true })
 }

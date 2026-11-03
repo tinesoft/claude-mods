@@ -53,7 +53,7 @@ export function activeKey($: EngineInterface) {
   return read($, activeState)
 }
 
-export async function loadFeatures($: EngineInterface) {
+async function readFeatures($: EngineInterface) {
   const entries = await $.fs.list(FEATURES_DIR).catch(() => [])
   const records = await Promise.all(
     entries
@@ -63,6 +63,17 @@ export async function loadFeatures($: EngineInterface) {
   const features: Record<string, FeatureRecord> = {}
   for (const loaded of records)
     if (loaded.state === 'ok') features[loaded.value.spec] = loaded.value
+  return features
+}
+
+/** Re-reads the records on disk only: drafts and the active feature are the user's, not the disk's. */
+export async function reloadFeatures($: EngineInterface) {
+  const features = await readFeatures($)
+  await update($, featuresState, () => features)
+}
+
+export async function loadFeatures($: EngineInterface) {
+  const features = await readFeatures($)
   const drafts = parseDrafts(await $.store.get(STORE_DRAFTS))
   const last = await $.store.get(STORE_LAST_ACTIVE)
   await update($, featuresState, () => features)

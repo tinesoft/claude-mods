@@ -65,7 +65,7 @@ import {
   switchFeature,
 } from './shell/flow'
 import { gitOf } from './shell/git'
-import { forgetSeat, hasAgentRuns, markStopDelivered, pendingSeat, runOf } from './shell/ledger'
+import { forgetSeat, markStopDelivered, pendingSeat, runOf } from './shell/ledger'
 import { dismissedOf, dismissNotice, heldNotices } from './shell/notices'
 import {
   refreshGit,
@@ -294,9 +294,7 @@ export const register: Register = (on, options) => {
       ...('file_path' in e && typeof e.file_path === 'string' && { path: e.file_path }),
     }
     if (await touchesTracker($, tool)) scheduleRefresh($)
-    if (e.tool === 'Bash' && /\bgit\b/.test(tool.command ?? '')) {
-      if (await hasAgentRuns($)) scheduleGit($)
-    }
+    if (e.tool === 'Bash' && /\bgit\b/.test(tool.command ?? '')) scheduleGit($)
     return result
   })
 
