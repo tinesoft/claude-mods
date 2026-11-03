@@ -2,21 +2,21 @@ import type { Space } from 'claude-code'
 import type { CraftoryConfig, PhaseId, SkillName } from '../types'
 import type { Action } from './action'
 import { budgetK, hasMeterLine, hasWorktreeLine, type AgentRow, type AgentsView } from './build'
-import type { Flow, Step } from './evidence'
+import type { Flow, PhaseView } from './evidence'
 import { PHASE_ORDER, PHASES, type PhaseSpec } from './phases'
-import { across, down, type Role, SPACE, STEP_LOOKS } from './theme'
+import { across, down, type Role, SPACE, PHASE_LOOKS } from './theme'
 import { clip } from './ui'
 
 export const TITLE_MAX = 24
 const PROMPT_ROWS = 6
 
-export function stepMeta(step: Step, flow: Flow): string | null {
-  const s = step.state
+export function phaseMeta(view: PhaseView, flow: Flow): string | null {
+  const s = view.state
   switch (s.kind) {
     case 'done':
-      if (step.phase === 'spec')
+      if (view.phase === 'spec')
         return flow.feature.kind === 'specced' ? flow.feature.record.spec : null
-      return step.phase === 'tickets' && flow.tickets.length > 0
+      return view.phase === 'tickets' && flow.tickets.length > 0
         ? String(flow.tickets.length)
         : null
     case 'running':
@@ -28,7 +28,7 @@ export function stepMeta(step: Step, flow: Flow): string | null {
       return `${s.ticket} · ${budgetK(s.budget)}`
     case 'next':
       return flow.feature.kind === 'specced' &&
-        flow.feature.record.entry === step.phase &&
+        flow.feature.record.entry === view.phase &&
         flow.feature.record.enteredFrom !== null
         ? flow.feature.record.enteredFrom
         : null
@@ -43,32 +43,32 @@ export function stepMeta(step: Step, flow: Flow): string | null {
   }
 }
 
-export function focusStep(flow: Flow): Step {
-  const pick = (phase: PhaseId | null) => flow.steps.find(s => s.phase === phase)
+export function focusPhase(flow: Flow): PhaseView {
+  const pick = (phase: PhaseId | null) => flow.phases.find(s => s.phase === phase)
   return (
     pick(flow.current) ??
     pick(flow.next) ??
-    [...flow.steps].reverse().find(s => s.state.kind === 'done') ??
-    flow.steps[0]!
+    [...flow.phases].reverse().find(s => s.state.kind === 'done') ??
+    flow.phases[0]!
   )
 }
 
 export function chipText(flow: Flow): string {
-  const step = focusStep(flow)
-  const meta = stepMeta(step, flow)
-  return `${clip(flow.title, TITLE_MAX)} · ${PHASES[step.phase].label}${meta ? ` ${meta}` : ''}`
+  const view = focusPhase(flow)
+  const meta = phaseMeta(view, flow)
+  return `${clip(flow.title, TITLE_MAX)} · ${PHASES[view.phase].label}${meta ? ` ${meta}` : ''}`
 }
 
 export const GEAR_RESERVE = 3
-const RICH_STEP_EXTRA = 4
+const RICH_PHASE_EXTRA = 4
 
-const stepWidth = (step: Step, flow: Flow, rich: boolean) => {
-  const meta = stepMeta(step, flow)
+const phaseWidth = (view: PhaseView, flow: Flow, rich: boolean) => {
+  const meta = phaseMeta(view, flow)
   return (
     2 +
-    PHASES[step.phase].label.length +
+    PHASES[view.phase].label.length +
     (meta ? 1 + meta.length : 0) +
-    (rich ? RICH_STEP_EXTRA : 0)
+    (rich ? RICH_PHASE_EXTRA : 0)
   )
 }
 
@@ -82,13 +82,13 @@ export function fitRail(args: {
   features: number
 }): { mode: 'row' | 'chip'; titleMax: number } {
   const { flow, columns, rich, waiting, features } = args
-  const steps = flow.steps.reduce((sum, s) => sum + stepWidth(s, flow, rich), 0)
-  const connectors = flow.steps.length - 1
-  const items = flow.steps.length + 3
+  const phases = flow.phases.reduce((sum, s) => sum + phaseWidth(s, flow, rich), 0)
+  const connectors = flow.phases.length - 1
+  const items = flow.phases.length + 3
   const triage =
-    'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0) + (rich ? RICH_STEP_EXTRA : 0)
+    'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0) + (rich ? RICH_PHASE_EXTRA : 0)
   const gaps = across(SPACE.railGap) * items
-  const fixed = triage + 1 + steps + connectors + GEAR_RESERVE + gaps + (features > 1 ? 2 : 0)
+  const fixed = triage + 1 + phases + connectors + GEAR_RESERVE + gaps + (features > 1 ? 2 : 0)
   const titleMax = Math.min(TITLE_MAX, columns - fixed)
   return titleMax >= Math.min(MIN_TITLE, flow.title.length)
     ? { mode: 'row', titleMax }
@@ -144,15 +144,15 @@ export function triageCard(waiting: number): CardView {
 
 type Secondary = CardView['secondary']
 
-function secondaryOf(step: Step, specRef: string | null, isDone: boolean): Secondary {
-  const kind = step.state.kind
-  if (step.phase === 'spec' && isDone && specRef !== null)
+function secondaryOf(view: PhaseView, specRef: string | null, isDone: boolean): Secondary {
+  const kind = view.state.kind
+  if (view.phase === 'spec' && isDone && specRef !== null)
     return [{ id: 'open-spec', label: `Open ${specRef}`, action: { kind: 'open-tickets' } }]
-  if (step.phase === 'tickets' && isDone)
+  if (view.phase === 'tickets' && isDone)
     return [{ id: 'open-tickets', label: 'Open in panel', action: { kind: 'open-tickets' } }]
-  if (step.phase === 'build' && (kind === 'failed' || kind === 'over-budget'))
+  if (view.phase === 'build' && (kind === 'failed' || kind === 'over-budget'))
     return [{ id: 'diagnose', label: 'Diagnose', action: { kind: 'diagnose' } }]
-  if (step.phase === 'ship' && step.artifact !== null)
+  if (view.phase === 'ship' && view.artifact !== null)
     return [{ id: 'pr', label: 'Rewrite the body with /pr', action: { kind: 'write-pr' } }]
   return []
 }
@@ -162,49 +162,49 @@ const markDoneButton = (phase: PhaseId): Secondary => [
 ]
 
 export function phaseCard(
-  step: Step,
+  view: PhaseView,
   flow: Flow,
   config: CraftoryConfig,
   agents: AgentsView | null = null,
 ): CardView {
-  const spec: PhaseSpec = PHASES[step.phase]
-  const look = STEP_LOOKS[step.state.kind]
-  const next = PHASE_ORDER.slice(PHASE_ORDER.indexOf(step.phase) + 1).find(
+  const spec: PhaseSpec = PHASES[view.phase]
+  const look = PHASE_LOOKS[view.state.kind]
+  const next = PHASE_ORDER.slice(PHASE_ORDER.indexOf(view.phase) + 1).find(
     p => config.phases[p].enabled,
   )
   const gate =
-    step.state.kind === 'gated'
-      ? `Gated: ${step.state.blockers.join(', ') || `${PHASES[step.state.by].label} is not done`}. It still runs after you confirm.`
-      : config.phases[step.phase].gate && next !== undefined
+    view.state.kind === 'gated'
+      ? `Gated: ${view.state.blockers.join(', ') || `${PHASES[view.state.by].label} is not done`}. It still runs after you confirm.`
+      : config.phases[view.phase].gate && next !== undefined
         ? `Gate on: if ${spec.label} is not done when ${PHASES[next].label} starts, Craftory asks you to confirm first.`
         : null
   const command =
-    step.command === null ? null : `/${step.command}${step.args ? ` ${step.args}` : ''}`
-  const isDone = step.state.kind === 'done'
+    view.command === null ? null : `/${view.command}${view.args ? ` ${view.args}` : ''}`
+  const isDone = view.state.kind === 'done'
   const specRef = flow.feature.kind === 'specced' ? flow.feature.record.spec : null
   return {
     kicker: `Phase ${spec.n} of ${PHASE_ORDER.length} · ${look.label}`,
     role: look.role,
     title: spec.label,
     why: spec.why,
-    commands: step.command === null ? [] : [`/${step.command}`],
-    noCommand: step.command === null ? `None to type. ${spec.startedBy ?? ''}`.trim() : null,
+    commands: view.command === null ? [] : [`/${view.command}`],
+    noCommand: view.command === null ? `None to type. ${spec.startedBy ?? ''}`.trim() : null,
     helpers: spec.helpers,
-    artifactLabel: step.artifact === null ? null : spec.artifactLabel,
-    artifact: step.artifact,
+    artifactLabel: view.artifact === null ? null : spec.artifactLabel,
+    artifact: view.artifact,
     gate,
     primary:
       command === null
         ? null
         : {
             label: isDone ? `Re-run ${command}` : command,
-            action: { kind: 'run-phase', phase: step.phase },
+            action: { kind: 'run-phase', phase: view.phase },
           },
     secondary: [
-      ...secondaryOf(step, specRef, isDone),
-      ...(step.canMarkDone ? markDoneButton(step.phase) : []),
+      ...secondaryOf(view, specRef, isDone),
+      ...(view.canMarkDone ? markDoneButton(view.phase) : []),
     ],
-    agents: step.phase === 'build' ? agents : null,
+    agents: view.phase === 'build' ? agents : null,
   }
 }
 

@@ -425,7 +425,7 @@ declare module 'claude-code' {
 
       signals: SignalBasis | null
 
-      openStep: PhaseId | 'triage' | null
+      openPhase: PhaseId | 'triage' | null
       isPickingFeature: boolean
       paneTab: PaneTab
       diffs: Record<string, string>

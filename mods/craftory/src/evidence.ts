@@ -19,7 +19,7 @@ import { byNumber } from './tracker/refs'
 
 export type SkipReason = 'off' | 'feature' | 'entry'
 
-export type StepState =
+export type PhaseState =
   | { kind: 'done'; artifact: string | null }
   | { kind: 'running'; progress: string | null }
   | { kind: 'needs-you'; meta: string }
@@ -30,9 +30,9 @@ export type StepState =
   | { kind: 'skipped'; why: SkipReason }
   | { kind: 'todo' }
 
-export type Step = {
+export type PhaseView = {
   phase: PhaseId
-  state: StepState
+  state: PhaseState
   command: SkillName | null
   args: string
   artifact: string | null
@@ -47,7 +47,7 @@ export type TicketRow = { issue: Issue; status: TicketStatus; blockedBy: IssueRe
 export type Flow = {
   feature: Feature
   title: string
-  steps: Step[]
+  phases: PhaseView[]
   next: PhaseId | null
   current: PhaseId | null
   doneCount: number
@@ -230,7 +230,7 @@ const buildProgress = (f: Facts): string | null => {
     : `${work.filter(t => t.status === 'merged').length}/${work.length}`
 }
 
-function buildAttention(f: Facts): StepState | undefined {
+function buildAttention(f: Facts): PhaseState | undefined {
   const merged = new Set(
     f.tickets.filter(t => t.status === 'merged').map(t => t.issue.ref as string),
   )
@@ -281,7 +281,7 @@ const skipReason = (input: FlowInput, phase: PhaseId): SkipReason | undefined =>
   return PHASE_ORDER.indexOf(phase) < PHASE_ORDER.indexOf(entry) ? 'entry' : undefined
 }
 
-const OPEN_FOR_MARK: ReadonlySet<StepState['kind']> = new Set(['todo', 'next', 'gated'])
+const OPEN_FOR_MARK: ReadonlySet<PhaseState['kind']> = new Set(['todo', 'next', 'gated'])
 
 export function deriveFlow(input: FlowInput): Flow {
   const { feature, config, running } = input
@@ -291,7 +291,7 @@ export function deriveFlow(input: FlowInput): Flow {
     PhaseId,
     Evidence
   >
-  const kindOf = (phase: PhaseId): StepState => {
+  const kindOf = (phase: PhaseId): PhaseState => {
     const why = skipReason(input, phase)
     if (why !== undefined) return { kind: 'skipped', why }
     const e = evidence[phase]
@@ -311,7 +311,7 @@ export function deriveFlow(input: FlowInput): Flow {
   }
   const states = Object.fromEntries(PHASE_ORDER.map(p => [p, kindOf(p)])) as Record<
     PhaseId,
-    StepState
+    PhaseState
   >
   const on = (p: PhaseId) => states[p].kind !== 'skipped'
   const clearsGate = (p: PhaseId) =>
@@ -342,7 +342,7 @@ export function deriveFlow(input: FlowInput): Flow {
 
   const spec = facts.spec
   const specRef = feature.kind === 'specced' ? feature.record.spec : ''
-  const steps = PHASE_ORDER.map((phase): Step => ({
+  const phases = PHASE_ORDER.map((phase): PhaseView => ({
     phase,
     state: states[phase],
     command:
@@ -360,12 +360,12 @@ export function deriveFlow(input: FlowInput): Flow {
       spec?.title ||
       (feature.kind === 'draft' ? feature.draft.title : feature.record.title) ||
       'Untitled feature',
-    steps,
-    next: steps.find(s => s.state.kind === 'next')?.phase ?? null,
+    phases,
+    next: phases.find(s => s.state.kind === 'next')?.phase ?? null,
     current:
-      steps.find(s => s.state.kind === 'running' || s.state.kind === 'needs-you')?.phase ?? null,
-    doneCount: steps.filter(s => s.state.kind === 'done').length,
-    enabledCount: steps.filter(s => s.state.kind !== 'skipped').length,
+      phases.find(s => s.state.kind === 'running' || s.state.kind === 'needs-you')?.phase ?? null,
+    doneCount: phases.filter(s => s.state.kind === 'done').length,
+    enabledCount: phases.filter(s => s.state.kind !== 'skipped').length,
     spec,
     tickets: facts.tickets,
   }

@@ -12,7 +12,7 @@ const config = (worktrees: Record<string, unknown>) => ({
 
 const cardText = async ($: Engine) => {
   const band = await mountBand($, 'terminal', 200, 60)
-  await band.press({ key: 'step-build' })
+  await band.press({ key: 'phase-build' })
   return texts(await mountBand($, 'terminal', 200, 60))
 }
 

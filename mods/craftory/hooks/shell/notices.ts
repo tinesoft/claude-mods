@@ -48,7 +48,7 @@ export async function holdsNotice($: EngineInterface, id: string) {
 export async function pruneGateNotices($: EngineInterface, flow: Flow | null) {
   const stale = new Set(
     (await read($, noticesState)).flatMap(n =>
-      n.kind === 'gate' && flow?.steps.find(s => s.phase === n.phase)?.state.kind !== 'gated'
+      n.kind === 'gate' && flow?.phases.find(s => s.phase === n.phase)?.state.kind !== 'gated'
         ? [n.id]
         : [],
     ),

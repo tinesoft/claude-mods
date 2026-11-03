@@ -66,7 +66,7 @@ export async function currentFlow($: EngineInterface): Promise<Flow | null> {
 export async function settle($: EngineInterface) {
   const flow = await currentFlow($)
   $.ui.status(statusLine(flow))
-  const isRunning = flow?.steps.some(s => s.state.kind === 'running') === true
+  const isRunning = flow?.phases.some(s => s.state.kind === 'running') === true
   if (isRunning && spinner === undefined) {
     spinner = $.clock.every(SPIN_MS, () => $.ui.invalidate('ui.render'))
   } else if (!isRunning && spinner !== undefined) {
@@ -212,7 +212,7 @@ export async function enterFromIssue(
     await setActive($, specKey(record.spec))
   }
   await settle($)
-  return (await currentFlow($))?.steps.find(s => s.phase === action.phase)
+  return (await currentFlow($))?.phases.find(s => s.phase === action.phase)
 }
 
 /** A draft the tracker now shows a spec for becomes a feature, and a run on the draft follows it. */

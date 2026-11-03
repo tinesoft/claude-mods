@@ -27,7 +27,7 @@ const withWorktrees = async (
 
 const openTab = async ($: Engine, surface: 'terminal' | 'desktop' = 'terminal') => {
   const band = await mountBand($, surface, 200, 60)
-  await band.press({ key: 'step-build' })
+  await band.press({ key: 'phase-build' })
   await (await mountBand($, surface, 200, 60)).press({ key: 'agents-open-panel' })
   return mountPane($, surface)
 }

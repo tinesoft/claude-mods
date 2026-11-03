@@ -77,7 +77,7 @@ test('mobile has no band, so the Flow tab heads with the same rail, wrapping', a
   const rail = await pane.find({ key: 'pane-rail' })
   expect(rail?.props.flexWrap).toBe('wrap')
   for (const phase of Object.keys(PHASES))
-    expect(await pane.find({ key: `step-${phase}` })).toBeDefined()
+    expect(await pane.find({ key: `phase-${phase}` })).toBeDefined()
   expect(await pane.find({ key: 'triage' })).toBeDefined()
 })
 

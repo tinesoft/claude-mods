@@ -53,7 +53,7 @@ const atThresholds = async (
 
 const openCard = async ($: Engine, surface: 'terminal' | 'desktop') => {
   const band = await mountBand($, surface, 200, 60)
-  await band.press({ key: 'step-build' })
+  await band.press({ key: 'phase-build' })
   return mountBand($, surface, 200, 60)
 }
 

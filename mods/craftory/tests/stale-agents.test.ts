@@ -74,7 +74,7 @@ test('two agents finishing at once both reach the record on disk and the card', 
   ])
   expect(Object.values<{ outcome: string }>(disk()).map(a => a.outcome)).toEqual(['done', 'done'])
   const band = await mountBand($, 'terminal', 200, 60)
-  await band.press({ key: 'step-build' })
+  await band.press({ key: 'phase-build' })
   const words = await texts(await mountBand($, 'terminal', 200, 60))
   expect(words.filter(word => word === '[Done]')).toHaveLength(2)
 })

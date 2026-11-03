@@ -20,7 +20,7 @@ const PATHS: Record<NoticeIcon, string> = {
 export const noticeSvg = (icon: NoticeIcon, color: string) =>
   stroke(`<path d="${PATHS[icon]}"/>`, color)
 
-const STEP_PATHS = {
+const PHASE_PATHS = {
   done: 'M3.5 8.5l3 3 6-7',
   next: 'M6 4.5l5 3.5-5 3.5z',
   'needs-you': 'M6 6a2 2 0 1 1 2.8 1.8c-.5.3-.8.7-.8 1.2M8 11.5v.2',
@@ -31,10 +31,10 @@ const STEP_PATHS = {
   todo: 'M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z',
 } as const
 
-export type StepIconKind = keyof typeof STEP_PATHS
+export type PhaseIconKind = keyof typeof PHASE_PATHS
 
-export const stepSvg = (kind: StepIconKind, color: string) =>
-  stroke(`<path d="${STEP_PATHS[kind]}"/>`, color)
+export const phaseSvg = (kind: PhaseIconKind, color: string) =>
+  stroke(`<path d="${PHASE_PATHS[kind]}"/>`, color)
 
 export const INBOX_PATH = 'M2 9.5l1.8-6h8.4l1.8 6v3.5H2zM2 9.5h3.5l1 1.5h3l1-1.5H14'
 export const LOCK_PATH = 'M3 7h10v7H3zM5.5 7V5a2.5 2.5 0 0 1 5 0v2'

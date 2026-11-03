@@ -45,28 +45,28 @@ const honoured: Record<TrackerKind, PhaseId[]> = {
 for (const kind of ['local', 'github', 'gitlab', 'other'] as const) {
   test(`${kind}: a mark finishes ${honoured[kind].join(', ')} and no other phase`, () => {
     const flow = flowOn(kind, PHASES_ALL)
-    const done = flow.steps.filter(s => s.state.kind === 'done').map(s => s.phase)
+    const done = flow.phases.filter(s => s.state.kind === 'done').map(s => s.phase)
     expect(done).toEqual(honoured[kind])
   })
 
   test(`${kind}: the card offers Mark done on exactly the open phases a mark would finish`, () => {
     const flow = flowOn(kind, [])
-    const offered = flow.steps.filter(s => s.canMarkDone).map(s => s.phase)
+    const offered = flow.phases.filter(s => s.canMarkDone).map(s => s.phase)
     expect(offered).toEqual(honoured[kind])
-    for (const step of flow.steps)
+    for (const view of flow.phases)
       expect(
-        phaseCard(step, flow, DEFAULT_CONFIG).secondary.some(b => b.action.kind === 'mark-done'),
-      ).toBe(step.canMarkDone)
+        phaseCard(view, flow, DEFAULT_CONFIG).secondary.some(b => b.action.kind === 'mark-done'),
+      ).toBe(view.canMarkDone)
   })
 }
 
 test('a phase already done by evidence or marked has no Mark done button', () => {
   const flow = flowOn('gitlab', ['align'])
-  expect(flow.steps[0]!.state.kind).toBe('done')
-  expect(flow.steps[0]!.canMarkDone).toBe(false)
+  expect(flow.phases[0]!.state.kind).toBe('done')
+  expect(flow.phases[0]!.canMarkDone).toBe(false)
 })
 
-test('Mark done on Align finishes the step, is saved on the record, and the button goes', async ($, on) => {
+test('Mark done on Align finishes the view, is saved on the record, and the button goes', async ($, on) => {
   const w = featureWorld(on, {
     files: {
       '.craftory/features/42.json': featureJson({ marks: { spec: { ranAt: AT } } }),
@@ -74,7 +74,7 @@ test('Mark done on Align finishes the step, is saved on the record, and the butt
   })
   await startSession($)
   const band = await mountBand($, 'terminal', 200, 60)
-  await band.press({ key: 'step-align' })
+  await band.press({ key: 'phase-align' })
   const card = await mountBand($, 'terminal', 200, 60)
   expect(await card.findAll({ key: 'mark-done' })).toHaveLength(1)
   await card.press({ key: 'mark-done' })

@@ -115,7 +115,7 @@ export const runOf = (ledger: BuildLedger, ticket: IssueRef): AgentRun | undefin
     .sort((a, b) => b.startedAt - a.startedAt)[0]
 
 export const isBuilding = (flow: Flow | null): boolean => {
-  const kind = flow?.steps.find(s => s.phase === 'build')?.state.kind
+  const kind = flow?.phases.find(s => s.phase === 'build')?.state.kind
   return kind === 'running' || kind === 'needs-you' || kind === 'over-budget' || kind === 'failed'
 }
 

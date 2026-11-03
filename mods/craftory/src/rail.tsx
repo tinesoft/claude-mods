@@ -5,17 +5,17 @@ import {
   chipText,
   fitCard,
   fitRail,
-  focusStep,
+  focusPhase,
   GEAR_RESERVE,
   phaseCard,
-  stepMeta,
+  phaseMeta,
   TITLE_MAX,
   triageCard,
   type CardView,
 } from './card-model'
 import { DetailCard, type CardActions } from './card'
-import type { Flow, Step } from './evidence'
-import { hexOr, inboxSvg, OFF_TRACK, spinnerSvg, stepSvg } from './icons'
+import type { Flow, PhaseView } from './evidence'
+import { hexOr, inboxSvg, OFF_TRACK, spinnerSvg, phaseSvg } from './icons'
 import { NoticeRow } from './notice-row'
 import type { FeatureChoice } from './features'
 import type { NoticeView } from './notices'
@@ -29,21 +29,21 @@ import {
   SPINNER,
   SPINNER_ASCII,
   SPIN_MS,
-  STEP_LOOKS,
+  PHASE_LOOKS,
   TOKENS,
   TRIPLES,
 } from './theme'
 import { clip, Icon, inkOf, isRich, roleInk, type Ui } from './ui'
 
-const glyphOf = (step: Step, frame: number, ascii: boolean) => {
-  const look = STEP_LOOKS[step.state.kind]
-  if (step.state.kind === 'running')
+const glyphOf = (view: PhaseView, frame: number, ascii: boolean) => {
+  const look = PHASE_LOOKS[view.state.kind]
+  if (view.state.kind === 'running')
     return (ascii ? SPINNER_ASCII : SPINNER)[frame % SPINNER.length]!
   return ascii ? look.ascii : look.glyph
 }
 
 export type BandActions = CardActions & {
-  step: (phase: PhaseId, fitsCard: boolean) => void
+  phase: (phase: PhaseId, fitsCard: boolean) => void
   triage: (fitsCard: boolean) => void
   summary: () => void
   gear: () => void
@@ -85,7 +85,7 @@ const Connector = ({
   ui: Ui
   tone: Tone | undefined
   ascii: boolean
-  before: Step
+  before: PhaseView
 }) => {
   const { Text } = ui
   const isDone = before.state.kind === 'done'
@@ -107,28 +107,28 @@ const Connector = ({
   )
 }
 
-const stepIcon = (step: Step, frame: number, color: string, track: string) =>
-  step.state.kind === 'running'
+const phaseIcon = (view: PhaseView, frame: number, color: string, track: string) =>
+  view.state.kind === 'running'
     ? spinnerSvg(frame, hexOr(color), track)
-    : stepSvg(step.state.kind === 'next' ? 'next' : step.state.kind, hexOr(color))
+    : phaseSvg(view.state.kind === 'next' ? 'next' : view.state.kind, hexOr(color))
 
-type StepArgs = Pick<RailArgs, 'ui' | 'tone' | 'ascii' | 'spinFrame' | 'flow' | 'open'> & {
-  on: Pick<BandActions, 'step'>
+type PhaseArgs = Pick<RailArgs, 'ui' | 'tone' | 'ascii' | 'spinFrame' | 'flow' | 'open'> & {
+  on: Pick<BandActions, 'phase'>
 }
 
-const StepButton = ({ args, step, fits }: { args: StepArgs; step: Step; fits: boolean }) => {
+const PhaseButton = ({ args, view, fits }: { args: PhaseArgs; view: PhaseView; fits: boolean }) => {
   const { ui, tone, ascii, spinFrame, flow, open, on } = args
   const { Box, Button, Text } = ui
-  const look = STEP_LOOKS[step.state.kind]
+  const look = PHASE_LOOKS[view.state.kind]
   const colours = paint(look.role, tone)
-  const meta = stepMeta(step, flow)
-  const isOpen = open === step.phase
-  const label = PHASES[step.phase].label
+  const meta = phaseMeta(view, flow)
+  const isOpen = open === view.phase
+  const label = PHASES[view.phase].label
   const rich = isRich(ui) && tone !== undefined
   const labelInk =
-    step.state.kind === 'done'
+    view.state.kind === 'done'
       ? inkOf(tone, 'ink')
-      : step.state.kind === 'gated' || step.state.kind === 'todo'
+      : view.state.kind === 'gated' || view.state.kind === 'todo'
         ? inkOf(tone, 'text2')
         : roleInk(look.role, tone)
   const ink = {
@@ -136,14 +136,14 @@ const StepButton = ({ args, step, fits }: { args: StepArgs; step: Step; fits: bo
     bold: look.bold,
     ...(look.strike && { strikethrough: true }),
   }
-  const press = () => on.step(step.phase, fits)
+  const press = () => on.phase(view.phase, fits)
   if (!rich) {
     return (
-      <Button key={`step-${step.phase}`} plain onPress={press}>
+      <Button key={`phase-${view.phase}`} plain onPress={press}>
         <Text
           {...roleInk(look.role, tone)}
           bold={look.bold}
-        >{`${glyphOf(step, spinFrame, ascii)} `}</Text>
+        >{`${glyphOf(view, spinFrame, ascii)} `}</Text>
         <Text {...ink} underline={isOpen}>
           {label}
         </Text>
@@ -155,18 +155,18 @@ const StepButton = ({ args, step, fits }: { args: StepArgs; step: Step; fits: bo
   const selected = isOpen
   return (
     <Box
-      key={`box-step-${step.phase}`}
+      key={`box-phase-${view.phase}`}
       flexDirection="row"
       alignItems="center"
-      columnGap={SPACE.stepGap}
-      paddingX={SPACE.stepPadX}
+      columnGap={SPACE.phaseGap}
+      paddingX={SPACE.phasePadX}
       borderStyle="round"
       borderColor={selected ? t.lineStrong : t.surface}
       backgroundColor={selected ? t.fill : t.surface}
       hover={{ backgroundColor: mix(t.surface, colours.fg, HOVER_MIX) }}
     >
-      <Icon ui={ui} svg={stepIcon(step, spinFrame, colours.fg, OFF_TRACK)} alt={look.label} />
-      <Button key={`step-${step.phase}`} plain onPress={press}>
+      <Icon ui={ui} svg={phaseIcon(view, spinFrame, colours.fg, OFF_TRACK)} alt={look.label} />
+      <Button key={`phase-${view.phase}`} plain onPress={press}>
         <Text {...ink}>{label}</Text>
       </Button>
       {meta !== null && (
@@ -209,8 +209,8 @@ const TriageButton = ({ args, fits }: { args: TriageArgs; fits: boolean }) => {
       key="box-triage"
       flexDirection="row"
       alignItems="center"
-      columnGap={SPACE.stepGap}
-      paddingX={SPACE.stepPadX}
+      columnGap={SPACE.phaseGap}
+      paddingX={SPACE.phasePadX}
       borderStyle="dashed"
       borderColor={isOpen ? hook.fg : t.lineDashed}
       backgroundColor={isOpen ? t.fill : t.surface}
@@ -274,10 +274,10 @@ const FeaturePicker = ({ args }: { args: BandArgs }) => {
   )
 }
 
-export type StripArgs = StepArgs & TriageArgs & { ascii: boolean }
+export type StripArgs = PhaseArgs & TriageArgs & { ascii: boolean }
 
-/** The Inbox button, a divider and the seven steps joined by connectors, shared by the rail and the pane. */
-export const StepStrip = ({
+/** The Inbox button, a divider and the seven phases joined by connectors, shared by the rail and the pane. */
+export const PhaseStrip = ({
   args,
   fits,
   id,
@@ -305,12 +305,12 @@ export const StepStrip = ({
       >
         {'│'}
       </Text>
-      {flow.steps.map((step, index) => (
-        <Box key={`group-${step.phase}`} flexDirection="row" alignItems="center">
+      {flow.phases.map((view, index) => (
+        <Box key={`group-${view.phase}`} flexDirection="row" alignItems="center">
           {index > 0 && (
-            <Connector ui={ui} tone={tone} ascii={ascii} before={flow.steps[index - 1]!} />
+            <Connector ui={ui} tone={tone} ascii={ascii} before={flow.phases[index - 1]!} />
           )}
-          <StepButton args={args} step={step} fits={fits(step.phase)} />
+          <PhaseButton args={args} view={view} fits={fits(view.phase)} />
         </Box>
       ))}
     </Box>
@@ -336,7 +336,7 @@ const Rail = ({ args, fits }: { args: RailArgs; fits: (phase: PhaseId | 'triage'
       })}
     >
       <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap}>
-        <StepStrip id="steps" args={args} fits={fits} />
+        <PhaseStrip id="phases" args={args} fits={fits} />
         <Title args={args} flow={flow} />
       </Box>
       <Gear args={args} />
@@ -347,8 +347,8 @@ const Rail = ({ args, fits }: { args: RailArgs; fits: (phase: PhaseId | 'triage'
 const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   const { ui, tone, columns, on } = args
   const { Box, Button, Text } = ui
-  const step = focusStep(flow)
-  const look = STEP_LOOKS[step.state.kind]
+  const view = focusPhase(flow)
+  const look = PHASE_LOOKS[view.state.kind]
   const colours = paint(look.role, tone)
   const rich = isRich(ui) && tone !== undefined
   const text = clip(chipText(flow), Math.max(10, columns - GEAR_RESERVE - 6))
@@ -363,7 +363,7 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
         key="summary-chip"
         flexDirection="row"
         alignItems="center"
-        columnGap={SPACE.stepGap}
+        columnGap={SPACE.phaseGap}
         {...(rich && {
           paddingX: SPACE.summaryGap,
           borderStyle: 'round' as const,
@@ -374,13 +374,13 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
         {rich ? (
           <Icon
             ui={ui}
-            svg={stepIcon(step, args.spinFrame, colours.fg, OFF_TRACK)}
+            svg={phaseIcon(view, args.spinFrame, colours.fg, OFF_TRACK)}
             alt={look.label}
           />
         ) : (
           <Text
             {...roleInk(look.role, tone)}
-          >{`${glyphOf(step, args.spinFrame, args.ascii)} `}</Text>
+          >{`${glyphOf(view, args.spinFrame, args.ascii)} `}</Text>
         )}
         <Button key="summary" plain onPress={() => on.summary()}>
           <Text {...inkOf(tone, 'ink')} bold>
@@ -415,7 +415,7 @@ export function renderBand(args: BandArgs) {
     phase === 'triage'
       ? triageCard(waiting)
       : phaseCard(
-          flow.steps.find(s => s.phase === phase)!,
+          flow.phases.find(s => s.phase === phase)!,
           flow,
           config,
           args.agents,

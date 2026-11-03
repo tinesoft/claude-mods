@@ -115,7 +115,7 @@ const flowOf = (args: {
       : null,
   })
 
-const step = (flow: Flow, phase: PhaseId) => flow.steps.find(s => s.phase === phase)!
+const view = (flow: Flow, phase: PhaseId) => flow.phases.find(s => s.phase === phase)!
 
 const EARLIER = {
   align: { ranAt: AT(0) },
@@ -126,24 +126,24 @@ const BLOCKED = issue(44, { blockedBy: [ref(43)] })
 
 test('Build is done when every agent ticket is merged, and a ticket for a human does not count', () => {
   const open = flowOf({ feature: feature(EARLIER), tracker: tracker([merged(43), BLOCKED]) })
-  expect(step(open, 'build').state.kind).not.toBe('done')
-  expect(step(open, 'build').blockers).toEqual(['#44 not merged yet'])
+  expect(view(open, 'build').state.kind).not.toBe('done')
+  expect(view(open, 'build').blockers).toEqual(['#44 not merged yet'])
   const done = flowOf({
     feature: feature(EARLIER),
     tracker: tracker([merged(43), merged(44), issue(47, { role: 'ready-for-human' })]),
   })
-  expect(step(done, 'build').state).toEqual({ kind: 'done', artifact: 'feat/csv' })
+  expect(view(done, 'build').state).toEqual({ kind: 'done', artifact: 'feat/csv' })
 })
 
 test('while Build is open the card names the integration branch it works on', () => {
   const flow = flowOf({ feature: feature(EARLIER), tracker: tracker([issue(43)]) })
-  expect(step(flow, 'build').artifact).toBe('feat/csv')
+  expect(view(flow, 'build').artifact).toBe('feat/csv')
 })
 
 test('Build runs with progress from merged tickets, and while agents work after the skill turn ended', () => {
   const t = tracker([merged(43), issue(44), issue(45)])
   const running = flowOf({ feature: feature(EARLIER), tracker: t, running: { phase: 'build' } })
-  expect(step(running, 'build').state).toEqual({ kind: 'running', progress: '1/3' })
+  expect(view(running, 'build').state).toEqual({ kind: 'running', progress: '1/3' })
   expect(running.current).toBe('build')
   const ledger: BuildLedger = {
     ...EMPTY_LEDGER,
@@ -166,7 +166,7 @@ test('Build runs with progress from merged tickets, and while agents work after 
     },
   }
   const background = flowOf({ feature: feature(EARLIER), tracker: t, build: ledger })
-  expect(step(background, 'build').state).toEqual({ kind: 'running', progress: '1/3' })
+  expect(view(background, 'build').state).toEqual({ kind: 'running', progress: '1/3' })
 })
 
 test('an agent that hit its budget makes Build over budget, until its ticket merges', () => {
@@ -176,21 +176,21 @@ test('an agent that hit its budget makes Build over budget, until its ticket mer
     tracker: tracker([merged(43), issue(44)]),
     running: { phase: 'build' },
   })
-  expect(step(flow, 'build').state).toEqual({ kind: 'over-budget', ticket: '#44', budget: 80_000 })
-  expect(step(flow, 'review').state).toMatchObject({ kind: 'gated', by: 'build' })
-  expect(step(flow, 'review').state).toMatchObject({
+  expect(view(flow, 'build').state).toEqual({ kind: 'over-budget', ticket: '#44', budget: 80_000 })
+  expect(view(flow, 'review').state).toMatchObject({ kind: 'gated', by: 'build' })
+  expect(view(flow, 'review').state).toMatchObject({
     blockers: ['#44 hit its 80k token budget'],
   })
   const raised = flowOf({
     feature: feature(EARLIER, [{ ...over, budget: 160_000 }]),
     tracker: tracker([merged(43), issue(44)]),
   })
-  expect(step(raised, 'build').state.kind).not.toBe('over-budget')
+  expect(view(raised, 'build').state.kind).not.toBe('over-budget')
   const mergedLater = flowOf({
     feature: feature(EARLIER, [over]),
     tracker: tracker([merged(43), merged(44)]),
   })
-  expect(step(mergedLater, 'build').state.kind).toBe('done')
+  expect(view(mergedLater, 'build').state.kind).toBe('done')
 })
 
 test('a failed agent makes Build failed with its ticket in the meta', () => {
@@ -198,7 +198,7 @@ test('a failed agent makes Build failed with its ticket in the meta', () => {
     feature: feature(EARLIER, [agent(44, { outcome: 'failed' })]),
     tracker: tracker([merged(43), issue(44)]),
   })
-  expect(step(flow, 'build').state).toEqual({ kind: 'failed', meta: '#44 failed' })
+  expect(view(flow, 'build').state).toEqual({ kind: 'failed', meta: '#44 failed' })
 })
 
 const BUILT = [merged(43), merged(44)]
@@ -206,7 +206,7 @@ const BUILT = [merged(43), merged(44)]
 test('Review needs Build done, code-review run and ended, and no ticket merged after it', () => {
   const marks = (review: PhaseMark) => ({ ...EARLIER, review })
   const reviewed = (m: PhaseMark, agents: AgentRecord[] = [agent(43), agent(44)], issues = BUILT) =>
-    step(flowOf({ feature: feature(marks(m), agents), tracker: tracker(issues) }), 'review')
+    view(flowOf({ feature: feature(marks(m), agents), tracker: tracker(issues) }), 'review')
   expect(reviewed({}, [], [merged(43), issue(44)]).blockers).toEqual(['Build is not done'])
   expect(reviewed({}).blockers).toEqual(['code-review has not run on the integration branch'])
   expect(reviewed({ ranAt: AT(20) }).blockers).toEqual(['the review has not finished'])
@@ -224,12 +224,12 @@ test('a review marked done by the person is done', () => {
     feature: feature({ ...EARLIER, review: { markedDoneAt: AT(40) } }),
     tracker: tracker([issue(43)]),
   })
-  expect(step(flow, 'review').state.kind).toBe('done')
+  expect(view(flow, 'review').state.kind).toBe('done')
 })
 
 test('Ship is done when the pull request from the integration branch is ready for review', () => {
   const shipOf = (pull: PullRequest | null) =>
-    step(flowOf({ feature: feature(EARLIER), tracker: tracker(BUILT, pull) }), 'ship')
+    view(flowOf({ feature: feature(EARLIER), tracker: tracker(BUILT, pull) }), 'ship')
   expect(shipOf(null).blockers).toEqual(['no pull request yet'])
   expect(shipOf(pr()).blockers).toEqual(['the pull request is still a draft'])
   expect(shipOf(pr()).artifact).toBe('#60 (draft)')
@@ -245,7 +245,7 @@ test('Ship is done when the pull request from the integration branch is ready fo
 
 test('Retro is done when retro ran and ended after Ship', () => {
   const retroOf = (retro: PhaseMark, pull: PullRequest | null) =>
-    step(
+    view(
       flowOf({ feature: feature({ ...EARLIER, retro }), tracker: tracker(BUILT, pull) }),
       'retro',
     )

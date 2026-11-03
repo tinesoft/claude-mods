@@ -15,9 +15,9 @@ import {
 import type { Action } from './action'
 import type { NoticeView } from './notices'
 import { NoticeRow } from './notice-row'
-import { StepStrip, type BandActions } from './rail'
+import { PhaseStrip, type BandActions } from './rail'
 import { SettingsTab, type SettingsArgs } from './settings'
-import { paint, SPACE, STEP_LOOKS, TOKENS, type Role } from './theme'
+import { paint, SPACE, PHASE_LOOKS, TOKENS, type Role } from './theme'
 import { inkOf, isRich, type Ui } from './ui'
 import { Badge, CardButton } from './widgets'
 
@@ -33,7 +33,7 @@ export type PaneActions = {
   implementSpec: () => void
   search: (text: string) => void
   editTerm: (name: string) => void
-  rail: Pick<BandActions, 'step' | 'triage'>
+  rail: Pick<BandActions, 'phase' | 'triage'>
   act: (action: Action) => void
 }
 
@@ -299,7 +299,7 @@ const FlowTab = ({
         <NoticeRow key={notice.id} ui={ui} tone={tone} notice={notice} on={on} />
       ))}
       {surface === 'mobile' && (
-        <StepStrip
+        <PhaseStrip
           id="pane-rail"
           wrap
           args={{ ui, tone, ascii, spinFrame, flow, waiting, open: null, on: on.rail }}
@@ -310,7 +310,7 @@ const FlowTab = ({
         {`${flow.title} · ${flow.doneCount} of ${flow.enabledCount} phases done`}
       </Text>
       {flowRows(flow).map(row => {
-        const look = STEP_LOOKS[row.state]
+        const look = PHASE_LOOKS[row.state]
         const colours = paint(look.role, tone)
         return (
           <Box key={`flow-${row.phase}`} flexDirection="row" columnGap={SPACE.rowLabelGap}>

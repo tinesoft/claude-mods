@@ -154,7 +154,7 @@ const flowOf = (args: {
   })
 }
 
-const kinds = (flow: Flow) => flow.steps.map(s => s.state.kind)
+const kinds = (flow: Flow) => flow.phases.map(s => s.state.kind)
 
 const withConfig = (patch: (c: CraftoryConfig) => void): CraftoryConfig => {
   const config = structuredClone(DEFAULT_CONFIG)
@@ -183,7 +183,7 @@ for (const tracker of ['local', 'github'] as const) {
       running: { phase: 'spec' },
     })
     expect(kinds(flow)).toEqual(['done', 'running', 'gated', 'todo', 'gated', 'gated', 'todo'])
-    const tickets = flow.steps[2]!
+    const tickets = flow.phases[2]!
     expect(tickets.state).toEqual({
       kind: 'gated',
       by: 'spec',
@@ -196,8 +196,8 @@ for (const tracker of ['local', 'github'] as const) {
     const flow = run({ feature: specced({ marks: ran('align', 'spec') }), issues: [SPEC] })
     expect(kinds(flow)).toEqual(['done', 'done', 'next', 'todo', 'gated', 'gated', 'todo'])
     expect(flow.next).toBe('tickets')
-    expect(flow.steps[1]!.state).toMatchObject({ kind: 'done' })
-    expect(flow.steps[1]!.artifact).not.toBeNull()
+    expect(flow.phases[1]!.state).toMatchObject({ kind: 'done' })
+    expect(flow.phases[1]!.artifact).not.toBeNull()
     expect(flow.title).toBe('Export invoices as CSV')
   })
 
@@ -207,8 +207,8 @@ for (const tracker of ['local', 'github'] as const) {
       issues: [SPEC, ...TICKETS],
     })
     expect(kinds(flow)).toEqual(['done', 'done', 'done', 'next', 'gated', 'gated', 'todo'])
-    expect(flow.steps[2]!.artifact).toBe('#43 to #45 · 1 ready, 2 blocked')
-    expect(flow.steps[3]!.args).toBe('#42')
+    expect(flow.phases[2]!.artifact).toBe('#43 to #45 · 1 ready, 2 blocked')
+    expect(flow.phases[3]!.args).toBe('#42')
     expect(flow.tickets.map(t => [t.issue.ref, t.status])).toEqual([
       ['#43', 'ready'],
       ['#44', 'blocked'],
@@ -221,13 +221,13 @@ for (const tracker of ['local', 'github'] as const) {
       feature: specced(),
       issues: [SPEC, { n: 43, title: 'A', parent: 42 }, { n: 44, title: 'B', parent: 42 }],
     })
-    expect(flow.steps[2]!.state.kind).toBe('next')
-    expect(flow.steps[2]!.blockers).toEqual(['the tickets have no blocking edges'])
+    expect(flow.phases[2]!.state.kind).toBe('next')
+    expect(flow.phases[2]!.blockers).toEqual(['the tickets have no blocking edges'])
   })
 
   test(`${tracker}: a single ticket needs no edge, a merged blocker unblocks`, () => {
     const one = run({ feature: specced(), issues: [SPEC, { n: 43, title: 'A', parent: 42 }] })
-    expect(one.steps[2]!.state.kind).toBe('done')
+    expect(one.phases[2]!.state.kind).toBe('done')
     const flow = run({
       feature: specced(),
       issues: [SPEC, { ...TICKETS[0]!, done: true }, TICKETS[1]!],
@@ -240,12 +240,12 @@ for (const tracker of ['local', 'github'] as const) {
       feature: specced({ entry: 'build', enteredFrom: '#41' as IssueRef }),
       issues: [SPEC],
     })
-    expect(flow.steps.slice(0, 3).map(s => s.state)).toEqual([
+    expect(flow.phases.slice(0, 3).map(s => s.state)).toEqual([
       { kind: 'skipped', why: 'entry' },
       { kind: 'skipped', why: 'entry' },
       { kind: 'skipped', why: 'entry' },
     ])
-    expect(flow.steps[3]!.state.kind).toBe('next')
+    expect(flow.phases[3]!.state.kind).toBe('next')
     expect(flow.enabledCount).toBe(4)
   })
 }
@@ -262,7 +262,7 @@ test('an issue that entered at Build is its own ticket and runs with /implement;
     issues: [bug],
   })
   expect(own.tickets.map(t => t.issue.ref)).toEqual(['#54'])
-  expect(own.steps[3]!.command).toBe('implement')
+  expect(own.phases[3]!.command).toBe('implement')
   const spec = flowOf({
     feature: specced({
       spec: '#42' as IssueRef,
@@ -273,7 +273,7 @@ test('an issue that entered at Build is its own ticket and runs with /implement;
     issues: [SPEC],
   })
   expect(spec.tickets).toEqual([])
-  expect(spec.steps[3]!.command).toBe('implement-spec')
+  expect(spec.phases[3]!.command).toBe('implement-spec')
 })
 
 test('skipped beats done, and says why: off in Settings, skipped for the feature, before the entry', () => {
@@ -285,15 +285,15 @@ test('skipped beats done, and says why: off in Settings, skipped for the feature
     issues: [SPEC],
     config,
   })
-  expect(flow.steps[4]!.state).toEqual({ kind: 'skipped', why: 'feature' })
-  expect(flow.steps[6]!.state).toEqual({ kind: 'skipped', why: 'off' })
+  expect(flow.phases[4]!.state).toEqual({ kind: 'skipped', why: 'feature' })
+  expect(flow.phases[6]!.state).toEqual({ kind: 'skipped', why: 'off' })
   const markedAndSkipped = flowOf({
     feature: specced({
       skips: { align: { skippedAt: AT } },
       marks: { align: { markedDoneAt: AT } },
     }),
   })
-  expect(markedAndSkipped.steps[0]!.state).toEqual({ kind: 'skipped', why: 'feature' })
+  expect(markedAndSkipped.phases[0]!.state).toEqual({ kind: 'skipped', why: 'feature' })
 })
 
 test('a skipped predecessor hands its gate to the one before it, and the gate of a skipped first phase vanishes', () => {
@@ -305,7 +305,7 @@ test('a skipped predecessor hands its gate to the one before it, and the gate of
       c.phases.spec.gate = false
     }),
   })
-  expect(noSpecGate.steps[2]!.state.kind).toBe('todo')
+  expect(noSpecGate.phases[2]!.state.kind).toBe('todo')
 })
 
 test('Align is also done when the user marks it done, and its artifacts become the card line', () => {
@@ -314,24 +314,24 @@ test('Align is also done when the user marks it done, and its artifacts become t
       align: { markedDoneAt: AT, artifacts: ['GLOSSARY.md (+3 terms)', 'docs/adr/0007.md'] },
     }),
   })
-  expect(flow.steps[0]!.state).toMatchObject({ kind: 'done' })
-  expect(flow.steps[0]!.artifact).toBe('GLOSSARY.md (+3 terms) · docs/adr/0007.md')
-  expect(flow.steps[1]!.state.kind).toBe('next')
+  expect(flow.phases[0]!.state).toMatchObject({ kind: 'done' })
+  expect(flow.phases[0]!.artifact).toBe('GLOSSARY.md (+3 terms) · docs/adr/0007.md')
+  expect(flow.phases[1]!.state.kind).toBe('next')
 })
 
 test('a grill that ran but has not ended is not done, and its blocker says so', () => {
   const flow = flowOf({ feature: draft(ran('align')) })
-  expect(flow.steps[0]!.state.kind).toBe('next')
-  expect(flow.steps[0]!.blockers).toEqual(['the grill has not ended'])
+  expect(flow.phases[0]!.state.kind).toBe('next')
+  expect(flow.phases[0]!.blockers).toEqual(['the grill has not ended'])
 })
 
 test('a grill that ran does not gate Spec, one that never ran does, and every other phase waits for done', () => {
   const ranOnly = flowOf({ feature: draft(ran('align')) })
-  expect(ranOnly.steps[1]!.state.kind).not.toBe('gated')
+  expect(ranOnly.phases[1]!.state.kind).not.toBe('gated')
   const never = flowOf({ feature: draft() })
-  expect(never.steps[1]!.state).toMatchObject({ kind: 'gated', by: 'align' })
+  expect(never.phases[1]!.state).toMatchObject({ kind: 'gated', by: 'align' })
   const specOnly = flowOf({ feature: specced({ marks: ran('align') }), issues: [SPEC] })
-  expect(specOnly.steps[2]!.state.kind).not.toBe('gated')
+  expect(specOnly.phases[2]!.state.kind).not.toBe('gated')
   const ticketsRan = flowOf({
     feature: specced({ marks: ran('align', 'spec') }),
     issues: [SPEC],
@@ -343,7 +343,7 @@ test('a grill that ran does not gate Spec, one that never ran does, and every ot
       },
     },
   })
-  expect(ticketsRan.steps[3]!.state).toMatchObject({ kind: 'gated', by: 'tickets' })
+  expect(ticketsRan.phases[3]!.state).toMatchObject({ kind: 'gated', by: 'tickets' })
 })
 
 test('a running skill shows its progress and wins over done evidence; waiting on the user is needs-you', () => {
@@ -352,18 +352,18 @@ test('a running skill shows its progress and wins over done evidence; waiting on
     issues: [SPEC],
     running: { phase: 'spec', progress: '2/5' },
   })
-  expect(running.steps[1]!.state).toEqual({ kind: 'running', progress: '2/5' })
+  expect(running.phases[1]!.state).toEqual({ kind: 'running', progress: '2/5' })
   const waiting = flowOf({
     feature: draft(ran('align')),
     running: { phase: 'align', isAwaitingUser: true, progress: 'Q6 of ~14' },
   })
-  expect(waiting.steps[0]!.state).toEqual({ kind: 'needs-you', meta: 'Q6 of ~14' })
+  expect(waiting.phases[0]!.state).toEqual({ kind: 'needs-you', meta: 'Q6 of ~14' })
   expect(waiting.current).toBe('align')
   const bare = flowOf({
     feature: draft(ran('align')),
     running: { phase: 'align', isAwaitingUser: true },
   })
-  expect(bare.steps[0]!.state).toEqual({ kind: 'needs-you', meta: 'waiting on you' })
+  expect(bare.phases[0]!.state).toEqual({ kind: 'needs-you', meta: 'waiting on you' })
 })
 
 test('a skill that belongs to another feature does not light this one', () => {
@@ -387,7 +387,7 @@ test('suggestNext off leaves every undone phase todo, and gates still apply', ()
 
 test('a gate is a refusal to guess: it names the blockers of the phase before', () => {
   const flow = flowOf({ feature: draft() })
-  expect(flow.steps[1]!.state).toEqual({ kind: 'gated', by: 'align', blockers: ['not run yet'] })
+  expect(flow.phases[1]!.state).toEqual({ kind: 'gated', by: 'align', blockers: ['not run yet'] })
 })
 
 test('counts: done of enabled', () => {

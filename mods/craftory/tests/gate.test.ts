@@ -111,7 +111,7 @@ test('a rail press while gated holds, then Run anyway sends exactly one command 
   const w = gatedWorld(on)
   await startSession($)
   const band = await mountBand($, 'terminal', 200)
-  await band.press({ key: 'step-tickets' })
+  await band.press({ key: 'phase-tickets' })
   await (await mountBand($, 'terminal', 200)).press({ key: 'primary' })
   expect(w.commandsRun).toEqual([])
   expect(await allText(await mountBand($, 'terminal', 200))).toContain(GATE)

@@ -133,7 +133,7 @@ export const PANE = 'craftory'
 
 const paneTabState = atom({ plugin: 'craftory', key: 'paneTab' } as const, 'flow')
 
-const openStepState = atom({ plugin: 'craftory', key: 'openStep' } as const, null)
+const openPhaseState = atom({ plugin: 'craftory', key: 'openPhase' } as const, null)
 
 const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
 
@@ -146,7 +146,7 @@ const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' }
 export async function requestRun($: EngineInterface, skill: SkillName, args: string) {
   const req = requestOf(namespaced(skill), args) ?? { skill, args, phase: null }
   if (await holdForGate($, req, await currentFlow($))) return
-  await update($, openStepState, () => null)
+  await update($, openPhaseState, () => null)
   await $.command.run({ command: namespaced(skill), args })
 }
 
@@ -154,8 +154,8 @@ export function paneTabOf($: EngineInterface) {
   return read($, paneTabState)
 }
 
-export function openStepOf($: EngineInterface) {
-  return read($, openStepState)
+export function openPhaseOf($: EngineInterface) {
+  return read($, openPhaseState)
 }
 
 export function isPickingFeatureOf($: EngineInterface) {
@@ -167,7 +167,7 @@ export function glossaryQueryOf($: EngineInterface) {
 }
 
 export async function closeCard($: EngineInterface) {
-  await update($, openStepState, () => null)
+  await update($, openPhaseState, () => null)
   $.ui.invalidate('ui.render')
 }
 
@@ -178,7 +178,7 @@ export async function togglePicker($: EngineInterface) {
 
 export async function closeRailPopups($: EngineInterface) {
   await update($, isPickingFeatureState, () => false)
-  await update($, openStepState, () => null)
+  await update($, openPhaseState, () => null)
 }
 
 export async function searchGlossary($: EngineInterface, text: string) {
@@ -241,14 +241,14 @@ export async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
   })
 }
 
-export async function pressStep($: EngineInterface, step: PhaseId | 'triage', fitsCard: boolean) {
+export async function pressPhase($: EngineInterface, view: PhaseId | 'triage', fitsCard: boolean) {
   if (!fitsCard) return openPane($, 'flow')
-  await update($, openStepState, open => (open === step ? null : step))
+  await update($, openPhaseState, open => (open === view ? null : view))
   $.ui.invalidate('ui.render')
 }
 
 export async function runFromCard($: EngineInterface, phase: PhaseId | 'triage') {
   if (phase === 'triage') return requestRun($, SKILLS.triage, '')
-  const step = (await currentFlow($))?.steps.find(s => s.phase === phase)
-  if (step?.command) await requestRun($, step.command, step.args)
+  const view = (await currentFlow($))?.phases.find(s => s.phase === phase)
+  if (view?.command) await requestRun($, view.command, view.args)
 }

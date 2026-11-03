@@ -33,10 +33,10 @@ for (const surface of BAND_SURFACES) {
         (await band.findAll({ type: 'Text' })).find(t => t.text === word)
       if (surface === 'terminal') {
         expect(await band.findAll({ type: 'Svg' })).toEqual([])
-        expect((await find(band, 'step-align'))!.text).toBe('✓ Align')
-        expect((await find(band, 'step-build'))!.text).toBe('▸ Build')
-        expect((await find(band, 'step-review'))!.text).toBe('⊘ Review')
-        expect((await find(band, 'step-retro'))!.text).toBe('· Retro')
+        expect((await find(band, 'phase-align'))!.text).toBe('✓ Align')
+        expect((await find(band, 'phase-build'))!.text).toBe('▸ Build')
+        expect((await find(band, 'phase-review'))!.text).toBe('⊘ Review')
+        expect((await find(band, 'phase-retro'))!.text).toBe('· Retro')
         expect((await label('Build'))?.props.color).toBe(TRIPLES.skill[tone].fg)
         expect((await label('Align'))?.props.color).toBe(TOKENS[tone].ink)
       } else {
@@ -62,17 +62,17 @@ test("another mod's row is drawn in its own row above the rail", async ($, on) =
   expect(drawn.children.map(c => c.props?.key)).toEqual([undefined, 'rail'])
 })
 
-test('pressing a step opens its card, a second press and Close shut it', async ($, on) => {
+test('pressing a view opens its card, a second press and Close shut it', async ($, on) => {
   featureWorld(on)
   await startSession($)
   const band = await mountBand($, 'terminal', 200)
   expect(await find(band, 'card')).toBeUndefined()
-  await band.press({ key: 'step-tickets' })
+  await band.press({ key: 'phase-tickets' })
   let open = await mountBand($, 'terminal', 200)
   expect((await find(open, 'card'))!.text).toContain('Phase 3 of 7 · Done')
-  await open.press({ key: 'step-tickets' })
+  await open.press({ key: 'phase-tickets' })
   expect(await find(await mountBand($, 'terminal', 200), 'card')).toBeUndefined()
-  await open.press({ key: 'step-build' })
+  await open.press({ key: 'phase-build' })
   open = await mountBand($, 'terminal', 200)
   expect((await find(open, 'card'))!.text).toContain('Phase 4 of 7 · Up next')
   await open.press({ key: 'close' })
@@ -82,11 +82,11 @@ test('pressing a step opens its card, a second press and Close shut it', async (
 test('the card shows the command, helpers, artifact and the amber gate line', async ($, on) => {
   featureWorld(on)
   await startSession($)
-  await (await mountBand($, 'terminal', 200)).press({ key: 'step-build' })
+  await (await mountBand($, 'terminal', 200)).press({ key: 'phase-build' })
   const card = (await find(await mountBand($, 'terminal', 200), 'card'))!
   for (const part of ['Build', '/implement-spec', 'tdd', 'diagnosing-bugs', 'Gate on:'])
     expect(card.text).toContain(part)
-  await (await mountBand($, 'terminal', 200)).press({ key: 'step-tickets' })
+  await (await mountBand($, 'terminal', 200)).press({ key: 'phase-tickets' })
   const tickets = (await find(await mountBand($, 'terminal', 200), 'card'))!
   expect(tickets.text).toContain('Created')
   expect(tickets.text).toContain('#43 to #45 · 1 ready, 2 blocked')
@@ -95,7 +95,7 @@ test('the card shows the command, helpers, artifact and the amber gate line', as
 test('the card primary submits the namespaced command with the spec as its argument', async ($, on) => {
   const w = featureWorld(on)
   await startSession($)
-  await (await mountBand($, 'terminal', 200)).press({ key: 'step-build' })
+  await (await mountBand($, 'terminal', 200)).press({ key: 'phase-build' })
   await (await mountBand($, 'terminal', 200)).press({ key: 'primary' })
   expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:implement-spec', args: '#42' }])
   expect(await find(await mountBand($, 'terminal', 200), 'card')).toBeUndefined()
@@ -104,7 +104,7 @@ test('the card primary submits the namespaced command with the spec as its argum
 test('Open #42 opens the pane on the tickets tab', async ($, on) => {
   const w = featureWorld(on)
   await startSession($)
-  await (await mountBand($, 'terminal', 200)).press({ key: 'step-spec' })
+  await (await mountBand($, 'terminal', 200)).press({ key: 'phase-spec' })
   await (await mountBand($, 'terminal', 200)).press({ key: 'open-spec' })
   expect(w.opens).toEqual([expect.objectContaining({ id: 'craftory' })])
 })
@@ -125,15 +125,15 @@ test('rail_layout summary draws one chip, and so does a narrow band', async ($, 
   featureWorld(on, { store: { prefs: { railLayout: 'summary' } } })
   await startSession($)
   const chip = await mountBand($, 'terminal', 200)
-  expect(await find(chip, 'step-build')).toBeUndefined()
+  expect(await find(chip, 'phase-build')).toBeUndefined()
   expect((await find(chip, 'summary'))!.text).toBe('Export invoices as CSV · Build')
 })
 
-test('a band too narrow for seven steps collapses to the chip', async ($, on) => {
+test('a band too narrow for seven phases collapses to the chip', async ($, on) => {
   featureWorld(on)
   await startSession($)
   const narrow = await mountBand($, 'terminal', 50)
-  expect(await find(narrow, 'step-build')).toBeUndefined()
+  expect(await find(narrow, 'phase-build')).toBeUndefined()
   expect(await find(narrow, 'summary')).toBeDefined()
 })
 
@@ -146,7 +146,7 @@ test('a band without the rows for the card sends the press to the pane', async (
     component: 'AbovePrompt',
     props: bandProps(200, 10),
   })
-  await band.press({ key: 'step-build' })
+  await band.press({ key: 'phase-build' })
   expect(w.opens).toEqual([expect.objectContaining({ id: 'craftory' })])
   expect(await find(band, 'card')).toBeUndefined()
 })
@@ -155,9 +155,9 @@ test('the ascii pref draws plain characters', async ($, on) => {
   featureWorld(on, { store: { prefs: { ascii: true } } })
   await startSession($)
   const band = await mountBand($, 'terminal', 200)
-  expect((await find(band, 'step-align'))!.text).toBe('v Align')
-  expect((await find(band, 'step-build'))!.text).toBe('> Build')
-  expect((await find(band, 'step-review'))!.text).toBe('x Review')
+  expect((await find(band, 'phase-align'))!.text).toBe('v Align')
+  expect((await find(band, 'phase-build'))!.text).toBe('> Build')
+  expect((await find(band, 'phase-review'))!.text).toBe('x Review')
 })
 
 test('a running skill spins while it runs, and the spinner stops with it', async ($, on) => {
@@ -165,13 +165,13 @@ test('a running skill spins while it runs, and the spinner stops with it', async
   await startSession($)
   await skillPrompt($, 'to-tickets')
   const glyph = async () =>
-    (await find(await mountBand($, 'terminal', 200), 'step-tickets'))!.text[0]
+    (await find(await mountBand($, 'terminal', 200), 'phase-tickets'))!.text[0]
   const first = await glyph()
   expect('◐◓◑◒').toContain(first!)
   await w.clock.advance(150)
   expect(await glyph()).not.toBe(first)
   await turnComplete($)
-  expect((await find(await mountBand($, 'terminal', 200), 'step-tickets'))!.text).toBe(
+  expect((await find(await mountBand($, 'terminal', 200), 'phase-tickets'))!.text).toBe(
     '✓ Tickets 3',
   )
 })
@@ -181,7 +181,7 @@ test('a grill that asks a question is needs-you until the user answers', async (
   await startSession($)
   await skillPrompt($, 'grill-with-docs')
   await turnComplete($)
-  const text = async () => (await find(await mountBand($, 'terminal', 200), 'step-align'))!.text
+  const text = async () => (await find(await mountBand($, 'terminal', 200), 'phase-align'))!.text
   expect(await text()).toContain('? Align waiting on you')
   expect((await texts(await mountBand($, 'terminal', 200))).join(' ')).not.toContain(
     'Start a feature',

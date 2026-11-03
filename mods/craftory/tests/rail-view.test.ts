@@ -1,9 +1,9 @@
 import { expect, test } from 'claude-code/testing'
 import { DEFAULT_CONFIG } from '../src/config'
-import { deriveFlow, type Flow, type StepState } from '../src/evidence'
-import { stepMeta } from '../src/card-model'
+import { deriveFlow, type Flow, type PhaseState } from '../src/evidence'
+import { phaseMeta } from '../src/card-model'
 import { renderBand, type BandActions, type BandArgs } from '../src/rail'
-import { paint, SPINNER, STEP_LOOKS, TRIPLES } from '../src/theme'
+import { paint, SPINNER, PHASE_LOOKS, TRIPLES } from '../src/theme'
 import type { Feature, IssueRef, PhaseId, Tone } from '../types'
 import { byKey, fakeUi, findAll, textOf, type Node } from './fake-ui'
 
@@ -23,15 +23,15 @@ const draft: Feature = {
 const baseFlow = (feature: Feature = draft): Flow =>
   deriveFlow({ feature, config: DEFAULT_CONFIG, tracker: null, running: null })
 
-const withState = (flow: Flow, phase: PhaseId, state: StepState): Flow => ({
+const withState = (flow: Flow, phase: PhaseId, state: PhaseState): Flow => ({
   ...flow,
   current: state.kind === 'running' || state.kind === 'needs-you' ? phase : flow.current,
-  steps: flow.steps.map(s => (s.phase === phase ? { ...s, state } : s)),
+  phases: flow.phases.map(s => (s.phase === phase ? { ...s, state } : s)),
 })
 
 const calls: string[] = []
 const on: BandActions = {
-  step: (phase, fits) => void calls.push(`step ${phase} ${fits}`),
+  phase: (phase, fits) => void calls.push(`view ${phase} ${fits}`),
   triage: fits => void calls.push(`triage ${fits}`),
   summary: () => void calls.push('summary'),
   gear: () => void calls.push('gear'),
@@ -63,9 +63,9 @@ const args = (over: Partial<BandArgs> = {}): BandArgs => ({
   ...over,
 })
 
-const stepText = (out: unknown, phase: PhaseId) => textOf(byKey(out, `step-${phase}`))
+const phaseText = (out: unknown, phase: PhaseId) => textOf(byKey(out, `phase-${phase}`))
 
-const STATES: [string, StepState, string, string][] = [
+const STATES: [string, PhaseState, string, string][] = [
   ['done', { kind: 'done', artifact: null }, '✓ Build', 'v Build'],
   ['next', { kind: 'next' }, '▸ Build', '> Build'],
   ['running', { kind: 'running', progress: '1/5' }, '◐ Build 1/5', '| Build 1/5'],
@@ -83,15 +83,15 @@ const STATES: [string, StepState, string, string][] = [
 ]
 
 for (const [name, state, glyphs, ascii] of STATES) {
-  test(`terminal step state ${name}: glyph, words and the ASCII fallback`, () => {
+  test(`terminal view state ${name}: glyph, words and the ASCII fallback`, () => {
     const flow = withState(baseFlow(), 'build', state)
-    expect(stepText(renderBand(args({ flow })), 'build')).toBe(glyphs)
-    expect(stepText(renderBand(args({ flow, ascii: true })), 'build')).toBe(ascii)
+    expect(phaseText(renderBand(args({ flow })), 'build')).toBe(glyphs)
+    expect(phaseText(renderBand(args({ flow, ascii: true })), 'build')).toBe(ascii)
   })
 }
 
 test('every glyph is one cell wide and every state has an ASCII twin of one cell', () => {
-  for (const look of Object.values(STEP_LOOKS)) {
+  for (const look of Object.values(PHASE_LOOKS)) {
     expect([...look.glyph]).toHaveLength(1)
     expect(look.ascii).toHaveLength(1)
   }
@@ -100,16 +100,16 @@ test('every glyph is one cell wide and every state has an ASCII twin of one cell
 test('the running spinner turns with the frame, and has its own ASCII frames', () => {
   const flow = withState(baseFlow(), 'build', { kind: 'running', progress: null })
   const glyph = (spinFrame: number, ascii = false) =>
-    stepText(renderBand(args({ flow, spinFrame, ascii })), 'build')[0]
+    phaseText(renderBand(args({ flow, spinFrame, ascii })), 'build')[0]
   expect(SPINNER.map((_, i) => glyph(i))).toEqual(['◐', '◓', '◑', '◒'])
   expect([0, 1, 2, 3].map(i => glyph(i, true))).toEqual(['|', '/', '-', '\\'])
 })
 
 test('state colours follow the roles: perm done, skill next, hook needs you, danger failed', () => {
-  const flow = (kind: StepState) => withState(baseFlow(), 'build', kind)
-  const glyphColor = (state: StepState, tone: Tone | undefined) => {
+  const flow = (kind: PhaseState) => withState(baseFlow(), 'build', kind)
+  const glyphColor = (state: PhaseState, tone: Tone | undefined) => {
     const out = renderBand(args({ flow: flow(state), tone }))
-    return findAll(byKey(out, 'step-build'), n => n.type === 'Text')[0]!.props.color as unknown
+    return findAll(byKey(out, 'phase-build'), n => n.type === 'Text')[0]!.props.color as unknown
   }
   expect(glyphColor({ kind: 'done', artifact: null }, undefined)).toBe('planMode')
   expect(glyphColor({ kind: 'next' }, undefined)).toBe('suggestion')
@@ -127,9 +127,9 @@ test('skipped is struck through and dim; next is bold', () => {
   const out = renderBand(
     args({ flow: withState(baseFlow(), 'retro', { kind: 'skipped', why: 'off' }) }),
   )
-  const label = findAll(byKey(out, 'step-retro'), n => n.type === 'Text')[1]!
+  const label = findAll(byKey(out, 'phase-retro'), n => n.type === 'Text')[1]!
   expect(label.props).toMatchObject({ strikethrough: true, dimColor: true })
-  const next = findAll(byKey(renderBand(args()), 'step-align'), n => n.type === 'Text')[1]!
+  const next = findAll(byKey(renderBand(args()), 'phase-align'), n => n.type === 'Text')[1]!
   expect(next.props.bold).toBe(true)
 })
 
@@ -149,7 +149,7 @@ test("another mod's row is the first child of the band, in its own row", () => {
   expect(findAll(out.children[0], n => n.type === 'Text')).toEqual([])
 })
 
-test('the rail reads triage, divider, steps, title and gear in that order', () => {
+test('the rail reads triage, divider, phases, title and gear in that order', () => {
   const out = renderBand(args({ waiting: 3 }))
   expect(textOf(byKey(out, 'triage'))).toBe('Inbox 3')
   const all = textOf(out)
@@ -173,7 +173,7 @@ test('desktop draws state icons as images and meta in a mono badge', () => {
   expect(rail.props).toMatchObject({ borderStyle: 'round', backgroundColor: '#FFFFFF' })
 })
 
-test('a feature entered from triage shows the issue it came from on the entry step', () => {
+test('a feature entered from triage shows the issue it came from on the entry view', () => {
   const feature: Feature = {
     kind: 'specced',
     key: 'spec:#42',
@@ -192,9 +192,9 @@ test('a feature entered from triage shows the issue it came from on the entry st
     },
   }
   const out = renderBand(args({ flow: baseFlow(feature) }))
-  expect(stepText(out, 'align')).toBe('– Align')
-  expect(stepText(out, 'build')).toBe('▸ Build #41')
-  expect(stepMeta(baseFlow(feature).steps[3]!, baseFlow(feature))).toBe('#41')
+  expect(phaseText(out, 'align')).toBe('– Align')
+  expect(phaseText(out, 'build')).toBe('▸ Build #41')
+  expect(phaseMeta(baseFlow(feature).phases[3]!, baseFlow(feature))).toBe('#41')
 })
 
 test('a title press opens the switcher only when several features are in flight', () => {
@@ -215,20 +215,20 @@ test('the summary layout is one chip naming the feature and phase, with the gear
   const flow = withState(baseFlow(), 'build', { kind: 'running', progress: '2/5' })
   const out = renderBand(args({ flow, layout: 'summary' }))
   expect(textOf(byKey(out, 'summary'))).toBe('Export invoices as CSV · Build 2/5')
-  expect(byKey(out, 'step-build')).toBeUndefined()
+  expect(byKey(out, 'phase-build')).toBeUndefined()
   expect(byKey(out, 'gear')).toBeDefined()
   ;(byKey(out, 'summary')!.props.onPress as () => void)()
   expect(calls.at(-1)).toBe('summary')
 })
 
-test('a band too narrow for seven steps collapses to the chip by itself', () => {
-  expect(byKey(renderBand(args({ columns: 140 })), 'step-build')).toBeDefined()
+test('a band too narrow for seven phases collapses to the chip by itself', () => {
+  expect(byKey(renderBand(args({ columns: 140 })), 'phase-build')).toBeDefined()
   const narrow = renderBand(args({ columns: 60 }))
-  expect(byKey(narrow, 'step-build')).toBeUndefined()
+  expect(byKey(narrow, 'phase-build')).toBeUndefined()
   expect(byKey(narrow, 'summary')).toBeDefined()
 })
 
-test('a pressed step opens the card: kicker, title, command, helpers, gate and buttons', () => {
+test('a pressed view opens the card: kicker, title, command, helpers, gate and buttons', () => {
   const out = renderBand(args({ open: 'spec' }))
   const card = byKey(out, 'card')!
   const text = textOf(card)
@@ -259,7 +259,7 @@ test('a done phase offers Re-run and an Open button for its artifact', () => {
   const flow = withState(baseFlow(), 'align', { kind: 'done', artifact: 'GLOSSARY.md (+3 terms)' })
   const withArtifact = {
     ...flow,
-    steps: flow.steps.map(s =>
+    phases: flow.phases.map(s =>
       s.phase === 'align' ? { ...s, artifact: 'GLOSSARY.md (+3 terms)' } : s,
     ),
   }
@@ -280,10 +280,10 @@ test('triage opens its own card, outside the seven phases', () => {
 test('a card that does not fit the band is not drawn, and the press says so', () => {
   const short = args({ open: 'build', maxRows: 12 })
   expect(byKey(renderBand(short), 'card')).toBeUndefined()
-  ;(byKey(renderBand(short), 'step-build')!.props.onPress as () => void)()
-  expect(calls.at(-1)).toBe('step build false')
-  ;(byKey(renderBand(args()), 'step-build')!.props.onPress as () => void)()
-  expect(calls.at(-1)).toBe('step build true')
+  ;(byKey(renderBand(short), 'phase-build')!.props.onPress as () => void)()
+  expect(calls.at(-1)).toBe('view build false')
+  ;(byKey(renderBand(args()), 'phase-build')!.props.onPress as () => void)()
+  expect(calls.at(-1)).toBe('view build true')
 })
 
 test('a derived notice replaces the rail, an event notice sits above it', () => {
@@ -304,7 +304,7 @@ test('a derived notice replaces the rail, an event notice sits above it', () => 
 
 const shipFlow = (artifact: string | null) => {
   const flow = withState(baseFlow(), 'ship', { kind: 'todo' })
-  return { ...flow, steps: flow.steps.map(s => (s.phase === 'ship' ? { ...s, artifact } : s)) }
+  return { ...flow, phases: flow.phases.map(s => (s.phase === 'ship' ? { ...s, artifact } : s)) }
 }
 
 test('Ship offers /pr to rewrite the body once there is a pull request, and it runs the pr skill', () => {

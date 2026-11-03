@@ -48,7 +48,7 @@ export type FlowRowView = {
   n: number
   label: string
   command: string
-  state: Flow['steps'][number]['state']['kind']
+  state: Flow['phases'][number]['state']['kind']
   result: string
 }
 
@@ -59,13 +59,13 @@ const SKIPPED: Record<SkipReason, string> = {
 }
 
 export function flowRows(flow: Flow): FlowRowView[] {
-  return flow.steps.map(step => {
-    const spec = PHASES[step.phase]
-    const s = step.state
+  return flow.phases.map(view => {
+    const spec = PHASES[view.phase]
+    const s = view.state
     const result = ((): string => {
       switch (s.kind) {
         case 'done':
-          return step.artifact === null ? 'Done' : `${spec.artifactLabel}: ${step.artifact}`
+          return view.artifact === null ? 'Done' : `${spec.artifactLabel}: ${view.artifact}`
         case 'running':
           return s.progress === null ? 'Running' : `Running · ${s.progress}`
         case 'needs-you':
@@ -87,9 +87,9 @@ export function flowRows(flow: Flow): FlowRowView[] {
         }
       }
     })()
-    const command = step.command ?? spec.helpers[0]
+    const command = view.command ?? spec.helpers[0]
     return {
-      phase: step.phase,
+      phase: view.phase,
       n: spec.n,
       label: spec.label,
       command: command === undefined ? '' : `/${command}`,

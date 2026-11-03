@@ -31,7 +31,7 @@ export function checkRun(
   now: Millis,
 ): GateVerdict {
   if (req.phase === null || flow === null) return { kind: 'go' }
-  const state = flow.steps.find(s => s.phase === req.phase)?.state
+  const state = flow.phases.find(s => s.phase === req.phase)?.state
   if (state?.kind !== 'gated') return { kind: 'go' }
   const key = passKey(req)
   if (passes.some(p => p.key === key && isLive(p, now))) return { kind: 'go' }

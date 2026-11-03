@@ -96,10 +96,10 @@ import {
   loadPrefs,
   noteReplyTerms,
   openPane,
-  openStepOf,
+  openPhaseOf,
   PANE,
   paneTabOf,
-  pressStep,
+  pressPhase,
   rememberGlossaryAtStart,
   requestRun,
   resolvedPrefs,
@@ -185,9 +185,9 @@ async function dispatch($: EngineInterface, action: Action) {
 }
 
 async function startFromIssue($: EngineInterface, action: Extract<InboxAction, { kind: 'start' }>) {
-  const step = await enterFromIssue($, action)
-  if (step?.command)
-    await requestRun($, step.command, action.phase === 'align' ? action.ref : step.args)
+  const view = await enterFromIssue($, action)
+  if (view?.command)
+    await requestRun($, view.command, action.phase === 'align' ? action.ref : view.args)
 }
 
 function openFolder($: EngineInterface, folder: string, surface: RenderSurface) {
@@ -215,8 +215,8 @@ const drawsAnything = async ($: EngineInterface) =>
   (await isSupported($)) && (await $.session.surfaces()).length > 0
 
 const bandActions = ($: EngineInterface): BandActions => ({
-  step: (phase, fitsCard) => void pressStep($, phase, fitsCard),
-  triage: fitsCard => void pressStep($, 'triage', fitsCard),
+  phase: (phase, fitsCard) => void pressPhase($, phase, fitsCard),
+  triage: fitsCard => void pressPhase($, 'triage', fitsCard),
   summary: () => void openPane($, 'flow'),
   gear: () => void openPane($, 'settings'),
   closeCard: () => void closeCard($),
@@ -425,7 +425,7 @@ export const register: Register = (on, options) => {
       waiting: waitingForTriage(await trackerOf($)),
       agents: await agentsViewOf($, flow),
       notices: [...events, ...derived],
-      open: await openStepOf($),
+      open: await openPhaseOf($),
       features: featureChoices(await featuresOf($), await draftsOf($), await activeKey($)),
       isPickingFeature: await isPickingFeatureOf($),
       on: bandActions($),
@@ -508,7 +508,7 @@ export const register: Register = (on, options) => {
           })(),
         search: text => void searchGlossary($, text),
         editTerm: name => void jumpToTerm($, name),
-        rail: { step: actions.step, triage: actions.triage },
+        rail: { phase: actions.phase, triage: actions.triage },
       },
     })
   })

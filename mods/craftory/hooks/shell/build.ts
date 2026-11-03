@@ -229,7 +229,7 @@ export async function agentsViewOf(
     read($, steeringNoteState),
   ])
   if (flow === null || !config.automation.liveAgents || flow.tickets.length === 0) return null
-  const build = flow.steps.find(s => s.phase === 'build')?.state.kind
+  const build = flow.phases.find(s => s.phase === 'build')?.state.kind
   if (build === 'todo' || build === 'next' || build === 'gated' || build === 'skipped') return null
   const record = flow.feature.kind === 'specced' ? flow.feature.record : null
   const rows = agentRows({

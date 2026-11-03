@@ -26,8 +26,8 @@ const bare = (on: Parameters<typeof world>[0], files: Record<string, string> = {
     files: { ...SETUP_FILES, ...files },
   })
 
-const step = async ($: Parameters<typeof mountBand>[0], phase: string) =>
-  (await (await mountBand($, 'terminal', 200)).find({ key: `step-${phase}` }))?.text
+const view = async ($: Parameters<typeof mountBand>[0], phase: string) =>
+  (await (await mountBand($, 'terminal', 200)).find({ key: `phase-${phase}` }))?.text
 
 test('hooks pass the engine results through', async ($, on) => {
   featureWorld(on)
@@ -44,7 +44,7 @@ test('a phase command with no feature in flight starts a draft that is kept for 
   const w = bare(on)
   await startSession($)
   await skillPrompt($, 'grill-with-docs')
-  expect(await step($, 'align')).toMatch(/^[◐◓◑◒] Align$/)
+  expect(await view($, 'align')).toMatch(/^[◐◓◑◒] Align$/)
   const drafts = w.store.get('drafts') as Record<string, { entry: string; marks: unknown }>
   expect(Object.values(drafts)).toEqual([
     expect.objectContaining({ entry: 'align', marks: { align: { ranAt: expect.any(String) } } }),
@@ -63,7 +63,7 @@ test('a skill that is not a Matt phase leaves the rail alone', async ($, on) => 
 test('Align is done once Spec has run, and the end of a turn is written to the feature file', async ($, on) => {
   const w = featureWorld(on)
   await startSession($)
-  expect(await step($, 'align')).toBe('✓ Align')
+  expect(await view($, 'align')).toBe('✓ Align')
   await skillPrompt($, 'to-tickets')
   await turnComplete($)
   const record = JSON.parse(w.files.get('.craftory/features/42.json') ?? '{}') as {
@@ -78,22 +78,22 @@ test('a subagent turn does not end the main skill', async ($, on) => {
   await startSession($)
   await skillPrompt($, 'to-tickets')
   await turnComplete($, { agentId: 'agent-1' })
-  expect((await step($, 'tickets'))?.[0]).toMatch(/[◐◓◑◒]/)
+  expect((await view($, 'tickets'))?.[0]).toMatch(/[◐◓◑◒]/)
 })
 
 test('a write under the issues folder refreshes the tracker once, a moment later', async ($, on) => {
   const w = featureWorld(on)
   await startSession($)
-  expect(await step($, 'tickets')).toBe('✓ Tickets 3')
+  expect(await view($, 'tickets')).toBe('✓ Tickets 3')
   w.files.set('docs/issues/46-email.md', ticketFile('Email the CSV', [44]))
   await $.tool.call({ tool: 'Bash', command: 'ls' } as never)
   await w.clock.advance(1000)
-  expect(await step($, 'tickets')).toBe('✓ Tickets 3')
+  expect(await view($, 'tickets')).toBe('✓ Tickets 3')
   await $.tool.call({ tool: 'Write', file_path: 'docs/issues/46-email.md' } as never)
   await $.tool.call({ tool: 'Edit', file_path: 'docs/issues/46-email.md' } as never)
-  expect(await step($, 'tickets')).toBe('✓ Tickets 3')
+  expect(await view($, 'tickets')).toBe('✓ Tickets 3')
   await w.clock.advance(1000)
-  expect(await step($, 'tickets')).toBe('✓ Tickets 4')
+  expect(await view($, 'tickets')).toBe('✓ Tickets 4')
 })
 
 test('GitHub: gh feeds the rail, and a gh call refreshes it', async ($, on) => {
@@ -134,11 +134,11 @@ test('GitHub: gh feeds the rail, and a gh call refreshes it', async ($, on) => {
   })
   await startSession($)
   expect(w.ran.filter(argv => argv[0] === 'gh').map(argv => argv[1])).toContain('issue')
-  expect(await step($, 'tickets')).toBe('✓ Tickets 1')
+  expect(await view($, 'tickets')).toBe('✓ Tickets 1')
   children = [43, 44]
   await $.tool.call({ tool: 'Bash', command: 'gh issue create --title x' } as never)
   await w.clock.advance(1000)
-  expect(await step($, 'tickets')).toBe('✓ Tickets 2')
+  expect(await view($, 'tickets')).toBe('✓ Tickets 2')
 })
 
 test('a spec that appears for a draft binds it, writes its record and announces it once', async ($, on) => {
@@ -160,7 +160,7 @@ test('a spec that appears for a draft binds it, writes its record and announces 
   expect(w.store.get('drafts')).toEqual({})
   const band = await mountBand($, 'terminal', 200)
   expect(await allText(band)).toContain('Spec #50 published · 2 user stories')
-  expect(await step($, 'spec')).toBe('✓ Spec #50')
+  expect(await view($, 'spec')).toBe('✓ Spec #50')
   await w.clock.advance(5000)
   await turnComplete($)
   expect(w.toasts).toHaveLength(1)

@@ -1,7 +1,7 @@
 import type { Color, RenderSurface, Space } from 'claude-code'
 import type { ThemeChoice, Tone } from '../types'
 import type { RowStatus } from './build'
-import type { StepState } from './evidence'
+import type { PhaseState } from './evidence'
 
 export type { Tone }
 
@@ -142,7 +142,7 @@ export type StateLook = {
   strike?: true
 }
 
-export const STEP_LOOKS: Record<StepState['kind'], StateLook> = {
+export const PHASE_LOOKS: Record<PhaseState['kind'], StateLook> = {
   done: { label: 'Done', glyph: '✓', ascii: 'v', role: 'perm', bold: false },
   next: { label: 'Up next', glyph: '▸', ascii: '>', role: 'skill', bold: true },
   running: { label: 'Running', glyph: '◐', ascii: '|', role: 'skill', bold: true },
@@ -179,8 +179,8 @@ export const SPACE = {
   buttonPadX: 'sm',
   railGap: 'xs',
   railPadX: 'sm',
-  stepGap: 'xs',
-  stepPadX: 'sm',
+  phaseGap: 'xs',
+  phasePadX: 'sm',
   summaryGap: 'sm',
   cardAbove: 'sm',
   cardPadX: 'lg',
