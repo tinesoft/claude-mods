@@ -8,7 +8,7 @@ copy of its boards is in [`artboards/`](./artboards/README.md).
 Craftory is an SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod
 (`mattpocock-skills`), guiding a feature from idea to merged PR. It never does the work itself: each phase is started by one of his
 user-invoked skills, and his model-invoked skills are its helpers. Craftory tracks where a feature is,
-suggests the next step, steers parallel Build agents, and edits the repo files his skills read.
+suggests the next phase, steers parallel Build agents, and edits the repo files his skills read.
 
 ## How to read these files
 
@@ -59,16 +59,16 @@ refuses on its own.
 | Entry | Where it shows | Behaviour |
 | --- | --- | --- |
 | Triage (`/triage`) | Triage button at the left of the rail; Inbox in the Tickets tab | Issues from outside the flow. A `ready-for-agent` item starts a feature at the phase set in Settings › Entry points; `ready-for-human` never gets an agent |
-| Wayfinder (`/wayfinder`) | Parent rail above the seven steps | Tracks decision tickets (decided, open) and child specs; each child spec gets its own rail |
+| Wayfinder (`/wayfinder`) | Parent rail above the seven phases | Tracks decision tickets (decided, open) and child specs; each child spec gets its own rail |
 | Handoff | Automation | At 80% context, `handoff` writes a handoff document (off by default) |
 | improve-codebase-architecture | Automation | At session start when the last run is more than 7 days old; findings filed as `needs-triage` (off by default) |
 
-## Phase step states
+## Phase states
 
 | State | Terminal | Colour tokens | Text badge / meta | Meaning |
 | --- | --- | --- | --- | --- |
 | Done | `✓` | perm (teal) | artifact, e.g. `#42` | Its evidence exists. Press to open it or re-run |
-| Up next | `▸` | skill (blue), bold | – | Suggested next step; the card has its command ready |
+| Up next | `▸` | skill (blue), bold | – | Suggested next phase; the card has its command ready |
 | Running | `◐◓◑◒` | skill (blue) filled | progress, e.g. `1/5` | A skill is working |
 | Needs you | `?` | hook (amber) | e.g. `Q6 of ~14` | Waiting on an answer during a grill, or on a `ready-for-human` ticket |
 | Gated | `⊘` | neutral | – | Gate on and the phase before is not done; runs after confirm |
@@ -81,7 +81,7 @@ wide; M1 checks `▸ ⊘ ▲` and falls back to `> x !`.
 
 ## Rail
 
-Left to right: the triage button (`Inbox 3` when items wait), a divider, seven steps joined by
+Left to right: the triage button (`Inbox 3` when items wait), a divider, seven phases joined by
 connectors (teal when the phase before is done, neutral otherwise), the active feature title (a
 switcher when several features are in flight), and a gear opening the Settings tab.
 
@@ -97,7 +97,7 @@ Variants (`States.dc.html`):
 
 ## Detail card
 
-Opens above the rail on the pressed step, closes on a second press or its close button. Content:
+Opens above the rail on the pressed phase, closes on a second press or its close button. Content:
 kicker (`Phase 4 of 7 · Running`, or `Entry point · outside the 7 phases` for triage), title, one
 paragraph on what the phase does, a **Command** row (or "None to type" plus what starts it), a
 **Helpers** row, the artifact line (`Written`, `Created`, `Integration branch`, `Will mark ready`), the

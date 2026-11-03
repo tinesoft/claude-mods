@@ -28,8 +28,8 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 ## ✨ Features
 
 - 🔄 **A full SDLC, not just a rail.** Seven phases cover the lifecycle from idea to retro, each started by one of Matt's skills.
-- 🧭 **An SDLC rail for the active feature.** Seven steps, each with a state glyph, a text badge and what it produced, such as `#42` or `1/5`.
-- 🔍 **A card per phase.** Press a step to see what the phase does, the command that starts it, the skills it uses, what it wrote, and its gate.
+- 🧭 **An SDLC rail for the active feature.** Seven phases, each with a state glyph, a text badge and what it produced, such as `#42` or `1/5`.
+- 🔍 **A card per phase.** Press a phase to see what the phase does, the command that starts it, the skills it uses, what it wrote, and its gate.
 - 🚦 **Soft gates.** Starting a phase whose gated predecessor is not done asks first, with **Run anyway** and **Diagnose**. Nothing is refused.
 - 🤖 **Build steering.** One git worktree and branch per implementer, at most `maxParallel` at a time, and a token budget per agent with a live Agents list.
 - 📋 **A full pane.** `/craftory` opens Flow, Tickets with a triage Inbox, Worktrees, Glossary and Settings.
@@ -88,12 +88,12 @@ The rail shows commands short (`/to-spec`) and runs them namespaced (`/mattpococ
 
 A spec is an issue with `type: spec` in its front matter, or a body with the `to-spec` template's `## Problem Statement` and `## User Stories` headings. `to-spec` 1.3.1 applies no spec label.
 
-### Step states
+### Phase states
 
 | State       | Terminal | Meaning                                                                                   |
 | ----------- | -------- | ----------------------------------------------------------------------------------------- |
 | Done        | `✓`      | Its evidence exists. The badge names what it produced                                     |
-| Up next     | `▸`      | The suggested next step. Its card has the command ready                                   |
+| Up next     | `▸`      | The suggested next phase. Its card has the command ready                                  |
 | Running     | `◐◓◑◒`   | A skill is working, with progress such as `1/5`                                           |
 | Needs you   | `?`      | A grill waits for your answer, or a ticket is ready for a human                           |
 | Gated       | `⊘`      | The gate is on and the phase before is not done. It runs after you confirm                |
@@ -103,7 +103,7 @@ A spec is an issue with `type: spec` in its front matter, or a body with the `to
 
 With `ascii_glyphs` on, the rail uses `>`, `x`, `!`, `v` and `|/-\` instead.
 
-The rail reads left to right: the triage button (`Inbox 3` when items wait), the seven steps, the feature title (a switcher when several features are in flight), and a gear that opens Settings. Press a step to open its card above the rail. Press it again, or **Close**, to close it. When the band is narrow, or `rail_layout` is `summary`, the rail becomes one chip such as `Export invoices as CSV · Build 2/5`. The status line under the prompt shows the same text.
+The rail reads left to right: the triage button (`Inbox 3` when items wait), the seven phases, the feature title (a switcher when several features are in flight), and a gear that opens Settings. Press a phase to open its card above the rail. Press it again, or **Close**, to close it. When the band is narrow, or `rail_layout` is `summary`, the rail becomes one chip such as `Export invoices as CSV · Build 2/5`. The status line under the prompt shows the same text.
 
 When the plugin is missing, setup has not run, or no feature is in flight, a notice takes the rail's place.
 
@@ -167,7 +167,7 @@ The personal options are plugin options (`/config`, or `pluginConfigs` in settin
 | Option         | Default | Effect                                                                                                   |
 | -------------- | ------- | -------------------------------------------------------------------------------------------------------- |
 | `rail`         | `true`  | Show the phase rail above the prompt                                                                     |
-| `rail_layout`  | `row`   | `row` of steps, or one `summary` chip                                                                    |
+| `rail_layout`  | `row`   | `row` of phases, or one `summary` chip                                                                   |
 | `theme`        | `auto`  | `light` or `dark` colours, or `auto` to follow the Claude Code theme, then the terminal, then the system |
 | `ascii_glyphs` | `false` | Draw the rail with plain characters for terminals that draw symbols two cells wide                       |
 
@@ -230,7 +230,7 @@ It starts no other program. The `setup` command is the one in `.craftory/config.
 - VS Code draws nothing: Claude Code 2.1.302 attaches no surface for a mod there.
 - Where an organization manages Claude Code, `skill.prompt` hooks do not reach user plugins, so phases started by a skill are seen only through typed commands and the tracker.
 - A toast cannot carry a button, so each toast's action sits in the band or the pane.
-- The `Q6 of ~14` progress of a grill is not visible to a mod. The step shows Needs you without a count.
+- The `Q6 of ~14` progress of a grill is not visible to a mod. The phase shows Needs you without a count.
 - An agent's TDD step shows only when the agent writes it as `red · test 4 of 5`.
 - The token budget counts input, cache-creation and output tokens. It may differ from Claude Code's own per-agent total.
 - A refused spawn relies on Claude waiting as the reason asks. Claude may try again sooner.

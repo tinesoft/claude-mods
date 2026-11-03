@@ -136,11 +136,11 @@ mods/craftory/
 │   ├── notices.ts                  # notice views and their buttons
 │   ├── ui.tsx                      # Ui table type, ink helpers, Icon
 │   ├── widgets.tsx                 # Badge, CardButton, HookNote, Settings controls
-│   ├── card-model.ts               # pure card and rail layout: step meta, card view, fit
+│   ├── card-model.ts               # pure card and rail layout: phase meta, card view, fit
 │   ├── agents-list.tsx             # the Agents list on the card
 │   ├── card.tsx                    # the detail card
 │   ├── notice-row.tsx              # a notice row and its buttons
-│   ├── rail.tsx                    # band: rail, summary chip, step strip, renderBand
+│   ├── rail.tsx                    # band: rail, summary chip, phase strip, renderBand
 │   ├── pane.tsx                    # tabs 1–4
 │   ├── settings.tsx                # tab 5
 │   ├── summary.ts                  # text summaries (cloud, /craftory where nothing draws)
