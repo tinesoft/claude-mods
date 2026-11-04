@@ -31,3 +31,17 @@ node tools/sync-plugin-version.mjs --check
 Run tests on the pinned Claude Code (`CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml`). A local `claude` auto-updates and can disagree with CI.
 
 CI runs the same, plus `claude plugin validate . --strict` at the root, pinned to Claude Code 2.1.302.
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), recorded as a `Status:` line. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context: `GLOSSARY-MAP.md` points to `mods/craftory/GLOSSARY.md` and `mods/session-activity/GLOSSARY.md`; ADRs per mod plus repo-wide. See `docs/agents/domain.md`.
