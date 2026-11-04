@@ -17,7 +17,11 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 - [Read-only plus submit](issues/02-read-only-plus-submit.md): the mod shows the frontier and submits `/wayfinder`; it never edits maps or tickets.
 - [Equal tracker support](issues/03-tracker-parity.md): Local, GitHub and GitLab each get a reader behind one shared model; Other is links only.
 
+- [Which SDLC behaviors get enforced vs. guided](issues/06-enforced-vs-guided.md): designed hooks cover the workflow softly; add opt-in deny rules, a test-run-on-turn-complete hook and an unmet-Done-when nudge; mod hooks only.
+
 ## Not yet specified
+
+- Hooks added by the enforced-vs-guided decision: the test-command source and trigger for the `turn.complete` test run, the Done-when nudge wording and when it fires, and the config shape for opt-in deny rules (which rules exist).
 
 - Wayfinder: a frontier list and "work next ticket" button in the Tickets tab, the `entry.wayfinder.suggest` trigger, evidence rules for a map, per-tracker fixtures pinned to mattpocock-skills 1.3.x.
 - Automations: what each of handoff at 80%, retro on PR and the weekly architecture check does exactly, and the "last run over 7 days" trigger.
