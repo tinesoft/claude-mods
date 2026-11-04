@@ -1,0 +1,30 @@
+PROTOTYPE (throwaway ASCII mockups) - ticket 04 Parent rail layout
+
+== A. Stacked: parent row above child row ==
+wide (100 cols)
+  Billing v2 · 3 decided · 2 open · 4 specs   ▸ work next ticket
+  [Inbox 3] │ ✓Align─✓Spec─✓Tickets─◐Build 2/5─⊘Review─⊘Ship─⊘Retro │ Export invoices as CSV ⚙
+  ❯ prompt
+narrow (50 cols): parent row truncates; child row wraps to 2-3 rows
+  Billing v2 · 3✓ 2? 4 specs
+  [Inbox 3] │ ✓Align─✓Spec─✓Tickets─◐Build 2/5
+  ─⊘Review─⊘Ship─⊘Retro │ Export invoices… ⚙
+
+== B. One row: parent folded into the left of the child rail ==
+wide
+  [Inbox 3] │ Billing v2 3✓ 2? │ ✓Align─✓Spec─✓Tickets─◐Build 2/5─⊘Review─⊘Ship─⊘Retro │ Export invoices ⚙
+narrow: parent chip leads the collapsed summary
+  Billing v2 3✓ 2? › Export invoices · Build 2/5
+
+== C. Parent as chip; press opens a frontier card above the rail ==
+closed (same as the Wayfinder-less rail plus one chip)
+  [Inbox 3] │ ◆ Billing v2 3✓ 2? │ ✓Align─...─⊘Retro │ Export invoices ⚙
+open (press ◆)
+  ┌ Wayfinder · Billing v2 ─────────────────────── ✕ ┐
+  │ Destination: ...                                   │
+  │ Frontier:  ▸ Rail layout (prototype)               │
+  │            ▸ Local maps when remote (grilling)     │
+  │ [Work next ticket]  [Open map]                     │
+  └────────────────────────────────────────────────────┘
+
+mobile (all variants): no band; Flow tab head = parent summary line, then child rail.

@@ -12,9 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
-.sa { color-scheme: light; --page: #F5F6F8; --surface: #FFFFFF; --fill: #F0F1F4; --fill-2: #E8EAEE; --line: #DADCE1; --line-strong: #CFD2D8; --ink: #17181C; --ink-2: #2A2D35; --text-2: #3B3F48; --muted: #5A5E68; --inverse-bg: #17181C; --on-ink: #FFFFFF; --count-bg: rgba(23,24,28,0.07); --skill-fg: #1F4FC1; --skill-bg: #EDF2FD; --perm-fg: #0E6159; --perm-bg: #E8F5F2; --perm-bd: #BCE0D8; }
-@media (prefers-color-scheme: dark) { .sa:not([data-theme="light"]) { color-scheme: dark; --page: #111214; --surface: #1B1D21; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-strong: #4A4E57; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --count-bg: rgba(255,255,255,0.10); --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; } }
-.sa[data-theme="dark"] { color-scheme: dark; --page: #111214; --surface: #1B1D21; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-strong: #4A4E57; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --count-bg: rgba(255,255,255,0.10); --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; }
+.sa { color-scheme: light; --page: #F5F6F8; --surface: #FFFFFF; --fill: #F0F1F4; --fill-2: #E8EAEE; --line: #DADCE1; --line-strong: #CFD2D8; --ink: #17181C; --ink-2: #2A2D35; --text-2: #3B3F48; --muted: #5A5E68; --inverse-bg: #17181C; --on-ink: #FFFFFF; --count-bg: rgba(23,24,28,0.07); --skill-fg: #1F4FC1; --skill-bg: #EDF2FD; --perm-fg: #0E6159; --perm-bg: #E8F5F2; --perm-bd: #BCE0D8; --agent-fg: #5B3A99; --agent-bg: #F3EEFB; --agent-bd: #D9CCF0; }
+@media (prefers-color-scheme: dark) { .sa:not([data-theme="light"]) { color-scheme: dark; --page: #111214; --surface: #1B1D21; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-strong: #4A4E57; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --count-bg: rgba(255,255,255,0.10); --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; } }
+.sa[data-theme="dark"] { color-scheme: dark; --page: #111214; --surface: #1B1D21; --fill: #2A2C31; --fill-2: #2E3036; --line: #34373E; --line-strong: #4A4E57; --ink: #ECEDEF; --ink-2: #D5D8DE; --text-2: #B4B8C1; --muted: #9499A3; --inverse-bg: #ECEDEF; --on-ink: #17181C; --count-bg: rgba(255,255,255,0.10); --skill-fg: #8FB0FF; --skill-bg: #1B2A4A; --perm-fg: #7FD6C8; --perm-bg: #123A35; --perm-bd: #22594F; --agent-fg: #C3A8F5; --agent-bg: #2C2147; --agent-bd: #463470; }
 .sa a { color: var(--skill-fg); }
 .mono{font-family: 'IBM Plex Mono', ui-monospace, monospace}
 button{font:inherit}
@@ -27,6 +27,7 @@ button{font:inherit}
   </div>
 
   <div style="display: flex; flex-direction: column; gap: 8px">
+    <button aria-label="Wayfinder map Billing v2, 3 decided, 2 open" style="align-self: flex-start; height: 44px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--agent-bd); background: var(--agent-bg); color: var(--agent-fg); font-size: 13.5px; font-weight: 600; cursor: pointer"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.5L14.5 8 8 14.5 1.5 8z"></path></svg>Billing v2<span class="mono" style="font-size: 12px; font-weight: 500">3 decided · 2 open</span></button>
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 4px">
       <span style="font-size: 13px; font-weight: 600">Export invoices as CSV</span>
       <span class="mono" style="font-size: 12px; color: var(--muted)">3/7</span>

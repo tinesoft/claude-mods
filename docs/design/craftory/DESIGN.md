@@ -59,7 +59,7 @@ refuses on its own.
 | Entry | Where it shows | Behaviour |
 | --- | --- | --- |
 | Triage (`/triage`) | Triage button at the left of the rail; Inbox in the Tickets tab | Issues from outside the flow. A `ready-for-agent` item starts a feature at the phase set in Settings › Entry points; `ready-for-human` never gets an agent |
-| Wayfinder (`/wayfinder`) | Parent rail above the seven phases | Tracks decision tickets (decided, open) and child specs; each child spec gets its own rail |
+| Wayfinder (`/wayfinder`) | Parent chip in the rail, left of the seven phases | Tracks decision tickets (decided, open) and child specs; each child spec gets its own rail |
 | Handoff | Automation | At 80% context, `handoff` writes a handoff document (off by default) |
 | improve-codebase-architecture | Automation | At session start when the last run is more than 7 days old; findings filed as `needs-triage` (off by default) |
 
@@ -92,7 +92,7 @@ Variants (`States.dc.html`):
 - **First run**: "No `docs/agents/` yet. Found a GitHub remote and CONTEXT.md. · Set up Craftory".
 - **No feature in flight**: "Start a feature: talk it through first. · `/grill-with-docs`".
 - **Collapsed summary**: one chip, `Export invoices as CSV · Build 2/5`, for narrow bands or by choice.
-- **Wayfinder**: parent rail `Billing v2 · 3 decided · 2 open · 4 specs` above the child's rail.
+- **Wayfinder**: a parent chip `Billing v2 · 3 decided · 2 open` in the same row, left of the phases. Pressing it opens a frontier card above the rail (destination, takeable tickets, **Work next ticket**, **Open map**) that replaces any open phase card. In the collapsed summary the chip leads: `Billing v2 3✓ 2? › Export invoices · Build 2/5`.
 - **Entered from triage**: earlier phases struck through, the entry phase up next with the issue id.
 
 ## Detail card

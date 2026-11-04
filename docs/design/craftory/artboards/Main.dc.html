@@ -35,6 +35,15 @@ button{font:inherit}
 
     <div style="position: relative; display: flex; flex-direction: column; gap: 8px">
 
+      <sc-if value="{{wfOpen}}" hint-placeholder-val="{{ false }}">
+        <div role="dialog" aria-label="Wayfinder map" style="position: absolute; left: 0; bottom: calc(100% + 8px); width: 520px; max-width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(23,24,28,0.12), 0 2px 6px rgba(23,24,28,0.06); padding: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 5">
+          <div style="display: flex; align-items: flex-start; gap: 10px"><div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1"><div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--agent-fg)">Wayfinder · 3 decided · 2 open · 4 specs</div><div style="font-size: 17px; font-weight: 600">Billing v2</div></div><button onClick="{{close}}" aria-label="Close map" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: var(--muted); cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button></div>
+          <div style="font-size: 14px; line-height: 1.5; color: var(--ink-2)">Destination: usage-based invoicing designed and ready to hand off as a spec.</div>
+          <section aria-label="Frontier" style="border: 1px solid var(--line); border-radius: 10px; overflow: hidden"><div style="padding: 8px 12px; background: var(--surface-2); font-size: 12.5px; font-weight: 600">Frontier · takeable now</div><ul style="list-style: none; margin: 0; padding: 0"><li style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line-soft)"><span aria-hidden="true" style="color: var(--skill-fg)">▸</span><span style="font-size: 13.5px; font-weight: 600; flex-grow: 1; min-width: 0">Rail layout</span><span style="font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 5px; color: var(--agent-fg); border: 1px solid var(--agent-fg); white-space: nowrap">Prototype</span></li><li style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line-soft)"><span aria-hidden="true" style="color: var(--skill-fg)">▸</span><span style="font-size: 13.5px; font-weight: 600; flex-grow: 1; min-width: 0">Local maps when the tracker is remote</span><span style="font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 5px; color: var(--skill-fg); border: 1px solid var(--skill-fg); white-space: nowrap">Grilling</span></li></ul></section>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap"><button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: var(--inverse-bg); color: var(--on-ink); font-size: 13.5px; font-weight: 500; cursor: pointer; font-family: 'IBM Plex Mono', ui-monospace, monospace">Work next ticket</button><button style="height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 13.5px; font-weight: 500; cursor: pointer">Open map</button></div>
+        </div>
+      </sc-if>
+
       <sc-if value="{{hasOpen}}" hint-placeholder-val="{{ true }}">
         <div role="dialog" aria-label="Phase details" style="position: absolute; left: {{popLeft}}; bottom: calc(100% + 8px); width: {{popW}}; max-width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(23,24,28,0.12), 0 2px 6px rgba(23,24,28,0.06); padding: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 5">
           <div style="display: flex; align-items: flex-start; gap: 10px">
@@ -120,8 +129,11 @@ button{font:inherit}
         </div>
       </sc-if>
 
-      <nav aria-label="SDLC phases" style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 6px 4px 4px">
+      <sc-if value="{{showFull}}" hint-placeholder-val="{{ true }}">
+      <nav aria-label="Wayfinder and SDLC phases" style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 6px 4px 4px">
         <button onClick="{{pickTriage}}" aria-pressed="{{triPressed}}" aria-label="Triage inbox, 3 new items. An entry point outside the 7 phases" style="height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 8px; border: 1px dashed {{triBd}}; background: {{triBg}}; color: var(--ink-2); font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: {{triRing}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9.5l1.8-6h8.4l1.8 6v3.5H2zM2 9.5h3.5l1 1.5h3l1-1.5H14"></path></svg>Triage<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 600; padding: 0 5px; border-radius: 5px; background: var(--hook-bg); color: var(--hook-fg); border: 1px solid var(--hook-bd)">3</span></button>
+        <span aria-hidden="true" style="width: 1px; height: 24px; background: var(--line); margin: 0 4px"></span>
+        <button onClick="{{pickWf}}" aria-pressed="{{wfPressed}}" aria-label="Wayfinder map Billing v2, 3 decided, 2 open. A parent of the features below" style="height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--agent-bd); background: var(--agent-bg); color: var(--agent-fg); font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: {{wfRing}}"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.5L14.5 8 8 14.5 1.5 8z"></path></svg>Billing v2<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 500">3 decided · 2 open</span></button>
         <span aria-hidden="true" style="width: 1px; height: 24px; background: var(--line); margin: 0 4px"></span>
         <a href="Panel.dc.html" style="height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 8px; background: var(--fill); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; max-width: 210px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h7"></path></svg><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Export invoices as CSV</span></a>
         <ol style="list-style: none; margin: 0; padding: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; flex-grow: 1">
@@ -139,7 +151,17 @@ button{font:inherit}
             </li>
           </sc-for>
         </ol>
+        <button onClick="{{collapse}}" aria-label="Collapse the rail to a summary" style="width: 36px; height: 36px; border: 0; background: transparent; border-radius: 8px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10l4-4 4 4"></path></svg></button>
       </nav>
+      </sc-if>
+      <sc-if value="{{collapsed}}" hint-placeholder-val="{{ false }}">
+      <nav aria-label="Collapsed summary" style="display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px">
+        <button onClick="{{pickWf}}" aria-pressed="{{wfPressed}}" aria-label="Wayfinder map Billing v2, 3 decided, 2 open. A parent of the features below" style="height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--agent-bd); background: var(--agent-bg); color: var(--agent-fg); font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: {{wfRing}}"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.5L14.5 8 8 14.5 1.5 8z"></path></svg>Billing v2<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 500">3✓ 2?</span></button>
+        <span aria-hidden="true" style="color: var(--muted)">›</span>
+        <button onClick="{{expand}}" aria-label="Expand the full rail" style="height: 36px; flex-grow: 1; min-width: 0; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: var(--ink); font-size: 13px; font-weight: 500; cursor: pointer; text-align: left"><span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Export invoices as CSV</span><span style="color: var(--muted)">·</span><span style="color: var(--skill-fg); font-weight: 600">Build</span><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: var(--count-bg)">2/5</span></button>
+        <button onClick="{{expand}}" aria-label="Expand the full rail" style="width: 36px; height: 36px; border: 0; background: transparent; border-radius: 8px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg></button>
+      </nav>
+      </sc-if>
 
       <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 1px 2px rgba(23,24,28,0.05); padding: 14px 14px 10px 16px; display: flex; flex-direction: column; gap: 10px">
         <label for="prompt" class="sr">Message Claude</label>
@@ -244,8 +266,13 @@ class Component extends DCLogic {
         tok: fmtK(a.tok), time: fmtT(a.time), pct: Math.min(100, Math.round(a.tok / 800)) + '%',
         divider: i === 0 ? '0' : '1px solid var(--line-soft)' };
     });
+    var wfOpen = open === 'wf', collapsed = !!(this.state && this.state.collapsed);
     var lefts = ['0px', '60px', '140px', '200px', '300px', '340px', '380px'];
     return { theme: this.props.theme ?? 'auto', phases: phases, hasOpen: !!cur, popLeft: triOpen ? '0px' : lefts[idx],
+      wfOpen: wfOpen, wfPressed: wfOpen ? 'true' : 'false', wfRing: wfOpen ? '0 0 0 3px rgba(91,58,153,0.16)' : 'none',
+      pickWf: function () { self.setState({ open: wfOpen ? null : 'wf' }); },
+      collapsed: collapsed, showFull: !collapsed,
+      collapse: function () { self.setState({ collapsed: true }); }, expand: function () { self.setState({ collapsed: false }); },
       pickTriage: function () { self.setState({ open: triOpen ? null : 'triage' }); },
       triPressed: triOpen ? 'true' : 'false', triBg: triOpen ? 'var(--fill)' : 'transparent', triBd: triOpen ? 'var(--hook-fg)' : 'var(--line-dashed)',
       triRing: triOpen ? '0 0 0 3px rgba(154,74,11,0.16)' : 'none',

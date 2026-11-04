@@ -16,6 +16,7 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 - [Map as an optional parent of a Feature](issues/01-map-and-feature.md): derived from the tracker; a Feature stores only an optional `map` link.
 - [Read-only plus submit](issues/02-read-only-plus-submit.md): the mod shows the frontier and submits `/wayfinder`; it never edits maps or tickets.
 - [Equal tracker support](issues/03-tracker-parity.md): Local, GitHub and GitLab each get a reader behind one shared model; Other is links only.
+- [Parent rail layout](issues/04-rail-layout.md): one chip in the single-row rail opens a frontier card above it; collapsed summary on narrow bands; chip heads the mobile Flow tab.
 
 - [Which SDLC behaviors get enforced vs. guided](issues/06-enforced-vs-guided.md): designed hooks cover the workflow softly; add opt-in deny rules, a test-run-on-turn-complete hook and an unmet-Done-when nudge; mod hooks only.
 
