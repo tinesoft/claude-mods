@@ -221,8 +221,6 @@ pnpm nx dev session-activity            # claude --plugin-dir mods/session-activ
 pnpm nx run-many -t lint typecheck validate test
 ```
 
-`hooks/register.tsx` holds every hook and every `$` call. `src/` holds pure helpers that take plain data: `model.ts` (the activation list and its reducer), `classify.ts` (event data to chips), `render.tsx` (band row and detail card), `pane.tsx` (the pane tabs), `icons.ts` (the Desktop `Svg` icons), `summary.ts` (the text summaries) and `theme.ts` (the registry of types with their glyphs, colours and settings copy). Tests in `tests/` run under `claude plugin test` and drive the mod through the engine's events and drawings.
-
 ---
 
 ## 🤝 Contributing

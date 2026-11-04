@@ -250,10 +250,6 @@ pnpm nx dev craftory                    # claude --plugin-dir mods/craftory
 pnpm nx run-many -t lint typecheck validate test
 ```
 
-`hooks/register.tsx` registers every hook and holds the one `dispatch` that answers a button. The modules under `hooks/shell/` hold the rest of the `$` calls. Each one declares the session state it owns and is the only code that reads or writes it, because Claude Code's state scan accepts `read` and `update` only in the file that declares the atom. The others call its functions. `repo.ts` owns the repo snapshot, plugin status and the one file writer. `tracker.ts`, `features.ts`, `ledger.ts`, `notices.ts` and `git.ts` each own one slice of the flow: the tracker snapshot, the feature records and the active feature, the Build ledger, the notices and gate passes, and the git snapshot. `flow.ts` derives the current flow, settles the redraw and runs the gate and the skill lifecycle. `sync.ts` refreshes the tracker and git, and `agents.ts` runs the agent lifecycle. Imports run one way, from the owning modules up to those two. `build.ts` owns the Worktrees tab and agent seats, `settings.ts` the Settings tab and glossary edits, and `ui.ts` the pane tab, tone and personal settings. `src/` holds pure helpers that take plain data: `phases.ts` (the phase registry), `evidence.ts` (facts to phase states), `gates.ts`, `build.ts` (the agent ledger, queue and budget), `git.ts`, `glossary.ts` (lossless `GLOSSARY.md` edits), `agents-md.ts` and `templates.ts` (the setup files), `config.ts`, `features.ts`, `tracker/`, `drift.ts`, `signals.ts` (toasts), `action.ts` (every button's request), the drawing in `rail.tsx`, `card.tsx`, `card-model.ts`, `agents-list.tsx`, `notice-row.tsx`, `pane.tsx`, `settings.tsx`, `widgets.tsx` and `ui.tsx`, `sections.ts` (the Settings table), `reply.tsx` and `theme.ts`. Tests in `tests/` run under `claude plugin test`.
-
-`src/templates.ts` holds copies of the `mattpocock-skills` 1.3.1 setup templates. `validate` fails when they drift from `tests/fixtures/`. To move to a new version, run `node tools/vendor-craftory-templates.mjs --from <setup-matt-pocock-skills folder>`.
-
 ---
 
 ## 🤝 Contributing
