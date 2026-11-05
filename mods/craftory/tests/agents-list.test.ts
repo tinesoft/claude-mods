@@ -109,7 +109,7 @@ test('terminal: each row shows id, title, badge, TDD step when said, tokens and 
   expect(words).toContain('red · test 4 of 5')
   expect(words.filter(w => w.startsWith('red'))).toHaveLength(1)
   expect(words).toContain('64.0k · —')
-  expect(words).toContain('.worktrees/43-export-button')
+  expect(words).toContain('.claude/worktrees/43-export-button')
   expect(words).toContain('craftory/43-export-button')
   expect(words).toContain('One git worktree per agent · 80k token budget each')
   expect(await card.find({ key: 'agents-pause' })).toBeDefined()
@@ -160,7 +160,7 @@ test('a worktree that cannot be made shows as an info row on the card', async ($
   await start($, 43, 'Export button')
   const words = await texts(await openCard($, 'terminal'))
   expect(words).toContain(
-    'Craftory could not make .worktrees/43-export-button: fatal: not a git repository',
+    'Craftory could not make .claude/worktrees/43-export-button: fatal: not a git repository',
   )
 })
 

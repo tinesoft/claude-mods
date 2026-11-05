@@ -33,7 +33,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
   },
   docs: { research: 'docs/research/' },
   worktrees: {
-    folder: '.worktrees/',
+    folder: '.claude/worktrees/',
     integrationBranch: 'feat/{spec-slug}',
     ticketBranch: 'craftory/{ticket}-{slug}',
     maxParallel: 3,

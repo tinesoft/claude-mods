@@ -60,7 +60,7 @@ const drifting = async (
   on: Parameters<typeof featureWorld>[0],
   $: Parameters<typeof startSession>[0],
 ) => {
-  const git = fakeGit({ extra: [{ path: '/repo/.worktrees/_spec-42', branch: 'feat/csv' }] })
+  const git = fakeGit({ extra: [{ path: '/repo/.claude/worktrees/_spec-42', branch: 'feat/csv' }] })
   const diff =
     '+++ b/src/a.ts\n+one line item\n+another line item\n+and a line item\n+last line item\n'
   const w = featureWorld(on, {

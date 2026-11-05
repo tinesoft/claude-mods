@@ -166,7 +166,7 @@ One `$.ui.toast` each, with one action:
 | Spec #42 published · 6 user stories | Open |
 | Agent #44 hit its 80k budget · worktree kept | Raise budget |
 | Review is gated · #44 has 2 failing tests | Run anyway |
-| Rebase conflict in .worktrees/45-date-filter · agent paused | Resolve |
+| Rebase conflict in .claude/worktrees/45-date-filter · agent paused | Resolve |
 | Glossary drift · the diff says "line item" 4 times | Rename |
 | Retro ready · 3 ranked suggestions | Review |
 

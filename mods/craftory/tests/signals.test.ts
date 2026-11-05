@@ -44,7 +44,7 @@ const budget = { id: 'budget-#44', ticket: '#44' as IssueRef, budget: 80_000 }
 const conflict = {
   id: 'conflict-#45',
   ticket: '#45' as IssueRef,
-  worktree: '.worktrees/45-date-filter',
+  worktree: '.claude/worktrees/45-date-filter',
 }
 
 test('a budget hit and a rebase conflict are each announced once, in the design words', () => {
@@ -53,7 +53,7 @@ test('a budget hit and a rebase conflict are each announced once, in the design 
   const signals = diffSignals(before, after)
   expect(signals.map(toastText)).toEqual([
     'Agent #44 hit its 80k budget · worktree kept',
-    'Rebase conflict in .worktrees/45-date-filter · agent stopped',
+    'Rebase conflict in .claude/worktrees/45-date-filter · agent stopped',
   ])
   expect(diffSignals(after, after)).toEqual([])
   expect(diffSignals(null, after)).toEqual([])

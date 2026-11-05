@@ -20,7 +20,7 @@ const EMPTY: SetupFiles = {
   agentsMd: null,
   gitignore: null,
 }
-const OPTIONS = { worktreeFolder: '.worktrees/', localFolder: 'docs/issues/' }
+const OPTIONS = { worktreeFolder: '.claude/worktrees/', localFolder: 'docs/issues/' }
 const SETUP = {
   tracker: { kind: 'local' as const },
   triage: null,

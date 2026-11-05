@@ -58,7 +58,7 @@ test('setup writes exactly the planned files, as /setup-matt-pocock-skills would
   expect(text('docs/agents/issue-tracker.md')).toBe(up['issue-tracker-github.md'])
   expect(text('docs/agents/triage-labels.md')).toBe(up['triage-labels.md'])
   expect(text('docs/agents/domain.md')).toBe(up['domain.md'])
-  expect(text('.gitignore')).toBe('node_modules\n.worktrees/\n')
+  expect(text('.gitignore')).toBe('node_modules\n.claude/worktrees/\n')
   expect(
     text('CLAUDE.md')!.startsWith(
       '# Rules\n\nRun the tests.\n\n## Agent skills\n\n### Issue tracker\n',

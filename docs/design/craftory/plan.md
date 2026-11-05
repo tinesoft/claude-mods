@@ -163,7 +163,7 @@ Each atom is declared in the one `hooks/shell` module that reads and updates it.
 | `docs/issues/*.md` (Local) | Matt's skills | Reads for evidence and the Tickets tab |
 | `.craftory/config.json` | Craftory | Reads and writes; committed |
 | `.craftory/features/<spec-id>.json` | Craftory | Reads and writes; committed |
-| `.worktrees/` | Craftory + implement-spec | Added to `.gitignore` on setup |
+| `.claude/worktrees/` | Craftory + implement-spec | Added to `.gitignore` on setup |
 | `$.store` | Craftory | Personal: rail on/off, layout, theme, "Not now" |
 
 `.craftory/config.json` (sketch):
@@ -182,7 +182,7 @@ Each atom is declared in the one `hooks/shell` module that reads and updates it.
     "retro":   { "enabled": true, "command": "retro", "gate": false }
   },
   "worktrees": {
-    "folder": ".worktrees/", "integrationBranch": "feat/{spec-slug}", "ticketBranch": "craftory/{ticket}-{slug}",
+    "folder": ".claude/worktrees/", "integrationBranch": "feat/{spec-slug}", "ticketBranch": "craftory/{ticket}-{slug}",
     "maxParallel": 3, "tokenBudget": 80000, "setup": "pnpm install --frozen-lockfile", "copy": [".env.local", ".tool-versions"],
     "removeAfterMerge": true, "rebaseOnMove": true, "keepFailed": true, "pruneStale": false
   },
@@ -268,7 +268,7 @@ The spikes ran against Claude Code 2.1.302 in three ways. A throwaway mod ran un
 - **Gate design change.** For a typed or rail-submitted command, gate at `prompt.submit` on `e.command`. Return `{ drop }`, whose text the user sees (`:9544`), then show the band notice. **Run anyway** runs the command again with a one-shot pass. For a skill the model invokes (step 7's `code-review`), gate at `tool.call` `{ tool: 'Skill' }` with `$.ui.ask` (`:2463`), the engine's question dialog. The dialog holds without limit and rejects in `-p`.
 - **Submitting commands.** Use `$.command.run({ command: 'mattpocock-skills:to-spec', args })` (`:3159`), which runs a slash command as if typed. It rejects only inside a hook the turn waits on (`:3153`), which a Button press is not. `$.prompt.submit({ text, asUser })` (`:3020`, `:9371`) sends a prompt. Whether it expands a `/name` line is unverified.
 - **`agent.spawn` carries no isolation.** `isolation` and `name` belong to the Agent tool's input (`:16706`). They are seen and rewritten at `tool.call` `{ tool: 'Agent' }`. A `next({ ...e, name })` there reached `agent.spawn` and `$.agent.list()` (*live*). On `agent.spawn`, `name` is pinned (`:396`). `prompt`, `description`, `model`, `background` and `cwd` can be rewritten, and `{ deny }` refuses (`:261`, `:447`, *kit*). `implement-spec` 1.3.1 asks for one worktree and branch per implementer but leaves the parameters to the model.
-- **Worktree and branch.** `classic.WorktreeCreate` fires before `agent.spawn` resolves, with `name: 'agent-<agentId>'` and no description (*live*, `:15396`). A hook answered it with `{ worktreePath }` after running `git worktree add -b craftory/44-probe .worktrees/44-probe`. The subagent ran in that folder on that branch, and the engine left the worktree on disk (*live*, `:1384`). The setup command runs in the same hook through `$.process.run`, budget free. The engine removes its own unchanged worktrees and never ours, so Craftory owns cleanup.
+- **Worktree and branch.** `classic.WorktreeCreate` fires before `agent.spawn` resolves, with `name: 'agent-<agentId>'` and no description (*live*, `:15396`). A hook answered it with `{ worktreePath }` after running `git worktree add -b craftory/44-probe .claude/worktrees/44-probe`. The subagent ran in that folder on that branch, and the engine left the worktree on disk (*live*, `:1384`). The setup command runs in the same hook through `$.process.run`, budget free. The engine removes its own unchanged worktrees and never ours, so Craftory owns cleanup.
 - **Matching a worktree to its ticket.** `WorktreeCreate` names the agent id only, which `agent.spawn` reports afterwards. Craftory keeps the pending spawn from `tool.call` and pairs it with the next `WorktreeCreate`. Parallel spawns in one model step may race (inferred). The kit-only fallback is to drop `isolation` at `tool.call` and set `agent.spawn` `cwd` to a worktree Craftory made.
 - **Queueing.** A spawn held on a plain promise was let go at 10 s and started anyway (*kit*). A loop of `$.process.run(['sleep', '1'])` held one for 13 s, since each call stops the clock (*kit*). That loop is a CLI-only hack. The queue instead denies the spawn with a reason that tells the model to wait for a running implementer and try again. This is a new fallback, beside the ones under Risks.
 - **Per-agent tokens.** `turn.step` carries `agentId` (`:14114`), and its result carries `usage` per request (`:14174`). `turn.complete` carries both for each agent turn (`:13939`). Both were seen for a subagent (*live*). `session.measure` reports the main thread only (`:4516`), and `$.agent.list()` has no tokens (`:125`). The budget stays in tokens, and the Risks fallback to turns is not needed.

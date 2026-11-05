@@ -24,12 +24,12 @@ test('a merge conflict stops the agent, toasts once, and Resolve opens the Workt
   const git = fakeGit({ status: path => (path.endsWith('44-ledger-tax') ? 'UU src/a.ts\n' : '') })
   const { w } = await building(on, $, { shell: git.shell })
   await start($, 44, 'Ledger tax')
-  expect(w.toasts).toEqual(['Rebase conflict in .worktrees/44-ledger-tax · agent stopped'])
+  expect(w.toasts).toEqual(['Rebase conflict in .claude/worktrees/44-ledger-tax · agent stopped'])
   expect(w.sent).toEqual([])
   const stopped = await step($, 'agent-tu44', 0)
   expect(stopped.result.answer).toBe(
     'Stopped by Craftory: #44 stopped on a merge conflict after the integration branch moved, and was ended. ' +
-      'Its worktree .worktrees/44-ledger-tax is kept. ' +
+      'Its worktree .claude/worktrees/44-ledger-tax is kept. ' +
       'Do not restart #44, merge, or remove the worktree. Tell the user which files conflict and that they resolve it, then carry on with the other tickets.',
   )
   const band = await mountBand($, 'terminal', 200)

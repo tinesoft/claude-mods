@@ -55,7 +55,7 @@ Craftory needs `mattpocock-skills` 1.3.x. If the plugin is missing, the band sho
 claude plugin install mattpocock-skills@claude-plugins-official
 ```
 
-The first time Craftory runs in a repo without `docs/agents/`, the band offers **Set up Craftory**. It opens Settings pre-filled from the repo (its remote, `CLAUDE.md` or `AGENTS.md`, `GLOSSARY.md`, `CONTEXT.md`). **Save setup** writes the same files `/setup-matt-pocock-skills` would, plus `.craftory/config.json` and a `.worktrees/` line in `.gitignore`.
+The first time Craftory runs in a repo without `docs/agents/`, the band offers **Set up Craftory**. It opens Settings pre-filled from the repo (its remote, `CLAUDE.md` or `AGENTS.md`, `GLOSSARY.md`, `CONTEXT.md`). **Save setup** writes the same files `/setup-matt-pocock-skills` would, plus `.craftory/config.json` and a `.claude/worktrees/` line in `.gitignore`.
 
 ### Surfaces
 
@@ -117,7 +117,7 @@ Craftory asks in the band, so it gates a typed command only where a band is draw
 
 `/implement-spec` starts one implementer per ticket. Craftory steers each one:
 
-- It gives the implementer its own worktree, `.worktrees/<ticket>-<slug>` (the `folder` setting, which must be a relative path inside the repo), on the branch `craftory/<ticket>-<slug>`, cut from the integration branch. When you start Build with a typed or rail command, Craftory tells Claude which branch to integrate on and where the worktrees live. If that branch does not exist when the first implementer starts, Craftory creates it from your checkout's `HEAD`. It copies the files listed in `copy` and runs the `setup` command there. `copy` takes relative paths inside the repo and never `.git`. Craftory skips any other entry and says so on the card. The first time a `setup` command other than the built-in `pnpm install --frozen-lockfile` is about to run on your machine, Craftory asks **Run** or **Skip**, and remembers a **Run**. After a **Skip**, or when nobody can answer, the agent starts without the setup and the card says so.
+- It gives the implementer its own worktree, `.claude/worktrees/<ticket>-<slug>` (the `folder` setting, which must be a relative path inside the repo), on the branch `craftory/<ticket>-<slug>`, cut from the integration branch. When you start Build with a typed or rail command, Craftory tells Claude which branch to integrate on and where the worktrees live. If that branch does not exist when the first implementer starts, Craftory creates it from your checkout's `HEAD`. It copies the files listed in `copy` and runs the `setup` command there. `copy` takes relative paths inside the repo and never `.git`. Craftory skips any other entry and says so on the card. The first time a `setup` command other than the built-in `pnpm install --frozen-lockfile` is about to run on your machine, Craftory asks **Run** or **Skip**, and remembers a **Run**. After a **Skip**, or when nobody can answer, the agent starts without the setup and the card says so.
 - At most `maxParallel` implementers run at once. Craftory refuses an extra spawn with a reason that names the running tickets and asks Claude to start the ticket after one of them returns.
 - Tickets that are blocked or ready for a human never get an agent.
 - Each agent has a token budget, 80k by default, counted as input, cache-creation and output tokens. The bar turns amber at 80%. At 100% Craftory stops the agent and ends its turn with a note: the agent's next step is answered without a request, and the note goes to Claude as the Agent result, saying the ticket ran out of budget, that its worktree is kept, and not to restart it. The ticket is marked over budget. An agent that finishes by itself on the step that crossed the budget is marked done. The card offers **Raise budget** and **Diagnose**.
@@ -192,7 +192,7 @@ Craftory writes only these files, and checks each write against this list:
 | `docs/agents/issue-tracker.md`, `triage-labels.md`, `domain.md` | `/setup-matt-pocock-skills`          |
 | The `## Agent skills` block of `CLAUDE.md` or `AGENTS.md`       | `/setup-matt-pocock-skills`          |
 | `GLOSSARY.md` (or the glossary file set in Settings)            | `grill-with-docs`, `domain-modeling` |
-| `.gitignore` (the `.worktrees/` line)                           | Your repo                            |
+| `.gitignore` (the `.claude/worktrees/` line)                    | Your repo                            |
 | `.craftory/config.json`, `.craftory/features/<spec>.json`       | Craftory, committed                  |
 | `docs/issues/<n>-<slug>.md`, only when importing `.scratch/`    | Matt's skills                        |
 

@@ -6,7 +6,7 @@ const agent = (outcome: string, extra: Record<string, unknown> = {}) => ({
   ticket: '#43',
   name: 'craftory-43-export-button',
   branch: 'craftory/43-export-button',
-  worktree: '.worktrees/43-export-button',
+  worktree: '.claude/worktrees/43-export-button',
   tokens: 31_000,
   budget: 80_000,
   outcome,
@@ -32,7 +32,7 @@ test('an agent record left running by a session that died is stopped when the ne
   const record = JSON.parse(w.files.get('.craftory/features/42.json')!)
   expect(record.agents['#43']).toMatchObject({ outcome: 'stopped', tokens: 31_000 })
   expect(record.agents['#43'].endedAt).toBe(new Date(1_000_000).toISOString())
-  const denied = await call($, removal('.worktrees/43-export-button'))
+  const denied = await call($, removal('.claude/worktrees/43-export-button'))
   expect(denied.deny).toContain('was stopped, and the user decides what happens to its work')
   expect(denied.deny).not.toContain('still working')
 })

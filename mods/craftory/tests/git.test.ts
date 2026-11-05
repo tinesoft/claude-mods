@@ -34,15 +34,15 @@ const PORCELAIN = `worktree /repo
 HEAD 1111111
 branch refs/heads/main
 
-worktree /repo/.worktrees/_spec-42
+worktree /repo/.claude/worktrees/_spec-42
 HEAD 2222222
 branch refs/heads/feat/invoice-csv
 
-worktree /repo/.worktrees/44-ledger-tax
+worktree /repo/.claude/worktrees/44-ledger-tax
 HEAD 3333333
 branch refs/heads/craftory/44-ledger-tax
 
-worktree /repo/.worktrees/scratch
+worktree /repo/.claude/worktrees/scratch
 HEAD 4444444
 detached
 `
@@ -51,18 +51,18 @@ test('the porcelain list gives path, branch and head, with the main checkout fir
   expect(parseWorktreeList(PORCELAIN)).toEqual([
     { path: '/repo', branch: 'main', head: '1111111', isMain: true },
     {
-      path: '/repo/.worktrees/_spec-42',
+      path: '/repo/.claude/worktrees/_spec-42',
       branch: 'feat/invoice-csv',
       head: '2222222',
       isMain: false,
     },
     {
-      path: '/repo/.worktrees/44-ledger-tax',
+      path: '/repo/.claude/worktrees/44-ledger-tax',
       branch: 'craftory/44-ledger-tax',
       head: '3333333',
       isMain: false,
     },
-    { path: '/repo/.worktrees/scratch', branch: null, head: '4444444', isMain: false },
+    { path: '/repo/.claude/worktrees/scratch', branch: null, head: '4444444', isMain: false },
   ])
   expect(parseWorktreeList('')).toEqual([])
 })
@@ -118,22 +118,22 @@ test('a branch listing drops the current marker, and a status shows only real co
 })
 
 test('worktree add makes the branch from the base, or checks an existing branch out', () => {
-  expect(worktreeAddArgv('craftory/44-a', '.worktrees/44-a', 'feat/x', false)).toEqual([
+  expect(worktreeAddArgv('craftory/44-a', '.claude/worktrees/44-a', 'feat/x', false)).toEqual([
     'git',
     'worktree',
     'add',
     '-b',
     'craftory/44-a',
     '--',
-    '.worktrees/44-a',
+    '.claude/worktrees/44-a',
     'feat/x',
   ])
-  expect(worktreeAddArgv('craftory/44-a', '.worktrees/44-a', 'feat/x', true)).toEqual([
+  expect(worktreeAddArgv('craftory/44-a', '.claude/worktrees/44-a', 'feat/x', true)).toEqual([
     'git',
     'worktree',
     'add',
     '--',
-    '.worktrees/44-a',
+    '.claude/worktrees/44-a',
     'craftory/44-a',
   ])
 })
@@ -148,7 +148,7 @@ test('a branch made from the ticket template names its ticket', () => {
 const NOW = 1_000 * 24 * 60 * 60 * 1000
 const classify = (over: Partial<Parameters<typeof classifyWorktree>[0]>) =>
   classifyWorktree({
-    path: '/repo/.worktrees/44-a',
+    path: '/repo/.claude/worktrees/44-a',
     branch: 'craftory/44-a',
     isMain: false,
     integrationBranches: new Set(['feat/csv']),
@@ -164,14 +164,16 @@ test('roles: checkout, integration, agent, stale and other', () => {
     role: 'checkout',
     ticket: null,
   })
-  expect(classify({ branch: 'feat/csv', path: '/repo/.worktrees/_spec-42' }).role).toBe(
+  expect(classify({ branch: 'feat/csv', path: '/repo/.claude/worktrees/_spec-42' }).role).toBe(
     'integration',
   )
   expect(classify({})).toEqual({ role: 'agent', ticket: '#44' })
   expect(classify({ lastCommitAt: NOW - STALE_MS - 1 }).role).toBe('stale')
   expect(
-    classify({ lastCommitAt: NOW - STALE_MS - 1, runningPaths: new Set(['/repo/.worktrees/44-a']) })
-      .role,
+    classify({
+      lastCommitAt: NOW - STALE_MS - 1,
+      runningPaths: new Set(['/repo/.claude/worktrees/44-a']),
+    }).role,
   ).toBe('agent')
   expect(classify({ branch: 'prototype/x', path: '/elsewhere/x' }).role).toBe('other')
 })
@@ -179,12 +181,12 @@ test('roles: checkout, integration, agent, stale and other', () => {
 test('a refresh asks for each fact once and assembles the snapshot', () => {
   const entries = parseWorktreeList(PORCELAIN)
   const bases = {
-    '/repo/.worktrees/_spec-42': 'main',
-    '/repo/.worktrees/44-ledger-tax': 'feat/invoice-csv',
+    '/repo/.claude/worktrees/_spec-42': 'main',
+    '/repo/.claude/worktrees/44-ledger-tax': 'feat/invoice-csv',
   }
   const asked = gitStep2({ entries, bases, integrationBranches: ['feat/invoice-csv'] })
   expect(asked).toContainEqual(mergedArgv('feat/invoice-csv'))
-  expect(asked).toContainEqual(statusArgv('/repo/.worktrees/44-ledger-tax'))
+  expect(asked).toContainEqual(statusArgv('/repo/.claude/worktrees/44-ledger-tax'))
   expect(asked).not.toContainEqual(statusArgv('/repo'))
   expect(asked).toContainEqual(shortstatArgv('feat/invoice-csv', 'craftory/44-ledger-tax'))
 
@@ -198,7 +200,7 @@ test('a refresh asks for each fact once and assembles the snapshot', () => {
       ' 4 files changed, 142 insertions(+), 18 deletions(-)\n',
     ],
     [lastCommitArgv('craftory/44-ledger-tax').join(' '), `${Math.floor((NOW - 1000) / 1000)}\n`],
-    [statusArgv('/repo/.worktrees/44-ledger-tax').join(' '), 'UU a.ts\n'],
+    [statusArgv('/repo/.claude/worktrees/44-ledger-tax').join(' '), 'UU a.ts\n'],
   ])
   const git = assembleGit({
     root: '/repo',
@@ -230,7 +232,7 @@ test('a refresh asks for each fact once and assembles the snapshot', () => {
 
 test('sync text says ahead, behind, conflicts and staleness in words', () => {
   const w = {
-    path: '/repo/.worktrees/x',
+    path: '/repo/.claude/worktrees/x',
     branch: 'b',
     role: 'agent',
     ticket: null,
@@ -269,28 +271,35 @@ test('pruning takes the stale worktrees but never one Craftory keeps', () => {
     merged: {},
     tips: {},
     at: 1,
-    worktrees: [stale('/repo/.worktrees/39-spike'), stale('/repo/.worktrees/45-kept')],
+    worktrees: [
+      stale('/repo/.claude/worktrees/39-spike'),
+      stale('/repo/.claude/worktrees/45-kept'),
+    ],
   }
-  expect(prunable(git, ['.worktrees/45-kept']).map(w => w.path)).toEqual([
-    '/repo/.worktrees/39-spike',
+  expect(prunable(git, ['.claude/worktrees/45-kept']).map(w => w.path)).toEqual([
+    '/repo/.claude/worktrees/39-spike',
   ])
 })
 
 test('worktree removals are found in a shell line, in any spelling', () => {
-  expect(removalTargets('git worktree remove .worktrees/44-a')).toEqual(['.worktrees/44-a'])
-  expect(removalTargets('git worktree remove --force "/repo/.worktrees/44-a"')).toEqual([
-    '/repo/.worktrees/44-a',
+  expect(removalTargets('git worktree remove .claude/worktrees/44-a')).toEqual([
+    '.claude/worktrees/44-a',
+  ])
+  expect(removalTargets('git worktree remove --force "/repo/.claude/worktrees/44-a"')).toEqual([
+    '/repo/.claude/worktrees/44-a',
   ])
   expect(
     removalTargets('cd /repo && git -C /repo worktree remove a && git worktree remove -f b'),
   ).toEqual(['a', 'b'])
-  expect(removalTargets('git -C .worktrees/44-a worktree remove .')).toEqual(['.worktrees/44-a'])
-  expect(removalTargets('git -C "/repo/.worktrees/44-a" worktree remove --force ./')).toEqual([
-    '/repo/.worktrees/44-a',
+  expect(removalTargets('git -C .claude/worktrees/44-a worktree remove .')).toEqual([
+    '.claude/worktrees/44-a',
   ])
-  expect(removalTargets('rm -rf .worktrees/44-a')).toEqual(['.worktrees/44-a'])
-  expect(removalTargets('echo done; rm -r "/repo/.worktrees/44-a/" b')).toEqual([
-    '/repo/.worktrees/44-a/',
+  expect(
+    removalTargets('git -C "/repo/.claude/worktrees/44-a" worktree remove --force ./'),
+  ).toEqual(['/repo/.claude/worktrees/44-a'])
+  expect(removalTargets('rm -rf .claude/worktrees/44-a')).toEqual(['.claude/worktrees/44-a'])
+  expect(removalTargets('echo done; rm -r "/repo/.claude/worktrees/44-a/" b')).toEqual([
+    '/repo/.claude/worktrees/44-a/',
     'b',
   ])
   expect(removalTargets('git worktree list')).toEqual([])
@@ -315,9 +324,9 @@ const record = (over: Partial<FeatureRecord> = {}): FeatureRecord => ({
 test('each worktree is measured against the branch it belongs under', () => {
   const entries = [
     { path: '/repo', branch: 'main', isMain: true },
-    { path: '/repo/.worktrees/_spec-42', branch: 'feat/csv', isMain: false },
-    { path: '/repo/.worktrees/44-a', branch: 'craftory/44-a', isMain: false },
-    { path: '/repo/.worktrees/45-b', branch: 'craftory/45-b', isMain: false },
+    { path: '/repo/.claude/worktrees/_spec-42', branch: 'feat/csv', isMain: false },
+    { path: '/repo/.claude/worktrees/44-a', branch: 'craftory/44-a', isMain: false },
+    { path: '/repo/.claude/worktrees/45-b', branch: 'craftory/45-b', isMain: false },
     { path: '/elsewhere/x', branch: 'prototype/x', isMain: false },
   ]
   expect(
@@ -329,9 +338,9 @@ test('each worktree is measured against the branch it belongs under', () => {
       ticketBranch: 'craftory/{ticket}-{slug}',
     }),
   ).toEqual({
-    '/repo/.worktrees/_spec-42': 'main',
-    '/repo/.worktrees/44-a': 'feat/csv',
-    '/repo/.worktrees/45-b': 'feat/csv',
+    '/repo/.claude/worktrees/_spec-42': 'main',
+    '/repo/.claude/worktrees/44-a': 'feat/csv',
+    '/repo/.claude/worktrees/45-b': 'feat/csv',
   })
 })
 
@@ -359,8 +368,8 @@ test('the Worktrees rows say what each is, what is kept, and how many are stale'
     at: NOW,
     worktrees: [
       w('/repo', { role: 'checkout', branch: 'main' }),
-      w('/repo/.worktrees/_spec-42', { role: 'integration', branch: 'feat/csv', ahead: 4 }),
-      w('/repo/.worktrees/44-a', {
+      w('/repo/.claude/worktrees/_spec-42', { role: 'integration', branch: 'feat/csv', ahead: 4 }),
+      w('/repo/.claude/worktrees/44-a', {
         role: 'agent',
         branch: 'craftory/44-a',
         ticket: '#44' as IssueRef,
@@ -368,34 +377,37 @@ test('the Worktrees rows say what each is, what is kept, and how many are stale'
         added: 142,
         deleted: 18,
       }),
-      w('/repo/.worktrees/45-b', {
+      w('/repo/.claude/worktrees/45-b', {
         role: 'stale',
         ticket: '#45' as IssueRef,
         lastCommitAt: NOW - 6 * 86_400_000,
       }),
-      w('/repo/.worktrees/39-x', { role: 'stale', lastCommitAt: NOW - 6 * 86_400_000 }),
+      w('/repo/.claude/worktrees/39-x', { role: 'stale', lastCommitAt: NOW - 6 * 86_400_000 }),
     ],
   }
   const view = worktreesView({
     git,
     records: [record()],
-    bases: { '/repo/.worktrees/_spec-42': 'main', '/repo/.worktrees/44-a': 'feat/csv' },
+    bases: {
+      '/repo/.claude/worktrees/_spec-42': 'main',
+      '/repo/.claude/worktrees/44-a': 'feat/csv',
+    },
     kept: [
-      { path: '.worktrees/44-a', why: 'running' },
-      { path: '.worktrees/45-b', why: 'over-budget' },
+      { path: '.claude/worktrees/44-a', why: 'running' },
+      { path: '.claude/worktrees/45-b', why: 'over-budget' },
     ],
-    diffs: { '/repo/.worktrees/44-a': '4 files changed · +142 −18' },
-    folder: '.worktrees/',
+    diffs: { '/repo/.claude/worktrees/44-a': '4 files changed · +142 −18' },
+    folder: '.claude/worktrees/',
     now: NOW,
   })
-  expect(view.summary).toBe('5 worktrees · 4 under .worktrees/')
+  expect(view.summary).toBe('5 worktrees · 4 under .claude/worktrees/')
   expect(view.prunable).toBe(1)
   expect(view.rows.map(r => [r.shown, r.kind, r.sync, r.link, r.isProtected])).toEqual([
     ['/repo', 'checkout', 'your checkout', null, false],
-    ['.worktrees/_spec-42', 'integration', '4 ahead of main', 'spec #42', false],
-    ['.worktrees/44-a', 'agent', '3 ahead of feat/csv', 'ticket #44', true],
-    ['.worktrees/45-b', 'kept', 'no commits in 6 days', 'ticket #45', true],
-    ['.worktrees/39-x', 'stale', 'no commits in 6 days', null, false],
+    ['.claude/worktrees/_spec-42', 'integration', '4 ahead of main', 'spec #42', false],
+    ['.claude/worktrees/44-a', 'agent', '3 ahead of feat/csv', 'ticket #44', true],
+    ['.claude/worktrees/45-b', 'kept', 'no commits in 6 days', 'ticket #45', true],
+    ['.claude/worktrees/39-x', 'stale', 'no commits in 6 days', null, false],
   ])
   expect(view.rows[2]).toMatchObject({
     added: 142,
@@ -437,6 +449,6 @@ test('a branch name git would read as an option or reject is not a safe ref', ()
 })
 
 test('the cd line is one shell word, whatever the path holds', () => {
-  expect(cdCommand('/repo/.worktrees/44-a')).toBe("cd '/repo/.worktrees/44-a'")
+  expect(cdCommand('/repo/.claude/worktrees/44-a')).toBe("cd '/repo/.claude/worktrees/44-a'")
   expect(cdCommand("/my repo/it's; rm -rf ~/$HOME")).toBe("cd '/my repo/it'\\''s; rm -rf ~/$HOME'")
 })

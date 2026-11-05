@@ -40,14 +40,14 @@ test('agent.spawn is seated in the worktree: git adds it from the integration br
     '-b',
     'craftory/43-export-button',
     '--',
-    '.worktrees/43-export-button',
+    '.claude/worktrees/43-export-button',
     'feat/csv',
   ])
-  expect(w.spawns[0]).toMatchObject({ cwd: '/repo/.worktrees/43-export-button' })
+  expect(w.spawns[0]).toMatchObject({ cwd: '/repo/.claude/worktrees/43-export-button' })
   const setup = w.ranIn.find(r => r.argv[0] === 'pnpm')
   expect(setup).toEqual({
     argv: ['pnpm', 'install', '--frozen-lockfile'],
-    cwd: '/repo/.worktrees/43-export-button',
+    cwd: '/repo/.claude/worktrees/43-export-button',
   })
 })
 
@@ -55,8 +55,8 @@ test('two spawns in one step are each seated in their own ticket worktree, whate
   const { w } = await building(on, $)
   await Promise.all([start($, 43, 'Export button'), start($, 44, 'Ledger tax')])
   expect(w.spawns.map(s => [s.tool_use_id, s.cwd]).sort()).toEqual([
-    ['tu43', '/repo/.worktrees/43-export-button'],
-    ['tu44', '/repo/.worktrees/44-ledger-tax'],
+    ['tu43', '/repo/.claude/worktrees/43-export-button'],
+    ['tu44', '/repo/.claude/worktrees/44-ledger-tax'],
   ])
 })
 
@@ -92,7 +92,7 @@ test('a spawn the engine refuses takes its fresh worktree away again', async ($,
     'remove',
     '--force',
     '--',
-    '.worktrees/43-export-button',
+    '.claude/worktrees/43-export-button',
   ])
 })
 
@@ -133,7 +133,7 @@ test('a typed implement-spec tells the model which branch to integrate on and wh
   const { w } = await building(on, $)
   const result = await submit($, '/mattpocock-skills:implement-spec #42')
   expect(result.context).toEqual([
-    'Craftory: use `feat/csv` as the integration branch (create it from `main` if it does not exist); implementer worktrees live under `.worktrees/`.',
+    'Craftory: use `feat/csv` as the integration branch (create it from `main` if it does not exist); implementer worktrees live under `.claude/worktrees/`.',
   ])
   expect(w.submitted.at(-1)!.context).toHaveLength(1)
 })
@@ -153,7 +153,7 @@ test('when the worktree cannot be made the spawn is refused with what git said, 
   })
   const result = await start($, 43, 'Export button')
   expect(result.deny).toContain(
-    'Craftory could not make .worktrees/43-export-button: fatal: not a git repository',
+    'Craftory could not make .claude/worktrees/43-export-button: fatal: not a git repository',
   )
   expect(w.spawns).toHaveLength(0)
 })
@@ -169,7 +169,7 @@ test("at 100% the agent's next step is answered without a request, and the answe
   expect(w.steps).toEqual([{ agentId: 'agent-tu44', index: 0 }])
   expect(second.result.answer).toBe(
     'Stopped by Craftory: #44 reached its 80k token budget and was ended before it finished. ' +
-      'Its worktree .worktrees/44-ledger-tax is kept with what it committed. ' +
+      'Its worktree .claude/worktrees/44-ledger-tax is kept with what it committed. ' +
       'Do not restart #44 or remove the worktree. Tell the user it ran out of budget, which the Craftory band lets them raise, and carry on with the other tickets.',
   )
   expect(second.chunks).toEqual([{ kind: 'text', index: 0, text: second.result.answer }])
@@ -212,19 +212,19 @@ test('the record on disk shows over-budget with the worktree kept, and the Bash 
     outcome: 'over-budget',
     tokens: 80_000,
     budget: 80_000,
-    worktree: '.worktrees/44-ledger-tax',
+    worktree: '.claude/worktrees/44-ledger-tax',
     branch: 'craftory/44-ledger-tax',
   })
   const denied = await call($, {
     tool: 'Bash',
     tool_use_id: 'b1',
-    command: 'git worktree remove .worktrees/44-ledger-tax',
+    command: 'git worktree remove .claude/worktrees/44-ledger-tax',
   })
-  expect(denied.deny).toContain('Craftory keeps .worktrees/44-ledger-tax')
+  expect(denied.deny).toContain('Craftory keeps .claude/worktrees/44-ledger-tax')
   const other = await call($, {
     tool: 'Bash',
     tool_use_id: 'b2',
-    command: 'git worktree remove .worktrees/99-other',
+    command: 'git worktree remove .claude/worktrees/99-other',
   })
   expect(other.deny).toBeUndefined()
 })
@@ -234,17 +234,17 @@ test('the Bash guard also catches git -C <kept> worktree remove . and rm -rf <ke
   await start($, 44, 'Ledger tax')
   await step($, 'agent-tu44', 0)
   for (const command of [
-    'git -C .worktrees/44-ledger-tax worktree remove .',
-    'git -C /repo/.worktrees/44-ledger-tax worktree remove --force .',
-    'rm -rf .worktrees/44-ledger-tax',
-    'cd /repo && rm -rf /repo/.worktrees/44-ledger-tax/',
+    'git -C .claude/worktrees/44-ledger-tax worktree remove .',
+    'git -C /repo/.claude/worktrees/44-ledger-tax worktree remove --force .',
+    'rm -rf .claude/worktrees/44-ledger-tax',
+    'cd /repo && rm -rf /repo/.claude/worktrees/44-ledger-tax/',
   ]) {
     const denied = await call($, { tool: 'Bash', tool_use_id: 'b1', command })
-    expect(denied.deny, command).toContain('Craftory keeps .worktrees/44-ledger-tax')
+    expect(denied.deny, command).toContain('Craftory keeps .claude/worktrees/44-ledger-tax')
   }
   for (const command of [
-    'rm -rf .worktrees/99-other',
-    'rm -rf .worktrees/44-ledger-tax/node_modules',
+    'rm -rf .claude/worktrees/99-other',
+    'rm -rf .claude/worktrees/44-ledger-tax/node_modules',
   ])
     expect(
       (await call($, { tool: 'Bash', tool_use_id: 'b2', command })).deny,
@@ -261,7 +261,7 @@ test('a finished agent is written as done, and its worktree is not defended', as
   const removal = await call($, {
     tool: 'Bash',
     tool_use_id: 'b1',
-    command: 'git worktree remove .worktrees/43-export-button',
+    command: 'git worktree remove .claude/worktrees/43-export-button',
   })
   expect(removal.deny).toBeUndefined()
 })
@@ -327,7 +327,7 @@ test('a stale record from another session does not hold a slot', async ($, on) =
         ticket: '#43',
         name: 'craftory-43',
         branch: 'craftory/43-export-button',
-        worktree: '.worktrees/43-export-button',
+        worktree: '.claude/worktrees/43-export-button',
         tokens: 100,
         budget: 80_000,
         outcome: 'running',

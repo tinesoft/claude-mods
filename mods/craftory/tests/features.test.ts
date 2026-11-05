@@ -51,7 +51,7 @@ const agent = (over: Partial<AgentRecord> = {}): AgentRecord => ({
   ticket: ref(44),
   name: 'tdd-44',
   branch: 'craftory/44-x',
-  worktree: '.worktrees/44-x',
+  worktree: '.claude/worktrees/44-x',
   tokens: 100,
   budget: 80_000,
   outcome: 'running',

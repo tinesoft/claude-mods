@@ -146,8 +146,8 @@ test('a rebase conflict notice names the worktree and offers Resolve', () => {
     kind: 'rebase-conflict',
     id: 'conflict-#45',
     ticket: '#45' as IssueRef,
-    worktree: '.worktrees/45-date-filter',
+    worktree: '.claude/worktrees/45-date-filter',
   })
-  expect(view?.text).toBe('Rebase conflict in .worktrees/45-date-filter · agent stopped')
+  expect(view?.text).toBe('Rebase conflict in .claude/worktrees/45-date-filter · agent stopped')
   expect(view?.actions.map(a => a.label)).toEqual(['Resolve', 'Dismiss'])
 })

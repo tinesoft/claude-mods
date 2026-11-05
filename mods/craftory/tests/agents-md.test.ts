@@ -20,7 +20,7 @@ import { AGENT_DOCS, type FileWrite } from '../src/files'
 import type { AgentSetup } from '../types'
 import { UPSTREAM_FIXTURES as up } from './upstream-fixtures'
 
-const OPTIONS = { worktreeFolder: '.worktrees/', localFolder: 'docs/issues/' }
+const OPTIONS = { worktreeFolder: '.claude/worktrees/', localFolder: 'docs/issues/' }
 const EMPTY: SetupFiles = {
   tracker: null,
   triage: null,
@@ -64,7 +64,7 @@ test('a GitHub setup writes the upstream templates byte for byte', () => {
   expect(textOf(writes, AGENT_DOCS.tracker)).toBe(up['issue-tracker-github.md'])
   expect(textOf(writes, AGENT_DOCS.triage)).toBe(up['triage-labels.md'])
   expect(textOf(writes, AGENT_DOCS.domain)).toBe(up['domain.md'])
-  expect(textOf(writes, '.gitignore')).toBe('.worktrees/\n')
+  expect(textOf(writes, '.gitignore')).toBe('.claude/worktrees/\n')
 })
 
 test('GitLab writes its template, and the PRs flag changes only that line', () => {
@@ -202,7 +202,7 @@ test('hand-edited docs that already say the same thing are not rewritten', () =>
     triage: up['triage-labels.md']!.replace('Edit the right-hand', 'Please edit the right-hand'),
     domain: `${up['domain.md']}\nExtra.\n`,
     claudeMd: renderAgentSkillsBlock(GITHUB, 'docs/issues/'),
-    gitignore: 'node_modules\n.worktrees/\n',
+    gitignore: 'node_modules\n.claude/worktrees/\n',
   }
   expect(planSetup(GITHUB, files, OPTIONS)).toEqual([])
 })
@@ -218,19 +218,26 @@ test('every planned write carries the text it was planned against', () => {
   expect(writes.find(w => w.path === '.gitignore')).toEqual({
     path: '.gitignore',
     before: 'dist\n',
-    after: 'dist\n.worktrees/\n',
+    after: 'dist\n.claude/worktrees/\n',
   })
   expect(writes.find(w => w.path === AGENT_DOCS.tracker)?.before).toBeNull()
   expect(writes.find(w => w.path === 'CLAUDE.md')?.before).toBe('# T\n')
 })
 
 test('.gitignore gets the worktrees line once, however it is already spelled', () => {
-  expect(ensureGitignore(null, '.worktrees/')).toBe('.worktrees/\n')
-  expect(ensureGitignore('dist', '.worktrees/')).toBe('dist\n.worktrees/\n')
-  for (const has of ['.worktrees/\n', '.worktrees\n', '/.worktrees/\n', 'a\r\n.worktrees/\r\n']) {
-    expect(ensureGitignore(has, '.worktrees/')).toBe(has)
+  expect(ensureGitignore(null, '.claude/worktrees/')).toBe('.claude/worktrees/\n')
+  expect(ensureGitignore('dist', '.claude/worktrees/')).toBe('dist\n.claude/worktrees/\n')
+  for (const has of [
+    '.claude/worktrees/\n',
+    '.claude/worktrees\n',
+    '/.claude/worktrees/\n',
+    'a\r\n.claude/worktrees/\r\n',
+  ]) {
+    expect(ensureGitignore(has, '.claude/worktrees/')).toBe(has)
   }
-  expect(ensureGitignore('a\r\nb\r\n', '.worktrees/')).toBe('a\r\nb\r\n.worktrees/\r\n')
+  expect(ensureGitignore('a\r\nb\r\n', '.claude/worktrees/')).toBe(
+    'a\r\nb\r\n.claude/worktrees/\r\n',
+  )
 })
 
 test('first run reads the repo signals into a draft and a sentence', () => {

@@ -60,7 +60,7 @@ test('a committed copy list cannot copy a file from outside the repo into the wo
   })
   await start($, 43, 'Export button')
   expect(copies(w.ran)).toEqual([
-    ['cp', '--', '.env.local', '.worktrees/43-export-button/.env.local'],
+    ['cp', '--', '.env.local', '.claude/worktrees/43-export-button/.env.local'],
   ])
   const words = await cardText($)
   expect(words).toContain(
@@ -80,8 +80,8 @@ test('the first run of a setup command from the committed config asks, and Run i
     'Run the setup command from .craftory/config.json in new worktrees? `make bootstrap`',
   ])
   expect(w.ranIn.filter(r => r.argv[0] === 'make').map(r => r.cwd)).toEqual([
-    '/repo/.worktrees/43-export-button',
-    '/repo/.worktrees/44-ledger-tax',
+    '/repo/.claude/worktrees/43-export-button',
+    '/repo/.claude/worktrees/44-ledger-tax',
   ])
   expect(w.store.get('setupApproved:make bootstrap')).toBe(true)
 })

@@ -104,7 +104,7 @@ test('an implementer for a ready ticket is steered into its own worktree and bra
     plan: {
       ticket: '#44',
       branch: 'craftory/44-ledger-lines-include-tax',
-      path: '.worktrees/44-ledger-lines-include-tax',
+      path: '.claude/worktrees/44-ledger-lines-include-tax',
       base: 'feat/csv',
       setup: ['pnpm', 'install', '--frozen-lockfile'],
       copy: ['.env.local', '.tool-versions'],
@@ -303,7 +303,7 @@ const record = (n: number, outcome: AgentRecord['outcome']): AgentRecord => ({
   ticket: ref(n),
   name: `craftory-${n}`,
   branch: `craftory/${n}-x`,
-  worktree: `.worktrees/${n}-x`,
+  worktree: `.claude/worktrees/${n}-x`,
   tokens: 1,
   budget: 80_000,
   outcome,
@@ -322,14 +322,14 @@ test('the cleanup plan removes merged worktrees and keeps failed, over-budget an
     records,
     merged: new Set(['#43']),
     config: DEFAULT_CONFIG,
-    running: new Set(['.worktrees/44-x']),
+    running: new Set(['.claude/worktrees/44-x']),
   })
-  expect(plan.remove).toEqual(['.worktrees/43-x'])
+  expect(plan.remove).toEqual(['.claude/worktrees/43-x'])
   expect(plan.keep).toEqual([
-    { path: '.worktrees/44-x', why: 'running' },
-    { path: '.worktrees/45-x', why: 'over-budget' },
-    { path: '.worktrees/46-x', why: 'failed' },
-    { path: '.worktrees/48-x', why: 'unmerged' },
+    { path: '.claude/worktrees/44-x', why: 'running' },
+    { path: '.claude/worktrees/45-x', why: 'over-budget' },
+    { path: '.claude/worktrees/46-x', why: 'failed' },
+    { path: '.claude/worktrees/48-x', why: 'unmerged' },
   ])
   const off = cleanupPlan({
     records,
@@ -340,7 +340,7 @@ test('the cleanup plan removes merged worktrees and keeps failed, over-budget an
     },
     running: new Set(),
   })
-  expect(off.remove).toEqual(['.worktrees/45-x', '.worktrees/46-x'])
+  expect(off.remove).toEqual(['.claude/worktrees/45-x', '.claude/worktrees/46-x'])
 })
 
 const checkout = (path: string, over: Partial<Worktree> = {}): Worktree => ({
@@ -364,8 +364,8 @@ test('only running agents behind the integration branch are told to merge the ne
   const notices = moveNotices(
     ledger,
     [
-      checkout('/repo/.worktrees/44-ledger-lines-include-tax', { behind: 2 }),
-      checkout('/repo/.worktrees/45-filter-export-by-date-range', { behind: 0 }),
+      checkout('/repo/.claude/worktrees/44-ledger-lines-include-tax', { behind: 2 }),
+      checkout('/repo/.claude/worktrees/45-filter-export-by-date-range', { behind: 0 }),
     ],
     'feat/csv',
   )
@@ -392,7 +392,7 @@ test('the rows show what the user sees: status, bar numbers, TDD step and worktr
     ledger: addQueued(ledger, ref(45)),
     records: { '#43': { ...record(43, 'done'), tokens: 48_200 } },
     worktrees: [
-      checkout('/repo/.worktrees/44-ledger-lines-include-tax', {
+      checkout('/repo/.claude/worktrees/44-ledger-lines-include-tax', {
         added: 142,
         deleted: 18,
         commits: 3,
@@ -414,7 +414,7 @@ test('the rows show what the user sees: status, bar numbers, TDD step and worktr
   expect(rows[1]).toMatchObject({
     step: 'red · test 4 of 5',
     tokens: 31_400,
-    worktree: '.worktrees/44-ledger-lines-include-tax',
+    worktree: '.claude/worktrees/44-ledger-lines-include-tax',
     branch: 'craftory/44-ledger-lines-include-tax',
     added: 142,
     deleted: 18,
