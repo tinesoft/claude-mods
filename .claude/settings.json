@@ -3,16 +3,10 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "enabledPlugins": {
-    "pstack@pstack-claude": true,
-    "cache-tax@claude-code-mods": true
+    "cache-tax@claude-code-mods": true,
+    "mattpocock-skills@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
-    "pstack-claude": {
-      "source": {
-        "source": "github",
-        "repo": "michael-denyer/pstack-claude"
-      }
-    },
     "claude-code-mods": {
       "source": {
         "source": "github",
