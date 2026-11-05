@@ -30,11 +30,11 @@
     },
     "dev": {
       "metadata": {
-        "description": "Start Claude Code with this mod loaded from its directory, for manual testing."
+        "description": "Start Claude Code with this mod loaded from the repo root, for manual testing."
       },
       "executor": "nx:run-commands",
       "cache": false,
-      "options": { "command": "claude --plugin-dir .", "cwd": "{projectRoot}" }
+      "options": { "command": "claude --plugin-dir {projectRoot}", "cwd": "{workspaceRoot}" }
     }
   }
 }
