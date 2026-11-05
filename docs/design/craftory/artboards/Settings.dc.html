@@ -313,8 +313,8 @@ class Component extends DCLogic {
         pick: function () { self.setState({ tracker: t.id }); } };
     });
     var roles = [['needs-triage', 'Needs triage'], ['needs-info', 'Needs info'], ['ready-for-agent', 'Ready for agent'], ['ready-for-human', 'Ready for human'], ['wontfix', 'Won’t fix']].map(function (r) { return { id: 'role-' + r[0], role: r[1], label: r[0] }; });
-    var steerSel = st.steer || 'AGENTS.md';
-    var steer = ['AGENTS.md', 'CLAUDE.md'].map(function (s) { var on = s === steerSel; return { label: s, aria: on ? 'true' : 'false', bg: on ? 'var(--surface)' : 'transparent', shadow: on ? '0 1px 2px rgba(23,24,28,0.12)' : 'none', pick: function () { self.setState({ steer: s }); } }; });
+    var steerSel = st.steer || 'CLAUDE.md';
+    var steer = ['CLAUDE.md', 'AGENTS.md'].map(function (s) { var on = s === steerSel; return { label: s, aria: on ? 'true' : 'false', bg: on ? 'var(--surface)' : 'transparent', shadow: on ? '0 1px 2px rgba(23,24,28,0.12)' : 'none', pick: function () { self.setState({ steer: s }); } }; });
     var BASE = [
       { term: 'Invoice run', def: 'One batch of invoices generated for a billing period.', avoid: 'billing job', isNew: true },
       { term: 'Ledger line', def: 'A single priced row on an invoice, after tax.', avoid: 'line item, entry', isNew: true },
@@ -392,7 +392,7 @@ class Component extends DCLogic {
       addTerm: function () { if (!draft.term) return; self.setState({ terms: list.concat([{ term: draft.term, def: draft.def, avoid: draft.avoid || '—', isNew: true }]), draft: { term: '', def: '', avoid: '' } }); },
       pipeline: pipeline, onCount: onCount, helperGroups: helperGroups, entries: entries,
       autos: autos, wtOpts: wtOpts,
-      reset: function () { self.setState({ wo: null, en: null, tracker: 'local', steer: 'AGENTS.md', terms: BASE, draft: { term: '', def: '', avoid: '' }, phOn: null, gates: null, au: null, rail: true }); }
+      reset: function () { self.setState({ wo: null, en: null, tracker: 'local', steer: 'CLAUDE.md', terms: BASE, draft: { term: '', def: '', avoid: '' }, phOn: null, gates: null, au: null, rail: true }); }
     };
   }
 }

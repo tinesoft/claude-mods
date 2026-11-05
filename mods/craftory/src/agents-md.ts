@@ -87,7 +87,7 @@ export function readSetup(files: SetupFiles): Loaded<AgentSetup> {
     tracker: parseTrackerDoc(files.tracker),
     triage: files.triage === null ? null : parseTriageLabels(files.triage),
     docs: files.domain === null ? DEFAULT_DOCS : parseDomainDoc(files.domain),
-    steering: steeringWithBlock(files) ?? steeringOf(files) ?? 'AGENTS.md',
+    steering: steeringWithBlock(files) ?? steeringOf(files) ?? 'CLAUDE.md',
   }
   return { state: 'ok', value, raw: files.tracker }
 }
@@ -302,7 +302,7 @@ export function draftSetup(signals: SetupSignals): AgentSetup {
     tracker,
     triage: signals.hasTriageSkill ? { ...DEFAULT_LABELS } : null,
     docs: DEFAULT_DOCS,
-    steering: signals.steering ?? 'AGENTS.md',
+    steering: signals.steering ?? 'CLAUDE.md',
   }
 }
 

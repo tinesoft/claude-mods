@@ -141,7 +141,7 @@ the rail switch. Sections and where each value is written:
 | --- | --- | --- |
 | Entry points | triage on/off and entry phase; wayfinder suggestion | `.craftory/config.json` |
 | Issue tracker | Local Markdown, GitHub, GitLab or Other, with their fields; triage label per role | `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md` |
-| Docs layout | glossary file, ADR folder, research notes, steering file (AGENTS.md or CLAUDE.md) | `docs/agents/domain.md` and the `## Agent skills` block of the steering file |
+| Docs layout | glossary file, ADR folder, research notes, steering file (CLAUDE.md by default, or AGENTS.md) | `docs/agents/domain.md` and the `## Agent skills` block of the steering file |
 | Glossary | add, edit, delete terms (term, definition, avoid); import from CONTEXT.md | `GLOSSARY.md` |
 | Pipeline | phase on/off, command choice, gate per phase; helpers shown read-only | `.craftory/config.json` |
 | Worktrees | folder, integration branch, ticket branch, max parallel, token budget, setup command, files to copy, four switches | `.craftory/config.json` |

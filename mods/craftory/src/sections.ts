@@ -296,14 +296,14 @@ const DOCS_ROWS: readonly SettingsRow[] = [
     file: 'steering',
     control: 'choice',
     options: () => [
-      ['AGENTS.md', 'AGENTS.md'],
       ['CLAUDE.md', 'CLAUDE.md'],
+      ['AGENTS.md', 'AGENTS.md'],
     ],
     read: f => f.setup.steering,
     write: value => ({
       setup: s => ({
         ...s,
-        steering: value === 'CLAUDE.md' ? 'CLAUDE.md' : 'AGENTS.md',
+        steering: value === 'AGENTS.md' ? 'AGENTS.md' : 'CLAUDE.md',
       }),
     }),
   },

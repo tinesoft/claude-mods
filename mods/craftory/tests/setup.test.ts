@@ -104,15 +104,15 @@ test('after setup the first-run notice is gone', async ($, on) => {
   expect(await allText(await mountBand($))).not.toContain('No docs/agents/')
 })
 
-test('without a remote it sets up the local tracker, and creates AGENTS.md only when no steering file exists', async ($, on) => {
+test('without a remote it sets up the local tracker, and creates CLAUDE.md only when no steering file exists', async ($, on) => {
   const w = world(on, { commands: mattCommands('to-spec'), plugins: IN_RANGE })
   await startSession($)
   await (await openSettings($)).press({ key: 'pane-write-setup' })
   expect(w.files.get('docs/agents/issue-tracker.md')).toContain('# Issue tracker: Local Markdown')
   expect(w.files.get('docs/agents/issue-tracker.md')).toContain('`docs/issues/<n>-<slug>.md`')
   expect(w.files.has('docs/agents/triage-labels.md')).toBe(false)
-  expect(w.files.get('AGENTS.md')).toContain('## Agent skills')
-  expect(w.files.has('CLAUDE.md')).toBe(false)
+  expect(w.files.get('CLAUDE.md')).toContain('## Agent skills')
+  expect(w.files.has('AGENTS.md')).toBe(false)
 })
 
 test('AGENTS.md is edited when it is the only steering file, and CLAUDE.md is not created', async ($, on) => {

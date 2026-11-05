@@ -245,7 +245,7 @@ test('first run reads the repo signals into a draft and a sentence', () => {
     tracker: { kind: 'github', prsAsRequests: false },
     triage: DEFAULT_LABELS,
     docs: DEFAULT_DOCS,
-    steering: 'AGENTS.md',
+    steering: 'CLAUDE.md',
   })
   expect(firstRunText(signals)).toBe('No docs/agents/ yet. Found a GitHub remote and CONTEXT.md.')
   const bare = { ...signals, remoteHost: null, hasContextMd: false, hasTriageSkill: false }
