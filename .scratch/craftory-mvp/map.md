@@ -25,6 +25,7 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 - [Which SDLC behaviors get enforced vs. guided](issues/06-enforced-vs-guided.md): designed hooks cover the workflow softly; add opt-in deny rules, a test-run-on-turn-complete hook and an unmet-Done-when nudge; mod hooks only.
 - [Frontier in the Tickets tab](issues/07-tickets-tab-frontier.md): a map card above the Inbox (Takeable, Claimed, Blocked, collapsed Decided); Work next ticket in its header, disabled when nothing is takeable.
 - [What the three automations do](issues/10-automations-behavior.md): off by default, each a band notice plus a click that submits the skill, once per session or Feature; last architecture run kept in git-ignored `.craftory/state.json`.
+- [Details of the added hooks](issues/11-hook-details.md): test command from `worktrees.test`, run after a Build implementer's final turn; once-per-phase unmet-Done-when nudge; deny rules `skipGate` and `editOnIntegrationBranch`, all opt-in.
 
 ## Not yet specified
 
