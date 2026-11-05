@@ -115,7 +115,15 @@ bar is the skill colour, amber from 80% and danger at 100%.
 surface allows; the rail hides while it is open. Tabs:
 
 1. **Flow**: the seven phases as a vertical list with their command and a one-line result.
-2. **Tickets**: tracker header (`Local Markdown · docs/issues/ · Open folder`), the **Inbox** (triage
+2. **Tickets**: tracker header (`Local Markdown · docs/issues/ · Open folder`), then the **map card**
+   when a Map is attached: kicker naming the source (`Wayfinder · Local · .scratch/billing-v2`,
+   `Wayfinder · GitHub · #12`) with the map switcher; `3 decided · 2 open (1 claimed)` and **Work next
+   ticket** in the header; the groups **Takeable**, **Claimed** (with assignee) and **Blocked**
+   (`waits on <ticket name>`); **Decided (n)** collapsed; **Open map**. With nothing takeable, **Work
+   next ticket** stays but is disabled with the hint "Nothing takeable"; with no open tickets the card
+   reads "No open tickets · Route clear?" (plus a hint when Not yet specified is non-empty). A stale
+   `map` link hides the card and shows a quiet "Map not found" line. Rows link to the tracker. Then
+   the **Inbox** (triage
    roles, `/triage #51`, `Start feature`), then the spec's tickets with status, blocking edges and
    `/implement #n` on ready ones, and `/implement-spec #42 · run all in parallel`.
 3. **Worktrees**: your checkout, the integration worktree, one per running agent, stale ones, each

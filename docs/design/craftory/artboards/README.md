@@ -1,7 +1,7 @@
 # craftory: artboards
 
 A copy of the boards of the Craftory design canvas
-(https://claude.ai/artifact/4DU8JVRxfgtaKVKQcVkrbw, owner access), taken on Oct 25, 2026 and refreshed on Nov 4, 2026 with the wayfinder parent chip.
+(https://claude.ai/artifact/4DU8JVRxfgtaKVKQcVkrbw, owner access), taken on Oct 25, 2026 and refreshed on Nov 5, 2026 with the wayfinder parent chip and the Tickets tab map card.
 
 These are a **visual and behavioural reference, not code to port**. Each file is a self-contained
 Design Component page: the markup shows layout, copy and colour tokens, and the
@@ -12,7 +12,7 @@ canvas to click through them.
 | File | Board | Size | Interactive |
 | --- | --- | --- | --- |
 | `Main.dc.html` | SDLC phase rail above the prompt bar, Build open with live agents and worktrees; the wayfinder chip, its frontier card and the collapsed summary | 1280 × 1080 | yes |
-| `Panel.dc.html` | Craftory pane beside the chat: flow, tickets with inbox, worktrees, glossary, settings | 1280 × 900 | yes |
+| `Panel.dc.html` | Craftory pane beside the chat: flow, tickets with the wayfinder map card and inbox, worktrees, glossary, settings | 1280 × 900 | yes |
 | `Settings.dc.html` | Settings tab of the `/craftory` pane: entry points, tracker, docs, glossary, pipeline, worktrees | 1280 × 3600 | yes |
 | `States.dc.html` | Phase states, rail variants (plugin missing, first run, entering from triage, wayfinder), glossary, toasts | 1280 × 1900 | no |
 | `Mobile.dc.html` | Mobile: wayfinder chip and scrolling SDLC phase rail | 390 × 844 | no |

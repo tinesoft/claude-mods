@@ -23,10 +23,10 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 - [When the mod suggests /wayfinder](issues/08-wayfinder-suggest-trigger.md): a band notice once the Align grill passes a configurable 12 questions; dismissed per Feature; offers Attach when an unattached open map exists.
 - [Evidence rules for a map](issues/09-map-evidence.md): state comes from tracker structure only, never skill prose; no "destination reached" state, just "No open tickets"; a stale `map` link is shown quietly and never rewritten.
 - [Which SDLC behaviors get enforced vs. guided](issues/06-enforced-vs-guided.md): designed hooks cover the workflow softly; add opt-in deny rules, a test-run-on-turn-complete hook and an unmet-Done-when nudge; mod hooks only.
+- [Frontier in the Tickets tab](issues/07-tickets-tab-frontier.md): a map card above the Inbox (Takeable, Claimed, Blocked, collapsed Decided); Work next ticket in its header, disabled when nothing is takeable.
 
 ## Not yet specified
 
-- Wayfinder fixtures: per-tracker fixtures pinned to mattpocock-skills 1.3.x, once the evidence rules and Tickets-tab design are decided.
 - Release bar: live client check (band, pane, hover cards, `$.ui.ask` in a Skill hook, `TaskStop`, glyph widths, Desktop/VS Code/mobile light and dark), end-to-end Local-tracker fixture run, README screenshots.
 - Cleanup: close O1 and O2, tick the stale M0/M2/M3 boxes in `plan.md`, settle `docs/issues` vs `.scratch` as the Local default, commit the pending glossary and agent docs.
 - Cloud summary follow-ups: align DESIGN.md and the README on chat and `claude -p` replies, test the "No feature in flight" and unsupported-version branches, optionally name the next action.

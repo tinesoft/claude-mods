@@ -77,6 +77,39 @@ button{font:inherit}
     <sc-if value="{{isTickets}}" hint-placeholder-val="{{ true }}">
       <div style="padding: 12px 18px 18px; display: flex; flex-direction: column; gap: 10px">
         <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.5h5.5l2.5 2.5v10.5h-8zM9.5 1.5V4H12M6 8h4M6 10.5h4"></path></svg><span style="flex-grow: 1">Local Markdown · <span class="mono">docs/issues/</span></span><button style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer">Open folder</button></div>
+        <sc-if value="{{map.show}}" hint-placeholder-val="{{ true }}">
+        <section aria-label="Wayfinder map" style="border: 1px solid var(--skill-bd); border-radius: 10px; overflow: hidden; background: var(--surface)">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px 8px 12px; background: var(--skill-bg); border-bottom: 1px solid var(--skill-bd)">
+            <span class="mono" style="flex-grow: 1; min-width: 0; font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--skill-fg); overflow-wrap: anywhere">Wayfinder · Local · .scratch/billing-v2</span>
+            <label for="mapsw" class="sr">Active map</label>
+            <select id="mapsw" style="height: 30px; border-radius: 7px; border: 1px solid var(--skill-bd); background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px; padding: 0 8px"><option>Billing v2</option><option>Export revamp</option></select>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 10px 8px 12px">
+            <div style="flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">{{map.summary}}</span><span style="font-size: 12.5px; color: var(--text-2)">{{map.hint}}</span></div>
+            <button aria-disabled="{{map.workDisabled}}" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 0; background: var(--inverse-bg); color: var(--on-ink); font-size: 12.5px; cursor: pointer; opacity: {{map.workOpacity}}">Work next ticket</button>
+          </div>
+          <ul style="list-style: none; margin: 0; padding: 0 12px 4px">
+            <sc-for list="{{map.rows}}" as="r" hint-placeholder-count="6">
+              <li style="display: flex; align-items: flex-start; gap: 8px; padding: {{r.pad}}; border-top: {{r.top}}">
+                <sc-if value="{{r.isHead}}" hint-placeholder-val="{{ false }}"><span style="font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted)">{{r.label}}</span></sc-if>
+                <sc-if value="{{r.isRow}}" hint-placeholder-val="{{ true }}">
+                  <span aria-hidden="true" class="mono" style="width: 16px; flex-shrink: 0; font-size: 12.5px; color: {{r.fg}}; padding-top: 1px">{{r.mark}}</span>
+                  <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 13.5px; font-weight: 600; line-height: 1.4">{{r.title}}</span><span style="font-size: 12px; color: var(--text-2)"><span class="mono">{{r.type}}</span>{{r.note}}</span></div>
+                </sc-if>
+              </li>
+            </sc-for>
+          </ul>
+          <details style="border-top: 1px solid var(--line-soft)">
+            <summary style="padding: 9px 12px; font-size: 12.5px; color: var(--text-2); cursor: pointer">Decided ({{map.decidedCount}})</summary>
+            <ul style="list-style: none; margin: 0; padding: 0 12px 8px">
+              <sc-for list="{{map.decided}}" as="d" hint-placeholder-count="3">
+                <li style="display: flex; align-items: flex-start; gap: 8px; padding: 5px 0"><span aria-hidden="true" class="mono" style="width: 16px; font-size: 12.5px; color: var(--perm-fg)">✓</span><span style="font-size: 13px; line-height: 1.4">{{d.title}}</span></li>
+              </sc-for>
+            </ul>
+          </details>
+          <div style="display: flex; padding: 8px 12px 10px; border-top: 1px solid var(--line-soft)"><button style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer">Open map</button></div>
+        </section>
+        </sc-if>
         <section aria-label="Inbox" style="border: 1px solid var(--line); border-radius: 10px; overflow: hidden">
           <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line-soft); font-size: 12.5px"><span style="font-weight: 600">Inbox</span><span style="color: var(--text-2); flex-grow: 1">Issues from outside the flow · triage roles</span></div>
           <ul style="list-style: none; margin: 0; padding: 0">
@@ -183,7 +216,7 @@ button{font:inherit}
   </aside>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"mapState":{"editor":"enum","options":["ready","nothingTakeable","routeClear"],"default":"ready"},"$preview":{"width":1280,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
     var self = this;
@@ -231,6 +264,35 @@ class Component extends DCLogic {
         blocked: k.s === 'blocked', by: k.by || '', ready: k.s === 'ready',
         bd: k.s === 'running' ? 'var(--skill-bd)' : 'var(--line)', bg: 'var(--surface)' };
     });
+    var MS = this.props.mapState || 'ready';
+    var MT = [
+      { id: '07', title: 'Frontier in the Tickets tab', type: 'prototype', g: 'takeable' },
+      { id: '10', title: 'What the three automations do', type: 'grilling', g: 'claimed', who: '@tine' },
+      { id: '11', title: 'Details of the added hooks', type: 'grilling', g: 'blocked', by: 'Which SDLC behaviors get enforced vs. guided' }
+    ];
+    if (MS === 'nothingTakeable') MT = MT.slice(1);
+    if (MS === 'routeClear') MT = [];
+    var GL = { takeable: 'Takeable', claimed: 'Claimed', blocked: 'Blocked' };
+    var MK = { takeable: ['▸', 'var(--skill-fg)'], claimed: ['◐', 'var(--agent-fg)'], blocked: ['⊘', 'var(--muted)'] };
+    var mrows = [];
+    ['takeable', 'claimed', 'blocked'].forEach(function (g) {
+      var items = MT.filter(function (t) { return t.g === g; });
+      if (!items.length) return;
+      mrows.push({ isHead: true, isRow: false, label: GL[g] + ' (' + items.length + ')', pad: mrows.length ? '10px 0 2px' : '2px 0 2px', top: '0' });
+      items.forEach(function (t) {
+        mrows.push({ isHead: false, isRow: true, mark: MK[g][0], fg: MK[g][1], title: t.title, type: t.type,
+          note: t.who ? ' · claimed by ' + t.who : (t.by ? ' · waits on ' + t.by : ''), pad: '4px 0', top: '0' });
+      });
+    });
+    var takeable = MT.filter(function (t) { return t.g === 'takeable'; }).length;
+    var claimed = MT.filter(function (t) { return t.g === 'claimed'; }).length;
+    var open = MT.length;
+    var map = { show: true, rows: mrows, decidedCount: 3,
+      decided: [{ title: 'Parent rail layout' }, { title: 'Local maps when the tracker is remote' }, { title: 'Evidence rules for a map' }],
+      summary: open ? '3 decided · ' + open + ' open' + (claimed ? ' (' + claimed + ' claimed)' : '') : 'No open tickets · Route clear?',
+      hint: open ? (takeable ? '' : 'Nothing takeable · ' + claimed + ' claimed, ' + (open - claimed) + ' blocked') : 'Not yet specified still has items',
+      workDisabled: takeable ? 'false' : 'true', workOpacity: takeable ? '1' : '0.45' };
+    if (!open) { map.workOpacity = '0.45'; }
     var G = [
       { term: 'Invoice run', def: 'One batch of invoices generated for a billing period.', avoid: 'billing job, invoice batch', isNew: true },
       { term: 'Ledger line', def: 'A single priced row on an invoice, after tax.', avoid: 'line item, entry', isNew: true },
@@ -267,7 +329,7 @@ class Component extends DCLogic {
       roleFg: b.role === 'ready-for-agent' ? 'var(--skill-fg)' : (b.role === 'ready-for-human' ? 'var(--hook-fg)' : 'var(--text-2)') }; });
     var used = [G[1], G[2]].map(function (g) { return { term: g.term, def: g.def }; });
     var terms = G.map(function (g, i) { return { term: g.term, def: g.def, avoid: g.avoid, hasAvoid: !!g.avoid, isNew: !!g.isNew, divider: i === 0 ? '0' : '1px solid var(--line-soft)' }; });
-    return { theme: this.props.theme ?? 'auto', tabs: tabs, flow: flow, tickets: tickets, terms: terms,
+    return { theme: this.props.theme ?? 'auto', tabs: tabs, flow: flow, map: map, tickets: tickets, terms: terms,
       isFlow: tab === 'flow', isTickets: tab === 'tickets', isGlossary: tab === 'glossary', isWorktrees: tab === 'worktrees', isSettings: tab === 'settings', inbox: inbox, used: used,
       worktrees: worktrees };
   }

@@ -1,0 +1,41 @@
+PROTOTYPE (throwaway ASCII mockups) - ticket 07 Frontier in the Tickets tab
+
+Shared facts from earlier decisions: read-only plus submit; source in the kicker; one active map with a
+switcher; counts = decided + open (claimed included); takeable first, then claimed with assignee;
+no "destination reached", only "No open tickets" / "Route clear?".
+
+== A. Map section on top, then Inbox, then feature tickets ==
+  Local Markdown · .scratch/ · Open folder
+  ┌ Wayfinder · Local · .scratch/billing-v2   [Billing v2 ▾] ┐
+  │ 3 decided · 2 open (1 claimed)        [Work next ticket] │
+  │ Takeable                                                 │
+  │   ▸ 07 Frontier in Tickets tab (prototype)               │
+  │ Claimed                                                  │
+  │   ◐ 10 Automations (grilling) · @tine                    │
+  │ Blocked                                                  │
+  │   ⊘ 11 Hook details · waits on 06                        │
+  │ Decided (3) ▸                                            │
+  │ [Open map]                                               │
+  └──────────────────────────────────────────────────────────┘
+  Inbox (2) ...
+  Export invoices as CSV · tickets ...
+
+== B. Sub-tabs inside Tickets: [Map] [Inbox] [Feature]; Map is the first ==
+  Tickets   ● Map 2 open │ Inbox 2 │ Export invoices 5
+  (Map pane body is the card from A, full height)
+
+== C. Single flat list, map tickets grouped under a map header, like feature tickets ==
+  ◆ Billing v2 (Local) 3✓ 2?   [Work next ticket] [Open map]
+     ▸ 07 Frontier in Tickets tab      takeable
+     ◐ 10 Automations                  @tine
+     ✓ 06 Enforced vs guided           decided   (collapsed by default)
+  ▣ Export invoices as CSV
+     #41 ready  /implement #41 ...
+
+== Edge states (any variant) ==
+no ready ticket, some claimed:
+  Takeable: none · 1 claimed by @tine · 1 blocked      [Work next ticket] disabled, hint "Nothing takeable"
+no open tickets:
+  No open tickets · Route clear?  (hint: "Not yet specified is not empty" when so)   [Open map]
+GitHub / GitLab: kicker `Wayfinder · GitHub · #12`; rows link to issues; blocked shows native blocker name.
+No map attached/found: section hidden (quiet "Map not found" line for a stale link).
