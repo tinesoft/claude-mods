@@ -2,7 +2,6 @@
 
 Type: prototype
 Status: open
-Blocked by: 09
 
 ## Question
 

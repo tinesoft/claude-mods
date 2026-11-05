@@ -20,6 +20,8 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 - [Local maps when the tracker is remote](issues/05-scratch-when-tracker-is-remote.md): read the configured tracker plus Local `.scratch` maps; source shown in the card kicker; one chip for the active map with a switcher.
 - [Does summary.ts cover the cloud text summary](issues/12-cloud-summary.md): yes; gaps are doc alignment for chat and `-p`, two untested branches, and optional next-action detail.
 
+- [When the mod suggests /wayfinder](issues/08-wayfinder-suggest-trigger.md): a band notice once the Align grill passes a configurable 12 questions; dismissed per Feature; offers Attach when an unattached open map exists.
+- [Evidence rules for a map](issues/09-map-evidence.md): state comes from tracker structure only, never skill prose; no "destination reached" state, just "No open tickets"; a stale `map` link is shown quietly and never rewritten.
 - [Which SDLC behaviors get enforced vs. guided](issues/06-enforced-vs-guided.md): designed hooks cover the workflow softly; add opt-in deny rules, a test-run-on-turn-complete hook and an unmet-Done-when nudge; mod hooks only.
 
 ## Not yet specified
