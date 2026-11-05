@@ -92,7 +92,7 @@ Variants (`States.dc.html`):
 - **First run**: "No `docs/agents/` yet. Found a GitHub remote and CONTEXT.md. · Set up Craftory".
 - **No feature in flight**: "Start a feature: talk it through first. · `/grill-with-docs`".
 - **Collapsed summary**: one chip, `Export invoices as CSV · Build 2/5`, for narrow bands or by choice.
-- **Wayfinder**: a parent chip `Billing v2 · 3 decided · 2 open` in the same row, left of the phases. Pressing it opens a frontier card above the rail (destination, takeable tickets, **Work next ticket**, **Open map**) that replaces any open phase card. In the collapsed summary the chip leads: `Billing v2 3✓ 2? › Export invoices · Build 2/5`.
+- **Wayfinder**: a parent chip `Billing v2 · 3 decided · 2 open` in the same row, left of the phases. Pressing it opens a frontier card above the rail (kicker names the map source, `Wayfinder · Local · .scratch/billing-v2` or `Wayfinder · GitHub · #12`; destination, takeable tickets, **Work next ticket**, **Open map**, and a switcher when several maps exist) that replaces any open phase card. In the collapsed summary the chip leads: `Billing v2 3✓ 2? › Export invoices · Build 2/5`.
 - **Entered from triage**: earlier phases struck through, the entry phase up next with the issue id.
 
 ## Detail card

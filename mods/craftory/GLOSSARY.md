@@ -38,6 +38,16 @@ _Avoid_: Block, guard
 The unit that runs through all seven phases, from a title at the start to retro at the end. Exists before it has a Spec.
 _Avoid_: Epic, project
 
+**Map**:
+A wayfinder effort for large work: a destination, the decisions made so far and the tickets still open. It sits before the Specs it produces, and a Feature may name one as its parent.
+_Avoid_: Roadmap, epic
+
+**Map source**:
+Where a Map lives: the configured tracker, or Local Markdown under `.scratch/`. A repo can hold Maps from both.
+
+**Active map**:
+The Map the chip shows: the one the active Feature names, else the most recently updated open one.
+
 **Issue**:
 An item on the tracker that has not been triaged into a Spec or a Ticket.
 
