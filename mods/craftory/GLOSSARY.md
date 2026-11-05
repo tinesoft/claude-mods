@@ -45,6 +45,10 @@ _Avoid_: Roadmap, epic
 **Map source**:
 Where a Map lives: the configured tracker, or Local Markdown under `.scratch/`. A repo can hold Maps from both.
 
+**Decision ticket**:
+A child of a Map holding a question whose answer is a decision, not a slice of work. It is takeable, claimed, blocked or decided, and never gets an implementer.
+_Avoid_: Ticket (that is a child of a Spec)
+
 **Active map**:
 The Map the chip shows: the one the active Feature names, else the most recently updated open one.
 
