@@ -18,18 +18,16 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 - [Equal tracker support](issues/03-tracker-parity.md): Local, GitHub and GitLab each get a reader behind one shared model; Other is links only.
 - [Parent rail layout](issues/04-rail-layout.md): one chip in the single-row rail opens a frontier card above it; collapsed summary on narrow bands; chip heads the mobile Flow tab.
 - [Local maps when the tracker is remote](issues/05-scratch-when-tracker-is-remote.md): read the configured tracker plus Local `.scratch` maps; source shown in the card kicker; one chip for the active map with a switcher.
+- [Does summary.ts cover the cloud text summary](issues/12-cloud-summary.md): yes; gaps are doc alignment for chat and `-p`, two untested branches, and optional next-action detail.
 
 - [Which SDLC behaviors get enforced vs. guided](issues/06-enforced-vs-guided.md): designed hooks cover the workflow softly; add opt-in deny rules, a test-run-on-turn-complete hook and an unmet-Done-when nudge; mod hooks only.
 
 ## Not yet specified
 
-- Hooks added by the enforced-vs-guided decision: the test-command source and trigger for the `turn.complete` test run, the Done-when nudge wording and when it fires, and the config shape for opt-in deny rules (which rules exist).
-
-- Wayfinder: a frontier list and "work next ticket" button in the Tickets tab, the `entry.wayfinder.suggest` trigger, evidence rules for a map, the map switcher in the card (several maps), per-tracker fixtures pinned to mattpocock-skills 1.3.x.
-- Automations: what each of handoff at 80%, retro on PR and the weekly architecture check does exactly, and the "last run over 7 days" trigger.
-- Cloud text summary: confirm `summary.ts` already covers it.
+- Wayfinder fixtures: per-tracker fixtures pinned to mattpocock-skills 1.3.x, once the evidence rules and Tickets-tab design are decided.
 - Release bar: live client check (band, pane, hover cards, `$.ui.ask` in a Skill hook, `TaskStop`, glyph widths, Desktop/VS Code/mobile light and dark), end-to-end Local-tracker fixture run, README screenshots.
 - Cleanup: close O1 and O2, tick the stale M0/M2/M3 boxes in `plan.md`, settle `docs/issues` vs `.scratch` as the Local default, commit the pending glossary and agent docs.
+- Cloud summary follow-ups: align DESIGN.md and the README on chat and `claude -p` replies, test the "No feature in flight" and unsupported-version branches, optionally name the next action.
 - README and Settings wording once the "not built" limits are lifted.
 
 ## Out of scope
