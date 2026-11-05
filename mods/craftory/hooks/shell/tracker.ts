@@ -7,7 +7,7 @@ import {
   TRACKERS,
 } from '../../src/tracker'
 import type { RepoSnapshot } from '../../types'
-import { readText } from './repo'
+import { listDir, readText } from './repo'
 
 const TRACKER_TIMEOUT_MS = 20_000
 
@@ -25,7 +25,7 @@ function executeReads($: EngineInterface, reads: readonly Read[]) {
     reads.map(async (item): Promise<ReadResult> => {
       switch (item.kind) {
         case 'list': {
-          const entries = await $.fs.list(item.dir).catch(() => null)
+          const entries = await listDir($, item.dir).catch(() => null)
           return {
             kind: 'list',
             entries:

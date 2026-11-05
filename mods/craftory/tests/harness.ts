@@ -56,7 +56,7 @@ const LET_REFRESH_RUN_MS = 1_500
 export const world = (on: On, options: WorldOptions = {}) => {
   const files = new Map(Object.entries(options.files ?? {}))
   /** A relative path reaches the hooks resolved against the session's folder, which is the plugin's here. */
-  const rel = (path: string) => path.replace(/^\/.*?\/craftory\//, '')
+  const rel = (path: string) => path.replace(/^\/repo\//, '').replace(/^\/.*?\/craftory\//, '')
   const dirs = (path: string) => rel(path).replace(/\/$/, '')
   const clock = mock.clock(on, { now: options.now ?? 1_000_000 })
   clockInUse = clock
@@ -216,6 +216,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
       value: { exitCode, stdout, stderr, isStdoutTruncated: false, isStderrTruncated: false },
     })
     const [a, b, c] = e.argv
+    if (a === 'git' && b === 'rev-parse' && c === '--show-toplevel') return done(0, '/repo\n')
     if (a === 'git' && b === 'remote') {
       return options.remote === undefined
         ? done(2, '', 'no remote')

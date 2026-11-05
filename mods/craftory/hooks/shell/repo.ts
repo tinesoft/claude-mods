@@ -51,12 +51,32 @@ export function installOf($: EngineInterface) {
   return read($, installState)
 }
 
-export function readText($: EngineInterface, path: string): Promise<string | null> {
-  return $.fs.read(path).catch(() => null)
+/**
+ * The engine resolves a relative path against the session's directory, which is not always the
+ * repo root, so every repo file is addressed from the root git reports. Without git it stays
+ * relative.
+ */
+export async function repoRoot($: EngineInterface): Promise<string | null> {
+  const top = await sh($, ['git', 'rev-parse', '--show-toplevel'], { timeoutMs: PROBE_TIMEOUT_MS })
+  const root = top?.exitCode === 0 ? top.stdout.trim() : ''
+  return root === '' ? null : root
 }
 
-export function exists($: EngineInterface, path: string): Promise<boolean> {
-  return $.fs.exists(path).catch(() => false)
+export async function repoPath($: EngineInterface, path: string): Promise<string> {
+  const root = await repoRoot($)
+  return root === null ? path : `${root}/${path}`
+}
+
+export async function readText($: EngineInterface, path: string): Promise<string | null> {
+  return $.fs.read(await repoPath($, path)).catch(() => null)
+}
+
+export async function exists($: EngineInterface, path: string): Promise<boolean> {
+  return $.fs.exists(await repoPath($, path)).catch(() => false)
+}
+
+export async function listDir($: EngineInterface, path: string) {
+  return $.fs.list(await repoPath($, path))
 }
 
 /** `git remote get-url origin`; the desktop and mobile surfaces run no commands, so null there. */
@@ -117,11 +137,11 @@ async function readScratch($: EngineInterface): Promise<ScratchFile[]> {
     const text = await readText($, path)
     if (text !== null) found.push({ path, text })
   }
-  const features = (await $.fs.list('.scratch').catch(() => [])).filter(e => e.kind === 'dir')
+  const features = (await listDir($, '.scratch').catch(() => [])).filter(e => e.kind === 'dir')
   for (const feature of features) {
     const base = `.scratch/${feature.name}`
     await take(`${base}/spec.md`)
-    const issues = await $.fs.list(`${base}/issues`).catch(() => [])
+    const issues = await listDir($, `${base}/issues`).catch(() => [])
     for (const issue of issues)
       if (issue.kind === 'file' && issue.name.endsWith('.md'))
         await take(`${base}/issues/${issue.name}`)
@@ -130,7 +150,7 @@ async function readScratch($: EngineInterface): Promise<ScratchFile[]> {
 }
 
 export async function scratchPlan($: EngineInterface, folder: string) {
-  const taken = (await $.fs.list(folder).catch(() => []))
+  const taken = (await listDir($, folder).catch(() => []))
     .map(e => /^(\d+)-/.exec(e.name)?.[1])
     .flatMap(n => (n === undefined ? [] : [Number(n)]))
   return planScratchImport({ files: await readScratch($), taken, folder })
@@ -179,7 +199,7 @@ export async function writeRepoFile(
   if (isGuarded(op.path, ctx) && (await readText($, op.path)) !== op.before) {
     return { ok: false, reason: `${op.path} changed since it was planned` }
   }
-  await $.fs.write(op.path, op.after)
+  await $.fs.write(await repoPath($, op.path), op.after)
   return { ok: true }
 }
 

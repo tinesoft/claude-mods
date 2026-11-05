@@ -30,7 +30,7 @@ import type {
   PhaseId,
   TrackerSnapshot,
 } from '../../types'
-import { readText, writableContext, writeRepoFile } from './repo'
+import { listDir, readText, writableContext, writeRepoFile } from './repo'
 import { trackerOf } from './tracker'
 
 const MAX_SAVES = 5
@@ -54,7 +54,7 @@ export function activeKey($: EngineInterface) {
 }
 
 async function readFeatures($: EngineInterface) {
-  const entries = await $.fs.list(FEATURES_DIR).catch(() => [])
+  const entries = await listDir($, FEATURES_DIR).catch(() => [])
   const records = await Promise.all(
     entries
       .filter(entry => entry.kind === 'file' && entry.name.endsWith('.json'))

@@ -32,7 +32,7 @@ import { cleanupInputs, gitOf } from './git'
 import { ledgerOf } from './ledger'
 import { refreshGit } from './sync'
 import { copyWithToast } from './ui'
-import { exists, repoFacts, sh } from './repo'
+import { exists, repoFacts, repoRoot, sh } from './repo'
 
 const REMOVE_ANYWAY = 'Remove anyway'
 
@@ -69,9 +69,10 @@ async function approveSetup($: EngineInterface, command: string): Promise<boolea
 }
 
 export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<Seat> {
-  const root = await $.session.cwd()
+  const root = (await repoRoot($)) ?? (await $.session.cwd())
   const path = `${root}/${plan.path}`
-  const listed = await sh($, worktreeListArgv)
+  const at = { cwd: root }
+  const listed = await sh($, worktreeListArgv, at)
   if (listed === null || listed.exitCode !== 0) return { ok: false, reason: 'git is not available' }
   if (parseWorktreeList(listed.stdout).some(w => samePath(w.path, plan.path)))
     return { ok: true, isFresh: false, path, notes: [] }
@@ -80,23 +81,23 @@ export async function seatWorktree($: EngineInterface, plan: SeatPlan): Promise<
       ok: false,
       reason: `${plan.base || 'the integration branch'} is not a safe branch name`,
     }
-  const hasBranch = (await sh($, tipArgv(plan.branch)))?.exitCode === 0
-  if (!hasBranch && (await sh($, tipArgv(plan.base)))?.exitCode !== 0) {
-    const made = await sh($, branchCreateArgv(plan.base, 'HEAD'))
+  const hasBranch = (await sh($, tipArgv(plan.branch), at))?.exitCode === 0
+  if (!hasBranch && (await sh($, tipArgv(plan.base), at))?.exitCode !== 0) {
+    const made = await sh($, branchCreateArgv(plan.base, 'HEAD'), at)
     if (made === null || made.exitCode !== 0)
       return {
         ok: false,
         reason: `could not make the integration branch ${plan.base}: ${made?.stderr.trim() || 'git branch failed'}`,
       }
   }
-  const added = await sh($, worktreeAddArgv(plan.branch, plan.path, plan.base, hasBranch))
+  const added = await sh($, worktreeAddArgv(plan.branch, plan.path, plan.base, hasBranch), at)
   if (added === null || added.exitCode !== 0)
     return { ok: false, reason: added?.stderr.trim() || 'git worktree add failed' }
   const notes: string[] = []
   if (plan.rejectedCopy.length > 0)
     notes.push(`Craftory did not copy ${plan.rejectedCopy.join(', ')}: not a file inside the repo`)
   for (const file of plan.copy) {
-    if (await exists($, file)) await sh($, ['cp', '--', file, `${plan.path}/${file}`])
+    if (await exists($, file)) await sh($, ['cp', '--', file, `${plan.path}/${file}`], at)
   }
   if (plan.setup !== null) {
     const command = plan.setup.join(' ')
