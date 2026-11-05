@@ -24,6 +24,7 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 - [Evidence rules for a map](issues/09-map-evidence.md): state comes from tracker structure only, never skill prose; no "destination reached" state, just "No open tickets"; a stale `map` link is shown quietly and never rewritten.
 - [Which SDLC behaviors get enforced vs. guided](issues/06-enforced-vs-guided.md): designed hooks cover the workflow softly; add opt-in deny rules, a test-run-on-turn-complete hook and an unmet-Done-when nudge; mod hooks only.
 - [Frontier in the Tickets tab](issues/07-tickets-tab-frontier.md): a map card above the Inbox (Takeable, Claimed, Blocked, collapsed Decided); Work next ticket in its header, disabled when nothing is takeable.
+- [What the three automations do](issues/10-automations-behavior.md): off by default, each a band notice plus a click that submits the skill, once per session or Feature; last architecture run kept in git-ignored `.craftory/state.json`.
 
 ## Not yet specified
 
