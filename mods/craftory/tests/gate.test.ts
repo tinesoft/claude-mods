@@ -136,7 +136,12 @@ test('Diagnose runs diagnosing-bugs instead, and Dismiss only closes the row', a
   await startSession($)
   await submit($, '/to-tickets #1')
   await (await mountBand($)).press({ key: 'notice-diagnose-tickets' })
-  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:diagnosing-bugs', args: '' }])
+  expect(w.commandsRun).toEqual([
+    {
+      command: 'mattpocock-skills:diagnosing-bugs',
+      args: 'Tickets is gated: no spec has been published yet. Run anyway?',
+    },
+  ])
   expect(await allText(await mountBand($))).not.toContain('is gated')
   await submit($, '/to-tickets #1')
   await (await mountBand($)).press({ key: 'notice-dismiss-gate-tickets' })

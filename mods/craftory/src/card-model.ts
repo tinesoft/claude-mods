@@ -151,7 +151,13 @@ function secondaryOf(view: PhaseView, specRef: string | null, isDone: boolean): 
   if (view.phase === 'tickets' && isDone)
     return [{ id: 'open-tickets', label: 'Open in panel', action: { kind: 'open-tickets' } }]
   if (view.phase === 'build' && (kind === 'failed' || kind === 'over-budget'))
-    return [{ id: 'diagnose', label: 'Diagnose', action: { kind: 'diagnose' } }]
+    return [
+      {
+        id: 'diagnose',
+        label: 'Diagnose',
+        action: { kind: 'diagnose', about: 'Build is failing' },
+      },
+    ]
   if (view.phase === 'ship' && view.artifact !== null)
     return [{ id: 'pr', label: 'Rewrite the body with /pr', action: { kind: 'write-pr' } }]
   return []

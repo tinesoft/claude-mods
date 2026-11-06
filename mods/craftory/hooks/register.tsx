@@ -125,6 +125,17 @@ const DIAGNOSE_REASON =
 const keptReason = (path: string, why: KeepWhy) =>
   `Craftory keeps ${path}: ${KEEP_REASONS[why]}. Do not remove it. Clean up the other worktrees and leave this one.`
 
+const NOTHING_MORE = 'Nothing to add'
+
+// The skill starts from whatever it is given, so say what failed and let the user add to it.
+async function diagnoseArgs($: EngineInterface, about: string) {
+  const answer = await $.ui
+    .ask(`What should be diagnosed? ${about}.`, [`Just that: ${about}`, NOTHING_MORE])
+    .catch(() => null)
+  if (answer === null || answer === NOTHING_MORE || answer.startsWith('Just that')) return about
+  return `${about}. ${answer}`
+}
+
 async function dispatch($: EngineInterface, action: Action) {
   switch (action.kind) {
     case 'install':
@@ -147,7 +158,7 @@ async function dispatch($: EngineInterface, action: Action) {
     }
     case 'diagnose': {
       if (action.noticeId !== undefined) await dropNotice($, action.noticeId)
-      return requestRun($, SKILLS.diagnosingBugs, '')
+      return requestRun($, SKILLS.diagnosingBugs, await diagnoseArgs($, action.about))
     }
     case 'raise-budget': {
       await raiseBudget($, action.ticket)

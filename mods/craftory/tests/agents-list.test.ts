@@ -177,7 +177,10 @@ test('an over-budget row offers Raise budget, and a failed row offers Diagnose',
   expect(words).toContain('[Over budget]')
   expect(words).toContain('[Failed]')
   await card.press({ key: 'agent-diagnose-#45' })
-  expect(w.commandsRun.at(-1)).toEqual({ command: 'mattpocock-skills:diagnosing-bugs', args: '' })
+  expect(w.commandsRun.at(-1)).toEqual({
+    command: 'mattpocock-skills:diagnosing-bugs',
+    args: 'Agent #45 failed',
+  })
   await (await openCard($, 'terminal')).press({ key: 'agent-raise-#44' })
   const record = JSON.parse(w.files.get('.craftory/features/42.json')!)
   expect(record.agents['#44'].budget).toBe(160_000)

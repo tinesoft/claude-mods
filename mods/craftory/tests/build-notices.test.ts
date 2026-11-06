@@ -37,7 +37,10 @@ test('a merge conflict stops the agent, toasts once, and Resolve opens the Workt
   expect(w.opens).toEqual([expect.objectContaining({ id: 'craftory' })])
 })
 
-const DIAGNOSE = { command: 'mattpocock-skills:diagnosing-bugs', args: '' }
+const DIAGNOSE = {
+  command: 'mattpocock-skills:diagnosing-bugs',
+  args: 'Agent #44 hit its 80k budget',
+}
 
 test('Diagnose on a budget notice drops the notice and runs diagnosing-bugs', async ($, on) => {
   const { w } = await building(on, $, { usage: () => OVER })
@@ -65,6 +68,20 @@ test('Diagnose on the card closes the card and goes through the same run request
   await step($, 'agent-tu44', 0)
   await (await mountBand($, 'terminal', 200, 60)).press({ key: 'phase-build' })
   await (await mountBand($, 'terminal', 200, 60)).press({ key: 'diagnose' })
-  expect(w.commandsRun.at(-1)).toEqual(DIAGNOSE)
+  expect(w.commandsRun.at(-1)).toEqual({ command: DIAGNOSE.command, args: 'Build is failing' })
   expect(await (await mountBand($, 'terminal', 200, 60)).find({ key: 'card' })).toBeUndefined()
+})
+
+test("Diagnose asks what to diagnose and passes the user's own words along with the failure", async ($, on) => {
+  const { w } = await building(on, $, {
+    usage: () => OVER,
+    ask: q => (q.startsWith('What should be diagnosed?') ? 'only on CI' : undefined),
+  })
+  await start($, 44, 'Ledger tax')
+  await step($, 'agent-tu44', 0)
+  await (await mountBand($, 'terminal', 200)).press({ key: 'notice-diagnose-#44' })
+  expect(w.commandsRun.at(-1)).toEqual({
+    command: DIAGNOSE.command,
+    args: 'Agent #44 hit its 80k budget. only on CI',
+  })
 })

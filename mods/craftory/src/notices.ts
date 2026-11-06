@@ -164,7 +164,11 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
           {
             id: `diagnose-${notice.phase}`,
             label: 'Diagnose',
-            action: { kind: 'diagnose', noticeId: notice.id },
+            action: {
+              kind: 'diagnose',
+              noticeId: notice.id,
+              about: gateText(notice.phase, notice.reason),
+            },
           },
           dismiss(notice.id),
         ],
@@ -196,7 +200,11 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
           {
             id: `diagnose-${notice.ticket}`,
             label: 'Diagnose',
-            action: { kind: 'diagnose', noticeId: notice.id },
+            action: {
+              kind: 'diagnose',
+              noticeId: notice.id,
+              about: `Agent ${notice.ticket} hit its ${budgetK(notice.budget)} budget`,
+            },
           },
           dismiss(notice.id),
         ],

@@ -12,7 +12,7 @@ export type Action =
   | { kind: 'run'; skill: SkillName; args: string }
   | { kind: 'run-phase'; phase: PhaseId | 'triage' }
   | { kind: 'run-anyway'; noticeId: string; phase: PhaseId; skill: SkillName; args: string }
-  | { kind: 'diagnose'; noticeId?: string }
+  | { kind: 'diagnose'; about: string; noticeId?: string }
   | { kind: 'raise-budget'; ticket: IssueRef }
   | { kind: 'resolve'; noticeId: string }
   | { kind: 'rename'; noticeId: string; term: string }

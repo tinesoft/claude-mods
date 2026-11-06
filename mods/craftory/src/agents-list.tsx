@@ -91,7 +91,7 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
               tone={tone}
               id={`agent-diagnose-${row.ref}`}
               label="Diagnose"
-              onPress={() => on.act({ kind: 'diagnose' })}
+              onPress={() => on.act({ kind: 'diagnose', about: `Agent ${row.ref} failed` })}
             />
           )}
           <Badge
