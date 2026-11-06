@@ -267,3 +267,18 @@ test('first run reads the repo signals into a draft and a sentence', () => {
 test('the domain doc layout reads back from the upstream file', () => {
   expect(parseDomainDoc(up['domain.md']!)).toEqual(DEFAULT_DOCS)
 })
+
+const UPSTREAM_SCRATCH_DOC =
+  '# Issue tracker: Local Markdown\n\nIssues and specs for this repo live as markdown files in `.scratch/`.\n'
+
+test('a Local doc that names .scratch/ is read as that layout and kept as written', () => {
+  expect(parseTrackerDoc(UPSTREAM_SCRATCH_DOC)).toEqual({ kind: 'local', scratch: true })
+  const files = { ...EMPTY, tracker: UPSTREAM_SCRATCH_DOC, claudeMd: '# Rules\n' }
+  const setup = readSetup(files)
+  if (setup.state !== 'ok') throw new Error('expected a setup')
+  const writes = planSetup(setup.value, files, OPTIONS)
+  expect(textOf(writes, AGENT_DOCS.tracker)).toBeUndefined()
+  const claude = textOf(writes, 'CLAUDE.md')!
+  expect(claude).toContain('under `.scratch/<feature-slug>/`')
+  expect(claude).not.toContain('docs/issues/')
+})

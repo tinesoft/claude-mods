@@ -88,7 +88,7 @@ export type PrefOverrides = Partial<Prefs>
 export type TrackerKind = 'local' | 'github' | 'gitlab' | 'other'
 
 export type TrackerSetup =
-  | { kind: 'local' }
+  | { kind: 'local'; scratch?: true }
   | { kind: 'github'; prsAsRequests: boolean }
   | { kind: 'gitlab'; prsAsRequests: boolean }
   | { kind: 'other'; description: string }

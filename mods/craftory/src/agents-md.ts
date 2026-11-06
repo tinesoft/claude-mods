@@ -51,7 +51,8 @@ export function parseTrackerDoc(text: string): TrackerSetup {
   const prsAsRequests = /\*\*(?:PRs|MRs) as a request surface: yes\.\*\*/.test(text)
   if (h1 === 'github') return { kind: 'github', prsAsRequests }
   if (h1 === 'gitlab') return { kind: 'gitlab', prsAsRequests }
-  if (h1 === 'local markdown') return { kind: 'local' }
+  if (h1 === 'local markdown')
+    return text.includes('.scratch/') ? { kind: 'local', scratch: true } : { kind: 'local' }
   return { kind: 'other', description: text }
 }
 
@@ -146,7 +147,9 @@ const trackerSummary = (tracker: TrackerSetup, localFolder: string) => {
     case 'gitlab':
       return 'Issues and specs are GitLab issues (use the `glab` CLI)'
     case 'local':
-      return `Issues and specs are markdown files in \`${localFolder}\``
+      return tracker.scratch
+        ? 'Issues and specs are markdown files under `.scratch/<feature-slug>/`'
+        : `Issues and specs are markdown files in \`${localFolder}\``
     case 'other':
       return 'Issues and specs live in an external tracker, described in the file'
     default: {
