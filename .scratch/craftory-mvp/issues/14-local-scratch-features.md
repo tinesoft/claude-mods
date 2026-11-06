@@ -35,7 +35,7 @@ Craftory reads the layout Matt's Local template documents, in place, and nothing
 - **Template.** Setup vendors Matt's `issue-tracker-local` doc byte for byte, like the GitHub and GitLab docs, with a drift test. The Craftory-specific template goes.
 - **Import.** `planScratchImport`, the Settings › Tracker offer, their tests and the README paragraph go. The Tickets-tab Inbox offer to start a feature from a spec with no feature stays.
 - **Binding.** A `.scratch` spec binds to a draft by file mtime, the fallback the flat reader already used.
-- **Defaults I chose, to confirm when building.** `Blocked by: 01` resolves inside the same feature and `Blocked by: other/02` across features. A folder with `map.md` is a Map, one with `spec.md` is a Feature, and one with both is read as both.
+- **Built defaults.** `Blocked by: 01` resolves inside the same feature and `Blocked by: other/02` across features. A folder with `map.md` and no `spec.md` is a Map and not read as a feature; one with `spec.md` is a Feature, and one with both is read as a Feature. An issue file in a folder with no `spec.md` is a standalone issue for the Inbox.
 - **Wording.** The doc-driven `scratch` flag on the tracker setup (`e0dc6d5`) becomes the only Local layout and is removed with the flat one.
 
-Plan and design updated: `docs/design/craftory/plan.md` (decision 12, the file map, the owned-files table, the evidence table) and `DESIGN.md` (Tickets tab header). Execution (reader, removals, tests, README) is in the fog below.
+Plan and design updated: `docs/design/craftory/plan.md` (decision 12, the file map, the owned-files table, the evidence table) and `DESIGN.md` (Tickets tab header). Built on `feat/craftory`; what is left is the live check on Desktop and the terminal, and the wayfinder map reader that shares this `.scratch` code.

@@ -132,7 +132,7 @@ The Build card lists every agent with its ticket, status, TDD step when the agen
 Open it with `/craftory`, the gear, **Open panel** or a card button. The tabs have hotkeys `1` to `5`.
 
 - **Flow** (`1`). The seven phases with their command and a one-line result. On mobile the tab starts with the rail.
-- **Tickets** (`2`). The tracker header, the **Inbox**, then the spec's tickets with status, blocking edges and `/implement #n` on ready ones, and `/implement-spec #42 · run all in parallel`. In the Inbox, a `needs-triage` item offers `/triage #51`, a `ready-for-agent` item offers **Start feature**, and so does a `ready-for-agent` spec that no feature points at, such as one imported from `.scratch/`, which enters at Tickets, and a `ready-for-human` item gets no agent. A started feature enters at the phase set in Settings › Entry points. By default a bug enters at Build and anything else at Align. GitLab and Other trackers show links only.
+- **Tickets** (`2`). The tracker header, the **Inbox**, then the spec's tickets with status, blocking edges and `/implement <ticket>` on ready ones, and `/implement-spec <spec> · run all in parallel`. On a Local tracker the argument is the file's path, such as `.scratch/csv/issues/01-button.md`; on GitHub it is `#n`. In the Inbox, a `needs-triage` item offers `/triage <issue>`, a `ready-for-agent` item offers **Start feature**, and so does a `ready-for-agent` spec that no feature points at, which enters at Tickets, and a `ready-for-human` item gets no agent. A started feature enters at the phase set in Settings › Entry points. By default a bug enters at Build and anything else at Align. GitLab and Other trackers show links only.
 - **Worktrees** (`3`). Your checkout, the integration worktree, one per agent and stale ones, each with its branch and sync state. **Diff** shows the change size, **Open terminal** copies `cd '<path>'`, quoted for the shell (a mod cannot open a terminal), **Remove** asks first for a kept worktree, and **Prune** removes stale ones.
 - **Glossary** (`4`). Search, the terms added this session, **Used in last reply**, then every term with its definition and the words to avoid. **Edit** jumps to Settings › Glossary.
 - **Settings** (`5`). See below.
@@ -160,7 +160,7 @@ The Settings tab writes each value where it belongs and saves as you go. The fir
 | Automation    | Suggest the next phase, live agents, underline glossary terms, and three switches marked "Not active yet"                | `.craftory/config.json`                                                 |
 | Personal      | The options below                                                                                                        | `$.store`, on your machine                                              |
 
-The Local Markdown tracker keeps issues in `docs/issues/<n>-<slug>.md` with a `status` in the front matter. It also reads the `Status:` and `Blocked by:` lines that `to-tickets` writes. When you choose Local and the repo has a `.scratch/` folder, Settings offers to import it. It writes numbered issue files after you confirm and moves nothing.
+The Local Markdown tracker reads the layout Matt's skills write, in place: `.scratch/<feature>/spec.md` and `.scratch/<feature>/issues/NN-*.md`, with `Status:` and `Blocked by:` lines. A feature is its folder name (`csv`) and a ticket is `csv/01`; a bare number in `Blocked by:` names a ticket of the same feature and `other/02` one of another. An issue file in a folder with no `spec.md` is a standalone issue for the Inbox, and a folder with a `map.md` and no `spec.md` is a wayfinder map, not a feature. A spec counts as created when its file last changed, which is how a draft finds it. Setup writes Matt's own Local tracker doc.
 
 The personal options are plugin options (`/config`, or `pluginConfigs` in settings). Changes made in the pane override them and persist across sessions.
 
@@ -180,7 +180,7 @@ The mod makes no network calls of its own. The `gh` and `claude` commands below 
 **What it reads**
 
 - The events Claude Code raises: the skills that run, typed commands, the Agent, Skill and Bash tool calls, agent spawns and steps (for token use), and the end of each turn. It keeps the skill names, ticket ids, token counts and the last reply's text (to find glossary terms), not the conversation.
-- The repo files listed below, the issue files of a Local tracker, and `CONTEXT.md` and `.scratch/` when you import them.
+- The repo files listed below, the files under `.scratch/` of a Local tracker, and `CONTEXT.md` when you import terms from it.
 - The `COLORFGBG` environment variable, to guess whether the terminal is light or dark. No other variable and no credential is read.
 
 **What it writes**
@@ -194,9 +194,8 @@ Craftory writes only these files, and checks each write against this list:
 | `GLOSSARY.md` (or the glossary file set in Settings)            | `grill-with-docs`, `domain-modeling` |
 | `.gitignore` (the `.claude/worktrees/` line)                    | Your repo                            |
 | `.craftory/config.json`, `.craftory/features/<spec>.json`       | Craftory, committed                  |
-| `docs/issues/<n>-<slug>.md`, only when importing `.scratch/`    | Matt's skills                        |
 
-It never writes under `.git/`, the glossary file must end in `.md`, and the issues folder cannot be `.craftory/`. It never touches content outside the sections it owns. A write to a shared file, or to `.craftory/config.json`, fails and reloads if the file changed since Craftory read it. A setting is applied to `config.json` as it is after you confirm any question, so an edit made while the question was open is kept. Personal settings and pre-spec drafts are saved with `$.store`, on your machine. Feature records are written as soon as they change. Commit them so teammates see the same rail.
+It never writes under `.git/`, and the glossary file must end in `.md`. It never writes issue files: Matt's skills do. It never touches content outside the sections it owns. A write to a shared file, or to `.craftory/config.json`, fails and reloads if the file changed since Craftory read it. A setting is applied to `config.json` as it is after you confirm any question, so an edit made while the question was open is kept. Personal settings and pre-spec drafts are saved with `$.store`, on your machine. Feature records are written as soon as they change. Commit them so teammates see the same rail.
 
 **What it runs**
 

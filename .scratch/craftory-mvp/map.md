@@ -31,7 +31,7 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 
 ## Not yet specified
 
-- Build the `.scratch` Local reader and remove the flat layout, the folder setting, the template and the import, per [ticket 14](issues/14-local-scratch-features.md): path refs through records, commands, branches and worktrees; vendor Matt's local template; rewrite the Local tests and fixtures; update the README and Settings.
+- Live check of the `.scratch` Local reader on Desktop and the terminal, and the wayfinder map reader that reuses its folder listing ([ticket 14](issues/14-local-scratch-features.md) is built).
 - Fixture build: capture GitHub and GitLab sandbox output, write the loader and vendor-script extension, and build the wayfinder readers (GitLab is links-only today) to satisfy the fixtures.
 - Release bar: live client check (band, pane, hover cards, `$.ui.ask` in a Skill hook, `TaskStop`, glyph widths, Desktop/VS Code/mobile light and dark), end-to-end Local-tracker fixture run, README screenshots.
 - Cleanup: close O1 and O2, tick the stale M0/M2/M3 boxes in `plan.md`, `.scratch` is settled as the only Local layout (ticket 14), commit the pending glossary and agent docs.

@@ -69,6 +69,10 @@ _Avoid_: PRD, requirements doc, issue (once triaged)
 A child of a Spec, one vertical slice of work. Gets one implementer, one worktree and one branch.
 _Avoid_: Task, slice, issue (once triaged)
 
+**Ref**:
+How Craftory names an issue: `#44` on GitHub, and on a Local tracker the feature folder for its Spec (`csv`) or the folder and ticket number (`csv/01`). A skill is handed the file path of a Local issue, not its ref.
+_Avoid_: Id, number
+
 **Ticket status**:
 Where a Ticket stands: open (not yet classified), ready (unblocked and meant for an agent), blocked (waiting on another Ticket), human or merged.
 
