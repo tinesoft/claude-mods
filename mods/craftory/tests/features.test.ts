@@ -243,7 +243,7 @@ test('a hand-damaged record loads what it can and names what it dropped', () => 
 test('text that is not a feature record is invalid', () => {
   expect(parseFeature('{').state).toBe('invalid')
   expect(parseFeature('{"version":2,"spec":"#1"}').state).toBe('invalid')
-  expect(parseFeature('{"version":1,"spec":"soon"}').state).toBe('invalid')
+  expect(parseFeature('{"version":1,"spec":"Not a ref"}').state).toBe('invalid')
 })
 
 const spec = (n: number, createdAt: number | null, kind: Issue['kind'] = 'spec'): Issue => ({

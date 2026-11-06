@@ -17,7 +17,7 @@ import type {
 } from '../types'
 import { isSafeRef } from './git'
 import { PHASE_ORDER } from './phases'
-import { parseIssueRef } from './tracker/refs'
+import { parseIssueRef, parseRef } from './tracker/refs'
 
 export const FEATURES_DIR = '.craftory/features/'
 export const STORE_DRAFTS = 'drafts'
@@ -124,7 +124,7 @@ function parseMarks(value: unknown): Partial<Record<PhaseId, PhaseMark>> {
 
 function parseAgent(key: string, value: unknown): AgentRecord | undefined {
   if (!isRecord(value)) return undefined
-  const ticket = parseIssueRef(text(value.ticket) ?? key)
+  const ticket = parseRef(text(value.ticket) ?? key)
   const outcome = OUTCOMES.find(o => o === value.outcome)
   if (
     !ticket ||
@@ -158,7 +158,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
   if (!isRecord(json) || json.version !== 1) {
     return { state: 'invalid', raw, problem: 'expected a version 1 object' }
   }
-  const spec = parseIssueRef(text(json.spec) ?? '')
+  const spec = parseRef(text(json.spec) ?? '')
   if (!spec) return { state: 'invalid', raw, problem: 'spec: not an issue reference' }
   const problems: string[] = []
   const agents: Record<string, AgentRecord> = {}
@@ -179,7 +179,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     origin: json.origin === 'issue' ? 'issue' : 'spec',
     title: text(json.title) ?? '',
     entry: isPhase(json.entry) ? json.entry : 'align',
-    enteredFrom: parseIssueRef(text(json.enteredFrom) ?? '') ?? null,
+    enteredFrom: parseRef(text(json.enteredFrom) ?? '') ?? null,
     skips: parseSkips(json.skips, json.skipped),
     integrationBranch: branch,
     pr: parseIssueRef(text(json.pr) ?? '') ?? null,
@@ -517,7 +517,7 @@ export function parseDrafts(stored: unknown): Record<string, DraftFeature> {
         draftId: id,
         title: text(value.title)!,
         entry: isPhase(value.entry) ? value.entry : 'align',
-        enteredFrom: parseIssueRef(text(value.enteredFrom) ?? '') ?? null,
+        enteredFrom: parseRef(text(value.enteredFrom) ?? '') ?? null,
         marks: parseMarks(value.marks),
         startedAt: text(value.startedAt)!,
       }
