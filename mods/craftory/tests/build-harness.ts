@@ -69,9 +69,9 @@ export const fakeGit = (
 }
 
 export const READY = {
-  'docs/issues/44-ledger.md': ticketFile('Ledger tax'),
-  'docs/issues/45-filter.md': ticketFile('Date filter'),
-  'docs/issues/46-email.md': ticketFile('Email the CSV'),
+  '.scratch/csv/issues/02-ledger.md': ticketFile(2, 'Ledger tax'),
+  '.scratch/csv/issues/03-filter.md': ticketFile(3, 'Date filter'),
+  '.scratch/csv/issues/04-email.md': ticketFile(4, 'Email the CSV'),
 }
 
 export const building = async (
@@ -90,14 +90,18 @@ export const building = async (
   return { w, git }
 }
 
-export const agentCall = (n: number, title: string, extra: Record<string, unknown> = {}) => ({
-  tool: 'Agent',
-  tool_use_id: `tu${n}`,
-  description: `Implement #${n} ${title}`,
-  prompt: `Build ticket #${n} with tdd.`,
-  isolation: 'worktree',
-  ...extra,
-})
+/** An Agent call for ticket `n` of the old numbering (43 is `csv/01`, 44 is `csv/02`). */
+export const agentCall = (n: number, title: string, extra: Record<string, unknown> = {}) => {
+  const ref = `csv/${String(n - 42).padStart(2, '0')}`
+  return {
+    tool: 'Agent',
+    tool_use_id: `tu${n}`,
+    description: `Implement ${ref} ${title}`,
+    prompt: `Build ticket ${ref} with tdd.`,
+    isolation: 'worktree',
+    ...extra,
+  }
+}
 
 export const call = ($: Engine, input: Record<string, unknown>) => $.tool.call(input as never)
 

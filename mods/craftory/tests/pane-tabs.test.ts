@@ -65,7 +65,7 @@ for (const surface of ['terminal', 'desktop', 'mobile'] as const) {
     expect(words).toContain('/code-review')
     expect(words).toContain('/pr')
     expect(words).toContain('Export invoices as CSV · 3 of 7 phases done')
-    expect(words).toContain('Written: docs/issues/42-export-invoices.md')
+    expect(words).toContain('Written: .scratch/csv/spec.md')
     expect(words).toContain(PHASES.build.why)
     expect(words.some(w => w.startsWith('Gated · '))).toBe(true)
   })

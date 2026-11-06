@@ -4,7 +4,6 @@ import { isShared, isWritable, type WritableContext } from '../src/files'
 const ctx: WritableContext = {
   steering: 'CLAUDE.md',
   docs: { glossary: 'GLOSSARY.md', adr: 'docs/adr/' },
-  issuesFolder: 'docs/issues/',
 }
 
 test('only the files Craftory owns or shares are writable', () => {
@@ -17,7 +16,6 @@ test('only the files Craftory owns or shares are writable', () => {
     'CLAUDE.md',
     'GLOSSARY.md',
     '.gitignore',
-    'docs/issues/12-export-csv.md',
     './docs/agents//domain.md',
   ]) {
     expect(isWritable(path, ctx), path).toBe(true)
@@ -29,6 +27,7 @@ test('everything else is refused, including paths that leave the repo', () => {
     'AGENTS.md',
     'src/index.ts',
     'docs/agents/other.md',
+    'docs/issues/12-export-csv.md',
     'docs/issues/notes.md',
     'docs/issues/12-x.txt',
     '.craftory/features/../config.json',
@@ -60,7 +59,6 @@ test('nothing under .git is writable, whatever the settings point at', () => {
   const aimed: WritableContext = {
     steering: 'CLAUDE.md',
     docs: { glossary: '.git/hooks/pre-commit.md', adr: 'docs/adr/' },
-    issuesFolder: '.git/hooks/',
   }
   for (const path of [
     '.git/hooks/pre-commit',
@@ -80,11 +78,4 @@ test("the glossary must be a Markdown file outside Craftory's own folder", () =>
   expect(isWritable('docs/GLOSSARY.md', glossary('docs/GLOSSARY.md'))).toBe(true)
   for (const path of ['package.json', 'scripts/build.sh', '.craftory/features/1.md', 'README'])
     expect(isWritable(path, glossary(path)), path).toBe(false)
-})
-
-test("the issues folder cannot be Craftory's own", () => {
-  const folder = (issuesFolder: string): WritableContext => ({ ...ctx, issuesFolder })
-  expect(isWritable('.craftory/9-x.md', folder('.craftory/'))).toBe(false)
-  expect(isWritable('.craftory/features/9-x.md', folder('.craftory/features/'))).toBe(false)
-  expect(isWritable('issues/9-x.md', folder('issues/'))).toBe(true)
 })

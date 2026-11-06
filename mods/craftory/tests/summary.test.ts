@@ -10,7 +10,7 @@ test('where nothing draws, /craftory replies with the feature as a list and open
     [
       '## Export invoices as CSV',
       '1. **Align** · Done',
-      '2. **Spec** · Done · #42',
+      '2. **Spec** · Done · csv',
       '3. **Tickets** · Done · 3',
       '4. **Build** · Up next',
       '5. **Review** · Gated',

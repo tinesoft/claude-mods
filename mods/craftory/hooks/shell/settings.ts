@@ -21,7 +21,6 @@ import {
 } from '../../src/glossary'
 import { namespaced, SKILLS } from '../../src/phases'
 import { hasSkill } from '../../src/plugin'
-import { scratchSummary } from '../../src/scratch'
 import {
   checkText,
   type SettingsChange,
@@ -41,10 +40,9 @@ import {
   readText,
   repoFacts,
   repoSnapshot,
-  scratchPlan,
   writableContext,
 } from './repo'
-import { copyWithToast, openPane, paneTabOf, resetPrefs, resolvedPrefs, savePrefs } from './ui'
+import { copyWithToast, openPane, resetPrefs, resolvedPrefs, savePrefs } from './ui'
 
 const setupNoteState = atom({ plugin: 'craftory', key: 'setupNote' } as const, null)
 
@@ -184,12 +182,11 @@ async function say($: EngineInterface, note: string | null) {
   $.ui.invalidate('ui.render')
 }
 
-async function settingsContext($: EngineInterface, setup: AgentSetup, issuesFolder: string) {
+async function settingsContext($: EngineInterface, setup: AgentSetup) {
   return {
     ...(await writableContext($)),
     steering: setup.steering,
     docs: setup.docs,
-    issuesFolder,
   } satisfies WritableContext
 }
 
@@ -205,7 +202,7 @@ async function commitChange($: EngineInterface, change: SettingsChange) {
   }
   if (change.config !== undefined && repo?.config.state === 'invalid')
     return say($, `.craftory/config.json is not valid JSON (${repo.config.problem}). Fix it first.`)
-  const { writes, nextConfig, nextSetup } = planSettingsWrites({
+  const { writes, nextSetup } = planSettingsWrites({
     change,
     current,
     files,
@@ -213,7 +210,7 @@ async function commitChange($: EngineInterface, change: SettingsChange) {
     oldConfig,
   })
   if (change.setup && current.isDraft) await update($, setupDraftState, () => nextSetup)
-  const ctx = await settingsContext($, nextSetup, nextConfig.tracker.local.folder)
+  const ctx = await settingsContext($, nextSetup)
   await say($, writes.length === 0 ? null : writeNote(await commitWrites($, writes, ctx)))
   if (writes.length > 0) await refreshTracker($)
   await settle($)
@@ -246,12 +243,11 @@ async function saveSetup($: EngineInterface) {
     const writes = [
       ...planSetup(current.setup, files, {
         worktreeFolder: config.worktrees.folder,
-        localFolder: config.tracker.local.folder,
         chooseSteering: true,
       }),
       ...configWrite(configText),
     ]
-    const ctx = await settingsContext($, current.setup, config.tracker.local.folder)
+    const ctx = await settingsContext($, current.setup)
     const result = await commitWrites($, writes, ctx)
     await update($, setupDraftState, () => null)
     await say($, writeNote(result))
@@ -272,9 +268,8 @@ async function resetSettings($: EngineInterface) {
   if (answer !== 'Reset') return
   const configText = await readText($, CONFIG_PATH)
   const { setup } = await currentSetup($)
-  const config = configOf(parseConfig(configText))
   const defaults = patchConfig(null, {})
-  const ctx = await settingsContext($, setup, config.tracker.local.folder)
+  const ctx = await settingsContext($, setup)
   const result = await commitWrites(
     $,
     [{ path: CONFIG_PATH, before: configText, after: defaults }],
@@ -307,35 +302,6 @@ async function keepOrRestart($: EngineInterface, keep: string) {
   return answer === null || answer === 'Keep my setup' ? keep : `${keep} ${answer}`
 }
 
-async function importScratch($: EngineInterface) {
-  const { setup } = await currentSetup($)
-  const { config } = await repoFacts($)
-  const folder = config.tracker.local.folder
-  const plan = await scratchPlan($, folder)
-  if (plan.items.length === 0) return say($, 'Nothing to import from .scratch/.')
-  const answer = await $.ui
-    .ask(
-      `Copy ${scratchSummary(plan)} from .scratch/ into ${folder}? Nothing in .scratch/ is moved or deleted.`,
-      ['Import', 'Not now'],
-    )
-    .catch(() => 'Not now')
-  if (answer !== 'Import') return
-  const { wrote, refused } = await applyWrites(
-    $,
-    plan.writes,
-    await settingsContext($, setup, folder),
-  )
-  await say(
-    $,
-    refused
-      ? `${refused}. Imported ${wrote.length} of ${plan.items.length}.`
-      : `Imported ${scratchSummary(plan)} into ${folder}.`,
-  )
-  await loadRepo($)
-  await refreshTracker($)
-  await settle($)
-}
-
 const TERM_ERRORS: Record<GlossaryEditError, string> = {
   duplicate: 'A term with that name is already in the glossary.',
   'unknown-term': 'That term is no longer in the glossary.',
@@ -360,11 +326,10 @@ async function changeGlossary(
     await update($, termErrorState, () => TERM_ERRORS[next])
     return $.ui.invalidate('ui.render')
   }
-  const { config } = await repoFacts($)
   const result = await commitWrites(
     $,
     [{ path, before: raw, after: serialiseGlossary(next) }],
-    await settingsContext($, setup, config.tracker.local.folder),
+    await settingsContext($, setup),
   )
   await update($, termErrorState, () => null)
   await update($, termDraftState, () => EMPTY_DRAFT)
@@ -473,13 +438,6 @@ export async function settingsArgs(
       hasContextMd: repo?.hasContextMd ?? false,
       error,
     },
-    scratch:
-      facts.setup.tracker.kind === 'local' &&
-      repo?.hasScratch &&
-      section === 'tracker' &&
-      (await paneTabOf($)) === 'settings'
-        ? { count: repo.scratchCount, folder: facts.config.tracker.local.folder }
-        : null,
     note,
     on: {
       section: id => {
@@ -489,7 +447,6 @@ export async function settingsArgs(
       saveSetup: () => void saveSetup($),
       reset: () => void resetSettings($),
       rerunSetup: () => void rerunSetup($),
-      importScratch: () => void importScratch($),
       term: {
         draft: patch => {
           void update($, termDraftState, held => ({ ...held, ...patch })).then(() =>

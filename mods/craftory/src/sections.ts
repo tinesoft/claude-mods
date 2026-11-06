@@ -201,14 +201,6 @@ const TRACKER_ROWS: readonly SettingsRow[] = [
     }),
   },
   line(
-    'local-folder',
-    'Issues folder',
-    'Specs and tickets are plain Markdown files, reviewed in your PRs like any other.',
-    c => c.tracker.local.folder,
-    text => ({ tracker: { local: { folder: withSlash(text) } } }),
-    { visible: f => kindOf(f) === 'local', check: pathCheck },
-  ),
-  line(
     'github-spec-label',
     'Label for specs',
     'Craftory tells a spec by its headings too, so this is only a hint.',

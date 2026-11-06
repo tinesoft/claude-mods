@@ -31,27 +31,61 @@ const SPEC_BODY =
 
 const ctx: ReadContext = { config: DEFAULT_CONFIG, labels: DEFAULT_LABELS, now: 5 }
 
+/**
+ * The stubs as `.scratch/csv/` files read by the real Local reader, with the refs it makes
+ * (`csv`, `csv/01`) renamed to the stubs' numbers so a scenario reads the same on either tracker.
+ */
 const localSnapshot = (stubs: Stub[]): TrackerSnapshot => {
-  const names = stubs.map(s => `${s.n}-t.md`)
-  const listing: ReadResult = {
-    kind: 'list',
-    entries: names.map(name => ({ name, kind: 'file', mtimeMs: 1 })),
+  const specStub = stubs.find(s => s.spec)
+  const tickets = stubs.filter(s => !s.spec)
+  const nn = (stub: Stub) => String(tickets.indexOf(stub) + 1).padStart(2, '0')
+  const file = (title: string, status: string, blockedBy: string[] = []) =>
+    `# ${title}\n\nStatus: ${status}\n${blockedBy.length ? `Blocked by: ${blockedBy.join(', ')}\n` : ''}`
+  const status = (s: Stub) => (s.done ? 'done' : (s.role ?? 'ready-for-agent'))
+  const ticketFiles = tickets.map(t => `${nn(t)}-t.md`)
+  const results: ReadResult[] = [
+    { kind: 'list', entries: [{ name: 'csv', kind: 'dir', mtimeMs: 1 }] },
+    {
+      kind: 'list',
+      entries: specStub ? [{ name: 'spec.md', kind: 'file', mtimeMs: 1 }] : [],
+    },
+    {
+      kind: 'list',
+      entries: ticketFiles.map(name => ({ name, kind: 'file' as const, mtimeMs: 1 })),
+    },
+    ...(specStub
+      ? [
+          {
+            kind: 'read',
+            text: `${file(specStub.title, status(specStub))}\n${SPEC_BODY}`,
+          } as ReadResult,
+        ]
+      : []),
+    ...tickets.map((t): ReadResult => ({
+      kind: 'read',
+      text: file(
+        t.title,
+        status(t),
+        (t.blockedBy ?? []).map(b => nn(stubs.find(s => s.n === b)!)),
+      ),
+    })),
+  ]
+  const snapshot = TRACKERS.local!.parse(ctx, results)
+  if (!snapshot.rich) return snapshot
+  const rename = (ref: IssueRef): IssueRef => {
+    if (ref === 'csv') return `#${specStub!.n}` as IssueRef
+    const stub = tickets.find(t => `csv/${nn(t)}` === ref)!
+    return `#${stub.n}` as IssueRef
   }
-  const sorted = [...stubs].sort((a, b) => b.n - a.n)
-  const reads = sorted.map((s): ReadResult => ({
-    kind: 'read',
-    text: [
-      '---',
-      `type: ${s.spec ? 'spec' : 'ticket'}`,
-      `status: ${s.done ? 'done' : (s.role ?? 'ready-for-agent')}`,
-      ...(s.parent ? [`parent: ${s.parent}`] : []),
-      ...(s.blockedBy?.length ? [`blocked-by: [${s.blockedBy.join(', ')}]`] : []),
-      '---',
-      `# ${s.title}`,
-      ...(s.spec ? [SPEC_BODY] : []),
-    ].join('\n'),
-  }))
-  return TRACKERS.local!.parse(ctx, [listing, ...reads])
+  return {
+    ...snapshot,
+    issues: snapshot.issues.map(i => ({
+      ...i,
+      ref: rename(i.ref),
+      parent: i.parent === null ? null : rename(i.parent),
+      blockedBy: i.blockedBy.map(rename),
+    })),
+  }
 }
 
 const githubSnapshot = (stubs: Stub[]): TrackerSnapshot => {

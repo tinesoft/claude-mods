@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import {
   allText,
-  featureRepo,
+  featureJson,
   featureWorld,
   IN_RANGE,
   mattCommands,
@@ -17,7 +17,7 @@ import {
 } from './harness'
 
 const SPEC_WITH_STORY =
-  '---\ntype: spec\ncreated: 2026-10-24\n---\n# Export invoices as CSV\n\n## Problem Statement\n\nx\n\n## User Stories\n\n1. As an accountant, I want a CSV, so that I can import it\n2. As an admin, I want a filter, so that I can narrow it\n'
+  '# Export invoices as CSV\n\nStatus: ready-for-agent\n\n## Problem Statement\n\nx\n\n## User Stories\n\n1. As an accountant, I want a CSV, so that I can import it\n2. As an admin, I want a filter, so that I can narrow it\n'
 
 const bare = (on: Parameters<typeof world>[0], files: Record<string, string> = {}) =>
   world(on, {
@@ -66,11 +66,11 @@ test('Align is done once Spec has run, and the end of a turn is written to the f
   expect(await view($, 'align')).toBe('✓ Align')
   await skillPrompt($, 'to-tickets')
   await turnComplete($)
-  const record = JSON.parse(w.files.get('.craftory/features/42.json') ?? '{}') as {
+  const record = JSON.parse(w.files.get('.craftory/features/csv.json') ?? '{}') as {
     marks: Record<string, Record<string, string>>
   }
   expect(record.marks.tickets).toEqual({ ranAt: expect.any(String), endedAt: expect.any(String) })
-  expect(w.writes.map(x => x.path)).toContain('.craftory/features/42.json')
+  expect(w.writes.map(x => x.path)).toContain('.craftory/features/csv.json')
 })
 
 test('a subagent turn does not end the main skill', async ($, on) => {
@@ -85,12 +85,12 @@ test('a write under the issues folder refreshes the tracker once, a moment later
   const w = featureWorld(on)
   await startSession($)
   expect(await view($, 'tickets')).toBe('✓ Tickets 3')
-  w.files.set('docs/issues/46-email.md', ticketFile('Email the CSV', [44]))
+  w.files.set('.scratch/csv/issues/04-email.md', ticketFile(4, 'Email the CSV', [2]))
   await $.tool.call({ tool: 'Bash', command: 'ls' } as never)
   await w.clock.advance(1000)
   expect(await view($, 'tickets')).toBe('✓ Tickets 3')
-  await $.tool.call({ tool: 'Write', file_path: 'docs/issues/46-email.md' } as never)
-  await $.tool.call({ tool: 'Edit', file_path: 'docs/issues/46-email.md' } as never)
+  await $.tool.call({ tool: 'Write', file_path: '.scratch/csv/issues/04-email.md' } as never)
+  await $.tool.call({ tool: 'Edit', file_path: '.scratch/csv/issues/04-email.md' } as never)
   expect(await view($, 'tickets')).toBe('✓ Tickets 3')
   await w.clock.advance(1000)
   expect(await view($, 'tickets')).toBe('✓ Tickets 4')
@@ -123,7 +123,7 @@ test('GitHub: gh feeds the rail, and a gh call refreshes it', async ($, on) => {
     files: {
       ...SETUP_FILES,
       'docs/agents/issue-tracker.md': '# Issue tracker: GitHub\n',
-      '.craftory/features/42.json': featureRepo()['.craftory/features/42.json']!,
+      '.craftory/features/42.json': featureJson({ spec: '#42' }),
     },
     gh: argv => {
       if (argv[1] === 'issue') return { exitCode: 0, stdout: listing }
@@ -147,20 +147,21 @@ test('a spec that appears for a draft binds it, writes its record and announces 
   await skillPrompt($, 'grill-with-docs')
   await turnComplete($)
   await skillPrompt($, 'to-spec')
-  w.files.set('docs/issues/50-export.md', SPEC_WITH_STORY)
+  w.files.set('.scratch/export/spec.md', SPEC_WITH_STORY)
+  w.mtimes.set('.scratch/export/spec.md', 4_000_000)
   await turnComplete($)
-  expect(w.writes.map(x => x.path)).toContain('.craftory/features/50.json')
-  const record = JSON.parse(w.files.get('.craftory/features/50.json') ?? '{}') as {
+  expect(w.writes.map(x => x.path)).toContain('.craftory/features/export.json')
+  const record = JSON.parse(w.files.get('.craftory/features/export.json') ?? '{}') as {
     spec: string
     marks: Record<string, unknown>
   }
-  expect(record.spec).toBe('#50')
+  expect(record.spec).toBe('export')
   expect(Object.keys(record.marks)).toEqual(['align', 'spec'])
-  expect(w.toasts).toEqual(['Spec #50 published · 2 user stories'])
+  expect(w.toasts).toEqual(['Spec export published · 2 user stories'])
   expect(w.store.get('drafts')).toEqual({})
   const band = await mountBand($, 'terminal', 200)
-  expect(await allText(band)).toContain('Spec #50 published · 2 user stories')
-  expect(await view($, 'spec')).toBe('✓ Spec #50')
+  expect(await allText(band)).toContain('Spec export published · 2 user stories')
+  expect(await view($, 'spec')).toBe('✓ Spec export')
   await w.clock.advance(5000)
   await turnComplete($)
   expect(w.toasts).toHaveLength(1)
@@ -168,10 +169,10 @@ test('a spec that appears for a draft binds it, writes its record and announces 
 
 test('a restart announces nothing that was already there', async ($, on) => {
   const w = bare(on, {
-    'docs/issues/50-export.md': SPEC_WITH_STORY,
-    '.craftory/features/50.json': JSON.stringify({
+    '.scratch/export/spec.md': SPEC_WITH_STORY,
+    '.craftory/features/export.json': JSON.stringify({
       version: 1,
-      spec: '#50',
+      spec: 'export',
       title: 'Export invoices as CSV',
       entry: 'align',
       integrationBranch: 'feat/csv',

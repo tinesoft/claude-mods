@@ -78,7 +78,6 @@ test('nothing is written outside the files Craftory may write', async ($, on) =>
   const ctx: WritableContext = {
     steering: 'CLAUDE.md',
     docs: { glossary: 'GLOSSARY.md', adr: 'docs/adr/' },
-    issuesFolder: 'docs/issues/',
   }
   expect(w.writes.length).toBeGreaterThan(0)
   for (const { path } of w.writes) expect(isWritable(path, ctx), path).toBe(true)
@@ -109,7 +108,7 @@ test('without a remote it sets up the local tracker, and creates CLAUDE.md only 
   await startSession($)
   await (await openSettings($)).press({ key: 'pane-write-setup' })
   expect(w.files.get('docs/agents/issue-tracker.md')).toContain('# Issue tracker: Local Markdown')
-  expect(w.files.get('docs/agents/issue-tracker.md')).toContain('`docs/issues/<n>-<slug>.md`')
+  expect(w.files.get('docs/agents/issue-tracker.md')).toContain('`.scratch/<feature-slug>/`')
   expect(w.files.has('docs/agents/triage-labels.md')).toBe(false)
   expect(w.files.get('CLAUDE.md')).toContain('## Agent skills')
   expect(w.files.has('AGENTS.md')).toBe(false)

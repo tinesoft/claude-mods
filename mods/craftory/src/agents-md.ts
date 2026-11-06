@@ -51,8 +51,7 @@ export function parseTrackerDoc(text: string): TrackerSetup {
   const prsAsRequests = /\*\*(?:PRs|MRs) as a request surface: yes\.\*\*/.test(text)
   if (h1 === 'github') return { kind: 'github', prsAsRequests }
   if (h1 === 'gitlab') return { kind: 'gitlab', prsAsRequests }
-  if (h1 === 'local markdown')
-    return text.includes('.scratch/') ? { kind: 'local', scratch: true } : { kind: 'local' }
+  if (h1 === 'local markdown') return { kind: 'local' }
   return { kind: 'other', description: text }
 }
 
@@ -93,7 +92,7 @@ export function readSetup(files: SetupFiles): Loaded<AgentSetup> {
   return { state: 'ok', value, raw: files.tracker }
 }
 
-export function renderTrackerDoc(tracker: TrackerSetup, localFolder: string): string {
+export function renderTrackerDoc(tracker: TrackerSetup): string {
   switch (tracker.kind) {
     case 'github':
     case 'gitlab': {
@@ -106,7 +105,7 @@ export function renderTrackerDoc(tracker: TrackerSetup, localFolder: string): st
         : text
     }
     case 'local':
-      return TEMPLATES['issue-tracker-local-craftory'].replaceAll('{folder}', localFolder)
+      return TEMPLATES['issue-tracker-local']
     case 'other': {
       const body = tracker.description.trim()
       return body.startsWith('# ') ? `${body}\n` : `# Issue tracker: Other\n\n${body}\n`
@@ -140,16 +139,14 @@ export function renderDomainDoc(docs: DocsLayout): string {
     .replaceAll(DEFAULT_DOCS.adr, docs.adr)
 }
 
-const trackerSummary = (tracker: TrackerSetup, localFolder: string) => {
+const trackerSummary = (tracker: TrackerSetup) => {
   switch (tracker.kind) {
     case 'github':
       return 'Issues and specs are GitHub issues (use the `gh` CLI)'
     case 'gitlab':
       return 'Issues and specs are GitLab issues (use the `glab` CLI)'
     case 'local':
-      return tracker.scratch
-        ? 'Issues and specs are markdown files under `.scratch/<feature-slug>/`'
-        : `Issues and specs are markdown files in \`${localFolder}\``
+      return 'Issues and specs are markdown files under `.scratch/<feature-slug>/`'
     case 'other':
       return 'Issues and specs live in an external tracker, described in the file'
     default: {
@@ -164,11 +161,11 @@ const labelsSummary = (labels: TriageLabels) =>
     ? 'Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`'
     : 'Custom label vocabulary mapped onto the five triage roles'
 
-export function renderAgentSkillsBlock(setup: AgentSetup, localFolder: string): string {
+export function renderAgentSkillsBlock(setup: AgentSetup): string {
   const parts = [
     '## Agent skills',
     '### Issue tracker',
-    `${trackerSummary(setup.tracker, localFolder)}. See \`${AGENT_DOCS.tracker}\`.`,
+    `${trackerSummary(setup.tracker)}. See \`${AGENT_DOCS.tracker}\`.`,
     ...(setup.triage
       ? ['### Triage labels', `${labelsSummary(setup.triage)}. See \`${AGENT_DOCS.triage}\`.`]
       : []),
@@ -235,7 +232,6 @@ export function planSetup(
   files: SetupFiles,
   options: {
     worktreeFolder: string
-    localFolder: string
     chooseSteering?: boolean
     refreshBlock?: boolean
   },
@@ -248,12 +244,12 @@ export function planSetup(
   const trackerSays =
     files.tracker !== null &&
     (setup.tracker.kind === 'other'
-      ? files.tracker.trim() === renderTrackerDoc(setup.tracker, options.localFolder).trim()
+      ? files.tracker.trim() === renderTrackerDoc(setup.tracker).trim()
       : sameTracker(parseTrackerDoc(files.tracker), setup.tracker))
   put(
     AGENT_DOCS.tracker,
     files.tracker,
-    trackerSays ? files.tracker! : renderTrackerDoc(setup.tracker, options.localFolder),
+    trackerSays ? files.tracker! : renderTrackerDoc(setup.tracker),
   )
 
   if (setup.triage) {
@@ -278,7 +274,7 @@ export function planSetup(
     steering,
     blockCovers(steering, setup) && options.refreshBlock !== true
       ? steering!
-      : upsertBlock(steering, renderAgentSkillsBlock(setup, options.localFolder)),
+      : upsertBlock(steering, renderAgentSkillsBlock(setup)),
   )
 
   put(GITIGNORE, files.gitignore, ensureGitignore(files.gitignore, options.worktreeFolder))
@@ -324,10 +320,6 @@ export function firstRunText(signals: SetupSignals): string {
   return `No docs/agents/ yet.${list ? ` Found ${list}.` : ''}`
 }
 
-export function retargetTracker(doc: string, oldFolder: string, newFolder: string): string {
-  return oldFolder === newFolder ? doc : doc.replaceAll(`\`${oldFolder}`, `\`${newFolder}`)
-}
-
 /**
  * What one Settings change writes, and the config and setup the repo holds once it is written.
  * The setup files follow only a saved setup; an unsaved draft keeps its change in memory.
@@ -359,25 +351,10 @@ export function planSettingsWrites(args: {
     writes.push(
       ...planSetup(nextSetup, files, {
         worktreeFolder: nextConfig.worktrees.folder,
-        localFolder: nextConfig.tracker.local.folder,
         chooseSteering: true,
         refreshBlock: true,
       }),
     )
-  const at = writes.findIndex(w => w.path === AGENT_DOCS.tracker)
-  const doc = at === -1 ? files.tracker : writes[at]!.after
-  if (doc !== null && nextSetup.tracker.kind === 'local') {
-    const moved = retargetTracker(
-      doc,
-      oldConfig.tracker.local.folder,
-      nextConfig.tracker.local.folder,
-    )
-    const write = { path: AGENT_DOCS.tracker, before: files.tracker, after: moved }
-    if (moved !== doc) {
-      if (at === -1) writes.push(write)
-      else writes[at] = write
-    }
-  }
   if (
     nextConfig.worktrees.folder !== oldConfig.worktrees.folder &&
     !writes.some(w => w.path === GITIGNORE)

@@ -20,15 +20,12 @@ export type GlossaryEdit = {
   error: string | null
 }
 
-export type ScratchOffer = { count: number; folder: string }
-
 export type SettingsActions = {
   section: (id: SettingsSection) => void
   set: (row: SettingsRow, value: string | boolean) => void
   saveSetup: () => void
   reset: () => void
   rerunSetup: () => void
-  importScratch: () => void
   term: {
     draft: (patch: Partial<TermDraft>) => void
     save: (patch?: Partial<TermDraft>) => void
@@ -49,7 +46,6 @@ export type SettingsArgs = {
   isDraft: boolean
   firstRun: string
   glossary: GlossaryEdit
-  scratch: ScratchOffer | null
   note: string | null
   on: SettingsActions
 }
@@ -295,32 +291,6 @@ const PipelineHelpers = ({ ui, tone }: Pick<SettingsArgs, 'ui' | 'tone'>) => {
   )
 }
 
-const ScratchOfferView = ({
-  ui,
-  tone,
-  offer,
-  on,
-}: Pick<SettingsArgs, 'ui' | 'tone' | 'on'> & { offer: ScratchOffer }) => {
-  const { Box, Text } = ui
-  return (
-    <Box key="scratch" flexDirection="column" rowGap={SPACE.lineGap}>
-      <Text bold {...inkOf(tone, 'ink')}>
-        Import from .scratch/
-      </Text>
-      <Text wrap="wrap" {...inkOf(tone, 'text2')}>
-        {`${offer.count} issues in .scratch/ can be copied into ${offer.folder} as numbered files. Nothing is moved or deleted, and nothing is written until you confirm.`}
-      </Text>
-      <CardButton
-        ui={ui}
-        tone={tone}
-        id="scratch-import"
-        label="Review the import"
-        onPress={() => on.importScratch()}
-      />
-    </Box>
-  )
-}
-
 const Body = ({
   ui,
   tone,
@@ -352,9 +322,6 @@ const Body = ({
           />
         ))}
       {def.id === 'pipeline' && <PipelineHelpers ui={ui} tone={tone} />}
-      {def.id === 'tracker' && args.scratch !== null && !readOnly && (
-        <ScratchOfferView ui={ui} tone={tone} offer={args.scratch} on={on} />
-      )}
     </Box>
   )
 }

@@ -39,16 +39,16 @@ test('the tab lists your checkout, the integration worktree, the running agent a
   for (const row of [
     '/repo',
     '.claude/worktrees/_spec-42',
-    '.claude/worktrees/44-ledger-tax',
+    '.claude/worktrees/csv-02-ledger-tax',
     '.claude/worktrees/39-csv-spike',
   ])
     expect(words).toContain(row)
   for (const label of ['[Your checkout]', '[Integration]', '[Agent running]', '[Stale]'])
     expect(words).toContain(label)
-  expect(words).toContain('spec #42')
-  expect(words).toContain('ticket #44')
+  expect(words).toContain('spec csv')
+  expect(words).toContain('ticket csv/02')
   expect(words).toContain('no commits in 6 days')
-  expect(words).toContain('craftory/44-ledger-tax')
+  expect(words).toContain('craftory/csv-02-ledger-tax')
   expect(words).toContain('[ Prune 1 stale ]')
 })
 
@@ -66,7 +66,7 @@ test('desktop: the badges use the design colours for their kind', async ($, on) 
     backgroundColor: integration.bg,
   })
   const agent = paint('skill', 'dark')
-  expect(await badge('.claude/worktrees/44-ledger-tax')).toMatchObject({
+  expect(await badge('.claude/worktrees/csv-02-ledger-tax')).toMatchObject({
     backgroundColor: agent.bg,
   })
 })
@@ -74,10 +74,10 @@ test('desktop: the badges use the design colours for their kind', async ($, on) 
 test('Diff shows the shortstat under the row, and a second press hides it', async ($, on) => {
   await withWorktrees(on, $)
   const pane = await openTab($)
-  await pane.press({ key: 'wt-diff-.claude/worktrees/44-ledger-tax' })
+  await pane.press({ key: 'wt-diff-.claude/worktrees/csv-02-ledger-tax' })
   await pane.redraw()
   expect(await texts(pane)).toContain('4 files changed · +142 −18')
-  await pane.press({ key: 'wt-diff-.claude/worktrees/44-ledger-tax' })
+  await pane.press({ key: 'wt-diff-.claude/worktrees/csv-02-ledger-tax' })
   await pane.redraw()
   expect(await texts(pane)).not.toContain('4 files changed · +142 −18')
 })
@@ -85,10 +85,10 @@ test('Diff shows the shortstat under the row, and a second press hides it', asyn
 test('Open terminal copies the cd line and says so, because a mod cannot open a terminal', async ($, on) => {
   const { w } = await withWorktrees(on, $)
   const pane = await openTab($)
-  await pane.press({ key: 'wt-terminal-.claude/worktrees/44-ledger-tax' })
-  expect(w.copied.map(c => c.text)).toEqual(["cd '/repo/.claude/worktrees/44-ledger-tax'"])
+  await pane.press({ key: 'wt-terminal-.claude/worktrees/csv-02-ledger-tax' })
+  expect(w.copied.map(c => c.text)).toEqual(["cd '/repo/.claude/worktrees/csv-02-ledger-tax'"])
   expect(w.toasts.at(-1)).toBe(
-    "Copied cd '/repo/.claude/worktrees/44-ledger-tax' · paste it in a terminal",
+    "Copied cd '/repo/.claude/worktrees/csv-02-ledger-tax' · paste it in a terminal",
   )
 })
 
@@ -113,9 +113,9 @@ test('Remove on a running agent asks first; Keep it and a dismissed question lea
   let answer: string | undefined = 'Keep it'
   const { w } = await withWorktrees(on, $, { ask: () => answer })
   const pane = await openTab($)
-  await pane.press({ key: 'wt-remove-.claude/worktrees/44-ledger-tax' })
+  await pane.press({ key: 'wt-remove-.claude/worktrees/csv-02-ledger-tax' })
   answer = undefined
-  await pane.press({ key: 'wt-remove-.claude/worktrees/44-ledger-tax' })
+  await pane.press({ key: 'wt-remove-.claude/worktrees/csv-02-ledger-tax' })
   expect(w.ran.filter(a => a[1] === 'worktree' && a[2] === 'remove')).toEqual([])
   expect(w.calls.filter(c => c.tool === 'AskUserQuestion')).toHaveLength(2)
 })
@@ -123,14 +123,14 @@ test('Remove on a running agent asks first; Keep it and a dismissed question lea
 test('confirming Remove anyway forces the removal of a kept worktree', async ($, on) => {
   const { w } = await withWorktrees(on, $, { ask: () => 'Remove anyway' })
   const pane = await openTab($)
-  await pane.press({ key: 'wt-remove-.claude/worktrees/44-ledger-tax' })
+  await pane.press({ key: 'wt-remove-.claude/worktrees/csv-02-ledger-tax' })
   expect(w.ran).toContainEqual([
     'git',
     'worktree',
     'remove',
     '--force',
     '--',
-    '/repo/.claude/worktrees/44-ledger-tax',
+    '/repo/.claude/worktrees/csv-02-ledger-tax',
   ])
 })
 

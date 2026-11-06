@@ -20,7 +20,7 @@ import { AGENT_DOCS, type FileWrite } from '../src/files'
 import type { AgentSetup } from '../types'
 import { UPSTREAM_FIXTURES as up } from './upstream-fixtures'
 
-const OPTIONS = { worktreeFolder: '.claude/worktrees/', localFolder: 'docs/issues/' }
+const OPTIONS = { worktreeFolder: '.claude/worktrees/' }
 const EMPTY: SetupFiles = {
   tracker: null,
   triage: null,
@@ -87,16 +87,10 @@ test('GitLab writes its template, and the PRs flag changes only that line', () =
   )
 })
 
-test("Local Markdown writes Craftory's doc for the configured folder", () => {
-  const writes = planSetup({ ...GITHUB, tracker: { kind: 'local' } }, EMPTY, {
-    ...OPTIONS,
-    localFolder: 'work/issues/',
-  })
-  const doc = textOf(writes, AGENT_DOCS.tracker)!
-  expect(doc).toContain('# Issue tracker: Local Markdown')
-  expect(doc).toContain('`work/issues/<n>-<slug>.md`')
-  expect(doc).not.toContain('{folder}')
-  expect(parseTrackerDoc(doc)).toEqual({ kind: 'local' })
+test("Local Markdown writes Matt's doc byte for byte", () => {
+  const writes = planSetup({ ...GITHUB, tracker: { kind: 'local' } }, EMPTY, OPTIONS)
+  expect(textOf(writes, AGENT_DOCS.tracker)).toBe(up['issue-tracker-local.md'])
+  expect(parseTrackerDoc(textOf(writes, AGENT_DOCS.tracker)!)).toEqual({ kind: 'local' })
 })
 
 test("an Other tracker keeps the user's description under the Other heading", () => {
@@ -145,7 +139,7 @@ test('without the triage skill there is no triage doc and no triage sub-block', 
 })
 
 test('the Agent skills block names every doc it points to', () => {
-  const block = renderAgentSkillsBlock(GITHUB, 'docs/issues/')
+  const block = renderAgentSkillsBlock(GITHUB)
   expect(block.startsWith('## Agent skills\n\n### Issue tracker\n\n')).toBe(true)
   for (const doc of Object.values(AGENT_DOCS)) expect(block).toContain(`See \`${doc}\`.`)
 })
@@ -163,7 +157,7 @@ test('CLAUDE.md beats AGENTS.md and the other is never created', () => {
 })
 
 test('upsert appends after exactly one blank line and keeps every byte of the rest', () => {
-  const block = renderAgentSkillsBlock(GITHUB, 'docs/issues/')
+  const block = renderAgentSkillsBlock(GITHUB)
   const cases = ['# T\n\nSome rules.\n', '# T\n\nSome rules.', '# T\n\nSome rules.\n\n']
   for (const original of cases) {
     const next = upsertBlock(original, block)
@@ -175,7 +169,7 @@ test('upsert appends after exactly one blank line and keeps every byte of the re
 })
 
 test('upsert replaces only the existing block and is idempotent', () => {
-  const block = renderAgentSkillsBlock(GITHUB, 'docs/issues/')
+  const block = renderAgentSkillsBlock(GITHUB)
   const before = '# T\n\nIntro.\n\n'
   const after = '## Testing\n\nRun the tests.\n'
   const stale = `${before}## Agent skills\n\n### Issue tracker\n\nold text.\n\n${after}`
@@ -201,7 +195,7 @@ test('hand-edited docs that already say the same thing are not rewritten', () =>
     tracker: `${up['issue-tracker-github.md']}\nOur own extra note.\n`,
     triage: up['triage-labels.md']!.replace('Edit the right-hand', 'Please edit the right-hand'),
     domain: `${up['domain.md']}\nExtra.\n`,
-    claudeMd: renderAgentSkillsBlock(GITHUB, 'docs/issues/'),
+    claudeMd: renderAgentSkillsBlock(GITHUB),
     gitignore: 'node_modules\n.claude/worktrees/\n',
   }
   expect(planSetup(GITHUB, files, OPTIONS)).toEqual([])
@@ -268,14 +262,12 @@ test('the domain doc layout reads back from the upstream file', () => {
   expect(parseDomainDoc(up['domain.md']!)).toEqual(DEFAULT_DOCS)
 })
 
-const UPSTREAM_SCRATCH_DOC =
-  '# Issue tracker: Local Markdown\n\nIssues and specs for this repo live as markdown files in `.scratch/`.\n'
-
-test('a Local doc that names .scratch/ is read as that layout and kept as written', () => {
-  expect(parseTrackerDoc(UPSTREAM_SCRATCH_DOC)).toEqual({ kind: 'local', scratch: true })
-  const files = { ...EMPTY, tracker: UPSTREAM_SCRATCH_DOC, claudeMd: '# Rules\n' }
+test('a Local setup is kept as written and its block names .scratch', () => {
+  const doc = up['issue-tracker-local.md']!
+  const files = { ...EMPTY, tracker: doc, claudeMd: '# Rules\n' }
   const setup = readSetup(files)
   if (setup.state !== 'ok') throw new Error('expected a setup')
+  expect(setup.value.tracker).toEqual({ kind: 'local' })
   const writes = planSetup(setup.value, files, OPTIONS)
   expect(textOf(writes, AGENT_DOCS.tracker)).toBeUndefined()
   const claude = textOf(writes, 'CLAUDE.md')!

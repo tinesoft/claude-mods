@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { byNumber, parseIssueRef, parseRef, refSlug } from '../src/tracker/refs'
+import { byNumber, parseIssueRef, parseRef, refSlug, refsIn } from '../src/tracker/refs'
 import type { IssueRef } from '../types'
 
 const ref = (text: string) => text as IssueRef
@@ -39,4 +39,15 @@ test('refs sort by number, then by feature and ticket number', () => {
   expect(issues.sort(byNumber).map(i => i.ref)).toEqual(
     ['#9', '#10', 'billing/01', 'csv-export', 'csv-export/02', 'csv-export/10'].map(ref),
   )
+})
+
+test('issue references are normalised at the boundary', () => {
+  expect(parseIssueRef('42')).toBe('#42')
+  expect(parseIssueRef(' #042 ')).toBe('#42')
+  expect(parseIssueRef('BILL-42')).toBe('BILL-42')
+  for (const bad of ['', 'x', '#', 'bill-4', '4.2']) expect(parseIssueRef(bad)).toBeUndefined()
+  expect(refsIn('Fixes #4, relates to BILL-7 and #4 again, not path/#9 or v#1')).toEqual([
+    '#4',
+    'BILL-7',
+  ])
 })

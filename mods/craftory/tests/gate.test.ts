@@ -27,8 +27,7 @@ const DRAFT = {
 const gatedWorld = (on: Parameters<typeof world>[0], options: WorldOptions = {}) =>
   featureWorld(on, {
     files: {
-      '.craftory/features/42.json': '',
-      'docs/issues/42-export-invoices.md': '# unrelated\n',
+      '.craftory/features/csv.json': '',
     },
     store: { drafts: DRAFT },
     ...options,
@@ -39,21 +38,21 @@ const GATE = 'Tickets is gated: no spec is attached to this feature yet. Run any
 test('a typed namespaced command for a gated phase is dropped, with the reason and where to go', async ($, on) => {
   gatedWorld(on)
   await startSession($)
-  const result = await submit($, '/mattpocock-skills:to-tickets #42')
+  const result = await submit($, '/mattpocock-skills:to-tickets csv')
   expect(result.drop).toBe(`${GATE} Use Run anyway in the Craftory band above the prompt.`)
 })
 
 test('the short form is recognised too', async ($, on) => {
   gatedWorld(on)
   await startSession($)
-  expect((await submit($, '/to-tickets #42')).drop).toContain('Tickets is gated')
+  expect((await submit($, '/to-tickets csv')).drop).toContain('Tickets is gated')
 })
 
 test('the band says it, with Run anyway and Diagnose, and one toast announces it once', async ($, on) => {
   const w = gatedWorld(on)
   await startSession($)
-  await submit($, '/mattpocock-skills:to-tickets #42')
-  await submit($, '/mattpocock-skills:to-tickets #42')
+  await submit($, '/mattpocock-skills:to-tickets csv')
+  await submit($, '/mattpocock-skills:to-tickets csv')
   const band = await mountBand($)
   expect(await allText(band)).toContain(GATE)
   expect((await band.find({ key: 'notice-run-anyway-tickets' }))!.text).toContain('Run anyway')
@@ -66,7 +65,7 @@ for (const surface of BAND_SURFACES) {
   test(`${surface}: the gate row is amber`, async ($, on) => {
     gatedWorld(on)
     await startSession($, surface)
-    await submit($, '/to-tickets #42')
+    await submit($, '/to-tickets csv')
     const row = await (await mountBand($, surface)).find({ key: 'notice-gate-tickets' })
     expect(row).toBeDefined()
     const text = (await (await mountBand($, surface)).findAll({ type: 'Text' })).find(t =>
@@ -88,12 +87,12 @@ test('nothing that is not a gated Matt phase is held', async ($, on) => {
 test('Run anyway runs the command once, and the re-entered gate lets it through', async ($, on) => {
   const w = gatedWorld(on)
   await startSession($)
-  await submit($, '/mattpocock-skills:to-tickets #42')
+  await submit($, '/mattpocock-skills:to-tickets csv')
   await (await mountBand($)).press({ key: 'notice-run-anyway-tickets' })
-  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:to-tickets', args: '#42' }])
+  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:to-tickets', args: 'csv' }])
   // The engine runs a plugin's command through our own prompt.submit; the pass lets it by.
-  expect(await submit($, '/mattpocock-skills:to-tickets #42')).toEqual({
-    text: '/mattpocock-skills:to-tickets #42',
+  expect(await submit($, '/mattpocock-skills:to-tickets csv')).toEqual({
+    text: '/mattpocock-skills:to-tickets csv',
   })
   expect(await allText(await mountBand($))).not.toContain('is gated')
 })
@@ -101,10 +100,10 @@ test('Run anyway runs the command once, and the re-entered gate lets it through'
 test('the pass is used up by that run: the next typed run is held again', async ($, on) => {
   gatedWorld(on)
   await startSession($)
-  await submit($, '/mattpocock-skills:to-tickets #42')
+  await submit($, '/mattpocock-skills:to-tickets csv')
   await (await mountBand($)).press({ key: 'notice-run-anyway-tickets' })
-  expect((await submit($, '/mattpocock-skills:to-tickets #42')).drop).toBeUndefined()
-  expect((await submit($, '/mattpocock-skills:to-tickets #42')).drop).toContain('Tickets is gated')
+  expect((await submit($, '/mattpocock-skills:to-tickets csv')).drop).toBeUndefined()
+  expect((await submit($, '/mattpocock-skills:to-tickets csv')).drop).toContain('Tickets is gated')
 })
 
 test('a rail press while gated holds, then Run anyway sends exactly one command and no drop', async ($, on) => {
@@ -124,11 +123,11 @@ test('a rail press while gated holds, then Run anyway sends exactly one command 
 test('an unconsumed pass expires instead of lingering into a later run', async ($, on) => {
   const w = gatedWorld(on)
   await startSession($)
-  await submit($, '/mattpocock-skills:to-tickets #42')
+  await submit($, '/mattpocock-skills:to-tickets csv')
   await (await mountBand($)).press({ key: 'notice-run-anyway-tickets' })
   expect(w.commandsRun).toHaveLength(1)
   await w.clock.advance(31_000)
-  expect((await submit($, '/mattpocock-skills:to-tickets #42')).drop).toContain('Tickets is gated')
+  expect((await submit($, '/mattpocock-skills:to-tickets csv')).drop).toContain('Tickets is gated')
 })
 
 test('Diagnose runs diagnosing-bugs instead, and Dismiss only closes the row', async ($, on) => {
@@ -153,7 +152,8 @@ test('a gate that no longer holds is dropped from the band', async ($, on) => {
   const w = gatedWorld(on)
   await startSession($)
   await submit($, '/to-tickets #1')
-  w.files.set('docs/issues/50-spec.md', '---\ntype: spec\ncreated: 2026-10-24\n---\n# Spec\n')
+  w.files.set('.scratch/export/spec.md', '# Spec\n\nStatus: ready-for-agent\n')
+  w.mtimes.set('.scratch/export/spec.md', 4_000_000)
   await skillPrompt($, 'to-spec')
   await turnComplete($)
   expect(await allText(await mountBand($))).not.toContain('is gated')
@@ -162,8 +162,7 @@ test('a gate that no longer holds is dropped from the band', async ($, on) => {
 test('a typed bare name that another source owns is not gated, while the namespaced name is', async ($, on) => {
   featureWorld(on, {
     files: {
-      '.craftory/features/42.json': '',
-      'docs/issues/42-export-invoices.md': '# unrelated\n',
+      '.craftory/features/csv.json': '',
     },
     store: { drafts: DRAFT },
     commands: [
@@ -172,48 +171,46 @@ test('a typed bare name that another source owns is not gated, while the namespa
     ],
   })
   await startSession($)
-  expect((await submit($, '/to-tickets #42')).drop).toBeUndefined()
-  expect((await submit($, '/mattpocock-skills:to-tickets #42')).drop).toContain('Tickets is gated')
+  expect((await submit($, '/to-tickets csv')).drop).toBeUndefined()
+  expect((await submit($, '/mattpocock-skills:to-tickets csv')).drop).toContain('Tickets is gated')
 })
 
 test('with the plugin missing a bare name is nobody Craftory knows', async ($, on) => {
   featureWorld(on, {
     files: {
-      '.craftory/features/42.json': '',
-      'docs/issues/42-export-invoices.md': '# unrelated\n',
+      '.craftory/features/csv.json': '',
     },
     store: { drafts: DRAFT },
     commands: [],
   })
   await startSession($)
-  expect((await submit($, '/to-tickets #42')).drop).toBeUndefined()
+  expect((await submit($, '/to-tickets csv')).drop).toBeUndefined()
 })
 
 for (const surfaces of [[], ['mobile'], ['vscode']] as const) {
   test(`with ${surfaces.join(', ') || 'no surface'} there is no band to answer in, so a typed gated command passes`, async ($, on) => {
     gatedWorld(on, { surfaces })
     await startSession($)
-    expect((await submit($, '/mattpocock-skills:to-tickets #42')).drop).toBeUndefined()
+    expect((await submit($, '/mattpocock-skills:to-tickets csv')).drop).toBeUndefined()
   })
 }
 
 test('a desktop session still gates, and a terminal beside a mobile pane does too', async ($, on) => {
   gatedWorld(on, { surfaces: ['desktop'] })
   await startSession($, 'desktop')
-  expect((await submit($, '/to-tickets #42')).drop).toContain('Tickets is gated')
+  expect((await submit($, '/to-tickets csv')).drop).toContain('Tickets is gated')
 })
 
 test('a terminal and a phone together still gate: the band is there to answer in', async ($, on) => {
   gatedWorld(on, { surfaces: ['mobile', 'terminal'] })
   await startSession($)
-  expect((await submit($, '/to-tickets #42')).drop).toContain('Tickets is gated')
+  expect((await submit($, '/to-tickets csv')).drop).toContain('Tickets is gated')
 })
 
 test('a grill that ran and awaits the user does not gate Spec: typing /to-spec is how it ends', async ($, on) => {
   featureWorld(on, {
     files: {
-      '.craftory/features/42.json': '',
-      'docs/issues/42-export-invoices.md': '# unrelated\n',
+      '.craftory/features/csv.json': '',
     },
   })
   await startSession($)
@@ -238,9 +235,9 @@ test('mobile has no band, so the gate notice is in the pane with Run anyway', as
     surfaces: ['mobile'],
     files: {
       '.craftory/config.json': JSON.stringify({ phases: { tickets: { gate: true } } }),
-      'docs/issues/43-button.md': ticketFile('Export button'),
-      'docs/issues/44-ledger.md': ticketFile('Ledger tax'),
-      'docs/issues/45-filter.md': ticketFile('Date filter'),
+      '.scratch/csv/issues/01-button.md': ticketFile(1, 'Export button'),
+      '.scratch/csv/issues/02-ledger.md': ticketFile(2, 'Ledger tax'),
+      '.scratch/csv/issues/03-filter.md': ticketFile(3, 'Date filter'),
     },
   })
   await startSession($, 'mobile')
@@ -253,5 +250,5 @@ test('mobile has no band, so the gate notice is in the pane with Run anyway', as
   expect(w.commandsRun).toEqual([])
   expect(await allText(pane)).toContain('Build is gated: the tickets have no blocking edges')
   await pane.press({ key: 'notice-run-anyway-build' })
-  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:implement-spec', args: '#42' }])
+  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:implement-spec', args: 'csv' }])
 })

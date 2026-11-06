@@ -9,7 +9,7 @@
  *       fails when either view differs from the raw fixture files.
  *
  * `claude plugin test` can import only code files, so the raw .md fixtures are mirrored into
- * tests/upstream-fixtures.ts, and the four templates Craftory writes are mirrored into the
+ * tests/upstream-fixtures.ts, and the five templates Craftory writes are mirrored into the
  * generated region of src/templates.ts. The tests compare those two views.
  */
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -29,7 +29,13 @@ const SOURCES = {
   'triage-labels.md': `${SKILL}/triage-labels.md`,
   'domain.md': `${SKILL}/domain.md`,
 }
-const TEMPLATE_NAMES = ['issue-tracker-github', 'issue-tracker-gitlab', 'triage-labels', 'domain']
+const TEMPLATE_NAMES = [
+  'issue-tracker-github',
+  'issue-tracker-gitlab',
+  'issue-tracker-local',
+  'triage-labels',
+  'domain',
+]
 
 const args = process.argv.slice(2)
 const from = args[0] === '--from' ? args[1] : undefined

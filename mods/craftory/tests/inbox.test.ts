@@ -2,21 +2,17 @@ import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import { allText, featureWorld, mountPane, startSession, texts, type WorldOptions } from './harness'
 
-const issue = (status: string, title: string, labels = '') =>
-  `---\nstatus: ${status}\n${labels}---\n# ${title}\n`
+const issue = (status: string, title: string, bug = false) =>
+  `# ${title}\n\nStatus: ${status}\n${bug ? 'Type: bug\n' : ''}`
 
 const INBOX = {
-  'docs/issues/51-csv-times-out.md': issue(
-    'needs-triage',
-    'CSV export times out',
-    'labels: [bug]\n',
-  ),
-  'docs/issues/52-currency-column.md': issue('ready-for-agent', 'Add a currency column'),
-  'docs/issues/53-csv-delimiter.md': issue('ready-for-human', 'Decide the CSV delimiter'),
-  'docs/issues/54-null-total.md': issue(
+  '.scratch/inbox/issues/01-csv-times-out.md': issue('needs-triage', 'CSV export times out', true),
+  '.scratch/inbox/issues/02-currency-column.md': issue('ready-for-agent', 'Add a currency column'),
+  '.scratch/inbox/issues/03-csv-delimiter.md': issue('ready-for-human', 'Decide the CSV delimiter'),
+  '.scratch/inbox/issues/04-null-total.md': issue(
     'ready-for-agent',
     'Total is null for empty runs',
-    'labels: [bug]\n',
+    true,
   ),
 }
 
@@ -36,40 +32,40 @@ const tickets = async (
 test('the Tickets tab shows the tracker header, the Inbox by triage role and the spec tickets', async ($, on) => {
   const { pane } = await tickets(on, $)
   const words = await texts(pane)
-  expect(words).toContain('Local Markdown · docs/issues/')
+  expect(words).toContain('Local Markdown · .scratch/')
   expect(words).toContain('Inbox')
   expect(words).toContain('CSV export times out')
   expect(words).toContain('needs-triage · Not triaged yet · bug')
   expect(words).toContain('ready-for-agent · Enters at Align')
   expect(words).toContain('ready-for-agent · Enters at Build · bug')
   expect(words).toContain('ready-for-human · No agent · decision for you')
-  expect(words).toContain('[ /triage #51 ]')
-  expect(words).toContain('Spec #42 · tickets')
-  expect(words).toContain('Blocked by #43')
-  expect(words).toContain('[ /implement #43 ]')
-  expect(words).toContain('[ /implement-spec #42 · run all in parallel ]')
-  expect(await pane.find({ key: 'inbox-start-#53' })).toBeUndefined()
-  expect(await pane.find({ key: 'implement-#44' })).toBeUndefined()
+  expect(words).toContain('[ /triage inbox/01 ]')
+  expect(words).toContain('Spec csv · tickets')
+  expect(words).toContain('Blocked by csv/01')
+  expect(words).toContain('[ /implement csv/01 ]')
+  expect(words).toContain('[ /implement-spec csv · run all in parallel ]')
+  expect(await pane.find({ key: 'inbox-start-inbox/03' })).toBeUndefined()
+  expect(await pane.find({ key: 'implement-csv/02' })).toBeUndefined()
 })
 
 test('the triage button runs /triage on the issue', async ($, on) => {
   const { w, pane } = await tickets(on, $)
-  await pane.press({ key: 'inbox-triage-#51' })
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:triage', args: '#51' })
+  await pane.press({ key: 'inbox-triage-inbox/01' })
+  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:triage', args: 'inbox/01' })
 })
 
 test('a ready-for-agent bug enters at Build, with the earlier phases skipped for it', async ($, on) => {
   const { w, pane } = await tickets(on, $)
-  await pane.press({ key: 'inbox-start-#54' })
-  const record = JSON.parse(w.files.get('.craftory/features/54.json')!)
+  await pane.press({ key: 'inbox-start-inbox/04' })
+  const record = JSON.parse(w.files.get('.craftory/features/inbox-04.json')!)
   expect(record).toMatchObject({
-    spec: '#54',
+    spec: 'inbox/04',
     origin: 'issue',
     entry: 'build',
-    enteredFrom: '#54',
+    enteredFrom: 'inbox/04',
   })
   expect(Object.keys(record.skips)).toEqual(['align', 'spec', 'tickets'])
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement', args: '#54' })
+  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement', args: 'inbox/04' })
   await pane.press({ key: 'tab-flow' })
   await pane.redraw()
   const words = await texts(pane)
@@ -79,15 +75,15 @@ test('a ready-for-agent bug enters at Build, with the earlier phases skipped for
 
 test('a ready-for-agent request that is not a bug enters at Align with a draft that remembers the issue', async ($, on) => {
   const { w, pane } = await tickets(on, $)
-  await pane.press({ key: 'inbox-start-#52' })
-  expect(w.files.has('.craftory/features/52.json')).toBe(false)
+  await pane.press({ key: 'inbox-start-inbox/02' })
+  expect(w.files.has('.craftory/features/inbox-02.json')).toBe(false)
   const drafts = w.store.get('drafts') as Record<string, { enteredFrom: string; title: string }>
   expect(Object.values(drafts)).toEqual([
-    expect.objectContaining({ enteredFrom: '#52', title: 'Add a currency column' }),
+    expect.objectContaining({ enteredFrom: 'inbox/02', title: 'Add a currency column' }),
   ])
   expect(w.commandsRun).toContainEqual({
     command: 'mattpocock-skills:grill-with-docs',
-    args: '#52',
+    args: 'inbox/02',
   })
 })
 
@@ -95,11 +91,14 @@ test('entry.triage.enterAt moves where a ready issue enters', async ($, on) => {
   const config = JSON.stringify({ version: 1, entry: { triage: { enterAt: 'tickets' } } })
   const { w, pane } = await tickets(on, $, { files: { '.craftory/config.json': config } })
   expect(await texts(pane)).toContain('ready-for-agent · Enters at Tickets · bug')
-  await pane.press({ key: 'inbox-start-#54' })
-  const record = JSON.parse(w.files.get('.craftory/features/54.json')!)
+  await pane.press({ key: 'inbox-start-inbox/04' })
+  const record = JSON.parse(w.files.get('.craftory/features/inbox-04.json')!)
   expect(record).toMatchObject({ entry: 'tickets' })
   expect(Object.keys(record.skips)).toEqual(['align', 'spec'])
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:to-tickets', args: '#54' })
+  expect(w.commandsRun).toContainEqual({
+    command: 'mattpocock-skills:to-tickets',
+    args: 'inbox/04',
+  })
 })
 
 test('with triage off in Settings there is no Inbox', async ($, on) => {
@@ -111,15 +110,15 @@ test('with triage off in Settings there is no Inbox', async ($, on) => {
 test('Open folder copies the issues folder', async ($, on) => {
   const { w, pane } = await tickets(on, $)
   await pane.press({ key: 'open-folder' })
-  expect(w.copied).toEqual([expect.objectContaining({ text: 'docs/issues/' })])
+  expect(w.copied).toEqual([expect.objectContaining({ text: '.scratch/' })])
 })
 
 test('/implement on a ready ticket and run-all go through the gate', async ($, on) => {
   const { w, pane } = await tickets(on, $)
-  await pane.press({ key: 'implement-#43' })
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement', args: '#43' })
+  await pane.press({ key: 'implement-csv/01' })
+  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement', args: 'csv/01' })
   await pane.press({ key: 'implement-spec' })
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement-spec', args: '#42' })
+  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement-spec', args: 'csv' })
 })
 
 test('GitLab shows links to the project, not issues', async ($, on) => {
@@ -165,19 +164,19 @@ test('Other with no link shows the paragraph itself', async ($, on) => {
 })
 
 test('an imported spec with no feature is offered and starts one at Tickets', async ($, on) => {
-  const spec = '---\ntype: spec\nstatus: ready-for-agent\n---\n# Craftory wayfinder rail\n'
-  const { w, pane } = await tickets(on, $, { files: { 'docs/issues/60-wayfinder-rail.md': spec } })
+  const spec = '# Craftory wayfinder rail\n\nStatus: ready-for-agent\n'
+  const { w, pane } = await tickets(on, $, { files: { '.scratch/rail/spec.md': spec } })
   expect(await texts(pane)).toContain(
     'ready-for-agent · Spec without a feature · Enters at Tickets',
   )
-  await pane.press({ key: 'inbox-start-#60' })
-  const record = JSON.parse(w.files.get('.craftory/features/60.json')!)
-  expect(record).toMatchObject({ spec: '#60', origin: 'spec', entry: 'tickets' })
+  await pane.press({ key: 'inbox-start-rail' })
+  const record = JSON.parse(w.files.get('.craftory/features/rail.json')!)
+  expect(record).toMatchObject({ spec: 'rail', origin: 'spec', entry: 'tickets' })
   expect(Object.keys(record.skips)).toEqual(['align', 'spec'])
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:to-tickets', args: '#60' })
+  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:to-tickets', args: 'rail' })
 })
 
 test('a spec that already has a feature is not offered again', async ($, on) => {
   const { pane } = await tickets(on, $)
-  expect(await pane.find({ key: 'inbox-start-#42' })).toBeUndefined()
+  expect(await pane.find({ key: 'inbox-start-csv' })).toBeUndefined()
 })

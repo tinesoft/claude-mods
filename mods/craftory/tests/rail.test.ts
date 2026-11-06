@@ -27,7 +27,7 @@ for (const surface of BAND_SURFACES) {
       const text = await allText(band)
       for (const label of ['Align', 'Spec', 'Tickets', 'Build', 'Review', 'Ship', 'Retro'])
         expect(text).toContain(label)
-      expect(text).toContain('#42')
+      expect(text).toContain('csv')
       expect(text).toContain('Export invoices as CSV')
       const label = async (word: string) =>
         (await band.findAll({ type: 'Text' })).find(t => t.text === word)
@@ -89,7 +89,7 @@ test('the card shows the command, helpers, artifact and the amber gate line', as
   await (await mountBand($, 'terminal', 200)).press({ key: 'phase-tickets' })
   const tickets = (await find(await mountBand($, 'terminal', 200), 'card'))!
   expect(tickets.text).toContain('Created')
-  expect(tickets.text).toContain('#43 to #45 · 1 ready, 2 blocked')
+  expect(tickets.text).toContain('csv/01 to csv/03 · 1 ready, 2 blocked')
 })
 
 test('the card primary submits the namespaced command with the spec as its argument', async ($, on) => {
@@ -97,11 +97,11 @@ test('the card primary submits the namespaced command with the spec as its argum
   await startSession($)
   await (await mountBand($, 'terminal', 200)).press({ key: 'phase-build' })
   await (await mountBand($, 'terminal', 200)).press({ key: 'primary' })
-  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:implement-spec', args: '#42' }])
+  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:implement-spec', args: 'csv' }])
   expect(await find(await mountBand($, 'terminal', 200), 'card')).toBeUndefined()
 })
 
-test('Open #42 opens the pane on the tickets tab', async ($, on) => {
+test('Open csv opens the pane on the tickets tab', async ($, on) => {
   const w = featureWorld(on)
   await startSession($)
   await (await mountBand($, 'terminal', 200)).press({ key: 'phase-spec' })
@@ -189,7 +189,7 @@ test('a running skill spins while it runs, and the spinner stops with it', async
 })
 
 test('a grill that asks a question is needs-you until the user answers', async ($, on) => {
-  featureWorld(on, { files: { '.craftory/features/42.json': '' } })
+  featureWorld(on, { files: { '.craftory/features/csv.json': '' } })
   await startSession($)
   await skillPrompt($, 'grill-with-docs')
   await turnComplete($)

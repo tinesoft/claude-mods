@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import { featureWorld, MATT_SKILLS, mattCommands, startSession, ticketFile } from './harness'
 
-const GATE = 'Review is gated: #43, #44, #45 not merged yet. Run anyway?'
+const GATE = 'Review is gated: csv/01, csv/02, csv/03 not merged yet. Run anyway?'
 
 const skill = ($: Engine, name: string) =>
   $.tool.call({ tool: 'Skill', tool_use_id: 'sk1', skill: name } as never)
@@ -47,14 +47,14 @@ test('a Skill call that is not code-review passes without a question', async ($,
 })
 
 test('with Build done, code-review runs without a question', async ($, on) => {
-  const merged = (title: string, blocked: number[] = []) =>
-    ticketFile(title, blocked).replace('ready-for-agent', 'done')
+  const merged = (n: number, title: string, blocked: number[] = []) =>
+    ticketFile(n, title, blocked).replace('ready-for-agent', 'done')
   const w = featureWorld(on, {
     ask: () => 'Diagnose first',
     files: {
-      'docs/issues/43-button.md': merged('Export button'),
-      'docs/issues/44-ledger.md': merged('Ledger tax', [43]),
-      'docs/issues/45-filter.md': merged('Date filter', [43]),
+      '.scratch/csv/issues/01-button.md': merged(1, 'Export button'),
+      '.scratch/csv/issues/02-ledger.md': merged(2, 'Ledger tax', [1]),
+      '.scratch/csv/issues/03-filter.md': merged(3, 'Date filter', [1]),
     },
   })
   await startSession($)

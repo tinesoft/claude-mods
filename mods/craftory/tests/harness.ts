@@ -55,6 +55,8 @@ const LET_REFRESH_RUN_MS = 1_500
 
 export const world = (on: On, options: WorldOptions = {}) => {
   const files = new Map(Object.entries(options.files ?? {}))
+  /** When a file last changed, by path; 1 for any file not listed. */
+  const mtimes = new Map<string, number>()
   /** A relative path reaches the hooks resolved against the session's folder, which is the plugin's here. */
   const rel = (path: string) => path.replace(/^\/repo\//, '').replace(/^\/.*?\/craftory\//, '')
   const dirs = (path: string) => rel(path).replace(/\/$/, '')
@@ -198,7 +200,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
             name,
             kind: below.some(f => f.startsWith(`${name}/`)) ? ('dir' as const) : ('file' as const),
             size: 0,
-            mtimeMs: 1,
+            mtimeMs: mtimes.get(`${dir}/${name}`) ?? 1,
             isLink: false,
           })),
         }
@@ -240,6 +242,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   return {
     clock,
     files,
+    mtimes,
     ran,
     writes,
     opens,
@@ -348,7 +351,7 @@ const AT = '2026-10-24T10:00:00Z'
 export const featureJson = (over: Record<string, unknown> = {}) =>
   JSON.stringify({
     version: 1,
-    spec: '#42',
+    spec: 'csv',
     title: 'Export invoices as CSV',
     entry: 'align',
     integrationBranch: 'feat/csv',
@@ -357,21 +360,25 @@ export const featureJson = (over: Record<string, unknown> = {}) =>
     ...over,
   })
 
-export const specFile = '---\ntype: spec\nstatus: ready-for-agent\n---\n# Export invoices as CSV\n'
+export const specFile =
+  '# Export invoices as CSV\n\nStatus: ready-for-agent\n\n## Problem Statement\nx\n\n## User Stories\n1. As an accountant, I want a CSV\n'
 
-export const ticketFile = (title: string, blockedBy: number[] = []) =>
-  `---\ntype: ticket\nstatus: ready-for-agent\nparent: 42\n${
-    blockedBy.length > 0 ? `blocked-by: [${blockedBy.join(', ')}]\n` : ''
-  }---\n# ${title}\n`
+/** A ticket of the `csv` feature, `Blocked by` naming tickets of the same feature by number. */
+export const ticketFile = (n: number, title: string, blockedBy: number[] = []) =>
+  `# ${String(n).padStart(2, '0')}: ${title}\n\nStatus: ready-for-agent\n${
+    blockedBy.length > 0
+      ? `Blocked by: ${blockedBy.map(b => String(b).padStart(2, '0')).join(', ')}\n`
+      : ''
+  }`
 
 export const featureRepo = (tickets = true, feature = featureJson()): Record<string, string> => ({
   ...SETUP_FILES,
-  '.craftory/features/42.json': feature,
-  'docs/issues/42-export-invoices.md': specFile,
+  '.craftory/features/csv.json': feature,
+  '.scratch/csv/spec.md': specFile,
   ...(tickets && {
-    'docs/issues/43-button.md': ticketFile('Export button'),
-    'docs/issues/44-ledger.md': ticketFile('Ledger tax', [43]),
-    'docs/issues/45-filter.md': ticketFile('Date filter', [43]),
+    '.scratch/csv/issues/01-button.md': ticketFile(1, 'Export button'),
+    '.scratch/csv/issues/02-ledger.md': ticketFile(2, 'Ledger tax', [1]),
+    '.scratch/csv/issues/03-filter.md': ticketFile(3, 'Date filter', [1]),
   }),
 })
 

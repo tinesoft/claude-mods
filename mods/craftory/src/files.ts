@@ -3,7 +3,6 @@ import type { DocsLayout, SteeringFile } from '../types'
 export type WritableContext = {
   steering: SteeringFile | null
   docs: DocsLayout
-  issuesFolder: string
 }
 
 export type FileWrite = {
@@ -33,8 +32,6 @@ export function normalise(path: string): string | undefined {
   return parts.join('/')
 }
 
-const folderOf = (folder: string) => normalise(folder)?.concat('/')
-
 const GIT_DIR = '.git'
 const OWN_DIR = '.craftory'
 
@@ -58,13 +55,7 @@ export function isWritable(path: string, ctx: WritableContext): boolean {
   if (exact.includes(clean)) return true
   if (clean.startsWith(FEATURES_DIR))
     return /^[A-Za-z0-9-]+\.json$/.test(clean.slice(FEATURES_DIR.length))
-  const issues = folderOf(ctx.issuesFolder)
-  return (
-    issues !== undefined &&
-    !inside(issues, OWN_DIR) &&
-    clean.startsWith(issues) &&
-    /^\d+-[a-z0-9-]*\.md$/.test(clean.slice(issues.length))
-  )
+  return false
 }
 
 export function isShared(path: string, ctx: WritableContext): boolean {

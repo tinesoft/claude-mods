@@ -29,7 +29,6 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     }),
   ) as Record<PhaseId, PhaseConfig>,
   tracker: {
-    local: { folder: 'docs/issues/' },
     github: { specLabel: 'spec', ticketLabel: 'ticket' },
     gitlab: { instance: 'gitlab.com', project: '' },
   },

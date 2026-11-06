@@ -69,7 +69,7 @@ test('a phase already done by evidence or marked has no Mark done button', () =>
 test('Mark done on Align finishes the view, is saved on the record, and the button goes', async ($, on) => {
   const w = featureWorld(on, {
     files: {
-      '.craftory/features/42.json': featureJson({ marks: { spec: { ranAt: AT } } }),
+      '.craftory/features/csv.json': featureJson({ marks: { spec: { ranAt: AT } } }),
     },
   })
   await startSession($)
@@ -78,7 +78,7 @@ test('Mark done on Align finishes the view, is saved on the record, and the butt
   const card = await mountBand($, 'terminal', 200, 60)
   expect(await card.findAll({ key: 'mark-done' })).toHaveLength(1)
   await card.press({ key: 'mark-done' })
-  const record = JSON.parse(w.files.get('.craftory/features/42.json')!)
+  const record = JSON.parse(w.files.get('.craftory/features/csv.json')!)
   expect(record.marks.align.markedDoneAt).toBeDefined()
   const after = await mountBand($, 'terminal', 200, 60)
   expect(await after.findAll({ key: 'mark-done' })).toHaveLength(0)

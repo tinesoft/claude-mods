@@ -65,9 +65,9 @@ for (const surface of BAND_SURFACES) {
       const card = await openCard($, surface)
       const colour = (role: 'skill' | 'hook' | 'danger') => paint(role, tone).fg
       const expected = [
-        ['#43', 'skill', '79%'],
-        ['#44', 'hook', '80%'],
-        ['#45', 'danger', '100%'],
+        ['csv/01', 'skill', '79%'],
+        ['csv/02', 'hook', '80%'],
+        ['csv/03', 'danger', '100%'],
       ] as const
       if (surface === 'desktop') {
         for (const [ref, role, width] of expected) {
@@ -75,12 +75,12 @@ for (const surface of BAND_SURFACES) {
           expect(fill?.props, ref).toMatchObject({ width, backgroundColor: colour(role) })
         }
         const over = paint('danger', tone)
-        expect((await card.find({ key: 'badge-#45' }))?.props).toMatchObject({
+        expect((await card.find({ key: 'badge-csv/03' }))?.props).toMatchObject({
           backgroundColor: over.bg,
           borderColor: over.bd,
         })
         const near = paint('hook', tone)
-        expect((await card.find({ key: 'badge-#44' }))?.props).toMatchObject({
+        expect((await card.find({ key: 'badge-csv/02' }))?.props).toMatchObject({
           backgroundColor: near.bg,
           borderColor: near.bd,
         })
@@ -102,15 +102,15 @@ test('terminal: each row shows id, title, badge, TDD step when said, tokens and 
   const card = await openCard($, 'terminal')
   const text = await allText(card)
   expect(text).toContain('Agents 2 running · 1 over budget')
-  expect(text).toContain('#43 Export button')
+  expect(text).toContain('csv/01 Export button')
   const words = await texts(card)
   for (const badge of ['[Running]', '[Near budget]', '[Over budget]'])
     expect(words).toContain(badge)
   expect(words).toContain('red · test 4 of 5')
   expect(words.filter(w => w.startsWith('red'))).toHaveLength(1)
   expect(words).toContain('64.0k · —')
-  expect(words).toContain('.claude/worktrees/43-export-button')
-  expect(words).toContain('craftory/43-export-button')
+  expect(words).toContain('.claude/worktrees/csv-01-export-button')
+  expect(words).toContain('craftory/csv-01-export-button')
   expect(words).toContain('One git worktree per agent · 80k token budget each')
   expect(await card.find({ key: 'agents-pause' })).toBeDefined()
   expect(await card.find({ key: 'agents-open-panel' })).toBeDefined()
@@ -139,8 +139,8 @@ test('an agent that reports after Pause all is recorded as stopped, not done', a
   await start($, 43, 'Export button')
   await (await openCard($, 'terminal')).press({ key: 'agents-pause' })
   await turnComplete($, { agentId: 'agent-tu43' })
-  const record = JSON.parse(w.files.get('.craftory/features/42.json')!)
-  expect(record.agents['#43'].outcome).toBe('stopped')
+  const record = JSON.parse(w.files.get('.craftory/features/csv.json')!)
+  expect(record.agents['csv/01'].outcome).toBe('stopped')
 })
 
 test('Open panel opens the pane on the Worktrees tab', async ($, on) => {
@@ -160,7 +160,7 @@ test('a worktree that cannot be made shows as an info row on the card', async ($
   await start($, 43, 'Export button')
   const words = await texts(await openCard($, 'terminal'))
   expect(words).toContain(
-    'Craftory could not make .claude/worktrees/43-export-button: fatal: not a git repository',
+    'Craftory could not make .claude/worktrees/csv-01-export-button: fatal: not a git repository',
   )
 })
 
@@ -176,14 +176,14 @@ test('an over-budget row offers Raise budget, and a failed row offers Diagnose',
   const words = await texts(card)
   expect(words).toContain('[Over budget]')
   expect(words).toContain('[Failed]')
-  await card.press({ key: 'agent-diagnose-#45' })
+  await card.press({ key: 'agent-diagnose-csv/03' })
   expect(w.commandsRun.at(-1)).toEqual({
     command: 'mattpocock-skills:diagnosing-bugs',
-    args: 'Agent #45 failed',
+    args: 'Agent csv/03 failed',
   })
-  await (await openCard($, 'terminal')).press({ key: 'agent-raise-#44' })
-  const record = JSON.parse(w.files.get('.craftory/features/42.json')!)
-  expect(record.agents['#44'].budget).toBe(160_000)
+  await (await openCard($, 'terminal')).press({ key: 'agent-raise-csv/02' })
+  const record = JSON.parse(w.files.get('.craftory/features/csv.json')!)
+  expect(record.agents['csv/02'].budget).toBe(160_000)
   expect(await texts(await mountBand($, 'terminal', 200, 60))).toContain('[Stopped]')
 })
 

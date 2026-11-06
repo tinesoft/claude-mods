@@ -1,4 +1,5 @@
 import { expect, test } from 'claude-code/testing'
+import { applyDraftChange, bindSpec, newDraft } from '../src/features'
 import { DEFAULT_LABELS } from '../src/agents-md'
 import { DEFAULT_CONFIG } from '../src/config'
 import {
@@ -8,7 +9,7 @@ import {
   type ReadContext,
   type ReadResult,
 } from '../src/tracker'
-import { scratchSpec } from '../src/tracker/local'
+import { spec as scratchSpec } from '../src/tracker/local'
 
 type Files = Record<string, string | { text: string; mtimeMs: number }>
 
@@ -128,4 +129,55 @@ test('only writes and commands that touch .scratch refresh the tracker', () => {
   expect(scratchSpec.touches(ctx, { name: 'Bash', command: 'ls .scratch/' })).toBe(true)
   expect(scratchSpec.touches(ctx, { name: 'Bash', command: 'ls' })).toBe(false)
   expect(scratchSpec.header(ctx)).toBe('Local Markdown · .scratch/')
+})
+
+test('a renamed triage label still maps to its role, and wontfix closes the issue', async () => {
+  const labels = { ...DEFAULT_LABELS, 'ready-for-agent': 'afk', wontfix: 'nope' }
+  const snapshot = await readTracker(
+    scratchSpec,
+    { ...ctx, labels },
+    fs({
+      '.scratch/a/spec.md': '# A\n\nStatus: afk\n',
+      '.scratch/a/issues/01-b.md': '# 01: B\n\nStatus: nope\n',
+    }),
+  )
+  if (!snapshot.rich) throw new Error('expected a rich tracker')
+  expect(snapshot.issues).toMatchObject([
+    { ref: 'a', role: 'ready-for-agent', status: 'open' },
+    { ref: 'a/01', role: 'wontfix', status: 'closed' },
+  ])
+})
+
+test('a draft binds to a spec written after its Spec phase ran, never to an older one', async () => {
+  const draft = applyDraftChange(
+    newDraft({
+      draftId: 'd1',
+      title: 'Export',
+      entry: 'align',
+      enteredFrom: null,
+      at: '2026-10-24T08:00:00.000Z',
+    }),
+    { kind: 'ran', phase: 'spec', at: '2026-10-24T15:30:00.000Z' },
+  )
+  const ran = Date.parse('2026-10-24T15:30:00.000Z')
+  const snapshot = await read({
+    '.scratch/old/spec.md': { text: SPEC, mtimeMs: ran - 1000 },
+    '.scratch/new/spec.md': { text: SPEC, mtimeMs: ran + 1000 },
+  })
+  expect(bindSpec(draft, snapshot, new Set())?.ref).toBe('new')
+})
+
+test('an issue file in a folder with no spec is a standalone issue, not a ticket', async () => {
+  const { issues } = await read({
+    '.scratch/triage/issues/01-csv-times-out.md':
+      '# 01: CSV export times out\n\nType: bug\nStatus: needs-triage\n',
+    ...CSV,
+  })
+  expect(issues.find(i => i.ref === 'triage/01')).toMatchObject({
+    kind: 'issue',
+    parent: null,
+    role: 'needs-triage',
+    isBug: true,
+  })
+  expect(issues.find(i => i.ref === 'csv-export/01')).toMatchObject({ kind: 'ticket' })
 })

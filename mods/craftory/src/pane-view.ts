@@ -239,7 +239,7 @@ export function ticketsView(args: {
   const unmerged = rows.some(r => r.status !== 'merged' && r.status !== 'human')
   return {
     header,
-    folder: tracker.kind === 'local' ? config.tracker.local.folder : null,
+    folder: tracker.kind === 'local' ? '.scratch/' : null,
     showInbox: config.entry.triage.enabled,
     inbox,
     specLabel: spec === null ? null : `Spec ${spec} · tickets`,

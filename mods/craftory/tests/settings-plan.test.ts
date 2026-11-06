@@ -5,7 +5,6 @@ import {
   planSetup,
   readSetup,
   renderTrackerDoc,
-  retargetTracker,
   type SetupFiles,
 } from '../src/agents-md'
 import type { AgentSetup } from '../types'
@@ -20,7 +19,7 @@ const EMPTY: SetupFiles = {
   agentsMd: null,
   gitignore: null,
 }
-const OPTIONS = { worktreeFolder: '.claude/worktrees/', localFolder: 'docs/issues/' }
+const OPTIONS = { worktreeFolder: '.claude/worktrees/' }
 const SETUP = {
   tracker: { kind: 'local' as const },
   triage: null,
@@ -49,7 +48,7 @@ test('the steering Settings shows is the file that holds the block', () => {
 test('a changed value rewrites an existing block only when asked', () => {
   const files = {
     ...EMPTY,
-    tracker: renderTrackerDoc({ kind: 'github', prsAsRequests: false }, 'docs/issues/'),
+    tracker: renderTrackerDoc({ kind: 'github', prsAsRequests: false }),
     domain: '# Domain Docs\n',
     agentsMd:
       '# A\n\n## Agent skills\n\n### Issue tracker\n\nMine. See `docs/agents/issue-tracker.md`.\n\n### Domain docs\n\nMine. See `docs/agents/domain.md`.\n',
@@ -63,7 +62,7 @@ test('a changed value rewrites an existing block only when asked', () => {
 
 test('the PRs flag round-trips for GitHub and GitLab, and an Other description is rewritten', () => {
   for (const kind of ['github', 'gitlab'] as const) {
-    const doc = renderTrackerDoc({ kind, prsAsRequests: true }, 'docs/issues/')
+    const doc = renderTrackerDoc({ kind, prsAsRequests: true })
     expect(parseTrackerDoc(doc)).toEqual({ kind, prsAsRequests: true })
   }
   const files = { ...EMPTY, tracker: '# Issue tracker: Other\n\nOld.\n' }
@@ -75,18 +74,6 @@ test('the PRs flag round-trips for GitHub and GitLab, and an Other description i
   expect(writes.find(w => w.path === 'docs/agents/issue-tracker.md')?.after).toBe(
     '# Issue tracker: Other\n\nNew words.\n',
   )
-})
-
-test('moving the issues folder updates Craftory’s own tracker doc and leaves other text alone', () => {
-  const doc = renderTrackerDoc({ kind: 'local' }, 'docs/issues/')
-  expect(retargetTracker(doc, 'docs/issues/', 'work/')).toContain('`work/<n>-<slug>.md`')
-  expect(
-    retargetTracker(
-      '# Issue tracker: Local Markdown\n\nUses .scratch/.\n',
-      'docs/issues/',
-      'work/',
-    ),
-  ).toBe('# Issue tracker: Local Markdown\n\nUses .scratch/.\n')
 })
 
 test('the diff summary counts added and removed lines and quotes the first added one', () => {
@@ -116,18 +103,6 @@ test('moving the worktree folder also ignores the new folder', () => {
   })
   expect(plan.writes.map(w => w.path)).toEqual(['.craftory/config.json', '.gitignore'])
   expect(plan.writes[1]?.after).toContain('.trees/')
-})
-
-test('moving the issues folder retargets the tracker doc on a local tracker', () => {
-  const tracker = renderTrackerDoc({ kind: 'local' }, 'docs/issues/')
-  const plan = planSettingsWrites({
-    ...CONFIGURED,
-    files: { ...EMPTY, tracker },
-    current: SAVED,
-    change: { config: { tracker: { local: { folder: 'work/' } } } },
-  })
-  const doc = plan.writes.find(w => w.path === AGENT_DOCS.tracker)
-  expect(doc?.after).toContain('`work/<n>-<slug>.md`')
 })
 
 test('a setup change plans the setup files for a saved setup and none for a draft', () => {

@@ -54,7 +54,6 @@ export type AutomationConfig = {
 
 /** Craftory-only tracker extras. The tracker *kind* lives in docs/agents/issue-tracker.md. */
 export type TrackerExtras = {
-  local: { folder: string }
   github: { specLabel: string; ticketLabel: string }
   gitlab: { instance: string; project: string }
 }
@@ -88,7 +87,7 @@ export type PrefOverrides = Partial<Prefs>
 export type TrackerKind = 'local' | 'github' | 'gitlab' | 'other'
 
 export type TrackerSetup =
-  | { kind: 'local'; scratch?: true }
+  | { kind: 'local' }
   | { kind: 'github'; prsAsRequests: boolean }
   | { kind: 'gitlab'; prsAsRequests: boolean }
   | { kind: 'other'; description: string }
@@ -394,8 +393,6 @@ export type RepoSnapshot = {
   remoteHost: 'github' | 'gitlab' | 'other' | null
   hasContextMd: boolean
   hasScratch: boolean
-  /** Issues `.scratch/` would import, counted when the repo was read. */
-  scratchCount: number
   hasGitignoreEntry: boolean
   at: Millis
 }
