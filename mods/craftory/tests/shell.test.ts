@@ -198,3 +198,15 @@ test('with no feature the status line is empty', async ($, on) => {
   await startSession($)
   expect(w.statuses.at(-1)).toBeUndefined()
 })
+
+test('a button that runs a skill asks what to add, and passes the answer along', async ($, on) => {
+  const w = world(on, {
+    commands: mattCommands(...MATT_SKILLS),
+    plugins: IN_RANGE,
+    files: { ...SETUP_FILES },
+    ask: q => (q.startsWith('Anything to add for') ? 'an invoice CSV export' : undefined),
+  })
+  await startSession($)
+  await (await mountBand($)).press({ key: 'notice-run' })
+  expect(w.commandsRun.at(-1)).toMatchObject({ args: 'an invoice CSV export' })
+})

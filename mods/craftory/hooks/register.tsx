@@ -111,6 +111,7 @@ import {
   toneOf,
   uiFor,
   watchAppearance,
+  withContext,
 } from './shell/ui'
 
 const COMMAND = 'craftory'
@@ -147,7 +148,11 @@ async function dispatch($: EngineInterface, action: Action) {
     case 'setup':
       return openPane($, 'settings')
     case 'run':
-      return requestRun($, action.skill, action.args)
+      return requestRun(
+        $,
+        action.skill,
+        await withContext($, `Anything to add for /${action.skill}?`, action.args),
+      )
     case 'run-phase':
       return runFromCard($, action.phase)
     case 'run-anyway': {
@@ -182,7 +187,7 @@ async function dispatch($: EngineInterface, action: Action) {
     case 'mark-done':
       return markDone($, action.phase)
     case 'write-pr':
-      return requestRun($, SKILLS.pr, '')
+      return requestRun($, SKILLS.pr, await withContext($, 'Anything to add for the PR?', ''))
     case 'open-tickets':
       return openPane($, 'tickets')
     case 'open-panel':

@@ -256,8 +256,26 @@ export async function pressPhase($: EngineInterface, view: PhaseId | 'triage', f
   $.ui.invalidate('ui.render')
 }
 
+const NOTHING_MORE = 'Nothing to add'
+
+/**
+ * Asks whether to add to what a button is about to run. The args stand when there is nothing to
+ * add or no one to ask.
+ */
+export async function withContext($: EngineInterface, question: string, args: string) {
+  const answer = await $.ui.ask(question, [NOTHING_MORE]).catch(() => null)
+  if (answer === null || answer === NOTHING_MORE || answer.trim() === '') return args
+  return args === '' ? answer : `${args} ${answer}`
+}
+
 export async function runFromCard($: EngineInterface, phase: PhaseId | 'triage') {
-  if (phase === 'triage') return requestRun($, SKILLS.triage, '')
+  if (phase === 'triage')
+    return requestRun($, SKILLS.triage, await withContext($, 'Anything to add for /triage?', ''))
   const view = (await currentFlow($))?.phases.find(s => s.phase === phase)
-  if (view?.command) await requestRun($, view.command, view.args)
+  if (view?.command)
+    await requestRun(
+      $,
+      view.command,
+      await withContext($, `Anything to add for /${view.command}?`, view.args),
+    )
 }
