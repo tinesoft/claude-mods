@@ -115,7 +115,7 @@ bar is the skill colour, amber from 80% and danger at 100%.
 surface allows; the rail hides while it is open. Tabs:
 
 1. **Flow**: the seven phases as a vertical list with their command and a one-line result.
-2. **Tickets**: tracker header (`Local Markdown · docs/issues/ · Open folder`), then the **map card**
+2. **Tickets**: tracker header (`Local Markdown · .scratch/ · Open folder`), then the **map card**
    when a Map is attached: kicker naming the source (`Wayfinder · Local · .scratch/billing-v2`,
    `Wayfinder · GitHub · #12`) with the map switcher; `3 decided · 2 open (1 claimed)` and **Work next
    ticket** in the header; the groups **Takeable**, **Claimed** (with assignee) and **Blocked**

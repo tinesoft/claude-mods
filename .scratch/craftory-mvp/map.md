@@ -27,13 +27,14 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 - [What the three automations do](issues/10-automations-behavior.md): off by default, each a band notice plus a click that submits the skill, once per session or Feature; last architecture run kept in git-ignored `.craftory/state.json`.
 - [Details of the added hooks](issues/11-hook-details.md): test command from `worktrees.test`, run after a Build implementer's final turn; once-per-phase unmet-Done-when nudge; deny rules `skipGate` and `editOnIntegrationBranch`, all opt-in.
 - [Wayfinder fixtures](issues/13-wayfinder-fixtures.md): real files compiled to a generated TS module under `fixtures/wayfinder/1.3/`; `mixed` plus edge-state fixtures per tracker; Local snapshot, GitHub/GitLab captured then edited; one Local end-to-end run.
+- [Local features read from .scratch](issues/14-local-scratch-features.md): `.scratch` is the only Local layout, read in place; refs are paths (`csv-export`, `csv-export/01`); skills get file paths; Matt's local template is vendored; the flat layout, folder setting and import go.
 
 ## Not yet specified
 
-- Read Local features from `.scratch` without the import: ref scheme first, then the reader, the import's fate and the Local default ([ticket 14](issues/14-local-scratch-features.md)).
+- Build the `.scratch` Local reader and remove the flat layout, the folder setting, the template and the import, per [ticket 14](issues/14-local-scratch-features.md): path refs through records, commands, branches and worktrees; vendor Matt's local template; rewrite the Local tests and fixtures; update the README and Settings.
 - Fixture build: capture GitHub and GitLab sandbox output, write the loader and vendor-script extension, and build the wayfinder readers (GitLab is links-only today) to satisfy the fixtures.
 - Release bar: live client check (band, pane, hover cards, `$.ui.ask` in a Skill hook, `TaskStop`, glyph widths, Desktop/VS Code/mobile light and dark), end-to-end Local-tracker fixture run, README screenshots.
-- Cleanup: close O1 and O2, tick the stale M0/M2/M3 boxes in `plan.md`, settle `docs/issues` vs `.scratch` as the Local default (see [Local features read from .scratch](issues/14-local-scratch-features.md)), commit the pending glossary and agent docs.
+- Cleanup: close O1 and O2, tick the stale M0/M2/M3 boxes in `plan.md`, `.scratch` is settled as the only Local layout (ticket 14), commit the pending glossary and agent docs.
 - Cloud summary follow-ups: align DESIGN.md and the README on chat and `claude -p` replies, test the "No feature in flight" and unsupported-version branches, optionally name the next action.
 - README and Settings wording once the "not built" limits are lifted.
 

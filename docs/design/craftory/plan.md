@@ -52,7 +52,7 @@ All resolved while grilling (Oct 24–25, 2026).
 | 9 | Ship | Rewrite the draft PR body with `pr`, mark it ready for review against the default branch. Merging stays with the user |
 | 10 | Token budget | Per agent, default 80k. Amber at 80%; at 100% the agent is told to stop and report, the ticket is Failed (budget), the worktree kept; card offers Raise budget or Diagnose |
 | 11 | Trackers | All four in v1 (Local Markdown, GitHub, GitLab, Other). Rich Tickets tab for Local and GitHub; GitLab and Other show links |
-| 12 | Local Markdown layout | `docs/issues/<n>-<slug>.md`, global numbering, front-matter `status`, described in `docs/agents/issue-tracker.md`; import from `.scratch/` offered |
+| 12 | Local Markdown layout | Matt's own: `.scratch/<feature>/spec.md` and `issues/NN-*.md` with `Status:` and `Blocked by:` lines, read in place and described by his `issue-tracker-local` doc, vendored byte for byte. Refs are paths: the spec is `csv-export`, a ticket `csv-export/01` (`-` where a `/` is not allowed: feature record, branch, worktree, agent). Skills get the file path as their argument. A spec binds to a draft by file mtime. Replaces the flat `docs/issues/<n>-<slug>.md` layout, the `tracker.local.folder` setting and the `.scratch/` import (MVP ticket 14) |
 | 13 | Where repo settings live | `docs/agents/*.md` and `GLOSSARY.md` (Matt-compatible, edited in place, never copied into `.craftory/`); Craftory-only values in a committed `.craftory/config.json` |
 | 14 | Personal settings | `$.store`, with `userConfig` defaults (rail on/off, rail layout, theme) |
 | 15 | Settings UI | Tab 5 of the `/craftory` pane, opened also by the rail's gear and the status line |
@@ -116,7 +116,7 @@ mods/craftory/
 │       ├── agents.ts               # agent lifecycle: spawn, seat, count, finish, pause, raise budget
 │       ├── build.ts                # atoms diffs, steeringNote; seats, Worktrees tab, Agents list
 │       ├── settings.ts             # atoms setupDraft, askedFiles, setupNote, settingsSection, termDraft,
-│       │                           #   termError; Settings writes, .scratch/ import, glossary edits
+│       │                           #   termError; Settings writes, glossary edits
 │       └── ui.ts                   # atoms appearance, prefs, paneTab, openStep, isPickingFeature,
 │                                   #   glossaryQuery, lastReplyTerms, glossaryAtStart; tone, openPane, pane views
 ├── src/                            # pure helpers: plain data in, plain data out, never $
@@ -126,7 +126,7 @@ mods/craftory/
 │   ├── config.ts                   # .craftory/config.json schema, defaults, resolve with $.store overrides
 │   ├── agents-md.ts                # read/write docs/agents/*.md and the "## Agent skills" block; plan of a Settings change
 │   ├── glossary.ts                 # parse/serialise GLOSSARY.md (Language, Relationships, Flagged ambiguities)
-│   ├── tracker/local.ts            # docs/issues front matter, numbering, blocking edges
+│   ├── tracker/local.ts            # .scratch features: spec.md, issues/NN-*.md, Status and Blocked by lines, path refs
 │   ├── tracker/github.ts           # gh issue/label/sub-issue/PR command builders and parsers
 │   ├── tracker/links.ts            # GitLab and Other: links only in v1
 │   ├── build.ts                    # agent steering: slots, queue, names, budget state
@@ -160,7 +160,7 @@ Each atom is declared in the one `hooks/shell` module that reads and updates it.
 | `AGENTS.md` or `CLAUDE.md` (`## Agent skills` block) | shared with setup skill | Writes the block on setup; never touches the rest |
 | `docs/agents/issue-tracker.md`, `triage-labels.md`, `domain.md` | shared with setup skill | Reads and writes (Settings) |
 | `GLOSSARY.md` | shared with grill-with-docs, domain-modeling | Reads; writes only from Settings › Glossary |
-| `docs/issues/*.md` (Local) | Matt's skills | Reads for evidence and the Tickets tab |
+| `.scratch/<feature>/spec.md`, `issues/NN-*.md` (Local) | Matt's skills | Reads for evidence and the Tickets tab |
 | `.craftory/config.json` | Craftory | Reads and writes; committed |
 | `.craftory/features/<spec-id>.json` | Craftory | Reads and writes; committed |
 | `.claude/worktrees/` | Craftory + implement-spec | Added to `.gitignore` on setup |
@@ -203,7 +203,7 @@ Only facts that cannot be re-derived are stored; everything else is recomputed f
 | `skill.prompt` | Recognise which Matt skill runs → mark its phase Running; check gates (confirm via the band before `next(e)`) |
 | `agent.spawn` | For Build implementers: enforce worktree isolation and names, hold the spawn while `maxParallel` is reached (queue), record the agent on the ticket |
 | `turn.step`, `session.measure` | Per-agent token use and context percentage (M1 confirms per-agent figures) |
-| `tool.call` | Observe `gh`/`glab`/git calls and writes under `docs/issues/` to refresh evidence; observe merges into the integration branch |
+| `tool.call` | Observe `gh`/`glab`/git calls and writes under `.scratch/` to refresh evidence; observe merges into the integration branch |
 | `turn.complete` | Recompute phase status; suggest the next phase; text summary where nothing draws |
 | `ui.render` `AbovePrompt` | Rail, notices, detail card |
 | `ui.render` `Pane` | Tabs |
@@ -219,8 +219,8 @@ until the user answers) and the parallelism queue (which holds `agent.spawn` unt
 | Phase | Done when (Local) | Done when (GitHub) |
 | --- | --- | --- |
 | Align | The grill skill ran and a later phase started, or the user marked it done | same |
-| Spec | `docs/issues/<n>-*.md` with `type: spec` created in this feature | issue with the spec label created |
-| Tickets | Files with `parent: <n>` and blocking edges exist | sub-issues of the spec exist |
+| Spec | `.scratch/<feature>/spec.md` created in this feature | issue with the spec label created |
+| Tickets | `.scratch/<feature>/issues/NN-*.md` files with `Blocked by:` edges exist | sub-issues of the spec exist |
 | Build | Every `ready-for-agent` ticket is `status: done` and merged into the integration branch | same, issues closed by merge |
 | Review | `code-review` ran on the integration branch after the last ticket merged and its fix agent finished | same |
 | Ship | PR from the integration branch is ready for review | same |
