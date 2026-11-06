@@ -127,19 +127,24 @@ export const withoutIsolation = <T extends object>(call: T): Omit<T, 'isolation'
     'isolation'
   >
 
-const TICKET_REF = /#\d+/g
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-const namedIn = (text: string, known: ReadonlySet<string>): string[] => [
-  ...new Set((text.match(TICKET_REF) ?? []).filter(ref => known.has(ref))),
-]
+/** Where `text` first names the ticket: by its ref, or by the path of its file. */
+function mentionAt(text: string, issue: TicketRow['issue']): number {
+  const byRef = new RegExp(`(?<![\\w/#.-])${escape(issue.ref)}(?![\\w/-]*\\d)`).exec(text)?.index
+  const byPath = issue.location === '' ? -1 : text.indexOf(issue.location)
+  const found = [byRef ?? -1, byPath].filter(at => at >= 0)
+  return found.length === 0 ? -1 : Math.min(...found)
+}
 
 export function ticketOf(call: AgentCall, tickets: readonly TicketRow[]): TicketRow | undefined {
-  const known = new Set<string>(tickets.map(t => t.issue.ref))
   for (const text of [call.description, call.name ?? '', call.prompt]) {
-    const open = namedIn(text, known)
-      .map(ref => tickets.find(t => t.issue.ref === ref)!)
+    const open = tickets
       .filter(t => t.status !== 'merged')
-    if (open[0] !== undefined) return open[0]
+      .map(t => ({ t, at: mentionAt(text, t.issue) }))
+      .filter(m => m.at >= 0)
+      .sort((a, b) => a.at - b.at)
+    if (open[0] !== undefined) return open[0].t
   }
   return undefined
 }

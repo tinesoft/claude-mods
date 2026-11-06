@@ -145,6 +145,14 @@ test('a branch made from the ticket template names its ticket', () => {
   expect(ticketOfBranch('wt/12-a', 'wt/{ticket}-{slug}')).toBe('#12')
 })
 
+test('a .scratch ticket is read back from its branch, whatever the feature is called', () => {
+  const template = 'craftory/{ticket}-{slug}'
+  expect(ticketOfBranch('craftory/csv-02-ledger-tax', template)).toBe('csv/02')
+  expect(ticketOfBranch('craftory/csv-export-01-button', template)).toBe('csv-export/01')
+  expect(ticketOfBranch('craftory/csv-02-add-2fa-support', template)).toBe('csv/02')
+  expect(ticketOfBranch('craftory/csv-export', template)).toBeNull()
+})
+
 const NOW = 1_000 * 24 * 60 * 60 * 1000
 const classify = (over: Partial<Parameters<typeof classifyWorktree>[0]>) =>
   classifyWorktree({

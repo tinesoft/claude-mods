@@ -145,13 +145,20 @@ export const STALE_MS = 5 * 24 * 60 * 60 * 1000
 
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
+const BRANCH_TICKET = '(\\d+|[a-z0-9]+(?:-[a-z0-9]+)*?-\\d+)'
+
+/**
+ * The ticket a branch made from the template belongs to: a number (`#44`), or a `.scratch`
+ * ticket whose `/` became a `-` (`csv-02` is `csv/02`, read as the last `-<digits>` of the name).
+ */
 export function ticketOfBranch(branch: string | null, template: string): IssueRef | null {
   if (branch === null) return null
   const pattern = escape(template)
-    .replace(escape('{ticket}'), '(\\d+)')
+    .replace(escape('{ticket}'), BRANCH_TICKET)
     .replace(escape('{slug}'), '.+')
-  const match = new RegExp(`^${pattern}$`).exec(branch)
-  return match?.[1] ? (`#${match[1]}` as IssueRef) : null
+  const match = new RegExp(`^${pattern}$`).exec(branch)?.[1]
+  if (!match) return null
+  return (/^\d+$/.test(match) ? `#${match}` : match.replace(/-(\d+)$/, '/$1')) as IssueRef
 }
 
 const underFolder = (path: string, folder: string) => {

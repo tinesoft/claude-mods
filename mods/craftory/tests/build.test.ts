@@ -22,6 +22,7 @@ import {
   seated,
   slotsUsed,
   splitArgv,
+  ticketOf,
   tddStepOf,
   type AgentCall,
 } from '../src/build'
@@ -477,4 +478,39 @@ test('a .scratch ticket names its agent without the slash', () => {
   expect(agentName('csv-export/01' as IssueRef, 'Export button', new Set())).toBe(
     'craftory-csv-export-01-export-button',
   )
+})
+
+const scratchRow = (feature: string, n: string, title: string): TicketRow => ({
+  status: 'ready',
+  blockedBy: [],
+  issue: {
+    ref: `${feature}/${n}` as IssueRef,
+    title,
+    kind: 'ticket',
+    status: 'open',
+    role: 'ready-for-agent',
+    parent: feature as IssueRef,
+    blockedBy: [],
+    isBug: false,
+    createdAt: null,
+    location: `.scratch/${feature}/issues/${n}-${title.toLowerCase().replace(/ /g, '-')}.md`,
+  },
+})
+
+const mention = (text: string) => ({ toolUseId: 't', description: text, prompt: text })
+
+test('an Agent call names its ticket by number or by the ticket file path', () => {
+  const tickets = [scratchRow('csv', '01', 'Button'), scratchRow('csv', '02', 'Ledger')]
+  expect(ticketOf(mention('Implement csv/02'), tickets)?.issue.ref).toBe('csv/02')
+  expect(
+    ticketOf(mention('Build .scratch/csv/issues/01-button.md with tdd'), tickets)?.issue.ref,
+  ).toBe('csv/01')
+  expect(ticketOf(mention('Implement csv/020'), tickets)).toBeUndefined()
+  expect(ticketOf(mention('Implement something else'), tickets)).toBeUndefined()
+})
+
+test('a numbered ref is not mistaken for a longer one', () => {
+  const tickets = [row(4, 'Short'), row(44, 'Long')]
+  expect(ticketOf(mention('Implement #44'), tickets)?.issue.ref).toBe('#44')
+  expect(ticketOf(mention('Implement #4'), tickets)?.issue.ref).toBe('#4')
 })
