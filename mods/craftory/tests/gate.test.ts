@@ -139,7 +139,7 @@ test('Diagnose runs diagnosing-bugs instead, and Dismiss only closes the row', a
   expect(w.commandsRun).toEqual([
     {
       command: 'mattpocock-skills:diagnosing-bugs',
-      args: 'Tickets is gated: no spec is attached to this feature yet. Run anyway?',
+      args: 'Tickets is gated: no spec is attached to this feature yet',
     },
   ])
   expect(await allText(await mountBand($))).not.toContain('is gated')

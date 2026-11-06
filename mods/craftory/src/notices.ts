@@ -3,7 +3,7 @@ import type { Action } from './action'
 import { budgetK } from './build'
 import { driftText, retroText } from './drift'
 import { gateText } from './gates'
-import { PLUGIN, SKILLS, TESTED_RANGE } from './phases'
+import { PHASES, PLUGIN, SKILLS, TESTED_RANGE } from './phases'
 import type { Role } from './theme'
 
 export type NoticeButton = { id: string; label: string; action: Action; primary?: true }
@@ -167,7 +167,7 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
             action: {
               kind: 'diagnose',
               noticeId: notice.id,
-              about: gateText(notice.phase, notice.reason),
+              about: `${PHASES[notice.phase].label} is gated: ${notice.reason}`,
             },
           },
           dismiss(notice.id),
