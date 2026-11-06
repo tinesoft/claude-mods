@@ -175,6 +175,10 @@ export function renderAgentSkillsBlock(setup: AgentSetup, localFolder: string): 
   return `${parts.join('\n\n')}\n`
 }
 
+/** What to tell the setup skill so a re-run keeps the setup already chosen in docs/agents/. */
+export const KEEP_SETUP_ARGS =
+  'Keep the existing setup in docs/agents/ as it is: the issue tracker as that file describes it, the triage labels and the domain layout. Only fill in what is missing. Do not switch tracker.'
+
 const eolOf = (text: string) => (text.includes('\r\n') ? '\r\n' : '\n')
 
 export function upsertBlock(steering: string | null, block: string): string {

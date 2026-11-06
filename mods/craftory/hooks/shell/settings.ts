@@ -2,6 +2,7 @@ import { atom, type EngineInterface, read, type RenderSurface, update } from 'cl
 import {
   draftSetup,
   firstRunText,
+  KEEP_SETUP_ARGS,
   planSettingsWrites,
   planSetup,
   type SetupSignals,
@@ -288,7 +289,22 @@ async function resetSettings($: EngineInterface) {
 async function rerunSetup($: EngineInterface) {
   if (!hasSkill(await pluginOf($), 'setup-matt-pocock-skills'))
     return void $.ui.toast('Install mattpocock-skills first: the setup skill comes with it')
-  await $.command.run({ command: namespaced(SKILLS.setupMattPocockSkills), args: '' })
+  const repo = await repoSnapshot($)
+  const args = repo?.setup.state === 'ok' ? await keepOrRestart($, KEEP_SETUP_ARGS) : ''
+  await $.command.run({ command: namespaced(SKILLS.setupMattPocockSkills), args })
+}
+
+const START_OVER = 'Start over'
+
+async function keepOrRestart($: EngineInterface, keep: string) {
+  const answer = await $.ui
+    .ask('Setup already exists. Keep your tracker, labels and docs layout?', [
+      'Keep my setup',
+      START_OVER,
+    ])
+    .catch(() => null)
+  if (answer === START_OVER) return ''
+  return answer === null || answer === 'Keep my setup' ? keep : `${keep} ${answer}`
 }
 
 async function importScratch($: EngineInterface) {

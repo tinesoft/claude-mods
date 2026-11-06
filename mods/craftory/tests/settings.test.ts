@@ -186,13 +186,21 @@ test('Reset to defaults asks, then restores config.json and clears personal pref
   expect(w.store.get('prefs')).toEqual({})
 })
 
-test('Re-run /setup-matt-pocock-skills runs the namespaced command', async ($, on) => {
+const SETUP = 'mattpocock-skills:setup-matt-pocock-skills'
+
+test('Re-run /setup-matt-pocock-skills on a repo that is set up tells the skill to keep it', async ($, on) => {
   const { w, pane } = await settings(on, $)
   await pane.press({ key: 'settings-rerun' })
   expect(w.commandsRun).toContainEqual({
-    command: 'mattpocock-skills:setup-matt-pocock-skills',
-    args: '',
+    command: SETUP,
+    args: expect.stringContaining('Do not switch tracker'),
   })
+})
+
+test('Start over re-runs the setup skill with nothing to keep', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', { ask: () => 'Start over' })
+  await pane.press({ key: 'settings-rerun' })
+  expect(w.commandsRun).toContainEqual({ command: SETUP, args: '' })
 })
 
 test('first run pre-fills Settings from the repo and writes nothing until Save setup', async ($, on) => {
