@@ -163,3 +163,21 @@ test('Other with no link shows the paragraph itself', async ($, on) => {
   })
   expect(await texts(pane)).toContain('Issues live in our wiki.')
 })
+
+test('an imported spec with no feature is offered and starts one at Tickets', async ($, on) => {
+  const spec = '---\ntype: spec\nstatus: ready-for-agent\n---\n# Craftory wayfinder rail\n'
+  const { w, pane } = await tickets(on, $, { files: { 'docs/issues/60-wayfinder-rail.md': spec } })
+  expect(await texts(pane)).toContain(
+    'ready-for-agent · Spec without a feature · Enters at Tickets',
+  )
+  await pane.press({ key: 'inbox-start-#60' })
+  const record = JSON.parse(w.files.get('.craftory/features/60.json')!)
+  expect(record).toMatchObject({ spec: '#60', origin: 'spec', entry: 'tickets' })
+  expect(Object.keys(record.skips)).toEqual(['align', 'spec'])
+  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:to-tickets', args: '#60' })
+})
+
+test('a spec that already has a feature is not offered again', async ($, on) => {
+  const { pane } = await tickets(on, $)
+  expect(await pane.find({ key: 'inbox-start-#42' })).toBeUndefined()
+})

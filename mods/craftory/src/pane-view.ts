@@ -149,6 +149,16 @@ const INBOX_ROLES: readonly TriageRole[] = ['needs-triage', 'ready-for-agent', '
 
 function inboxRow(issue: Issue, role: TriageRole, enterAt: EnterAt): InboxRowView {
   const bug = issue.isBug ? ' · bug' : ''
+  if (issue.kind === 'spec') {
+    return {
+      ref: issue.ref,
+      title: issue.title,
+      role,
+      note: `Spec without a feature · Enters at ${PHASES.tickets.label}`,
+      action: { kind: 'start', ref: issue.ref, phase: 'tickets' },
+      label: 'Start feature',
+    }
+  }
   if (role === 'needs-triage')
     return {
       ref: issue.ref,
@@ -203,7 +213,12 @@ export function ticketsView(args: {
     return { ...empty, links: { items: tracker.links, note: tracker.note }, count: 0 }
   const inbox = config.entry.triage.enabled
     ? tracker.issues
-        .filter(i => i.kind === 'issue' && i.status === 'open' && !featureSpecs.has(i.ref))
+        .filter(
+          i =>
+            (i.kind === 'issue' || (i.kind === 'spec' && i.role === 'ready-for-agent')) &&
+            i.status === 'open' &&
+            !featureSpecs.has(i.ref),
+        )
         .sort(byNumber)
         .flatMap(i =>
           i.role !== null && INBOX_ROLES.includes(i.role)
