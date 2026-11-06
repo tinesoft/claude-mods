@@ -315,6 +315,7 @@ test('promoting a draft carries its marks onto a record for the spec', () => {
   expect(record.marks).toEqual(draft.marks)
   expect(featurePath(record.spec)).toBe('.craftory/features/42.json')
   expect(featurePath('BILL-9' as IssueRef)).toBe('.craftory/features/BILL-9.json')
+  expect(featurePath('csv-export' as IssueRef)).toBe('.craftory/features/csv-export.json')
 })
 
 test('a draft ignores changes that need a spec', () => {

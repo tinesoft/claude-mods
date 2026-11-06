@@ -17,13 +17,13 @@ import type {
 } from '../types'
 import { isSafeRef } from './git'
 import { PHASE_ORDER } from './phases'
-import { parseIssueRef, parseRef } from './tracker/refs'
+import { parseIssueRef, parseRef, refSlug } from './tracker/refs'
 
 export const FEATURES_DIR = '.craftory/features/'
 export const STORE_DRAFTS = 'drafts'
 export const STORE_LAST_ACTIVE = 'lastActive'
 
-export const featurePath = (spec: IssueRef) => `${FEATURES_DIR}${spec.replace(/^#/, '')}.json`
+export const featurePath = (spec: IssueRef) => `${FEATURES_DIR}${refSlug(spec)}.json`
 
 export const specKey = (spec: IssueRef): FeatureKey => `spec:${spec}`
 export const isFeatureKey = (v: unknown): v is FeatureKey =>

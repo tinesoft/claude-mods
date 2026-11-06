@@ -472,3 +472,9 @@ test('time reads as minutes and seconds, and a dash before an agent starts', () 
   expect(elapsedText(241_000)).toBe('4m 01s')
   expect(elapsedText(null)).toBe('—')
 })
+
+test('a .scratch ticket names its agent without the slash', () => {
+  expect(agentName('csv-export/01' as IssueRef, 'Export button', new Set())).toBe(
+    'craftory-csv-export-01-export-button',
+  )
+})

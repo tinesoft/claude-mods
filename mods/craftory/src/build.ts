@@ -15,7 +15,7 @@ import type {
 import { slugify, ticketBranchFor } from './config'
 import type { Flow, TicketRow } from './evidence'
 import { normalise, withSlash } from './files'
-import { byNumber } from './tracker/refs'
+import { byNumber, refSlug } from './tracker/refs'
 
 export const EMPTY_LEDGER: BuildLedger = { pending: {}, runs: {}, queued: [], isPaused: false }
 
@@ -51,10 +51,8 @@ export const budgetFor = (config: CraftoryConfig, record: AgentRecord | undefine
 
 export const budgetK = (budget: number) => `${Math.round(budget / 1000)}k`
 
-const refNumber = (ref: IssueRef) => ref.replace(/^#/, '')
-
 export function agentName(ref: IssueRef, title: string, taken: ReadonlySet<string>): string {
-  const base = `craftory-${refNumber(ref)}-${slugify(title, 4, 32)}`.replace(/-$/, '')
+  const base = `craftory-${refSlug(ref)}-${slugify(title, 4, 32)}`.replace(/-$/, '')
   if (!taken.has(base)) return base
   let n = 2
   while (taken.has(`${base}-${n}`)) n++
@@ -85,7 +83,7 @@ export function seatPlan(args: {
     ticket: ref,
     name,
     branch: ticketBranchFor(config, ref, title),
-    path: `${withSlash(worktrees.folder)}${refNumber(ref)}-${slugify(title, 4, 32)}`,
+    path: `${withSlash(worktrees.folder)}${refSlug(ref)}-${slugify(title, 4, 32)}`,
     base: integrationBranch,
     setup: splitArgv(worktrees.setup),
     ...sortCopy(worktrees.copy),

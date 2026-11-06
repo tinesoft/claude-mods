@@ -1,6 +1,7 @@
 import type {
   ConfigPatch,
   CraftoryConfig,
+  IssueRef,
   Loaded,
   PhaseConfig,
   PhaseId,
@@ -10,6 +11,7 @@ import type {
 import { type FileWrite, normalise } from './files'
 import { isSafeRef } from './git'
 import { PHASE_ORDER, PHASES } from './phases'
+import { refSlug } from './tracker/refs'
 
 export const CONFIG_PATH = '.craftory/config.json'
 export const STORE_PREFS = 'prefs'
@@ -208,5 +210,5 @@ export const integrationBranchFor = (config: CraftoryConfig, specTitle: string) 
 
 export const ticketBranchFor = (config: CraftoryConfig, ticket: string, title: string) =>
   config.worktrees.ticketBranch
-    .replace('{ticket}', ticket.replace(/^#/, ''))
+    .replace('{ticket}', refSlug(ticket as IssueRef))
     .replace('{slug}', slugify(title, 4, 32))

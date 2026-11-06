@@ -121,3 +121,15 @@ test("the default setup command is the mod's own and runs without asking", async
   await start($, 43, 'Export button')
   expect(w.ran.some(argv => argv[0] === 'pnpm')).toBe(true)
 })
+
+test('a .scratch ticket seats in a worktree and branch named without the slash', () => {
+  const plan = seatPlan({
+    config: DEFAULT_CONFIG,
+    ref: 'csv-export/01' as IssueRef,
+    title: 'Export button',
+    name: 'craftory-csv-export-01-export-button',
+    integrationBranch: 'feat/csv',
+  })
+  expect(plan.branch).toBe('craftory/csv-export-01-export-button')
+  expect(plan.path).toBe('.claude/worktrees/csv-export-01-export-button')
+})

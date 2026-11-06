@@ -162,3 +162,9 @@ test('a worktree folder that leaves the repo falls back to the default with a no
   const fine = parseConfig(JSON.stringify({ worktrees: { folder: '.trees/' } }))
   expect(fine.state === 'ok' && fine.value.worktrees.folder).toBe('.trees/')
 })
+
+test('a .scratch ticket names its branch without the slash', () => {
+  expect(ticketBranchFor(DEFAULT_CONFIG, 'csv-export/01', 'Export button')).toBe(
+    'craftory/csv-export-01-export-button',
+  )
+})
