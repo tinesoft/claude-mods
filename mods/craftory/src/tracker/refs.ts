@@ -15,6 +15,16 @@ export function parseRef(text: string): IssueRef | undefined {
   return parseIssueRef(t) ?? (SCRATCH_REF.test(t) ? (t as IssueRef) : undefined)
 }
 
+/**
+ * What to hand a skill for an issue: a numbered ref as it is, and for a `.scratch` ref the path of
+ * its file, which is how Matt's Local tracker names one.
+ */
+export const argFor = (
+  issues: readonly { ref: IssueRef; location: string }[] | null,
+  ref: IssueRef,
+): string =>
+  parseIssueRef(ref) === undefined ? (issues?.find(i => i.ref === ref)?.location ?? ref) : ref
+
 /** A ref spelled for a file, branch or worktree name: no `#`, and `/` becomes `-`. */
 export const refSlug = (ref: IssueRef): string => ref.replace(/^#/, '').replace('/', '-')
 

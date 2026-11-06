@@ -39,11 +39,11 @@ test('the Tickets tab shows the tracker header, the Inbox by triage role and the
   expect(words).toContain('ready-for-agent · Enters at Align')
   expect(words).toContain('ready-for-agent · Enters at Build · bug')
   expect(words).toContain('ready-for-human · No agent · decision for you')
-  expect(words).toContain('[ /triage inbox/01 ]')
+  expect(words).toContain('[ /triage .scratch/inbox/issues/01-csv-times-out.md ]')
   expect(words).toContain('Spec csv · tickets')
   expect(words).toContain('Blocked by csv/01')
-  expect(words).toContain('[ /implement csv/01 ]')
-  expect(words).toContain('[ /implement-spec csv · run all in parallel ]')
+  expect(words).toContain('[ /implement .scratch/csv/issues/01-button.md ]')
+  expect(words).toContain('[ /implement-spec .scratch/csv/spec.md · run all in parallel ]')
   expect(await pane.find({ key: 'inbox-start-inbox/03' })).toBeUndefined()
   expect(await pane.find({ key: 'implement-csv/02' })).toBeUndefined()
 })
@@ -51,7 +51,10 @@ test('the Tickets tab shows the tracker header, the Inbox by triage role and the
 test('the triage button runs /triage on the issue', async ($, on) => {
   const { w, pane } = await tickets(on, $)
   await pane.press({ key: 'inbox-triage-inbox/01' })
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:triage', args: 'inbox/01' })
+  expect(w.commandsRun).toContainEqual({
+    command: 'mattpocock-skills:triage',
+    args: '.scratch/inbox/issues/01-csv-times-out.md',
+  })
 })
 
 test('a ready-for-agent bug enters at Build, with the earlier phases skipped for it', async ($, on) => {
@@ -65,7 +68,10 @@ test('a ready-for-agent bug enters at Build, with the earlier phases skipped for
     enteredFrom: 'inbox/04',
   })
   expect(Object.keys(record.skips)).toEqual(['align', 'spec', 'tickets'])
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement', args: 'inbox/04' })
+  expect(w.commandsRun).toContainEqual({
+    command: 'mattpocock-skills:implement',
+    args: '.scratch/inbox/issues/04-null-total.md',
+  })
   await pane.press({ key: 'tab-flow' })
   await pane.redraw()
   const words = await texts(pane)
@@ -83,7 +89,7 @@ test('a ready-for-agent request that is not a bug enters at Align with a draft t
   ])
   expect(w.commandsRun).toContainEqual({
     command: 'mattpocock-skills:grill-with-docs',
-    args: 'inbox/02',
+    args: '.scratch/inbox/issues/02-currency-column.md',
   })
 })
 
@@ -97,7 +103,7 @@ test('entry.triage.enterAt moves where a ready issue enters', async ($, on) => {
   expect(Object.keys(record.skips)).toEqual(['align', 'spec'])
   expect(w.commandsRun).toContainEqual({
     command: 'mattpocock-skills:to-tickets',
-    args: 'inbox/04',
+    args: '.scratch/inbox/issues/04-null-total.md',
   })
 })
 
@@ -116,9 +122,15 @@ test('Open folder copies the issues folder', async ($, on) => {
 test('/implement on a ready ticket and run-all go through the gate', async ($, on) => {
   const { w, pane } = await tickets(on, $)
   await pane.press({ key: 'implement-csv/01' })
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement', args: 'csv/01' })
+  expect(w.commandsRun).toContainEqual({
+    command: 'mattpocock-skills:implement',
+    args: '.scratch/csv/issues/01-button.md',
+  })
   await pane.press({ key: 'implement-spec' })
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:implement-spec', args: 'csv' })
+  expect(w.commandsRun).toContainEqual({
+    command: 'mattpocock-skills:implement-spec',
+    args: '.scratch/csv/spec.md',
+  })
 })
 
 test('GitLab shows links to the project, not issues', async ($, on) => {
@@ -173,7 +185,10 @@ test('an imported spec with no feature is offered and starts one at Tickets', as
   const record = JSON.parse(w.files.get('.craftory/features/rail.json')!)
   expect(record).toMatchObject({ spec: 'rail', origin: 'spec', entry: 'tickets' })
   expect(Object.keys(record.skips)).toEqual(['align', 'spec'])
-  expect(w.commandsRun).toContainEqual({ command: 'mattpocock-skills:to-tickets', args: 'rail' })
+  expect(w.commandsRun).toContainEqual({
+    command: 'mattpocock-skills:to-tickets',
+    args: '.scratch/rail/spec.md',
+  })
 })
 
 test('a spec that already has a feature is not offered again', async ($, on) => {

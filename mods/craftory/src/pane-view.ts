@@ -15,7 +15,7 @@ import { budgetK } from './build'
 import type { Flow, SkipReason, TicketStatus } from './evidence'
 import { PHASES } from './phases'
 import { termKey, termsOf } from './glossary'
-import { byNumber } from './tracker/refs'
+import { argFor, byNumber } from './tracker/refs'
 import type { Term } from '../types'
 
 export const TABS: readonly { id: PaneTab; hotkey: string; title: string }[] = [
@@ -105,7 +105,8 @@ export function enterPhaseOf(issue: Pick<Issue, 'isBug'>, enterAt: EnterAt): Pha
 }
 
 export type InboxAction =
-  { kind: 'triage'; ref: IssueRef } | { kind: 'start'; ref: IssueRef; phase: PhaseId }
+  | { kind: 'triage'; ref: IssueRef; arg: string }
+  | { kind: 'start'; ref: IssueRef; arg: string; phase: PhaseId }
 
 export type InboxRowView = {
   ref: IssueRef
@@ -122,6 +123,8 @@ export type TicketRowView = {
   status: TicketStatus
   statusLabel: string
   blockedBy: IssueRef[]
+  /** What `/implement` is given for this ticket. */
+  arg: string
   command: string | null
 }
 
@@ -155,7 +158,7 @@ function inboxRow(issue: Issue, role: TriageRole, enterAt: EnterAt): InboxRowVie
       title: issue.title,
       role,
       note: `Spec without a feature · Enters at ${PHASES.tickets.label}`,
-      action: { kind: 'start', ref: issue.ref, phase: 'tickets' },
+      action: { kind: 'start', ref: issue.ref, arg: argFor([issue], issue.ref), phase: 'tickets' },
       label: 'Start feature',
     }
   }
@@ -165,8 +168,8 @@ function inboxRow(issue: Issue, role: TriageRole, enterAt: EnterAt): InboxRowVie
       title: issue.title,
       role,
       note: `Not triaged yet${bug}`,
-      action: { kind: 'triage', ref: issue.ref },
-      label: `/triage ${issue.ref}`,
+      action: { kind: 'triage', ref: issue.ref, arg: argFor([issue], issue.ref) },
+      label: `/triage ${argFor([issue], issue.ref)}`,
     }
   if (role === 'ready-for-agent') {
     const phase = enterPhaseOf(issue, enterAt)
@@ -175,7 +178,7 @@ function inboxRow(issue: Issue, role: TriageRole, enterAt: EnterAt): InboxRowVie
       title: issue.title,
       role,
       note: `Enters at ${PHASES[phase].label}${bug}`,
-      action: { kind: 'start', ref: issue.ref, phase },
+      action: { kind: 'start', ref: issue.ref, arg: argFor([issue], issue.ref), phase },
       label: 'Start feature',
     }
   }
@@ -233,7 +236,8 @@ export function ticketsView(args: {
     status: r.status,
     statusLabel: STATUS_LABELS[r.status],
     blockedBy: r.blockedBy,
-    command: r.status === 'ready' ? `/implement ${r.issue.ref}` : null,
+    arg: argFor([r.issue], r.issue.ref),
+    command: r.status === 'ready' ? `/implement ${argFor([r.issue], r.issue.ref)}` : null,
   }))
   const spec = flow?.feature.kind === 'specced' ? flow.feature.record.spec : null
   const unmerged = rows.some(r => r.status !== 'merged' && r.status !== 'human')
@@ -244,7 +248,10 @@ export function ticketsView(args: {
     inbox,
     specLabel: spec === null ? null : `Spec ${spec} · tickets`,
     tickets,
-    runAll: spec !== null && unmerged ? `/implement-spec ${spec} · run all in parallel` : null,
+    runAll:
+      spec !== null && unmerged
+        ? `/implement-spec ${argFor(tracker.issues, spec)} · run all in parallel`
+        : null,
     links: null,
     count: inbox.length + tickets.length,
   }

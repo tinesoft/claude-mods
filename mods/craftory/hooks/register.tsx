@@ -27,6 +27,7 @@ import { featureChoices } from '../src/features'
 import { type BandActions, renderBand, spinFrameOf } from '../src/rail'
 import { linkTerms, Reply } from '../src/reply'
 import { markdownSummary } from '../src/summary'
+import { argFor } from '../src/tracker/refs'
 import type { AgentId } from '../types'
 import {
   agentsViewOf,
@@ -204,7 +205,7 @@ async function dispatch($: EngineInterface, action: Action) {
 async function startFromIssue($: EngineInterface, action: Extract<InboxAction, { kind: 'start' }>) {
   const view = await enterFromIssue($, action)
   if (view?.command)
-    await requestRun($, view.command, action.phase === 'align' ? action.ref : view.args)
+    await requestRun($, view.command, action.phase === 'align' ? action.arg : view.args)
 }
 
 function openFolder($: EngineInterface, folder: string, surface: RenderSurface) {
@@ -514,12 +515,16 @@ export const register: Register = (on, options) => {
         inbox: action =>
           void (action.kind === 'start'
             ? startFromIssue($, action)
-            : requestRun($, SKILLS.triage, action.ref)),
-        implement: ref => void requestRun($, SKILLS.implement, ref),
+            : requestRun($, SKILLS.triage, action.arg)),
+        implement: arg => void requestRun($, SKILLS.implement, arg),
         implementSpec: () =>
           void (async () => {
             const record = await activeRecord($)
-            if (record !== null) await requestRun($, SKILLS.implementSpec, record.spec)
+            if (record !== null) {
+              const tracker = await trackerOf($)
+              const arg = argFor(tracker?.rich ? tracker.issues : null, record.spec)
+              await requestRun($, SKILLS.implementSpec, arg)
+            }
           })(),
         search: text => void searchGlossary($, text),
         editTerm: name => void jumpToTerm($, name),

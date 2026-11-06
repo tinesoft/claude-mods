@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { byNumber, parseIssueRef, parseRef, refSlug, refsIn } from '../src/tracker/refs'
+import { argFor, byNumber, parseIssueRef, parseRef, refSlug, refsIn } from '../src/tracker/refs'
 import type { IssueRef } from '../types'
 
 const ref = (text: string) => text as IssueRef
@@ -50,4 +50,17 @@ test('issue references are normalised at the boundary', () => {
     '#4',
     'BILL-7',
   ])
+})
+
+test('a skill is given a numbered ref as it is, and a .scratch ref as the path of its file', () => {
+  const issues = [
+    { ref: ref('csv'), location: '.scratch/csv/spec.md' },
+    { ref: ref('csv/01'), location: '.scratch/csv/issues/01-button.md' },
+    { ref: ref('#44'), location: 'https://github.com/acme/app/issues/44' },
+  ]
+  expect(argFor(issues, ref('csv'))).toBe('.scratch/csv/spec.md')
+  expect(argFor(issues, ref('csv/01'))).toBe('.scratch/csv/issues/01-button.md')
+  expect(argFor(issues, ref('#44'))).toBe('#44')
+  expect(argFor(issues, ref('csv/09'))).toBe('csv/09')
+  expect(argFor(null, ref('csv'))).toBe('csv')
 })

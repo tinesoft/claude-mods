@@ -250,5 +250,7 @@ test('mobile has no band, so the gate notice is in the pane with Run anyway', as
   expect(w.commandsRun).toEqual([])
   expect(await allText(pane)).toContain('Build is gated: the tickets have no blocking edges')
   await pane.press({ key: 'notice-run-anyway-build' })
-  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:implement-spec', args: 'csv' }])
+  expect(w.commandsRun).toEqual([
+    { command: 'mattpocock-skills:implement-spec', args: '.scratch/csv/spec.md' },
+  ])
 })

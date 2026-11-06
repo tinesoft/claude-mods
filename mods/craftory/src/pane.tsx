@@ -1,5 +1,5 @@
 import type { RenderSurface } from 'claude-code'
-import type { IssueRef, PaneTab, Tone } from '../types'
+import type { PaneTab, Tone } from '../types'
 import type { Flow } from './evidence'
 import { WORKTREE_LABELS, type WorktreeKind, type WorktreeRowView, type WorktreesView } from './git'
 import {
@@ -29,7 +29,7 @@ export type PaneActions = {
   prune: () => void
   openFolder: (folder: string, surface: RenderSurface) => void
   inbox: (action: InboxAction) => void
-  implement: (ref: IssueRef) => void
+  implement: (arg: string) => void
   implementSpec: () => void
   search: (text: string) => void
   editTerm: (name: string) => void
@@ -453,7 +453,7 @@ const TicketCard = ({
             tone={tone}
             id={`implement-${row.ref}`}
             label={row.command}
-            onPress={() => on.implement(row.ref)}
+            onPress={() => on.implement(row.arg)}
           />
         )}
       </Box>

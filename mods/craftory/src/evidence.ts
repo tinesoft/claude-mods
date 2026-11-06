@@ -15,7 +15,7 @@ import type {
 import { budgetK } from './build'
 import { isSkipped } from './features'
 import { PHASE_ORDER, PHASES, predecessor } from './phases'
-import { byNumber } from './tracker/refs'
+import { argFor, byNumber } from './tracker/refs'
 
 export type SkipReason = 'off' | 'feature' | 'entry'
 
@@ -342,6 +342,7 @@ export function deriveFlow(input: FlowInput): Flow {
 
   const spec = facts.spec
   const specRef = feature.kind === 'specced' ? feature.record.spec : ''
+  const specArg = spec === null || specRef === '' ? specRef : argFor([spec], specRef as IssueRef)
   const phases = PHASE_ORDER.map((phase): PhaseView => ({
     phase,
     state: states[phase],
@@ -349,7 +350,7 @@ export function deriveFlow(input: FlowInput): Flow {
       phase === 'build' && isSelfEntry(feature)
         ? PHASES.build.commands[1]
         : (config.phases[phase].command ?? null),
-    args: phase === 'tickets' || phase === 'build' ? specRef : '',
+    args: phase === 'tickets' || phase === 'build' ? specArg : '',
     artifact: evidence[phase].artifact ?? null,
     blockers: blockersOf(phase),
     canMarkDone: canMark(facts, phase) && OPEN_FOR_MARK.has(states[phase].kind),

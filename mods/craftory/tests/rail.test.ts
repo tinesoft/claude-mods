@@ -97,7 +97,9 @@ test('the card primary submits the namespaced command with the spec as its argum
   await startSession($)
   await (await mountBand($, 'terminal', 200)).press({ key: 'phase-build' })
   await (await mountBand($, 'terminal', 200)).press({ key: 'primary' })
-  expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:implement-spec', args: 'csv' }])
+  expect(w.commandsRun).toEqual([
+    { command: 'mattpocock-skills:implement-spec', args: '.scratch/csv/spec.md' },
+  ])
   expect(await find(await mountBand($, 'terminal', 200), 'card')).toBeUndefined()
 })
 
