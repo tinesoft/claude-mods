@@ -30,9 +30,10 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 
 ## Not yet specified
 
+- Read Local features from `.scratch` without the import: ref scheme first, then the reader, the import's fate and the Local default ([ticket 14](issues/14-local-scratch-features.md)).
 - Fixture build: capture GitHub and GitLab sandbox output, write the loader and vendor-script extension, and build the wayfinder readers (GitLab is links-only today) to satisfy the fixtures.
 - Release bar: live client check (band, pane, hover cards, `$.ui.ask` in a Skill hook, `TaskStop`, glyph widths, Desktop/VS Code/mobile light and dark), end-to-end Local-tracker fixture run, README screenshots.
-- Cleanup: close O1 and O2, tick the stale M0/M2/M3 boxes in `plan.md`, settle `docs/issues` vs `.scratch` as the Local default, commit the pending glossary and agent docs.
+- Cleanup: close O1 and O2, tick the stale M0/M2/M3 boxes in `plan.md`, settle `docs/issues` vs `.scratch` as the Local default (see [Local features read from .scratch](issues/14-local-scratch-features.md)), commit the pending glossary and agent docs.
 - Cloud summary follow-ups: align DESIGN.md and the README on chat and `claude -p` replies, test the "No feature in flight" and unsupported-version branches, optionally name the next action.
 - README and Settings wording once the "not built" limits are lifted.
 
