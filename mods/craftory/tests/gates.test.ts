@@ -46,15 +46,15 @@ test('a run of a gated phase asks, in the design wording, naming what is not don
     kind: 'ask',
     phase: 'tickets',
     by: 'spec',
-    reason: 'no spec has been published yet',
-    text: 'Tickets is gated: no spec has been published yet. Run anyway?',
+    reason: 'no spec is attached to this feature yet',
+    text: 'Tickets is gated: no spec is attached to this feature yet. Run anyway?',
   })
   expect(gateText('review', '#44 has 2 failing tests')).toBe(
     'Review is gated: #44 has 2 failing tests. Run anyway?',
   )
   if (verdict.kind !== 'ask') throw new Error('ask')
   expect(dropText(verdict)).toBe(
-    'Tickets is gated: no spec has been published yet. Run anyway? Use Run anyway in the Craftory band above the prompt.',
+    'Tickets is gated: no spec is attached to this feature yet. Run anyway? Use Run anyway in the Craftory band above the prompt.',
   )
 })
 

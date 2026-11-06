@@ -16,7 +16,7 @@ const gate = {
   id: 'gate-tickets',
   phase: 'tickets',
   by: 'spec',
-  reason: 'no spec has been published yet',
+  reason: 'no spec is attached to this feature yet',
 } as const
 
 test('the first look only seeds: nothing is announced for what is already there', () => {
@@ -29,7 +29,7 @@ test('a new spec and a new gate are each announced once', () => {
   const signals = diffSignals(before, after)
   expect(signals.map(toastText)).toEqual([
     'Spec #50 published · 6 user stories',
-    'Tickets is gated · no spec has been published yet',
+    'Tickets is gated · no spec is attached to this feature yet',
   ])
   expect(diffSignals(after, after)).toEqual([])
 })

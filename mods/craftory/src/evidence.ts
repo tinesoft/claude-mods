@@ -156,7 +156,7 @@ const RULES: Record<PhaseId, Rule> = {
   spec: f => {
     if (f.spec !== null) return { done: true, artifact: f.spec.location }
     if (f.feature.kind === 'specced') return { done: true, artifact: f.feature.record.spec }
-    return { done: false, blockers: ['no spec has been published yet'] }
+    return { done: false, blockers: ['no spec is attached to this feature yet'] }
   },
   tickets: f => {
     if (f.tickets.length === 0) return { done: false, blockers: ['no tickets yet'] }

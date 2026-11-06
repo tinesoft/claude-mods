@@ -34,7 +34,7 @@ const gatedWorld = (on: Parameters<typeof world>[0], options: WorldOptions = {})
     ...options,
   })
 
-const GATE = 'Tickets is gated: no spec has been published yet. Run anyway?'
+const GATE = 'Tickets is gated: no spec is attached to this feature yet. Run anyway?'
 
 test('a typed namespaced command for a gated phase is dropped, with the reason and where to go', async ($, on) => {
   gatedWorld(on)
@@ -58,7 +58,7 @@ test('the band says it, with Run anyway and Diagnose, and one toast announces it
   expect(await allText(band)).toContain(GATE)
   expect((await band.find({ key: 'notice-run-anyway-tickets' }))!.text).toContain('Run anyway')
   expect((await band.find({ key: 'notice-diagnose-tickets' }))!.text).toContain('Diagnose')
-  expect(w.toasts).toEqual(['Tickets is gated · no spec has been published yet'])
+  expect(w.toasts).toEqual(['Tickets is gated · no spec is attached to this feature yet'])
   expect(w.toastTimeouts).toEqual([4000])
 })
 
@@ -139,7 +139,7 @@ test('Diagnose runs diagnosing-bugs instead, and Dismiss only closes the row', a
   expect(w.commandsRun).toEqual([
     {
       command: 'mattpocock-skills:diagnosing-bugs',
-      args: 'Tickets is gated: no spec has been published yet. Run anyway?',
+      args: 'Tickets is gated: no spec is attached to this feature yet. Run anyway?',
     },
   ])
   expect(await allText(await mountBand($))).not.toContain('is gated')
