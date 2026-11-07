@@ -1,5 +1,5 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
-import { mapView, resolveMaps } from '../../src/map-view'
+import { mapArg, mapView, resolveMaps } from '../../src/map-view'
 import type { WayfinderOffer } from '../../src/notices'
 import {
   type Read,
@@ -9,7 +9,7 @@ import {
   TRACKERS,
 } from '../../src/tracker'
 import type { RepoSnapshot } from '../../types'
-import { activeRecord } from './features'
+import { activeMapLink } from './features'
 import { listDir, readText } from './repo'
 import { pickedMapOf } from './ui'
 
@@ -27,7 +27,7 @@ export function trackerOf($: EngineInterface) {
 /** The active map of the tracker's last read, as the rail and pane draw it; null with no map. */
 export async function mapViewOf($: EngineInterface) {
   const tracker = await trackerOf($)
-  const link = (await activeRecord($))?.map ?? null
+  const link = await activeMapLink($)
   const {
     active,
     others,
@@ -47,7 +47,7 @@ export async function wayfinderOfferOf(
   suggest: 'long-grill' | 'off',
 ): Promise<WayfinderOffer> {
   const tracker = await trackerOf($)
-  const hasLink = (await activeRecord($))?.map !== undefined
+  const hasLink = (await activeMapLink($)) !== null
   const { active } = resolveMaps({
     maps: tracker?.rich ? (tracker.maps ?? []) : [],
     link: null,
@@ -59,7 +59,7 @@ export async function wayfinderOfferOf(
     hasLink,
     attach:
       active !== null && !active.isClosed
-        ? { name: active.title, location: active.location }
+        ? { name: active.title, ref: active.ref, arg: mapArg(active) }
         : null,
   }
 }

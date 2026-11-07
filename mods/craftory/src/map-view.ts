@@ -1,4 +1,5 @@
 import type { IssueRef, WayMap, WayTicket } from '../types'
+import { parseIssueRef } from './tracker/refs'
 import { clip } from './ui'
 
 export const MAP_TITLE_MAX = 16
@@ -59,6 +60,19 @@ export function resolveMaps(input: {
     link: state,
   }
 }
+
+/**
+ * What `/wayfinder` is handed for a map or ticket: a numbered ref as it is, and for a `.scratch`
+ * one the path of its file, which is how the Local tracker names it (see the tracker doc's
+ * "fetch the relevant ticket": the user passes the path or the issue number).
+ */
+const argOf = (item: { ref: IssueRef; location: string }) =>
+  parseIssueRef(item.ref) === undefined ? item.location : item.ref
+
+export const mapArg = (map: WayMap) => argOf(map)
+
+/** The argument that takes one named ticket of a map. */
+export const ticketArg = (map: WayMap, ticket: WayTicket) => `${argOf(map)} ${argOf(ticket)}`
 
 /** The fact the card states when no ticket is open; the user closes the map, never the mod. */
 export const routeClearText = (map: WayMap) =>

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { IssueRef, WayMap, WayState, WayTicket } from '../types'
-import { mapView } from '../src/map-view'
+import { mapArg, mapView, ticketArg } from '../src/map-view'
 
 const ticket = (n: number, state: WayState, blockedBy: string[] = []): WayTicket => ({
   ref: `m/0${n}` as IssueRef,
@@ -37,4 +37,14 @@ test('a blocker that is no ticket of the map counts as unresolved, named by its 
   const view = mapView(mapOf([ticket(1, 'resolved'), ticket(2, 'open', ['m/01', '#99'])]))
   expect(view.takeable).toEqual([])
   expect(view.blocked.map(b => b.waitsOn)).toEqual([['#99']])
+})
+
+test('a Local map and ticket are handed to the skill by file path, a numbered one by its ref', () => {
+  const local = ticket(1, 'open')
+  expect(mapArg(mapOf([local]))).toBe('.scratch/m/map.md')
+  expect(ticketArg(mapOf([local]), local)).toBe('.scratch/m/map.md .scratch/m/issues/01.md')
+  const numbered = { ...mapOf([]), ref: '#12' as IssueRef, location: 'https://h/issues/12' }
+  const task = { ...local, ref: '#14' as IssueRef, location: 'https://h/issues/14' }
+  expect(mapArg(numbered)).toBe('#12')
+  expect(ticketArg(numbered, task)).toBe('#12 #14')
 })

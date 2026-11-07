@@ -18,7 +18,7 @@ export type Action =
   | { kind: 'rename'; noticeId: string; term: string }
   | { kind: 'review-retro'; noticeId: string }
   | { kind: 'dismiss'; noticeId: string }
-  | { kind: 'wayfinder'; noticeId: string; args: string }
+  | { kind: 'wayfinder'; noticeId: string; args: string; map?: IssueRef }
   | { kind: 'dismiss-wayfinder'; noticeId: string }
   | { kind: 'mark-done'; phase: PhaseId }
   | { kind: 'write-pr' }

@@ -1,5 +1,13 @@
 import type { IssueRef, Tone, WayTicket } from '../types'
-import { mapChipText, mapCountsText, routeClearText, ticketLabel, type MapView } from './map-view'
+import {
+  mapArg,
+  mapChipText,
+  mapCountsText,
+  routeClearText,
+  ticketArg,
+  ticketLabel,
+  type MapView,
+} from './map-view'
 import { paint, SPACE, TOKENS } from './theme'
 import { inkOf, isRich, withTint, type Ui } from './ui'
 import { CardButton } from './widgets'
@@ -142,13 +150,6 @@ export const FrontierCard = ({
   )
 }
 
-/** The `/wayfinder` argument that takes the next ticket of a map. */
-export const workNextArg = (view: MapView) => view.map.location
-
-/** The `/wayfinder` argument that takes one named ticket of a map. */
-export const takeArg = (view: MapView, ticket: WayTicket) =>
-  `${view.map.location} ${ticket.location}`
-
 /** The map card that opens the Tickets tab: counts, Work next ticket, then Takeable, Claimed, Blocked, Decided. */
 export const MapTicketsCard = ({
   ui,
@@ -184,7 +185,7 @@ export const MapTicketsCard = ({
           tone={tone}
           id={`take-${ticket.ref}`}
           label="Take"
-          onPress={() => on.wayfinder(takeArg(view, ticket))}
+          onPress={() => on.wayfinder(ticketArg(view.map, ticket))}
         />
       )}
     </Box>
@@ -213,7 +214,7 @@ export const MapTicketsCard = ({
             id="work-next"
             label="Work next ticket"
             primary
-            onPress={() => on.wayfinder(workNextArg(view))}
+            onPress={() => on.wayfinder(mapArg(view.map))}
           />
         ) : (
           <Text key="work-next-off" {...inkOf(tone, 'muted')}>

@@ -180,3 +180,65 @@ test('with a terminal beside a mobile pane the band shows it and the mobile pane
   expect(await bandText($)).toContain(SUGGEST)
   expect(await allText(await mountPane($, 'mobile'))).not.toContain(SUGGEST)
 })
+
+const draftStore = (over: Record<string, unknown> = {}) => ({
+  drafts: {
+    d1: {
+      title: 'New feature',
+      entry: 'align',
+      enteredFrom: null,
+      startedAt: '2026-10-01T00:00:00.000Z',
+      marks: {},
+      ...over,
+    },
+  },
+  lastActive: 'draft:d1',
+})
+
+const draftOf = (w: { store: Map<string, unknown> }) =>
+  (w.store.get('drafts') as Record<string, Record<string, unknown>>).d1!
+
+test('Attach stores the map link on the Feature, and the notice does not come back', async ($, on) => {
+  const w = await session(on, { files: scenarioFiles('local', 'mixed') })
+  await startSession($)
+  await grill($, 2)
+  await (await mountBand($, 'terminal', 200)).press({ key: 'notice-wayfinder' })
+  expect(JSON.parse(w.files.get('.craftory/features/csv.json')!).map).toBe('billing-v2')
+  await grill($, 3)
+  expect(await bandText($)).not.toContain(SUGGEST)
+})
+
+test('Attach keeps a link the Feature already has', async ($, on) => {
+  const w = await session(on, {
+    files: {
+      ...scenarioFiles('local', 'mixed'),
+      '.craftory/features/csv.json': featureJson({ map: 'gone' }),
+    },
+  })
+  await startSession($)
+  await grill($, 3)
+  expect(await bandText($)).not.toContain(SUGGEST)
+  expect(JSON.parse(w.files.get('.craftory/features/csv.json')!).map).toBe('gone')
+})
+
+test('Attach on an unpromoted draft stores the link on the draft', async ($, on) => {
+  const w = await session(on, { files: scenarioFiles('local', 'mixed'), store: draftStore() })
+  await startSession($)
+  await grill($, 2)
+  await (await mountBand($, 'terminal', 200)).press({ key: 'notice-wayfinder' })
+  expect(draftOf(w).map).toBe('billing-v2')
+  expect(w.files.get('.craftory/features/csv.json')).not.toContain('billing-v2')
+})
+
+test('Dismiss on an unpromoted draft silences it for that draft only', async ($, on) => {
+  const w = await session(on, { store: draftStore() })
+  await startSession($)
+  await grill($, 2)
+  await (await mountBand($, 'terminal', 200)).press({ key: 'notice-dismiss-suggest-wayfinder' })
+  expect(draftOf(w).wayfinderSuggestDismissed).toBe(true)
+  expect(JSON.parse(w.files.get('.craftory/features/csv.json')!).wayfinderSuggestDismissed).toBe(
+    undefined,
+  )
+  await grill($, 3)
+  expect(await bandText($)).not.toContain(SUGGEST)
+})

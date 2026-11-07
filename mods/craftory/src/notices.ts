@@ -1,4 +1,11 @@
-import type { EventNotice, InstallState, NoticeKey, PluginStatus, RepoSnapshot } from '../types'
+import type {
+  EventNotice,
+  InstallState,
+  IssueRef,
+  NoticeKey,
+  PluginStatus,
+  RepoSnapshot,
+} from '../types'
 import type { Action } from './action'
 import { budgetK } from './build'
 import { driftText, retroText } from './drift'
@@ -140,11 +147,14 @@ const dismiss = (id: string): NoticeButton => ({
   action: { kind: 'dismiss', noticeId: id },
 })
 
+/** An open map the Feature can join: its name, its ref to store, and the argument `/wayfinder` takes. */
+export type AttachTarget = { name: string; ref: IssueRef; arg: string }
+
 /** What the suggest notice needs to know now: the switch, the Feature's link, and a map to join. */
 export type WayfinderOffer = {
   enabled: boolean
   hasLink: boolean
-  attach: { name: string; location: string } | null
+  attach: AttachTarget | null
 }
 
 export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): NoticeView | undefined {
@@ -278,7 +288,8 @@ export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): Notice
             action: {
               kind: 'wayfinder',
               noticeId: notice.id,
-              args: offer.attach?.location ?? '',
+              args: offer.attach?.arg ?? '',
+              ...(offer.attach && { map: offer.attach.ref }),
             },
             primary: true,
           },

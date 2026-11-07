@@ -197,9 +197,14 @@ async function dispatch($: EngineInterface, action: Action) {
     }
     case 'dismiss':
       return dropNotice($, action.noticeId)
-    case 'wayfinder':
+    case 'wayfinder': {
       await dropNotice($, action.noticeId)
+      // Attach joins the map: the Feature keeps its ref, so the rail shows it from now on
+      const key = await activeKey($)
+      if (action.map !== undefined && key !== null)
+        await recordChange($, key, { kind: 'link-map', map: action.map })
       return requestRun($, SKILLS.wayfinder, action.args)
+    }
     case 'dismiss-wayfinder': {
       const key = await activeKey($)
       if (key !== null) await recordChange($, key, { kind: 'dismiss-wayfinder' })

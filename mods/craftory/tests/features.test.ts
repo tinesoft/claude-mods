@@ -445,3 +445,15 @@ test('an entered record skips the phases before its entry, stamped when it was e
   })
   expect(PHASE_ORDER.filter(p => isSkipped(record, p))).toEqual(['align', 'spec', 'tickets'])
 })
+
+test('a map link is set once, kept on a draft, carried by promote and never rewritten', () => {
+  const linked = applyDraftChange(draft, { kind: 'link-map', map: 'billing-v2' as IssueRef })
+  expect(applyDraftChange(linked, { kind: 'link-map', map: 'other' as IssueRef }).map).toBe(
+    'billing-v2',
+  )
+  expect(promote(linked, spec(42, T + 1000), 'feat/csv').map).toBe('billing-v2')
+  const record = applyChange(base, { kind: 'link-map', map: ref(7) })
+  expect(applyChange(record, { kind: 'link-map', map: ref(8) }).map).toBe(ref(7))
+  const parsed = parseFeature(serialiseFeature(record))
+  expect(parsed.state === 'ok' && parsed.value.map).toBe(ref(7))
+})

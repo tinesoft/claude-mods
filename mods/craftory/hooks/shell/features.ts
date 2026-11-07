@@ -102,6 +102,17 @@ export async function activeRecord($: EngineInterface): Promise<FeatureRecord | 
   return feature?.kind === 'specced' ? feature.record : null
 }
 
+/** The wayfinder map the active Feature names, whether it is a spec'd Feature or still a draft. */
+export async function activeMapLink($: EngineInterface): Promise<IssueRef | null> {
+  const feature = featureOf(
+    await read($, activeState),
+    await read($, featuresState),
+    await read($, draftsState),
+  )
+  if (feature === null) return null
+  return (feature.kind === 'draft' ? feature.draft.map : feature.record.map) ?? null
+}
+
 export async function featureOfTicket(
   $: EngineInterface,
   ticket: string,
