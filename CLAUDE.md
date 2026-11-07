@@ -28,7 +28,7 @@ pnpm nx affected -t lint typecheck validate test
 node tools/sync-plugin-version.mjs --check
 ```
 
-Run tests on the pinned Claude Code (`CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml`). A local `claude` auto-updates and can disagree with CI.
+Run tests on the pinned Claude Code (`CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml`). A local `claude` auto-updates and can disagree with CI; the `test` targets print a warning when it does (`tools/check-claude-version.mjs`).
 
 CI runs the same, plus `claude plugin validate . --strict` at the root, pinned to Claude Code 2.1.302.
 
@@ -40,7 +40,7 @@ Local markdown under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.
 
 ### Triage labels
 
-Default five roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), recorded as a `Status:` line. See `docs/agents/triage-labels.md`.
+Default five roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), recorded as a `**Status:** <role>` line in the issue file. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
