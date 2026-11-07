@@ -99,3 +99,35 @@ test('rows and the map link to their files, and the card never writes', async ($
   expect(byHref.has('.scratch/billing-v2/issues/01-billing-model.md')).toBe(false)
   expect(w.writes).toEqual([])
 })
+
+test('a route-clear map says so on the Tickets tab, with the fog hint', async ($, on) => {
+  featureWorld(on, { files: scenarioFiles('local', 'route-clear') })
+  await startSession($)
+  const text = await allText(await ticketsTab($))
+  expect(text).toContain('2 decided · 0 open')
+  expect(text).toContain('No open tickets · Route clear? Not yet specified still has fog.')
+})
+
+test('a route-clear map without fog drops the fog hint', async ($, on) => {
+  const files = { ...scenarioFiles('local', 'route-clear') }
+  for (const [path, text] of Object.entries(files)) {
+    if (path.endsWith('map.md')) files[path] = text.replace(/## Not yet specified[\s\S]*$/, '')
+  }
+  featureWorld(on, { files })
+  await startSession($)
+  const text = await allText(await ticketsTab($))
+  expect(text).toContain('No open tickets · Route clear?')
+  expect(text).not.toContain('fog')
+})
+
+test('a closed map is labelled Closed and still shows its tickets', async ($, on) => {
+  featureWorld(on, { files: scenarioFiles('local', 'closed-map') })
+  await startSession($)
+  const pane = await ticketsTab($)
+  const text = await allText(pane)
+  const labels = (await pane.findAll({ type: 'Link' })).map(l => String(l.props.label))
+  expect(text).toContain('2 decided · 1 open · Closed')
+  expect(labels.some(l => l.includes('Invoice layout'))).toBe(true)
+  expect(text).toContain('Decided (2)')
+  expect(text).not.toContain('Route clear?')
+})

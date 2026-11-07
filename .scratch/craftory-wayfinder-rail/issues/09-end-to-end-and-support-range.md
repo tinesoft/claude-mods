@@ -4,9 +4,9 @@
 
 **Blocked by:** 02 (Tickets tab map card), 03 (Edge-case states)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] End-to-end test shows the chip, card and Tickets tab updating after a claim and a resolve
-- [ ] README states the tested skill range
-- [ ] The `1.4/` side-by-side fixture convention is documented
-- [ ] Checks pass on the pinned Claude Code version
+- [x] End-to-end test shows the chip, card and Tickets tab updating after a claim and a resolve
+- [x] README states the tested skill range
+- [x] The `1.4/` side-by-side fixture convention is documented
+- [x] Checks pass on the pinned Claude Code version

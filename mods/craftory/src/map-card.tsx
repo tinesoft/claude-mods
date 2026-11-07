@@ -210,7 +210,7 @@ export const MapTicketsCard = ({
         columnGap={SPACE.rowLabelGap}
       >
         <Text {...inkOf(tone, 'text2')}>
-          {`${view.decided} decided · ${view.open} open${claimedNote}`}
+          {`${view.decided} decided · ${view.open} open${claimedNote}${view.map.isClosed ? ' · Closed' : ''}`}
         </Text>
         {view.takeable.length > 0 ? (
           <CardButton

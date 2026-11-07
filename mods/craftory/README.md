@@ -162,6 +162,8 @@ The Settings tab writes each value where it belongs and saves as you go. The fir
 
 The Local Markdown tracker reads the layout Matt's skills write, in place: `.scratch/<feature>/spec.md` and `.scratch/<feature>/issues/NN-*.md`, with `Status:` and `Blocked by:` lines. A feature is its folder name (`csv`) and a ticket is `csv/01`; a bare number in `Blocked by:` names a ticket of the same feature and `other/02` one of another. An issue file in a folder with no `spec.md` is a standalone issue for the Inbox, and a folder with a `map.md` and no `spec.md` is a wayfinder map, not a feature. A spec counts as created when its file last changed, which is how a draft finds it. Setup writes Matt's own Local tracker doc.
 
+The Map readers are tested against fixture sets of what `/wayfinder` writes, under `mods/craftory/tests/fixtures/wayfinder/<range>/<source>/<scenario>/`. The tested `mattpocock-skills` range is 1.3.x, so the sets live in `1.3/`. When the supported range moves to 1.4, add a sibling `1.4/` set and run both side by side until `1.3/` is dropped. Each fixture file's first line says whether it was captured from the real skill or hand-made.
+
 The personal options are plugin options (`/config`, or `pluginConfigs` in settings). Changes made in the pane override them and persist across sessions.
 
 | Option         | Default | Effect                                                                                                   |

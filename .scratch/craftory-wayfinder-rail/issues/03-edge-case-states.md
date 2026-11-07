@@ -4,9 +4,9 @@
 
 **Blocked by:** 01 (Local map in the rail chip)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] "No open tickets · Route clear?" shows on the chip, frontier card and Tickets tab card, with the fog hint when Not yet specified is non-empty
+- [x] "No open tickets · Route clear?" shows on the chip, frontier card and Tickets tab card, with the fog hint when Not yet specified is non-empty
 - [x] No stale-claim detection and no destination-reached state
 - [x] A closed map is labelled "Closed" and keeps its tickets visible
 - [x] `prose-trap` proves state is never read from prose
