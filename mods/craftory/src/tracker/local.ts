@@ -1,9 +1,7 @@
 import type { Issue, IssueRef, IssueStatus, TriageLabels, TriageRole } from '../../types'
 import type { ReadResult, TrackerSpec } from './index'
-import { byNumber, parseRef, storiesIn } from './refs'
-
-const UPSTREAM_LINE = (label: string) =>
-  new RegExp(`^(?:\\*\\*)?${label}:(?:\\*\\*)?[ \\t]*(.*?)[ \\t]*$`, 'im')
+import { mapOf, type MapPlan } from './local-map'
+import { blockersOf, byNumber, storiesIn, upstreamLine } from './refs'
 
 const ROLE_BY_NAME = (labels: TriageLabels, text: string): TriageRole | null => {
   const roles = Object.keys(labels) as TriageRole[]
@@ -43,10 +41,38 @@ const dirsOf = (result: ReadResult | undefined) =>
 const filesOf = (result: ReadResult | undefined) =>
   result?.kind === 'list' ? (result.entries ?? []).filter(e => e.kind === 'file') : []
 
+const numbered = (tickets: ReturnType<typeof filesOf>) =>
+  tickets
+    .flatMap(e => {
+      const n = /^(\d+)-.*\.md$/.exec(e.name)?.[1]
+      return n === undefined ? [] : [{ e, n }]
+    })
+    .sort((a, b) => Number(a.n) - Number(b.n))
+
 /**
- * The files to read once every feature folder has been listed. A folder with a `map.md` and no
- * `spec.md` is a wayfinder map, whose tickets are not a feature's.
+ * The map folders, once every folder has been listed: those with a `map.md` and no `spec.md`,
+ * whose tickets are not a feature's. Whether one is a map is up to the text of its `map.md`.
  */
+function plannedMaps(results: readonly ReadResult[]): MapPlan[] {
+  return dirsOf(results[0]).flatMap((dir, i): MapPlan[] => {
+    const own = filesOf(results[1 + 2 * i])
+    const map = own.find(e => e.name === 'map.md')
+    if (map === undefined || own.some(e => e.name === 'spec.md')) return []
+    return [
+      {
+        effort: dir.name,
+        map: { path: `${SCRATCH}${dir.name}/map.md`, mtimeMs: map.mtimeMs },
+        tickets: numbered(filesOf(results[2 + 2 * i])).map(({ e, n }) => ({
+          path: `${SCRATCH}${dir.name}/issues/${e.name}`,
+          n,
+          mtimeMs: e.mtimeMs,
+        })),
+      },
+    ]
+  })
+}
+
+/** The files to read once every feature folder has been listed. */
 function plannedReads(results: readonly ReadResult[]): Planned[] {
   return dirsOf(results[0]).flatMap((dir, i): Planned[] => {
     const own = filesOf(results[1 + 2 * i])
@@ -65,37 +91,23 @@ function plannedReads(results: readonly ReadResult[]): Planned[] {
             },
           ]
         : []),
-      ...tickets
-        .flatMap(e => {
-          const n = /^(\d+)-.*\.md$/.exec(e.name)?.[1]
-          return n === undefined ? [] : [{ e, n }]
-        })
-        .sort((a, b) => Number(a.n) - Number(b.n))
-        .map(({ e, n }) => ({
-          feature: dir.name,
-          path: `${SCRATCH}${dir.name}/issues/${e.name}`,
-          kind: 'ticket' as const,
-          hasSpec: spec !== undefined,
-          n,
-          mtimeMs: e.mtimeMs,
-        })),
+      ...numbered(tickets).map(({ e, n }) => ({
+        feature: dir.name,
+        path: `${SCRATCH}${dir.name}/issues/${e.name}`,
+        kind: 'ticket' as const,
+        hasSpec: spec !== undefined,
+        n,
+        mtimeMs: e.mtimeMs,
+      })),
     ]
   })
 }
-
-/** `Blocked by: 01, billing/02`: a bare number is a ticket of the same feature. */
-const blockersOf = (value: string, feature: string): IssueRef[] =>
-  /none/i.test(value)
-    ? []
-    : [...value.matchAll(/([a-z0-9]+(?:-[a-z0-9]+)*\/\d+)|\b(\d+)\b/g)].flatMap(
-        m => parseRef(m[1] ?? `${feature}/${m[2]}`) ?? [],
-      )
 
 function scratchIssue(file: Planned, text: string, labels: TriageLabels): Issue {
   const body = text
   const head = body.split('\n').slice(0, 60).join('\n')
   const heading = /^# (.+?)\s*$/m.exec(body)?.[1]?.replace(/^\d+:\s*/, '')
-  const { status, role } = statusOf(UPSTREAM_LINE('Status').exec(head)?.[1] ?? '', labels)
+  const { status, role } = statusOf(upstreamLine('Status').exec(head)?.[1] ?? '', labels)
   const isSpec = file.kind === 'spec'
   return {
     ref: (isSpec ? file.feature : `${file.feature}/${file.n}`) as IssueRef,
@@ -106,8 +118,8 @@ function scratchIssue(file: Planned, text: string, labels: TriageLabels): Issue 
     parent: isSpec || !file.hasSpec ? null : (file.feature as IssueRef),
     blockedBy: isSpec
       ? []
-      : blockersOf(UPSTREAM_LINE('Blocked by').exec(head)?.[1] ?? '', file.feature),
-    isBug: UPSTREAM_LINE('Type').exec(head)?.[1]?.toLowerCase() === 'bug',
+      : blockersOf(upstreamLine('Blocked by').exec(head)?.[1] ?? '', file.feature),
+    isBug: upstreamLine('Type').exec(head)?.[1]?.toLowerCase() === 'bug',
     ...(isSpec && { stories: storiesIn(body) }),
     createdAt: file.mtimeMs,
     location: file.path,
@@ -126,7 +138,10 @@ export const spec: TrackerSpec = {
         { kind: 'list' as const, dir: `${SCRATCH}${d.name}/` },
         { kind: 'list' as const, dir: `${SCRATCH}${d.name}/issues/` },
       ])
-    return plannedReads(previous).map(f => ({ kind: 'read' as const, path: f.path }))
+    return [
+      ...plannedReads(previous).map(f => f.path),
+      ...plannedMaps(previous).flatMap(m => [m.map.path, ...m.tickets.map(t => t.path)]),
+    ].map(path => ({ kind: 'read' as const, path }))
   },
   parse: (ctx, results) => {
     const offset = 1 + 2 * dirsOf(results[0]).length
@@ -139,10 +154,20 @@ export const spec: TrackerSpec = {
       }
       return [scratchIssue(file, read.text, ctx.labels)]
     })
+    let next = offset + plannedReads(results).length
+    const textAt = (): string | null => {
+      const read = results[next++]
+      return read?.kind === 'read' ? read.text : null
+    }
+    const maps = plannedMaps(results).flatMap(plan => {
+      const map = mapOf(plan, { map: textAt(), tickets: plan.tickets.map(textAt) })
+      return map === null ? [] : [map]
+    })
     return {
       kind: 'local',
       rich: true,
       issues: issues.sort(byNumber),
+      maps,
       pr: null,
       at: ctx.now,
       problem: problems.length > 0 ? problems.join('; ') : null,

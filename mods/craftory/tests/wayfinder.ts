@@ -1,3 +1,6 @@
+import { DEFAULT_LABELS } from '../src/agents-md'
+import { DEFAULT_CONFIG } from '../src/config'
+import type { FsListing, Read, ReadContext, ReadResult } from '../src/tracker'
 import { WAYFINDER_FIXTURES } from './wayfinder-fixtures'
 
 /** The mattpocock-skills range the fixture sets under `fixtures/wayfinder/` were made for. */
@@ -15,3 +18,36 @@ export function scenarioFiles(
       .map(([path, text]) => [path.slice(prefix.length), text]),
   )
 }
+
+type Files = Record<string, string | { text: string; mtimeMs: number }>
+
+/** An in-memory repo answering the reads a Local reader plans; it can list and read, nothing else. */
+export const fs =
+  (files: Files) =>
+  async (reads: readonly Read[]): Promise<ReadResult[]> =>
+    reads.map((read): ReadResult => {
+      if (read.kind === 'read') {
+        const file = files[read.path]
+        return {
+          kind: 'read',
+          text: file === undefined ? null : typeof file === 'string' ? file : file.text,
+        }
+      }
+      if (read.kind === 'list') {
+        const dir = read.dir.replace(/\/$/, '') + '/'
+        const seen = new Map<string, FsListing>()
+        for (const [path, file] of Object.entries(files)) {
+          if (!path.startsWith(dir)) continue
+          const [first = '', ...more] = path.slice(dir.length).split('/')
+          seen.set(first, {
+            name: first,
+            kind: more.length > 0 ? 'dir' : 'file',
+            mtimeMs: typeof file === 'string' ? 1 : file.mtimeMs,
+          })
+        }
+        return { kind: 'list', entries: seen.size === 0 ? null : [...seen.values()] }
+      }
+      throw new Error('the Local tracker only lists and reads')
+    })
+
+export const ctx: ReadContext = { config: DEFAULT_CONFIG, labels: DEFAULT_LABELS, now: 9 }

@@ -154,11 +154,41 @@ export type PullRequest = {
 
 export type TrackerLink = { label: string; url: string }
 
+export type WayState = 'open' | 'claimed' | 'resolved'
+
+/** A child of a wayfinder map, as any tracker reader reports it. */
+export type WayTicket = {
+  ref: IssueRef
+  title: string
+  type: 'research' | 'prototype' | 'grilling' | 'task' | null
+  state: WayState
+  assignee: string | null
+  blockedBy: IssueRef[]
+  location: string
+}
+
+/** A wayfinder map: the one model every tracker's map reader returns. */
+export type WayMap = {
+  ref: IssueRef
+  source: 'local' | 'github' | 'gitlab'
+  title: string
+  /** Where it lives, as the card kicker names it: `.scratch/<effort>` or `#12`. */
+  origin: string
+  location: string
+  isClosed: boolean
+  destination: string
+  /** True when Not yet specified holds anything. */
+  hasFog: boolean
+  tickets: WayTicket[]
+  updatedAt: Millis
+}
+
 export type TrackerSnapshot =
   | {
       kind: 'local' | 'github'
       rich: true
       issues: Issue[]
+      maps?: WayMap[]
       pr: PullRequest | null
       at: Millis
       problem: string | null

@@ -54,3 +54,15 @@ export const byNumber = (a: { ref: IssueRef }, b: { ref: IssueRef }) => {
   const [rankB, featureB, nB] = sortKey(b.ref)
   return rankA - rankB || featureA.localeCompare(featureB, 'en', { numeric: true }) || nA - nB
 }
+
+/** A `Status: x` style line, plain or bold, as Matt's skills write it near the top of a file. */
+export const upstreamLine = (label: string) =>
+  new RegExp(`^(?:\\*\\*)?${label}:(?:\\*\\*)?[ \\t]*(.*?)[ \\t]*$`, 'im')
+
+/** `Blocked by: 01, billing/02`: a bare number is a ticket of the same feature. */
+export const blockersOf = (value: string, feature: string): IssueRef[] =>
+  /none/i.test(value)
+    ? []
+    : [...value.matchAll(/([a-z0-9]+(?:-[a-z0-9]+)*\/\d+)|\b(\d+)\b/g)].flatMap(
+        m => parseRef(m[1] ?? `${feature}/${m[2]}`) ?? [],
+      )
