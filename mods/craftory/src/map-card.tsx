@@ -156,15 +156,17 @@ export const MapTicketsCard = ({
   tone,
   ascii,
   view,
+  isDecidedOpen,
   on,
 }: {
   ui: Ui
   tone: Tone | undefined
   ascii: boolean
   view: MapView
-  on: { wayfinder: (arg: string) => void }
+  isDecidedOpen: boolean
+  on: { wayfinder: (arg: string) => void; decided: () => void }
 }) => {
-  const { Box, Link, Text } = ui
+  const { Box, Button, Link, Text } = ui
   const decided = view.map.tickets.filter(t => t.state === 'resolved')
   const claimed = view.map.tickets.filter(t => t.state === 'claimed')
   const claimedNote = view.claimed > 0 ? ` (${view.claimed} claimed)` : ''
@@ -244,10 +246,13 @@ export const MapTicketsCard = ({
         ),
       )}
       {decided.length > 0 && (
-        <Text key="group-decided" {...inkOf(tone, 'text2')}>
-          {`Decided (${decided.length}) ${ascii ? '>' : '▸'}`}
-        </Text>
+        <Button key="decided-toggle" plain onPress={() => on.decided()}>
+          <Text {...inkOf(tone, 'text2')}>
+            {`Decided (${decided.length}) ${isDecidedOpen ? (ascii ? 'v' : '▾') : ascii ? '>' : '▸'}`}
+          </Text>
+        </Button>
       )}
+      {isDecidedOpen && decided.map(t => row(t, ascii ? '+' : '✓', null, false))}
       {view.isLinkStale && (
         <Text key="map-stale" {...inkOf(tone, 'text2')}>
           Map not found

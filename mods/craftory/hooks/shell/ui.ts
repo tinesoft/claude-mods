@@ -137,6 +137,8 @@ const openPhaseState = atom({ plugin: 'craftory', key: 'openPhase' } as const, n
 
 const isMapOpenState = atom({ plugin: 'craftory', key: 'isMapOpen' } as const, false)
 
+const isDecidedOpenState = atom({ plugin: 'craftory', key: 'isDecidedOpen' } as const, false)
+
 const pickedMapState = atom({ plugin: 'craftory', key: 'pickedMap' } as const, null)
 
 const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
@@ -165,6 +167,16 @@ export function openPhaseOf($: EngineInterface) {
 
 export function isMapOpenOf($: EngineInterface) {
   return read($, isMapOpenState)
+}
+
+export function isDecidedOpenOf($: EngineInterface) {
+  return read($, isDecidedOpenState)
+}
+
+/** Expands or collapses the Decided group of the Tickets tab's map card. */
+export async function toggleDecided($: EngineInterface) {
+  await update($, isDecidedOpenState, open => !open)
+  $.ui.invalidate('ui.render')
 }
 
 export function pickedMapOf($: EngineInterface) {

@@ -38,6 +38,7 @@ export type PaneActions = {
   rail: Pick<BandActions, 'phase' | 'triage'>
   map: () => void
   wayfinder: (arg: string) => void
+  decided: () => void
   pickMap: (ref: IssueRef) => void
   closeCard: () => void
   act: (action: Action) => void
@@ -54,6 +55,7 @@ export type PaneArgs = {
   flow: Flow | null
   map: MapView | null
   isMapOpen: boolean
+  isDecidedOpen: boolean
   waiting: number
   notices: readonly NoticeView[]
   counts: TabCounts
@@ -496,9 +498,12 @@ const TicketsTab = ({
   tone,
   ascii,
   map,
+  isDecidedOpen,
   view,
   on,
-}: Pick<PaneArgs, 'ui' | 'tone' | 'ascii' | 'map' | 'on'> & { view: TicketsView }) => {
+}: Pick<PaneArgs, 'ui' | 'tone' | 'ascii' | 'map' | 'isDecidedOpen' | 'on'> & {
+  view: TicketsView
+}) => {
   const { Box, Link, Text } = ui
   return (
     <Box key="tickets" flexDirection="column" rowGap={SPACE.paneGap}>
@@ -521,7 +526,16 @@ const TicketsTab = ({
           />
         )}
       </Box>
-      {map !== null && <MapTicketsCard ui={ui} tone={tone} ascii={ascii} view={map} on={on} />}
+      {map !== null && (
+        <MapTicketsCard
+          ui={ui}
+          tone={tone}
+          ascii={ascii}
+          view={map}
+          isDecidedOpen={isDecidedOpen}
+          on={on}
+        />
+      )}
       {view.links !== null && (
         <Box key="tracker-links" flexDirection="column" rowGap={SPACE.lineGap}>
           <Text wrap="wrap" {...inkOf(tone, 'text2')}>
@@ -681,7 +695,15 @@ export function renderPane(args: PaneArgs) {
       <TabRow ui={ui} tone={tone} tab={tab} counts={args.counts} on={on} />
       {tab === 'flow' && <FlowTab {...args} />}
       {tab === 'tickets' && (
-        <TicketsTab ui={ui} tone={tone} ascii={ascii} map={map} view={args.tickets} on={on} />
+        <TicketsTab
+          ui={ui}
+          tone={tone}
+          ascii={ascii}
+          map={map}
+          isDecidedOpen={args.isDecidedOpen}
+          view={args.tickets}
+          on={on}
+        />
       )}
       {tab === 'worktrees' && <WorktreesTab ui={ui} tone={tone} view={args.worktrees} on={on} />}
       {tab === 'glossary' && (
