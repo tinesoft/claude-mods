@@ -4,10 +4,10 @@
 
 **Blocked by:** 01 (Local map in the rail chip)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Active map follows the Feature link, else the most recently updated open map
 - [x] Switcher appears only with several maps and does not widen the rail
 - [x] Unreachable tracker keeps the link with no warning
 - [x] Stale link shows "Map not found", falls back, and is never rewritten
-- [ ] Tests cover all three link states in the fake world
+- [x] Tests cover all three link states in the fake world
