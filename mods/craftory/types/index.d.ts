@@ -62,7 +62,7 @@ export type CraftoryConfig = {
   version: 1
   entry: {
     triage: { enabled: boolean; enterAt: EnterAt }
-    wayfinder: { suggest: 'long-grill' | 'on-ask' }
+    wayfinder: { suggest: 'long-grill' | 'off'; afterQuestions: number }
   }
   phases: Record<PhaseId, PhaseConfig>
   tracker: TrackerExtras

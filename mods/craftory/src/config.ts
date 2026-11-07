@@ -20,7 +20,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
   version: 1,
   entry: {
     triage: { enabled: true, enterAt: 'bugs-build-else-align' },
-    wayfinder: { suggest: 'long-grill' },
+    wayfinder: { suggest: 'long-grill', afterQuestions: 12 },
   },
   phases: Object.fromEntries(
     PHASE_ORDER.map((id): [PhaseId, PhaseConfig] => {
@@ -61,9 +61,10 @@ const isRecord = (v: unknown): v is Json => typeof v === 'object' && v !== null 
 
 const ENUMS: Record<string, readonly string[]> = {
   'entry.triage.enterAt': ['align', 'bugs-build-else-align', 'tickets'],
-  'entry.wayfinder.suggest': ['long-grill', 'on-ask'],
+  'entry.wayfinder.suggest': ['long-grill', 'off'],
 }
 const RANGES: Record<string, readonly [number, number]> = {
+  'entry.wayfinder.afterQuestions': [1, 50],
   'worktrees.maxParallel': [1, 6],
   'worktrees.tokenBudget': [10_000, 1_000_000],
 }

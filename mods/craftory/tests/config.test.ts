@@ -168,3 +168,13 @@ test('a .scratch ticket names its branch without the slash', () => {
     'craftory/csv-export-01-export-button',
   )
 })
+
+test('the wayfinder suggestion defaults to long grills after 12 questions and can be turned off', () => {
+  expect(okValue('{}').value.entry.wayfinder).toEqual({ suggest: 'long-grill', afterQuestions: 12 })
+  const set = okValue('{"entry":{"wayfinder":{"suggest":"off","afterQuestions":5}}}')
+  expect(set.value.entry.wayfinder).toEqual({ suggest: 'off', afterQuestions: 5 })
+  expect(set.problem).toBeUndefined()
+  const bad = okValue('{"entry":{"wayfinder":{"suggest":"on-ask"}}}')
+  expect(bad.value.entry.wayfinder.suggest).toBe('long-grill')
+  expect(bad.problem).toContain('entry.wayfinder.suggest')
+})

@@ -336,11 +336,11 @@ const ENTRY_ROWS: readonly SettingsRow[] = [
     control: 'choice',
     options: () => [
       ['long-grill', 'When a grill runs long'],
-      ['on-ask', 'Only when I ask'],
+      ['off', 'Never'],
     ],
     read: f => f.config.entry.wayfinder.suggest,
     write: value => ({
-      config: { entry: { wayfinder: { suggest: value === 'on-ask' ? 'on-ask' : 'long-grill' } } },
+      config: { entry: { wayfinder: { suggest: value === 'off' ? 'off' : 'long-grill' } } },
     }),
   },
 ]
