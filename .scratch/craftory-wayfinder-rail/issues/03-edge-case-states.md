@@ -7,7 +7,7 @@
 **Status:** ready-for-agent
 
 - [ ] "No open tickets · Route clear?" shows on the chip, frontier card and Tickets tab card, with the fog hint when Not yet specified is non-empty
-- [ ] No stale-claim detection and no destination-reached state
-- [ ] A closed map is labelled "Closed" and keeps its tickets visible
-- [ ] `prose-trap` proves state is never read from prose
-- [ ] Reader tests cover each scenario's state, blockers and claims
+- [x] No stale-claim detection and no destination-reached state
+- [x] A closed map is labelled "Closed" and keeps its tickets visible
+- [x] `prose-trap` proves state is never read from prose
+- [x] Reader tests cover each scenario's state, blockers and claims

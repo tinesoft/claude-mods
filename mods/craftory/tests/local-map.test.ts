@@ -55,3 +55,28 @@ test('a map beside a feature spec leaves the feature readable and the map separa
   expect(snapshot.issues.map(i => i.ref)).toEqual(['csv', 'csv/01'])
   expect(snapshot.maps?.map(m => m.ref)).toEqual(['billing-v2'])
 })
+
+test('route-clear: every ticket is resolved, so nothing is open and the map is not closed', async () => {
+  const [map] = await mapsOf(scenarioFiles('local', 'route-clear'))
+  expect(map).toMatchObject({ isClosed: false, hasFog: true })
+  expect(map!.tickets.map(t => [t.state, t.assignee, t.blockedBy])).toEqual([
+    ['resolved', null, []],
+    ['resolved', null, []],
+  ])
+})
+
+test('closed-map: the map is closed and still lists its tickets', async () => {
+  const [map] = await mapsOf(scenarioFiles('local', 'closed-map'))
+  expect(map!.isClosed).toBe(true)
+  expect(map!.tickets.map(t => t.state)).toEqual(['resolved', 'resolved', 'open'])
+})
+
+test('prose-trap: state, blockers and claims come from the header, never from quoted prose', async () => {
+  const [map] = await mapsOf(scenarioFiles('local', 'prose-trap'))
+  expect(map!.isClosed).toBe(false)
+  expect(map!.tickets.map(t => [t.state, t.assignee, t.blockedBy])).toEqual([
+    ['open', null, []],
+    ['resolved', null, []],
+    ['open', null, []],
+  ])
+})

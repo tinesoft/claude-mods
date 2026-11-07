@@ -1,5 +1,5 @@
 import type { Tone, WayTicket } from '../types'
-import { mapChipText, type MapView } from './map-view'
+import { mapChipText, routeClearText, type MapView } from './map-view'
 import { paint, SPACE, TOKENS } from './theme'
 import { inkOf, isRich, withTint, type Ui } from './ui'
 import { CardButton } from './widgets'
@@ -72,9 +72,10 @@ export const FrontierCard = ({
   const colours = paint('skill', tone)
   const shown = view.takeable.slice(0, FRONTIER_ROWS)
   const claimed = view.claimed > 0 ? ` (${view.claimed} claimed)` : ''
-  const frontier =
-    view.open === 0
-      ? `No open tickets · Route clear?${view.map.hasFog ? ' Not yet specified still has fog.' : ''}`
+  const frontier = view.map.isClosed
+    ? null
+    : view.open === 0
+      ? routeClearText(view.map)
       : view.takeable.length === 0
         ? 'Nothing takeable'
         : null
@@ -100,7 +101,7 @@ export const FrontierCard = ({
         {view.map.title}
       </Text>
       <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
-        {`${view.decided} decided · ${view.open} open${claimed}`}
+        {`${view.decided} decided · ${view.open} open${claimed}${view.map.isClosed ? ' · Closed' : ''}`}
       </Text>
       {view.map.destination !== '' && (
         <Text {...inkOf(tone, 'ink2')} {...withTint(surface)}>
@@ -210,11 +211,7 @@ export const MapTicketsCard = ({
           </Text>
         )}
       </Box>
-      {view.open === 0 && (
-        <Text {...inkOf(tone, 'text2')}>
-          {`No open tickets · Route clear?${view.map.hasFog ? ' Not yet specified still has fog.' : ''}`}
-        </Text>
-      )}
+      {view.open === 0 && <Text {...inkOf(tone, 'text2')}>{routeClearText(view.map)}</Text>}
       {view.takeable.length > 0 && heading('Takeable')}
       {view.takeable.map(t => row(t, ascii ? '>' : '▸', null, true))}
       {claimed.length > 0 && heading('Claimed')}

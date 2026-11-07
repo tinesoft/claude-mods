@@ -14,7 +14,9 @@ export type MapTexts = { map: string | null; tickets: (string | null)[] }
 const HEAD_LINES = 60
 
 const lineOf = (head: string, label: string) => upstreamLine(label).exec(head)?.[1] ?? ''
-const headOf = (text: string) => text.split('\n').slice(0, HEAD_LINES).join('\n')
+/** The lines above the first `## ` heading: where a file keeps its own `Status:`, never the prose below. */
+const headOf = (text: string) =>
+  text.split('\n').slice(0, HEAD_LINES).join('\n').split(/^## /m)[0] ?? ''
 
 const TYPES = ['research', 'prototype', 'grilling', 'task'] as const
 

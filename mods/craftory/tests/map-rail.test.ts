@@ -94,3 +94,72 @@ test('showing a map never writes a file', async ($, on) => {
   await band.press({ key: 'map-chip' })
   expect(w.writes).toEqual([])
 })
+
+const scenario = (name: string) => ({ files: scenarioFiles('local', name) })
+
+test('route clear: the chip and the card say no open tickets, with the fog hint, and never "reached"', async ($, on) => {
+  featureWorld(on, scenario('route-clear'))
+  await startSession($)
+  const band = await mountBand($, 'terminal', 200)
+  const chip = (await band.find({ key: 'map-chip' }))!.text
+  expect(chip).toContain('No open tickets · Route clear?')
+  expect(chip).toContain('fog')
+  await band.press({ key: 'map-chip' })
+  const card = (await (await mountBand($, 'terminal', 200)).find({ key: 'map-card' }))!.text
+  expect(card).toContain('No open tickets · Route clear? Not yet specified still has fog.')
+  expect(card).not.toMatch(/reached|stale/i)
+})
+
+test('route clear without fog has no fog hint', async ($, on) => {
+  const files = scenarioFiles('local', 'route-clear')
+  files['.scratch/billing-v2/map.md'] = files['.scratch/billing-v2/map.md']!.replace(
+    '- How invoices are archived once a customer is closed.',
+    '',
+  )
+  featureWorld(on, { files })
+  await startSession($)
+  const band = await mountBand($, 'terminal', 200)
+  expect((await band.find({ key: 'map-chip' }))!.text).not.toContain('fog')
+  await band.press({ key: 'map-chip' })
+  const card = (await (await mountBand($, 'terminal', 200)).find({ key: 'map-card' }))!.text
+  expect(card).toContain('No open tickets · Route clear?')
+  expect(card).not.toContain('fog')
+})
+
+test('a closed map is labelled Closed and keeps its tickets visible', async ($, on) => {
+  featureWorld(on, scenario('closed-map'))
+  await startSession($)
+  const band = await mountBand($, 'terminal', 200)
+  const chip = (await band.find({ key: 'map-chip' }))!.text
+  expect(chip).toContain('Closed')
+  expect(chip).toContain('2✓ 1?')
+  await band.press({ key: 'map-chip' })
+  const card = (await (await mountBand($, 'terminal', 200)).find({ key: 'map-card' }))!.text
+  expect(card).toContain('Closed')
+  expect(card).toContain('Invoice layout')
+})
+
+test('an open map is preferred over a closed one', async ($, on) => {
+  const files = {
+    ...scenarioFiles('local', 'mixed'),
+    ...Object.fromEntries(
+      Object.entries(scenarioFiles('local', 'closed-map')).map(([p, t]) => [
+        p.replace('billing-v2', 'old-effort'),
+        t,
+      ]),
+    ),
+  }
+  featureWorld(on, { files })
+  await startSession($)
+  const chip = (await (await mountBand($, 'terminal', 200)).find({ key: 'map-chip' }))!.text
+  expect(chip).toContain('2✓ 4?')
+  expect(chip).not.toContain('Closed')
+})
+
+test('prose-trap: quoting a ticket in prose leaves the counts alone', async ($, on) => {
+  featureWorld(on, scenario('prose-trap'))
+  await startSession($)
+  const chip = (await (await mountBand($, 'terminal', 200)).find({ key: 'map-chip' }))!.text
+  expect(chip).toContain('1✓ 2?')
+  expect(chip).not.toContain('Closed')
+})

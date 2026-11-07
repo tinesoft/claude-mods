@@ -17,10 +17,15 @@ export type MapView = {
   blocked: { ticket: WayTicket; waitsOn: string[] }[]
 }
 
-/** The map the chip shows: the most recently updated one that is not closed. */
+/** The map the chip shows: the most recently updated open one, else the latest closed one. */
 export function activeMap(maps: readonly WayMap[]): WayMap | null {
-  return maps.filter(m => !m.isClosed).sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null
+  const latest = (list: readonly WayMap[]) => [...list].sort((a, b) => b.updatedAt - a.updatedAt)[0]
+  return latest(maps.filter(m => !m.isClosed)) ?? latest(maps) ?? null
 }
+
+/** The fact the card states when no ticket is open; the user closes the map, never the mod. */
+export const routeClearText = (map: WayMap) =>
+  `No open tickets · Route clear?${map.hasFog ? ' Not yet specified still has fog.' : ''}`
 
 /** State comes from each ticket's structure alone: resolved, claimed, or open and then blocked or takeable. */
 export function mapView(map: WayMap): MapView {
@@ -46,6 +51,12 @@ export function mapView(map: WayMap): MapView {
   }
 }
 
-/** `◆ Billing v2 2✓ 4?`: the title, then decided and open. */
-export const mapChipText = (view: MapView, ascii: boolean) =>
-  `${ascii ? '*' : '◆'} ${clip(view.map.title, MAP_TITLE_MAX)} ${view.decided}${ascii ? 'v' : '✓'} ${view.open}?`
+/** `◆ Billing v2 2✓ 4?`: the title, then decided and open; or the route-clear fact, or `Closed`. */
+export function mapChipText(view: MapView, ascii: boolean): string {
+  const head = `${ascii ? '*' : '◆'} ${clip(view.map.title, MAP_TITLE_MAX)}`
+  const counts = `${view.decided}${ascii ? 'v' : '✓'} ${view.open}?`
+  if (view.map.isClosed) return `${head} ${counts} Closed`
+  if (view.open === 0)
+    return `${head} No open tickets · Route clear?${view.map.hasFog ? ' · fog' : ''}`
+  return `${head} ${counts}`
+}
