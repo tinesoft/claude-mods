@@ -13,7 +13,7 @@ import {
   type TicketsView,
 } from './pane-view'
 import type { Action } from './action'
-import { FrontierCard, MapChip } from './map-card'
+import { FrontierCard, MapChip, MapTicketsCard } from './map-card'
 import type { MapView } from './map-view'
 import type { NoticeView } from './notices'
 import { NoticeRow } from './notice-row'
@@ -37,6 +37,7 @@ export type PaneActions = {
   editTerm: (name: string) => void
   rail: Pick<BandActions, 'phase' | 'triage'>
   map: () => void
+  wayfinder: (arg: string) => void
   closeCard: () => void
   act: (action: Action) => void
 }
@@ -492,9 +493,11 @@ const TicketCard = ({
 const TicketsTab = ({
   ui,
   tone,
+  ascii,
+  map,
   view,
   on,
-}: Pick<PaneArgs, 'ui' | 'tone' | 'on'> & { view: TicketsView }) => {
+}: Pick<PaneArgs, 'ui' | 'tone' | 'ascii' | 'map' | 'on'> & { view: TicketsView }) => {
   const { Box, Link, Text } = ui
   return (
     <Box key="tickets" flexDirection="column" rowGap={SPACE.paneGap}>
@@ -517,6 +520,7 @@ const TicketsTab = ({
           />
         )}
       </Box>
+      {map !== null && <MapTicketsCard ui={ui} tone={tone} ascii={ascii} view={map} on={on} />}
       {view.links !== null && (
         <Box key="tracker-links" flexDirection="column" rowGap={SPACE.lineGap}>
           <Text wrap="wrap" {...inkOf(tone, 'text2')}>
@@ -662,7 +666,7 @@ const GlossaryTab = ({
 }
 
 export function renderPane(args: PaneArgs) {
-  const { ui, tone, tab, pluginLine, on } = args
+  const { ui, tone, ascii, map, tab, pluginLine, on } = args
   const { Box, Text } = ui
   return (
     <Box
@@ -675,7 +679,9 @@ export function renderPane(args: PaneArgs) {
       <Text {...inkOf(tone, 'text2')}>{pluginLine}</Text>
       <TabRow ui={ui} tone={tone} tab={tab} counts={args.counts} on={on} />
       {tab === 'flow' && <FlowTab {...args} />}
-      {tab === 'tickets' && <TicketsTab ui={ui} tone={tone} view={args.tickets} on={on} />}
+      {tab === 'tickets' && (
+        <TicketsTab ui={ui} tone={tone} ascii={ascii} map={map} view={args.tickets} on={on} />
+      )}
       {tab === 'worktrees' && <WorktreesTab ui={ui} tone={tone} view={args.worktrees} on={on} />}
       {tab === 'glossary' && (
         <GlossaryTab ui={ui} tone={tone} view={args.glossary} query={args.query} on={on} />

@@ -1,7 +1,8 @@
-import type { Tone } from '../types'
+import type { Tone, WayTicket } from '../types'
 import { mapChipText, type MapView } from './map-view'
 import { paint, SPACE, TOKENS } from './theme'
 import { inkOf, isRich, withTint, type Ui } from './ui'
+import { CardButton } from './widgets'
 
 /** The most Takeable rows the card lists; the rest are a count. */
 const FRONTIER_ROWS = 5
@@ -121,6 +122,115 @@ export const FrontierCard = ({
           {frontier}
         </Text>
       )}
+    </Box>
+  )
+}
+
+/** The `/wayfinder` argument that takes the next ticket of a map. */
+export const workNextArg = (view: MapView) => view.map.location
+
+/** The `/wayfinder` argument that takes one named ticket of a map. */
+export const takeArg = (view: MapView, ticket: WayTicket) =>
+  `${view.map.location} ${ticket.location}`
+
+/** The map card that opens the Tickets tab: counts, Work next ticket, then Takeable, Claimed, Blocked, Decided. */
+export const MapTicketsCard = ({
+  ui,
+  tone,
+  ascii,
+  view,
+  on,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  ascii: boolean
+  view: MapView
+  on: { wayfinder: (arg: string) => void }
+}) => {
+  const { Box, Link, Text } = ui
+  const decided = view.map.tickets.filter(t => t.state === 'resolved')
+  const claimed = view.map.tickets.filter(t => t.state === 'claimed')
+  const claimedNote = view.claimed > 0 ? ` (${view.claimed} claimed)` : ''
+  const row = (ticket: WayTicket, glyph: string, note: string | null, action: boolean) => (
+    <Box
+      key={`row-${ticket.ref}`}
+      flexDirection="row"
+      columnGap={SPACE.rowLabelGap}
+      flexWrap="wrap"
+    >
+      <Text {...inkOf(tone, 'ink')}>{glyph}</Text>
+      <Link
+        key={`row-link-${ticket.ref}`}
+        href={ticket.location}
+        label={`${ticket.title}${ticket.type === null ? '' : ` (${ticket.type})`}`}
+      />
+      {note !== null && <Text {...inkOf(tone, 'text2')}>{note}</Text>}
+      {action && (
+        <CardButton
+          ui={ui}
+          tone={tone}
+          id={`take-${ticket.ref}`}
+          label="Take"
+          onPress={() => on.wayfinder(takeArg(view, ticket))}
+        />
+      )}
+    </Box>
+  )
+  const heading = (text: string) => (
+    <Text key={`group-${text}`} bold {...inkOf(tone, 'ink')}>
+      {text}
+    </Text>
+  )
+  return (
+    <Box key="tickets-map" flexDirection="column" rowGap={SPACE.lineGap}>
+      <Text key="map-kicker" mono size="caption" {...inkOf(tone, 'text2')}>
+        {view.kicker}
+      </Text>
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="center"
+        columnGap={SPACE.rowLabelGap}
+      >
+        <Text {...inkOf(tone, 'text2')}>
+          {`${view.decided} decided · ${view.open} open${claimedNote}`}
+        </Text>
+        {view.takeable.length > 0 ? (
+          <CardButton
+            ui={ui}
+            tone={tone}
+            id="work-next"
+            label="Work next ticket"
+            primary
+            onPress={() => on.wayfinder(workNextArg(view))}
+          />
+        ) : (
+          <Text key="work-next-off" {...inkOf(tone, 'muted')}>
+            Work next ticket · Nothing takeable
+          </Text>
+        )}
+      </Box>
+      {view.open === 0 && (
+        <Text {...inkOf(tone, 'text2')}>
+          {`No open tickets · Route clear?${view.map.hasFog ? ' Not yet specified still has fog.' : ''}`}
+        </Text>
+      )}
+      {view.takeable.length > 0 && heading('Takeable')}
+      {view.takeable.map(t => row(t, ascii ? '>' : '▸', null, true))}
+      {claimed.length > 0 && heading('Claimed')}
+      {claimed.map(t =>
+        row(t, ascii ? 'o' : '◐', t.assignee === null ? null : `@${t.assignee}`, false),
+      )}
+      {view.blocked.length > 0 && heading('Blocked')}
+      {view.blocked.map(({ ticket, waitsOn }) =>
+        row(ticket, ascii ? 'x' : '⊘', `waits on ${waitsOn.join(', ')}`, false),
+      )}
+      {decided.length > 0 && (
+        <Text key="group-decided" {...inkOf(tone, 'text2')}>
+          {`Decided (${decided.length}) ${ascii ? '>' : '▸'}`}
+        </Text>
+      )}
+      <Link key="open-map" href={view.map.location} label="Open map" />
     </Box>
   )
 }

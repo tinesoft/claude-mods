@@ -537,6 +537,7 @@ export const register: Register = (on, options) => {
         editTerm: name => void jumpToTerm($, name),
         rail: { phase: actions.phase, triage: actions.triage },
         map: actions.map,
+        wayfinder: arg => void requestRun($, SKILLS.wayfinder, arg),
         closeCard: actions.closeCard,
       },
     })
