@@ -368,6 +368,35 @@ const FlowTab = ({
               <Text wrap="wrap" {...inkOf(tone, 'text2')}>
                 {row.result}
               </Text>
+              {row.buttons !== undefined &&
+                (row.buttons.primary !== null || row.buttons.secondary.length > 0) && (
+                  <Box
+                    key={`flow-buttons-${row.phase}`}
+                    flexDirection="row"
+                    flexWrap="wrap"
+                    columnGap={SPACE.buttonsGap}
+                  >
+                    {row.buttons.primary !== null && (
+                      <CardButton
+                        id={`flow-${row.phase}-primary`}
+                        ui={ui}
+                        tone={tone}
+                        primary
+                        label={row.buttons.primary.label}
+                        onPress={() => on.act(row.buttons!.primary!.action)}
+                      />
+                    )}
+                    {row.buttons.secondary.map(button => (
+                      <CardButton
+                        id={`flow-${row.phase}-${button.id}`}
+                        ui={ui}
+                        tone={tone}
+                        label={button.label}
+                        onPress={() => on.act(button.action)}
+                      />
+                    ))}
+                  </Box>
+                )}
             </Box>
           </Box>
         )

@@ -71,6 +71,13 @@ for (const surface of ['terminal', 'desktop', 'mobile'] as const) {
   })
 }
 
+test('the Flow tab puts the card buttons on a phase that is waiting, and none on a done one', async ($, on) => {
+  await session(on, $, 'terminal')
+  const pane = await open($, 'terminal', 'flow')
+  expect(await pane.find({ key: 'flow-build-primary' })).toBeDefined()
+  expect(await pane.find({ key: 'flow-spec-primary' })).toBeUndefined()
+})
+
 test('mobile has no band, so the Flow tab heads with the same rail, wrapping', async ($, on) => {
   await session(on, $, 'mobile')
   const pane = await open($, 'mobile', 'flow')

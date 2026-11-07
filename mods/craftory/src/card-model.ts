@@ -172,6 +172,27 @@ const markDoneButton = (phase: PhaseId): Secondary => [
   { id: 'mark-done', label: 'Mark done', action: { kind: 'mark-done', phase } },
 ]
 
+/** The buttons a phase offers, on its card and on its row of the Flow tab. */
+export function phaseButtons(view: PhaseView, flow: Flow): Pick<CardView, 'primary' | 'secondary'> {
+  const command =
+    view.command === null ? null : `/${view.command}${view.args ? ` ${view.args}` : ''}`
+  const isDone = view.state.kind === 'done'
+  const specRef = flow.feature.kind === 'specced' ? flow.feature.record.spec : null
+  return {
+    primary:
+      command === null
+        ? null
+        : {
+            label: isDone ? `Re-run ${command}` : command,
+            action: { kind: 'run-phase', phase: view.phase },
+          },
+    secondary: [
+      ...secondaryOf(view, specRef, isDone),
+      ...(view.canMarkDone ? markDoneButton(view.phase) : []),
+    ],
+  }
+}
+
 export function phaseCard(
   view: PhaseView,
   flow: Flow,
@@ -189,10 +210,6 @@ export function phaseCard(
       : config.phases[view.phase].gate && next !== undefined
         ? `Gate on: if ${spec.label} is not done when ${PHASES[next].label} starts, Craftory asks you to confirm first.`
         : null
-  const command =
-    view.command === null ? null : `/${view.command}${view.args ? ` ${view.args}` : ''}`
-  const isDone = view.state.kind === 'done'
-  const specRef = flow.feature.kind === 'specced' ? flow.feature.record.spec : null
   return {
     kicker: `Phase ${spec.n} of ${PHASE_ORDER.length} · ${look.label}`,
     role: look.role,
@@ -204,17 +221,7 @@ export function phaseCard(
     artifactLabel: view.artifact === null ? null : spec.artifactLabel,
     artifact: view.artifact,
     gate,
-    primary:
-      command === null
-        ? null
-        : {
-            label: isDone ? `Re-run ${command}` : command,
-            action: { kind: 'run-phase', phase: view.phase },
-          },
-    secondary: [
-      ...secondaryOf(view, specRef, isDone),
-      ...(view.canMarkDone ? markDoneButton(view.phase) : []),
-    ],
+    ...phaseButtons(view, flow),
     agents: view.phase === 'build' ? agents : null,
   }
 }

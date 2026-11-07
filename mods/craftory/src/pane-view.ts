@@ -12,6 +12,7 @@ import type {
   TriageRole,
 } from '../types'
 import { budgetK } from './build'
+import { phaseButtons, type CardView } from './card-model'
 import type { Flow, SkipReason, TicketStatus } from './evidence'
 import { PHASES } from './phases'
 import { termKey, termsOf } from './glossary'
@@ -50,7 +51,17 @@ export type FlowRowView = {
   command: string
   state: Flow['phases'][number]['state']['kind']
   result: string
+  /** Absent on a row with nothing left to do: done, skipped, or not yet reachable. */
+  buttons?: Pick<CardView, 'primary' | 'secondary'>
 }
+
+const ACTIONABLE: ReadonlySet<FlowRowView['state']> = new Set([
+  'next',
+  'needs-you',
+  'failed',
+  'over-budget',
+  'gated',
+])
 
 const SKIPPED: Record<SkipReason, string> = {
   off: 'off in Settings',
@@ -95,6 +106,7 @@ export function flowRows(flow: Flow): FlowRowView[] {
       command: command === undefined ? '' : `/${command}`,
       state: s.kind,
       result,
+      ...(ACTIONABLE.has(s.kind) && { buttons: phaseButtons(view, flow) }),
     }
   })
 }
