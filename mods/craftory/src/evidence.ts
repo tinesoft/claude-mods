@@ -73,6 +73,8 @@ export type Facts = {
   pr: PullRequest | null
   liveAgents: number
   hasTrackerEvidence: boolean
+  /** The configured per-agent budget; a record's own budget counts only when higher. */
+  tokenBudget: number
 }
 
 export type Evidence =
@@ -235,8 +237,10 @@ function buildAttention(f: Facts): PhaseState | undefined {
     f.tickets.filter(t => t.status === 'merged').map(t => t.issue.ref as string),
   )
   const open = agentsOf(f).filter(a => !merged.has(a.ticket))
-  const over = open.find(a => a.outcome === 'over-budget' && a.tokens >= a.budget)
-  if (over !== undefined) return { kind: 'over-budget', ticket: over.ticket, budget: over.budget }
+  const budgetOf = (a: AgentRecord) => Math.max(f.tokenBudget, a.budget)
+  const over = open.find(a => a.outcome === 'over-budget' && a.tokens >= budgetOf(a))
+  if (over !== undefined)
+    return { kind: 'over-budget', ticket: over.ticket, budget: budgetOf(over) }
   const failed = open.find(a => a.outcome === 'failed')
   return failed === undefined ? undefined : { kind: 'failed', meta: `${failed.ticket} failed` }
 }
@@ -246,7 +250,7 @@ export const isSelfEntry = (feature: Feature): boolean =>
   feature.record.origin === 'issue' &&
   feature.record.entry === 'build'
 
-export function factsOf({ feature, tracker, running, build }: FlowInput): Facts {
+export function factsOf({ feature, config, tracker, running, build }: FlowInput): Facts {
   const issues = tracker?.rich ? tracker.issues : []
   const specRef = feature.kind === 'specced' ? feature.record.spec : null
   const byRef = new Map(issues.map(i => [i.ref as string, i]))
@@ -270,6 +274,7 @@ export function factsOf({ feature, tracker, running, build }: FlowInput): Facts 
     pr: tracker?.rich ? tracker.pr : null,
     liveAgents: Object.values(build?.runs ?? {}).filter(r => r.status === 'running').length,
     hasTrackerEvidence: tracker?.rich ?? true,
+    tokenBudget: config.worktrees.tokenBudget,
   }
 }
 

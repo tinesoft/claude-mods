@@ -94,10 +94,17 @@ const flowOf = (args: {
   tracker: TrackerSnapshot
   running?: Partial<Running>
   build?: BuildLedger
+  tokenBudget?: number
 }): Flow =>
   deriveFlow({
     feature: args.feature,
-    config: DEFAULT_CONFIG,
+    config: {
+      ...DEFAULT_CONFIG,
+      worktrees: {
+        ...DEFAULT_CONFIG.worktrees,
+        tokenBudget: args.tokenBudget ?? DEFAULT_CONFIG.worktrees.tokenBudget,
+      },
+    },
     tracker: args.tracker,
     build: args.build ?? null,
     running: args.running
@@ -167,6 +174,15 @@ test('Build runs with progress from merged tickets, and while agents work after 
   }
   const background = flowOf({ feature: feature(EARLIER), tracker: t, build: ledger })
   expect(view(background, 'build').state).toEqual({ kind: 'running', progress: '1/3' })
+})
+
+test('raising the configured budget clears an over-budget record without touching it', () => {
+  const over = agent(44, { outcome: 'over-budget', tokens: 88_530, endedAt: AT(11) })
+  const args = { feature: feature(EARLIER, [over]), tracker: tracker([merged(43), issue(44)]) }
+  expect(view(flowOf(args), 'build').state).toMatchObject({ kind: 'over-budget' })
+  expect(view(flowOf({ ...args, tokenBudget: 200_000 }), 'build').state.kind).not.toBe(
+    'over-budget',
+  )
 })
 
 test('an agent that hit its budget makes Build over budget, until its ticket merges', () => {
