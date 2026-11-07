@@ -4,11 +4,11 @@
 
 **Blocked by:** 01 (Local map in the rail chip)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Header counts and group order match the `mixed` scenario
-- [ ] Work next ticket submits `/wayfinder <map>`; a Takeable row submits its named ticket
-- [ ] Disabled with "Nothing takeable" when the frontier is empty; Claimed and Blocked still shown
-- [ ] Rows link to the issue or file
-- [ ] The mod never edits a map or ticket
-- [ ] Tests assert the rendered card and the submitted command in the fake world
+- [x] Header counts and group order match the `mixed` scenario
+- [x] Work next ticket submits `/wayfinder <map>`; a Takeable row submits its named ticket
+- [x] Disabled with "Nothing takeable" when the frontier is empty; Claimed and Blocked still shown
+- [x] Rows link to the issue or file
+- [x] The mod never edits a map or ticket
+- [x] Tests assert the rendered card and the submitted command in the fake world
