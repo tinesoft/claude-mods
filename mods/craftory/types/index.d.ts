@@ -296,6 +296,8 @@ export type DraftFeature = {
   enteredFrom: IssueRef | null
   marks: Partial<Record<PhaseId, PhaseMark>>
   startedAt: IsoTime
+  /** The wayfinder map this draft belongs to; it carries over to the Feature the draft becomes. */
+  map?: IssueRef
   wayfinderSuggestDismissed?: true
 }
 
