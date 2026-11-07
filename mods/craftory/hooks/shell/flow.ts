@@ -251,7 +251,12 @@ export async function skillStarted($: EngineInterface, skill: string) {
   if (phase === 'review' || phase === 'ship') await scanDrift($)
 }
 
-/** The notice fires once per grill, on the question that first reaches or crosses the configured count. */
+/**
+ * The notice fires once per grill, on the question that first reaches or crosses the configured
+ * count (stories 40 and 42: the default 12 is the twelfth question). `questions` is this mod's own
+ * count of Align turns that ended waiting on the user, the only question counter there is: the
+ * skill's `Q6 of ~14` is its own estimate and never read.
+ */
 async function suggestWayfinder(
   $: EngineInterface,
   key: FeatureKey | null,

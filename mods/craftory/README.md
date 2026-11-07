@@ -149,16 +149,16 @@ When Review or Ship starts, Craftory scans the lines the integration branch adds
 
 The Settings tab writes each value where it belongs and saves as you go. The first change to a file that Matt's skills or your teammates also edit asks first and shows what changes. **Reset to defaults** resets `.craftory/config.json` and your personal settings only. **Re-run /setup-matt-pocock-skills** runs Matt's setup skill.
 
-| Section       | Values                                                                                                                   | Written to                                                              |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Entry points  | Triage on or off and the phase a ready-for-agent item enters at, the wayfinder suggestion (marked "Not active yet")      | `.craftory/config.json`                                                 |
-| Issue tracker | Local Markdown, GitHub, GitLab or Other with their fields, and the label for each triage role                            | `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`          |
-| Docs layout   | Glossary file, ADR folder, research notes, steering file (`CLAUDE.md` by default, or `AGENTS.md`)                        | `docs/agents/domain.md` and the steering file's `## Agent skills` block |
-| Glossary      | Add, edit and delete terms, and import terms from `CONTEXT.md`                                                           | `GLOSSARY.md`                                                           |
-| Pipeline      | Each phase on or off, its command and its gate. Helper skills are shown, not edited                                      | `.craftory/config.json`                                                 |
-| Worktrees     | Folder, integration branch, ticket branch, parallel limit, token budget, setup command, files to copy, and four switches | `.craftory/config.json`                                                 |
-| Automation    | Suggest the next phase, live agents, underline glossary terms, and three switches marked "Not active yet"                | `.craftory/config.json`                                                 |
-| Personal      | The options below                                                                                                        | `$.store`, on your machine                                              |
+| Section       | Values                                                                                                                                             | Written to                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Entry points  | Triage on or off and the phase a ready-for-agent item enters at, the wayfinder suggestion, which fires after `afterQuestions` (12) Align questions | `.craftory/config.json`                                                 |
+| Issue tracker | Local Markdown, GitHub, GitLab or Other with their fields, and the label for each triage role                                                      | `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`          |
+| Docs layout   | Glossary file, ADR folder, research notes, steering file (`CLAUDE.md` by default, or `AGENTS.md`)                                                  | `docs/agents/domain.md` and the steering file's `## Agent skills` block |
+| Glossary      | Add, edit and delete terms, and import terms from `CONTEXT.md`                                                                                     | `GLOSSARY.md`                                                           |
+| Pipeline      | Each phase on or off, its command and its gate. Helper skills are shown, not edited                                                                | `.craftory/config.json`                                                 |
+| Worktrees     | Folder, integration branch, ticket branch, parallel limit, token budget, setup command, files to copy, and four switches                           | `.craftory/config.json`                                                 |
+| Automation    | Suggest the next phase, live agents, underline glossary terms, and three switches marked "Not active yet"                                          | `.craftory/config.json`                                                 |
+| Personal      | The options below                                                                                                                                  | `$.store`, on your machine                                              |
 
 The Local Markdown tracker reads the layout Matt's skills write, in place: `.scratch/<feature>/spec.md` and `.scratch/<feature>/issues/NN-*.md`, with `Status:` and `Blocked by:` lines. A feature is its folder name (`csv`) and a ticket is `csv/01`; a bare number in `Blocked by:` names a ticket of the same feature and `other/02` one of another. An issue file in a folder with no `spec.md` is a standalone issue for the Inbox, and a folder with a `map.md` and no `spec.md` is a wayfinder map, not a feature. A spec counts as created when its file last changed, which is how a draft finds it. Setup writes Matt's own Local tracker doc.
 
@@ -238,7 +238,7 @@ It starts no other program. The `setup` command is the one in `.craftory/config.
 - Copying files into a worktree uses `cp`, which Windows lacks outside WSL.
 - Glyphs such as `▲`, `◐` and `–` are one cell wide in Claude Code's layout. A terminal that draws them two cells wide misaligns the rail. Turn on `ascii_glyphs`.
 - GitLab and Other trackers show links only, so their Spec, Tickets and Build states come from the skills that ran and from **Mark done**.
-- The wayfinder parent rail, a multi-context `GLOSSARY-MAP.md` and the automations marked "Not active yet" are not built.
+- A multi-context `GLOSSARY-MAP.md` in the Glossary tab and the automations marked "Not active yet" are not built.
 
 ---
 
