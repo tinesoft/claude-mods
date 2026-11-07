@@ -5,3 +5,4 @@ tools/claude-code-types
 design
 mods/craftory/tests/fixtures
 mods/craftory/tests/upstream-fixtures.ts
+mods/craftory/tests/wayfinder-fixtures.ts
