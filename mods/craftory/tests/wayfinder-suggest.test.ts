@@ -73,6 +73,22 @@ test('it fires once per grill: clearing it and asking more questions does not br
   expect(await bandText($)).not.toContain(SUGGEST)
 })
 
+test('lowering the threshold mid-grill still fires once the count has crossed it', async ($, on) => {
+  const w = await session(on, { files: config({ afterQuestions: 6 }) })
+  await startSession($)
+  await grill($, 3)
+  expect(await bandText($)).not.toContain(SUGGEST)
+  w.files.set('.craftory/config.json', config({ afterQuestions: 2 })['.craftory/config.json'])
+  await ask($)
+  await w.clock.advance(1000)
+  await ask($)
+  expect(await bandText($)).toContain(SUGGEST)
+  await (await mountBand($, 'terminal', 200)).press({ key: 'notice-wayfinder' })
+  await ask($)
+  await ask($)
+  expect(await bandText($)).not.toContain(SUGGEST)
+})
+
 test('a new grill counts from zero and can suggest again', async ($, on) => {
   await session(on)
   await startSession($)

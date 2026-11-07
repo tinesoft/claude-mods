@@ -314,6 +314,8 @@ export type Running = {
   progress: string | null
   /** Questions the grill has asked so far, counted from its turns that end waiting on the user. */
   questions?: number
+  /** The wayfinder suggestion has already fired in this grill. */
+  isSuggested?: boolean
 }
 
 export type BudgetState = 'ok' | 'near' | 'over'

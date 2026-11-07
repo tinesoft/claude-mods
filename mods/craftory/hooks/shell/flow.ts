@@ -251,14 +251,20 @@ export async function skillStarted($: EngineInterface, skill: string) {
   if (phase === 'review' || phase === 'ship') await scanDrift($)
 }
 
-/** The notice fires once per grill, on the question that first reaches the configured count. */
-async function suggestWayfinder($: EngineInterface, key: FeatureKey | null, questions: number) {
+/** The notice fires once per grill, on the question that first reaches or crosses the configured count. */
+async function suggestWayfinder(
+  $: EngineInterface,
+  key: FeatureKey | null,
+  questions: number,
+  isSuggested: boolean,
+) {
   const { suggest, afterQuestions } = (await repoFacts($)).config.entry.wayfinder
-  if (key === null || suggest === 'off' || questions !== afterQuestions) return
+  if (key === null || suggest === 'off' || isSuggested || questions < afterQuestions) return
   const feature = featureOf(key, await featuresOf($), await draftsOf($))
   if (feature === null) return
   const held = feature.kind === 'draft' ? feature.draft : feature.record
   if (held.wayfinderSuggestDismissed || (feature.kind === 'specced' && feature.record.map)) return
+  await update($, runningState, held => held && { ...held, isSuggested: true })
   await addNotice($, { kind: 'suggest-wayfinder', id: 'suggest-wayfinder' })
   await settle($)
 }
@@ -270,7 +276,7 @@ export async function finishTurn($: EngineInterface, e: { answer: string; isAbor
   if (grillAsksNext) {
     const questions = (running.questions ?? 0) + 1
     await update($, runningState, held => held && { ...held, isAwaitingUser: true, questions })
-    await suggestWayfinder($, running.feature, questions)
+    await suggestWayfinder($, running.feature, questions, running.isSuggested === true)
     return
   }
   await update($, runningState, () => null)
