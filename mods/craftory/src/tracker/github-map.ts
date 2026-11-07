@@ -1,5 +1,5 @@
 import type { WayMap } from '../../types'
-import { childrenIn, type Links, mapsIn, namesOf, rowFrom, isRecord, str, type Row } from './rows'
+import { childrenIn, isRecord, type Links, mapsIn, namesOf, type Row, rowFrom, str } from './rows'
 
 function rowOf(raw: unknown): Row | null {
   if (!isRecord(raw) || typeof raw.number !== 'number') return null

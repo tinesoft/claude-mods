@@ -1,5 +1,5 @@
 import type { IssueRef, WayMap, WayState, WayTicket } from '../../types'
-import { blockersOf, upstreamLine } from './refs'
+import { blockersOf, headOf, sectionOf, TICKET_TYPES, upstreamLine } from './refs'
 
 /** The files of one effort folder holding a `map.md`, with or without a `spec.md`: a map if its text says so. */
 export type MapPlan = {
@@ -11,15 +11,7 @@ export type MapPlan = {
 /** The text of a map's files, in the order of its plan; null for a file that could not be read. */
 export type MapTexts = { map: string | null; tickets: (string | null)[] }
 
-const HEAD_LINES = 60
-
 const lineOf = (head: string, label: string) => upstreamLine(label).exec(head)?.[1] ?? ''
-/** The lines above the first `## ` heading: where a file keeps its own `Status:`, never the prose below. */
-const headOf = (text: string) =>
-  text.split('\n').slice(0, HEAD_LINES).join('\n').split(/^## /m)[0] ?? ''
-
-const TYPES = ['research', 'prototype', 'grilling', 'task'] as const
-
 /** What a file's own `Status:` and `Assignee:` lines say, and nothing it quotes in its prose. */
 function stateOf(head: string): { state: WayState; assignee: string | null } {
   const status = lineOf(head, 'Status').toLowerCase()
@@ -28,14 +20,6 @@ function stateOf(head: string): { state: WayState; assignee: string | null } {
   if (['resolved', 'closed', 'done'].includes(status)) return { state: 'resolved', assignee: who }
   if (status === 'claimed' || who !== null) return { state: 'claimed', assignee: who }
   return { state: 'open', assignee: null }
-}
-
-/** The text under a `## ` heading, without comments, up to the next heading. */
-export function sectionOf(text: string, heading: string): string {
-  const match = new RegExp(`^## ${heading}[ \\t]*$([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'im').exec(
-    text,
-  )
-  return (match?.[1] ?? '').replace(/<!--[\s\S]*?-->/g, '').trim()
 }
 
 const titleOf = (text: string, fallback: string) =>
@@ -47,7 +31,7 @@ function ticketOf(effort: string, file: MapPlan['tickets'][number], text: string
   return {
     ref: `${effort}/${file.n}` as IssueRef,
     title: titleOf(text, file.n),
-    type: TYPES.find(t => t === type) ?? null,
+    type: TICKET_TYPES.find(t => t === type) ?? null,
     ...stateOf(head),
     blockedBy: blockersOf(lineOf(head, 'Blocked by'), effort),
     location: file.path,

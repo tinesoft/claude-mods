@@ -1,11 +1,8 @@
 import type { IssueRef, WayMap, WayState, WayTicket } from '../../types'
-import { sectionOf } from './local-map'
-import { parseIssueRef, upstreamLine } from './refs'
+import { headOf, PARENT_LINE, parseIssueRef, sectionOf, TICKET_TYPES, upstreamLine } from './refs'
 
 /** What every tracker's map reader shares: issue rows, the map label, and the map model built from them. */
 export const MAP_LABEL = 'wayfinder:map'
-
-const TYPES = ['research', 'prototype', 'grilling', 'task'] as const
 
 export type Json = Record<string, unknown>
 export const isRecord = (v: unknown): v is Json =>
@@ -29,8 +26,8 @@ export type Row = {
   url: string
 }
 
-/** A row from the fields a tracker's issue object names in its own words. */
-export function rowFrom(fields: {
+/** What a tracker's issue object holds, under the names it gives them (`updatedAt` or `updated_at`). */
+export type RowFields = {
   number: number
   title: unknown
   body: unknown
@@ -40,7 +37,10 @@ export function rowFrom(fields: {
   updated: unknown
   created: unknown
   url: unknown
-}): Row {
+}
+
+/** A row from the fields a tracker's issue object names in its own words. */
+export function rowFrom(fields: RowFields): Row {
   const updated = Date.parse(str(fields.updated) || str(fields.created))
   return {
     number: fields.number,
@@ -60,16 +60,13 @@ export const namesOf = (list: unknown, key: string): string[] =>
     ? list.flatMap(o => (isRecord(o) && str(o[key]) !== '' ? [str(o[key])] : []))
     : []
 
-/** The lines above a ticket's first `## ` heading: where `Type:`, `Part of` and `Blocked by:` live. */
-const headOf = (body: string) => body.split(/^## /m)[0]!.split('\n').slice(0, 40).join('\n')
-
 /** `Part of #12` and `Blocked by: #3, #4`, only where a ticket's own head says so. */
 function edgesOf(body: string): { parent: number | null; blockedBy: number[] } {
   const head = headOf(body)
-  const parent = /^(?:\*\*)?(?:Part of|Parent):?(?:\*\*)?[ \t]*#(\d+)/im.exec(head)?.[1]
+  const parent = PARENT_LINE.exec(head)?.[1]
   const blocked = upstreamLine('Blocked by').exec(head)?.[1] ?? ''
   return {
-    parent: parent === undefined ? null : Number(parent),
+    parent: parent === undefined ? null : Number(parent.slice(1)),
     blockedBy: /none/i.test(blocked) ? [] : [...blocked.matchAll(/#(\d+)/g)].map(m => Number(m[1])),
   }
 }
@@ -103,12 +100,12 @@ export function childrenIn(rows: readonly Row[], subs: Links): Map<number, numbe
   )
 }
 
-const ref = (n: number) => parseIssueRef(String(n)) as IssueRef
+const refOf = (n: number) => parseIssueRef(String(n)) as IssueRef
 
 function typeOf(row: Row): WayTicket['type'] {
   const line = upstreamLine('Type').exec(headOf(row.body))?.[1]?.toLowerCase() ?? ''
   const labelled = row.labels.map(l => l.toLowerCase().replace(/^type:\s*/, ''))
-  return TYPES.find(t => t === line) ?? TYPES.find(t => labelled.includes(t)) ?? null
+  return TICKET_TYPES.find(t => t === line) ?? TICKET_TYPES.find(t => labelled.includes(t)) ?? null
 }
 
 function ticketOf(row: Row, blocked: Links): WayTicket {
@@ -116,12 +113,12 @@ function ticketOf(row: Row, blocked: Links): WayTicket {
   const found = blocked.get(row.number)
   const native = found ?? []
   return {
-    ref: ref(row.number),
+    ref: refOf(row.number),
     title: row.title,
     type: typeOf(row),
     state,
     assignee: row.closed ? null : row.assignee,
-    blockedBy: (native.length > 0 ? [...native] : edgesOf(row.body).blockedBy).map(ref),
+    blockedBy: (native.length > 0 ? [...native] : edgesOf(row.body).blockedBy).map(refOf),
     ...(found === null && row.closed === false && { blockersUnknown: true }),
     location: row.url,
   }
@@ -145,7 +142,7 @@ export function mapsIn(
       })
       const kids = (children.get(map.number) ?? []).flatMap(n => byNumber.get(n)?.updatedAt ?? [])
       return {
-        ref: ref(map.number),
+        ref: refOf(map.number),
         source: from,
         title: map.title,
         origin: `#${map.number}`,

@@ -5,12 +5,11 @@ import type {
   PullRequest,
   TrackerSnapshot,
   TriageLabels,
-  TriageRole,
 } from '../../types'
 import { isSafeRef } from '../git'
 import { githubMaps, mapChildren } from './github-map'
 import type { ReadContext, ReadResult, TrackerSpec } from './index'
-import { bodyEdges, isSpecBody, isUnsupported, parseIssueRef, storiesIn } from './refs'
+import { isUnsupported, issueOf, parseIssueRef } from './refs'
 import { isRecord, type Links } from './rows'
 
 const ISSUE_FIELDS = 'number,title,body,labels,state,stateReason,createdAt,updatedAt,assignees,url'
@@ -71,11 +70,6 @@ function parseArrays(stdout: string): unknown[] | undefined {
   }
 }
 
-const roleOf = (names: readonly string[], labels: TriageLabels): TriageRole | null => {
-  const roles = Object.keys(labels) as TriageRole[]
-  return roles.find(r => names.includes(labels[r])) ?? null
-}
-
 function statusOf(state: string | undefined, reason: string | undefined): IssueStatus {
   if (state?.toUpperCase() !== 'CLOSED') return 'open'
   return reason?.toUpperCase() === 'NOT_PLANNED' ? 'closed' : 'done'
@@ -94,27 +88,23 @@ export function parseIssueList(
     const ref = parseIssueRef(String(row.number))
     if (!ref) return []
     const body = text(row.body) ?? ''
-    const names = Array.isArray(row.labels)
-      ? row.labels.flatMap(l => (isRecord(l) && text(l.name) ? [text(l.name)!] : []))
-      : []
-    const { blockedBy, parent } = bodyEdges(body)
-    const isSpec =
-      names.includes(specLabel) || isSpecBody(body) || /^---\s*\ntype:\s*spec\b/.test(body)
     const created = Date.parse(text(row.createdAt) ?? '')
     return [
-      {
-        ref,
-        title: text(row.title) ?? '',
-        kind: isSpec ? 'spec' : parent !== null || names.includes(ticketLabel) ? 'ticket' : 'issue',
-        status: statusOf(text(row.state), text(row.stateReason)),
-        role: roleOf(names, labels),
-        parent,
-        blockedBy,
-        isBug: names.some(n => n.toLowerCase() === 'bug'),
-        ...(isSpec && { stories: storiesIn(body) }),
-        createdAt: Number.isNaN(created) ? null : created,
-        location: text(row.url) ?? '',
-      },
+      issueOf(
+        {
+          ref,
+          title: text(row.title) ?? '',
+          body,
+          labels: Array.isArray(row.labels)
+            ? row.labels.flatMap(l => (isRecord(l) && text(l.name) ? [text(l.name)!] : []))
+            : [],
+          status: statusOf(text(row.state), text(row.stateReason)),
+          createdAt: Number.isNaN(created) ? null : created,
+          location: text(row.url) ?? '',
+          isSpec: /^---\s*\ntype:\s*spec\b/.test(body),
+        },
+        { triage: labels, specLabel, ticketLabel },
+      ),
     ]
   })
 }
@@ -166,7 +156,7 @@ const issueNumber = (argv: readonly string[]) =>
  * What each `gh api` call answered, by issue number: the numbers it listed, none when the host has
  * no such endpoint, or null when the lookup failed and so said nothing.
  */
-function linksOf(results: readonly ReadResult[], suffix: string): Links {
+function nativeLinksOf(results: readonly ReadResult[], suffix: string): Links {
   return new Map(
     runs(results).flatMap((r): [number, number[] | null][] => {
       const n = issueNumber(r.argv)
@@ -177,7 +167,7 @@ function linksOf(results: readonly ReadResult[], suffix: string): Links {
   )
 }
 
-function rawRows(results: readonly ReadResult[]): unknown[] {
+function issueListRows(results: readonly ReadResult[]): unknown[] {
   const list = runs(results).find(r => r.argv[1] === 'issue' && r.exitCode === 0)
   return (list && parseArrays(list.stdout)) || []
 }
@@ -212,7 +202,7 @@ export const spec: TrackerSpec = {
     const targets = [
       ...new Set([
         ...specs.map(ref => Number(ref.slice(1))),
-        ...mapChildren(rawRows(previous), new Map()).keys(),
+        ...mapChildren(issueListRows(previous), new Map()).keys(),
       ]),
     ]
     if (!has('/sub_issues') && targets.length > 0) {
@@ -223,7 +213,7 @@ export const spec: TrackerSpec = {
     const issues = listed(ctx, previous)
     // a map's children always ask for native links; a body's Blocked by line is only the fallback
     const mapKids = new Set(
-      [...mapChildren(rawRows(previous), linksOf(previous, '/sub_issues')).values()]
+      [...mapChildren(issueListRows(previous), nativeLinksOf(previous, '/sub_issues')).values()]
         .flat()
         .map(n => `#${n}` as IssueRef),
     )
@@ -250,9 +240,9 @@ export const spec: TrackerSpec = {
       rich: true,
       issues: issues.sort((a, b) => Number(a.ref.slice(1)) - Number(b.ref.slice(1))),
       maps: githubMaps(
-        rawRows(results),
-        linksOf(results, '/sub_issues'),
-        linksOf(results, '/blocked_by'),
+        issueListRows(results),
+        nativeLinksOf(results, '/sub_issues'),
+        nativeLinksOf(results, '/blocked_by'),
       ),
       pr: pr ? parsePr(pr.stdout) : null,
       at: ctx.now,

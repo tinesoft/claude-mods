@@ -1,4 +1,4 @@
-import type { IssueRef } from '../../types'
+import type { Issue, IssueRef, IssueStatus, TriageLabels, TriageRole } from '../../types'
 
 /** A tracker-numbered ref (`#44`) or a Jira-style key (`ENG-12`): what a pull request is called. */
 export function parseIssueRef(text: string): IssueRef | undefined {
@@ -40,11 +40,14 @@ export const isUnsupported = (stderr: string | undefined) =>
 export const SPEC_LABEL = 'spec'
 export const TICKET_LABEL = 'ticket'
 
+/** A `Part of #12` or `Parent: #12` line; the ref is its first group. */
+export const PARENT_LINE = /^(?:\*\*)?(?:Part of|Parent):?(?:\*\*)?[ \t]*(#\d+)/im
+
 /** `Blocked by:` and `Part of`/`Parent:` lines near the top of an issue body, whichever tracker wrote it. */
 export function bodyEdges(body: string): { blockedBy: IssueRef[]; parent: IssueRef | null } {
   const head = body.split('\n').slice(0, 40).join('\n')
   const blocked = /^(?:\*\*)?Blocked by:(?:\*\*)?[ \t]*(.*)$/im.exec(head)?.[1] ?? ''
-  const parent = /^(?:\*\*)?(?:Part of|Parent):?(?:\*\*)?[ \t]*(#\d+)/im.exec(head)?.[1]
+  const parent = PARENT_LINE.exec(head)?.[1]
   return {
     blockedBy: /none/i.test(blocked) ? [] : refsIn(blocked),
     parent: parent ? (parseIssueRef(parent) ?? null) : null,
@@ -84,3 +87,65 @@ export const blockersOf = (value: string, feature: string): IssueRef[] =>
     : [...value.matchAll(/([a-z0-9]+(?:-[a-z0-9]+)*\/\d+)|\b(\d+)\b/g)].flatMap(
         m => parseRef(m[1] ?? `${feature}/${m[2]}`) ?? [],
       )
+
+/** The ticket types a wayfinder map names, in a `Type:` line or a `wayfinder:<type>` label. */
+export const TICKET_TYPES = ['research', 'prototype', 'grilling', 'task'] as const
+
+const HEAD_LINES = 60
+
+/** The lines above a file's first `## ` heading: where its own `Type:`, `Status:` and `Blocked by:` live, never the prose below. */
+export const headOf = (text: string) =>
+  text.split('\n').slice(0, HEAD_LINES).join('\n').split(/^## /m)[0] ?? ''
+
+/** The text under a `## ` heading, without comments, up to the next heading. */
+export function sectionOf(text: string, heading: string): string {
+  const match = new RegExp(`^## ${heading}[ \\t]*$([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'im').exec(
+    text,
+  )
+  return (match?.[1] ?? '').replace(/<!--[\s\S]*?-->/g, '').trim()
+}
+
+export const roleOf = (names: readonly string[], labels: TriageLabels): TriageRole | null =>
+  (Object.keys(labels) as TriageRole[]).find(r => names.includes(labels[r])) ?? null
+
+/** What a tracker's issue says, however it said it; the kind, role and bug flag follow from it. */
+export type IssueFacts = {
+  ref: IssueRef
+  title: string
+  body: string
+  labels: readonly string[]
+  status: IssueStatus
+  createdAt: number | null
+  location: string
+  /** The tracker's native blockers; the body's `Blocked by:` line stands in when it gave none. */
+  native?: readonly IssueRef[]
+  /** The tracker has its own word that this is a spec, beyond the label and the template headings. */
+  isSpec?: boolean
+}
+
+export function issueOf(
+  facts: IssueFacts,
+  config: { triage: TriageLabels; specLabel: string; ticketLabel: string },
+): Issue {
+  const { body, labels } = facts
+  const edges = bodyEdges(body)
+  const isSpec = labels.includes(config.specLabel) || isSpecBody(body) || facts.isSpec === true
+  return {
+    ref: facts.ref,
+    title: facts.title,
+    kind: isSpec
+      ? 'spec'
+      : edges.parent !== null || labels.includes(config.ticketLabel)
+        ? 'ticket'
+        : 'issue',
+    status: facts.status,
+    role: roleOf(labels, config.triage),
+    parent: edges.parent,
+    blockedBy:
+      facts.native !== undefined && facts.native.length > 0 ? [...facts.native] : edges.blockedBy,
+    isBug: labels.some(n => n.toLowerCase() === 'bug'),
+    ...(isSpec && { stories: storiesIn(body) }),
+    createdAt: facts.createdAt,
+    location: facts.location,
+  }
+}

@@ -1,14 +1,7 @@
-import type { Issue, TrackerSnapshot, TriageLabels, TriageRole } from '../../types'
+import type { Issue, TrackerSnapshot } from '../../types'
 import type { ReadContext, ReadResult, TrackerSpec } from './index'
 import * as links from './links'
-import {
-  bodyEdges,
-  isSpecBody,
-  isUnsupported,
-  parseIssueRef,
-  SPEC_LABEL,
-  TICKET_LABEL,
-} from './refs'
+import { isUnsupported, issueOf, parseIssueRef, SPEC_LABEL, TICKET_LABEL } from './refs'
 import {
   childrenIn,
   isRecord,
@@ -71,7 +64,7 @@ const listed = (results: readonly ReadResult[]): { rows: Row[]; raw: Json[] } | 
  * What each `glab api .../links` answered, by issue: the issues blocking it, none when the plan
  * has no such links, or null when the lookup failed and so said nothing.
  */
-function blockersOf(results: readonly ReadResult[]): Links {
+function nativeBlockersOf(results: readonly ReadResult[]): Links {
   return new Map(
     runs(results).flatMap((r): [number, number[] | null][] => {
       const n = /^projects\/[^/]+\/issues\/(\d+)\/links$/.exec(r.argv[2] ?? '')?.[1]
@@ -95,37 +88,26 @@ function blockersOf(results: readonly ReadResult[]): Links {
   )
 }
 
-const roleOf = (names: readonly string[], labels: TriageLabels): TriageRole | null =>
-  (Object.keys(labels) as TriageRole[]).find(r => names.includes(labels[r])) ?? null
-
 function issuesOf(ctx: ReadContext, rows: readonly Row[], blocked: Links): Issue[] {
   return rows
     .flatMap((row): Issue[] => {
       const ref = parseIssueRef(String(row.number))
       if (!ref) return []
-      const edges = bodyEdges(row.body)
-      const native = blocked.get(row.number) ?? []
-      const isSpec = row.labels.includes(SPEC_LABEL) || isSpecBody(row.body)
+      const native = (blocked.get(row.number) ?? []).flatMap(n => parseIssueRef(String(n)) ?? [])
       return [
-        {
-          ref,
-          title: row.title,
-          kind: isSpec
-            ? 'spec'
-            : edges.parent !== null || row.labels.includes(TICKET_LABEL)
-              ? 'ticket'
-              : 'issue',
-          status: row.closed ? 'done' : 'open',
-          role: roleOf(row.labels, ctx.labels),
-          parent: edges.parent,
-          blockedBy:
-            native.length > 0
-              ? native.flatMap(n => parseIssueRef(String(n)) ?? [])
-              : edges.blockedBy,
-          isBug: row.labels.some(n => n.toLowerCase() === 'bug'),
-          createdAt: null,
-          location: row.url,
-        },
+        issueOf(
+          {
+            ref,
+            title: row.title,
+            body: row.body,
+            labels: row.labels,
+            status: row.closed ? 'done' : 'open',
+            createdAt: null,
+            location: row.url,
+            native,
+          },
+          { triage: ctx.labels, specLabel: SPEC_LABEL, ticketLabel: TICKET_LABEL },
+        ),
       ]
     })
     .sort((a, b) => Number(a.ref.slice(1)) - Number(b.ref.slice(1)))
@@ -152,7 +134,7 @@ export const spec: TrackerSpec = {
   parse: (ctx, results): TrackerSnapshot => {
     const all = listed(results)
     if (all === null) return links.gitlab.parse(ctx, results)
-    const blocked = blockersOf(results)
+    const blocked = nativeBlockersOf(results)
     return {
       kind: 'gitlab',
       rich: true,
