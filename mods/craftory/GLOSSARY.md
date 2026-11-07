@@ -49,6 +49,12 @@ Where a Map lives: the configured tracker, or Local Markdown under `.scratch/`. 
 A child of a Map holding a question whose answer is a decision, not a slice of work. It is takeable, claimed, blocked or decided, and never gets an implementer.
 _Avoid_: Ticket (that is a child of a Spec)
 
+**Frontier**:
+The Decision tickets of a Map that can be taken now: open, unblocked and unclaimed, in order. A Map with no open tickets has no Frontier, and says "No open tickets" rather than "destination reached".
+
+**Takeable**:
+A Decision ticket on the Frontier. A ticket that is claimed (open with an assignee) or blocked (waiting on an unresolved ticket) is not Takeable.
+
 **Active map**:
 The Map the chip shows: the one the active Feature names, else the most recently updated open one.
 
