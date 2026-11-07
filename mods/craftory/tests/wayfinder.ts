@@ -51,3 +51,36 @@ export const fs =
     })
 
 export const ctx: ReadContext = { config: DEFAULT_CONFIG, labels: DEFAULT_LABELS, now: 9 }
+
+/**
+ * What a `gh` answers from a GitHub scenario's canned output: `issue-list.json`,
+ * `sub_issues-<n>.json` and `blocked_by-<n>.json`. A call with no file fails, as a repo without
+ * native sub-issue or dependency support does. The first line of each file is its header comment.
+ */
+export const ghAnswer =
+  (scenario: string) =>
+  (argv: readonly string[]): { exitCode: number; stdout: string } => {
+    const api = /\/issues\/(\d+)\/(sub_issues|dependencies\/blocked_by)$/.exec(argv[2] ?? '')
+    const name =
+      argv[1] === 'issue'
+        ? 'issue-list.json'
+        : api
+          ? `${api[2] === 'sub_issues' ? 'sub_issues' : 'blocked_by'}-${api[1]}.json`
+          : undefined
+    const file =
+      name === undefined
+        ? undefined
+        : WAYFINDER_FIXTURES[`${SKILLS_RANGE}/github/${scenario}/${name}`]
+    return file === undefined
+      ? { exitCode: 1, stdout: '' }
+      : { exitCode: 0, stdout: file.slice(file.indexOf('\n') + 1) }
+  }
+
+/** The same answers as an executor for a reader's reads. */
+export const gh =
+  (scenario: string) =>
+  async (reads: readonly Read[]): Promise<ReadResult[]> =>
+    reads.map((read): ReadResult => {
+      if (read.kind !== 'run') throw new Error('the GitHub tracker only runs gh')
+      return { kind: 'run', argv: read.argv, ...ghAnswer(scenario)(read.argv) }
+    })

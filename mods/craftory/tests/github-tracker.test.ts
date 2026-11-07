@@ -56,7 +56,7 @@ test('gh argv are builders, not strings to split', () => {
     '--limit',
     '50',
     '--json',
-    'number,title,body,labels,state,stateReason,createdAt,url',
+    'number,title,body,labels,state,stateReason,createdAt,updatedAt,assignees,url',
   ])
   expect(subIssuesArgv(42)).toEqual([
     'gh',

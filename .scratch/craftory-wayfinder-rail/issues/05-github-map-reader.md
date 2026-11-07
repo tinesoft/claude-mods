@@ -4,11 +4,11 @@
 
 **Blocked by:** 01 (Local map in the rail chip)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Children are structural only; a ticket mentioned in a comment never joins the map
-- [ ] Decided means closed; claimed means open with an assignee; blocked uses native links first, `Blocked by:` as fallback
-- [ ] `no-native-links` fallback is covered
-- [ ] Local and GitHub maps appear together without a prompt
-- [ ] Each fixture's header says "captured" or "hand-made"
-- [ ] Reader test file asserts state, blockers and claims for every scenario; no live tracker is touched
+- [x] Children are structural only; a ticket mentioned in a comment never joins the map
+- [x] Decided means closed; claimed means open with an assignee; blocked uses native links first, `Blocked by:` as fallback
+- [x] `no-native-links` fallback is covered
+- [x] Local and GitHub maps appear together without a prompt
+- [x] Each fixture's header says "captured" or "hand-made"
+- [x] Reader test file asserts state, blockers and claims for every scenario; no live tracker is touched

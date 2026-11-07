@@ -31,7 +31,7 @@ function stateOf(head: string): { state: WayState; assignee: string | null } {
 }
 
 /** The text under a `## ` heading, without comments, up to the next heading. */
-function sectionOf(text: string, heading: string): string {
+export function sectionOf(text: string, heading: string): string {
   const match = new RegExp(`^## ${heading}[ \\t]*$([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'im').exec(
     text,
   )

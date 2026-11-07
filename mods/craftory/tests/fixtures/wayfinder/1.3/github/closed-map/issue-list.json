@@ -1,0 +1,51 @@
+<!-- hand-made: canned gh output shaped like mattpocock-skills 1.3.1 /wayfinder issues; ticket 06 replaces it with a capture -->
+[
+  {
+    "number": 12,
+    "title": "Billing v2",
+    "body": "## Destination\n\nA spec for usage-based billing, ready to hand to /to-spec.\n\n## Notes\n\n- Plan, don't do.\n\n## Decisions so far\n\n- #13: charge per seat plus metered usage.\n\n## Not yet specified\n\n- How invoices are archived once a customer is closed.\n\n## Out of scope\n\n- Tax filing.\n",
+    "labels": [
+      {
+        "name": "wayfinder:map"
+      }
+    ],
+    "state": "CLOSED",
+    "stateReason": "COMPLETED",
+    "createdAt": "2026-10-01T10:00:00Z",
+    "updatedAt": "2026-10-22T10:00:00Z",
+    "url": "https://github.com/acme/app/issues/12",
+    "assignees": []
+  },
+  {
+    "number": 13,
+    "title": "Billing model",
+    "body": "Type: grilling\n\n## Question\n\nBilling model?\n",
+    "labels": [
+      {
+        "name": "wayfinder:ticket"
+      }
+    ],
+    "state": "CLOSED",
+    "stateReason": "COMPLETED",
+    "createdAt": "2026-10-01T10:00:00Z",
+    "updatedAt": "2026-10-20T10:00:00Z",
+    "url": "https://github.com/acme/app/issues/13",
+    "assignees": []
+  },
+  {
+    "number": 15,
+    "title": "Invoice layout",
+    "body": "Type: prototype\n\n## Question\n\nInvoice layout?\n",
+    "labels": [
+      {
+        "name": "wayfinder:ticket"
+      }
+    ],
+    "state": "OPEN",
+    "stateReason": null,
+    "createdAt": "2026-10-01T10:00:00Z",
+    "updatedAt": "2026-10-20T10:00:00Z",
+    "url": "https://github.com/acme/app/issues/15",
+    "assignees": []
+  }
+]

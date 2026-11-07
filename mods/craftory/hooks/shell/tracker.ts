@@ -77,7 +77,15 @@ function executeReads($: EngineInterface, reads: readonly Read[]) {
 export async function loadTracker($: EngineInterface, repo: RepoSnapshot, context: ReadContext) {
   const spec = TRACKERS[trackerKindOf(repo)]
   if (spec === undefined) return false
-  const snapshot = await readTracker(spec, context, reads => executeReads($, reads))
-  await update($, trackerState, () => snapshot)
+  const execute = (reads: readonly Read[]) => executeReads($, reads)
+  const snapshot = await readTracker(spec, context, execute)
+  // a Local map sits beside a remote tracker's own, read with no prompt
+  const local = snapshot.kind !== 'local' && snapshot.rich ? TRACKERS.local : undefined
+  const alongside = local && (await readTracker(local, context, execute))
+  const merged =
+    snapshot.rich && alongside?.rich
+      ? { ...snapshot, maps: [...(snapshot.maps ?? []), ...(alongside.maps ?? [])] }
+      : snapshot
+  await update($, trackerState, () => merged)
   return true
 }

@@ -1,0 +1,35 @@
+<!-- hand-made: canned gh output shaped like mattpocock-skills 1.3.1 /wayfinder issues; ticket 06 replaces it with a capture -->
+[
+  {
+    "number": 20,
+    "title": "Fix login redirect",
+    "body": "Unrelated bug. Mentions #13 in passing.",
+    "labels": [
+      {
+        "name": "bug"
+      }
+    ],
+    "state": "OPEN",
+    "stateReason": null,
+    "createdAt": "2026-10-01T10:00:00Z",
+    "updatedAt": "2026-10-20T10:00:00Z",
+    "url": "https://github.com/acme/app/issues/20",
+    "assignees": []
+  },
+  {
+    "number": 21,
+    "title": "Billing notes",
+    "body": "## Destination\n\nLooks like a map but carries no label.\n",
+    "labels": [
+      {
+        "name": "docs"
+      }
+    ],
+    "state": "OPEN",
+    "stateReason": null,
+    "createdAt": "2026-10-01T10:00:00Z",
+    "updatedAt": "2026-10-20T10:00:00Z",
+    "url": "https://github.com/acme/app/issues/21",
+    "assignees": []
+  }
+]

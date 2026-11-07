@@ -8,10 +8,11 @@ import type {
   TriageRole,
 } from '../../types'
 import { isSafeRef } from '../git'
+import { githubMaps, type Links, mapChildren } from './github-map'
 import type { ReadContext, ReadResult, TrackerSpec } from './index'
 import { isSpecBody, parseIssueRef, refsIn, storiesIn } from './refs'
 
-const ISSUE_FIELDS = 'number,title,body,labels,state,stateReason,createdAt,url'
+const ISSUE_FIELDS = 'number,title,body,labels,state,stateReason,createdAt,updatedAt,assignees,url'
 const MAX_ISSUES = 200
 const MAX_LOOKUPS = 20
 
@@ -172,6 +173,22 @@ const runs = (results: readonly ReadResult[]) => results.flatMap(r => (r.kind ==
 const issueNumber = (argv: readonly string[]) =>
   /\/issues\/(\d+)\/(?:sub_issues|dependencies)/.exec(argv[2] ?? '')?.[1]
 
+/** What each `gh api` call answered, by issue number: the numbers it listed, or null if it failed. */
+function linksOf(results: readonly ReadResult[], suffix: string): Links {
+  return new Map(
+    runs(results).flatMap((r): [number, number[] | null][] => {
+      const n = issueNumber(r.argv)
+      if (n === undefined || !r.argv[2]?.endsWith(suffix)) return []
+      return [[Number(n), r.exitCode === 0 ? numbersIn(r.stdout) : null]]
+    }),
+  )
+}
+
+function rawRows(results: readonly ReadResult[]): unknown[] {
+  const list = runs(results).find(r => r.argv[1] === 'issue' && r.exitCode === 0)
+  return (list && parseArrays(list.stdout)) || []
+}
+
 function childrenOf(issues: readonly Issue[], results: readonly ReadResult[]): IssueRef[] {
   const found = new Set<IssueRef>()
   for (const r of runs(results)) {
@@ -199,14 +216,23 @@ export const spec: TrackerSpec = {
     const done = runs(previous)
     const has = (suffix: string) => done.some(r => r.argv[2]?.endsWith(suffix))
     if (has('/blocked_by')) return []
-    if (!has('/sub_issues') && specs.length > 0) {
-      return specs
+    const targets = [
+      ...new Set([...specs.map(ref => Number(ref.slice(1))), ...mapChildren(rawRows(previous), new Map()).keys()]),
+    ]
+    if (!has('/sub_issues') && targets.length > 0) {
+      return targets
         .slice(0, MAX_LOOKUPS)
-        .map(ref => ({ kind: 'run' as const, argv: subIssuesArgv(Number(ref.slice(1))) }))
+        .map(n => ({ kind: 'run' as const, argv: subIssuesArgv(n) }))
     }
     const issues = listed(ctx, previous)
-    return childrenOf(issues, previous)
-      .filter(ref => issues.find(i => i.ref === ref)?.blockedBy.length === 0)
+    // a map's children always ask for native links; a body's Blocked by line is only the fallback
+    const mapKids = new Set(
+      [...mapChildren(rawRows(previous), linksOf(previous, '/sub_issues')).values()]
+        .flat()
+        .map(n => `#${n}` as IssueRef),
+    )
+    return [...new Set([...childrenOf(issues, previous), ...mapKids])]
+      .filter(ref => mapKids.has(ref) || issues.find(i => i.ref === ref)?.blockedBy.length === 0)
       .slice(0, MAX_LOOKUPS)
       .map(ref => ({ kind: 'run' as const, argv: dependenciesArgv(Number(ref.slice(1))) }))
   },
@@ -227,6 +253,11 @@ export const spec: TrackerSpec = {
       kind: 'github',
       rich: true,
       issues: issues.sort((a, b) => Number(a.ref.slice(1)) - Number(b.ref.slice(1))),
+      maps: githubMaps(
+        rawRows(results),
+        linksOf(results, '/sub_issues'),
+        linksOf(results, '/blocked_by'),
+      ),
       pr: pr ? parsePr(pr.stdout) : null,
       at: ctx.now,
       problem,
