@@ -1,9 +1,25 @@
 import type { Issue, TrackerSnapshot, TriageLabels, TriageRole } from '../../types'
-import { bodyEdges } from './github'
-import { childrenIn, type Links, mapsIn, type Row } from './github-map'
 import type { ReadContext, ReadResult, TrackerSpec } from './index'
 import * as links from './links'
-import { isSpecBody, isUnsupported, parseIssueRef } from './refs'
+import {
+  bodyEdges,
+  isSpecBody,
+  isUnsupported,
+  parseIssueRef,
+  SPEC_LABEL,
+  TICKET_LABEL,
+} from './refs'
+import {
+  childrenIn,
+  isRecord,
+  type Json,
+  type Links,
+  mapsIn,
+  namesOf,
+  type Row,
+  rowFrom,
+  str,
+} from './rows'
 
 const MAX_LOOKUPS = 40
 
@@ -14,10 +30,6 @@ export const listIssuesArgv = () =>
 /** The links of one issue; `:id` is filled in by `glab` from the clone. */
 export const linksArgv = (iid: number) =>
   ['glab', 'api', `projects/:id/issues/${iid}/links`, '--paginate'] as const
-
-type Json = Record<string, unknown>
-const isRecord = (v: unknown): v is Json => typeof v === 'object' && v !== null && !Array.isArray(v)
-const str = (v: unknown) => (typeof v === 'string' ? v : '')
 
 function arrayOf(stdout: string): unknown[] | null {
   try {
@@ -30,25 +42,19 @@ function arrayOf(stdout: string): unknown[] | null {
 
 function rowOf(raw: unknown): Row | null {
   if (!isRecord(raw) || typeof raw.iid !== 'number') return null
-  const labels = Array.isArray(raw.labels)
-    ? raw.labels.filter((l): l is string => typeof l === 'string')
-    : []
-  const who = Array.isArray(raw.assignees)
-    ? raw.assignees.flatMap(a =>
-        isRecord(a) && str(a.username) !== '' ? [str(a.username)] : [],
-      )[0]
-    : undefined
-  const updated = Date.parse(str(raw.updated_at) || str(raw.created_at))
-  return {
+  return rowFrom({
     number: raw.iid,
-    title: str(raw.title),
-    body: str(raw.description),
-    labels,
+    title: raw.title,
+    body: raw.description,
+    labels: Array.isArray(raw.labels)
+      ? raw.labels.filter((l): l is string => typeof l === 'string')
+      : [],
     closed: str(raw.state) === 'closed',
-    assignee: who ?? null,
-    updatedAt: Number.isNaN(updated) ? 0 : updated,
-    url: str(raw.web_url),
-  }
+    assignee: namesOf(raw.assignees, 'username')[0],
+    updated: raw.updated_at,
+    created: raw.created_at,
+    url: raw.web_url,
+  })
 }
 
 const runs = (results: readonly ReadResult[]) => results.flatMap(r => (r.kind === 'run' ? [r] : []))
@@ -93,21 +99,20 @@ const roleOf = (names: readonly string[], labels: TriageLabels): TriageRole | nu
   (Object.keys(labels) as TriageRole[]).find(r => names.includes(labels[r])) ?? null
 
 function issuesOf(ctx: ReadContext, rows: readonly Row[], blocked: Links): Issue[] {
-  const { specLabel, ticketLabel } = ctx.config.tracker.github
   return rows
     .flatMap((row): Issue[] => {
       const ref = parseIssueRef(String(row.number))
       if (!ref) return []
       const edges = bodyEdges(row.body)
       const native = blocked.get(row.number) ?? []
-      const isSpec = row.labels.includes(specLabel) || isSpecBody(row.body)
+      const isSpec = row.labels.includes(SPEC_LABEL) || isSpecBody(row.body)
       return [
         {
           ref,
           title: row.title,
           kind: isSpec
             ? 'spec'
-            : edges.parent !== null || row.labels.includes(ticketLabel)
+            : edges.parent !== null || row.labels.includes(TICKET_LABEL)
               ? 'ticket'
               : 'issue',
           status: row.closed ? 'done' : 'open',

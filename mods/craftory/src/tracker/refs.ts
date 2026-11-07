@@ -36,6 +36,21 @@ export function refsIn(text: string): IssueRef[] {
 export const isUnsupported = (stderr: string | undefined) =>
   /\b(?:404|403|410)\b|not found|forbidden/i.test(stderr ?? '')
 
+/** The labels a spec and a ticket carry unless a tracker's config names others. */
+export const SPEC_LABEL = 'spec'
+export const TICKET_LABEL = 'ticket'
+
+/** `Blocked by:` and `Part of`/`Parent:` lines near the top of an issue body, whichever tracker wrote it. */
+export function bodyEdges(body: string): { blockedBy: IssueRef[]; parent: IssueRef | null } {
+  const head = body.split('\n').slice(0, 40).join('\n')
+  const blocked = /^(?:\*\*)?Blocked by:(?:\*\*)?[ \t]*(.*)$/im.exec(head)?.[1] ?? ''
+  const parent = /^(?:\*\*)?(?:Part of|Parent):?(?:\*\*)?[ \t]*(#\d+)/im.exec(head)?.[1]
+  return {
+    blockedBy: /none/i.test(blocked) ? [] : refsIn(blocked),
+    parent: parent ? (parseIssueRef(parent) ?? null) : null,
+  }
+}
+
 /**
  * `to-spec` 1.3.1 applies no `spec` label, so a spec is told apart by its template headings
  * (the same test serves the Local and GitHub trackers).

@@ -11,7 +11,7 @@ import type {
 import { type FileWrite, normalise } from './files'
 import { isSafeRef } from './git'
 import { PHASE_ORDER, PHASES } from './phases'
-import { refSlug } from './tracker/refs'
+import { refSlug, SPEC_LABEL, TICKET_LABEL } from './tracker/refs'
 
 export const CONFIG_PATH = '.craftory/config.json'
 export const STORE_PREFS = 'prefs'
@@ -29,7 +29,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     }),
   ) as Record<PhaseId, PhaseConfig>,
   tracker: {
-    github: { specLabel: 'spec', ticketLabel: 'ticket' },
+    github: { specLabel: SPEC_LABEL, ticketLabel: TICKET_LABEL },
     gitlab: { instance: 'gitlab.com', project: '' },
   },
   docs: { research: 'docs/research/' },

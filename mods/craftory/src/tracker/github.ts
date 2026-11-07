@@ -8,9 +8,10 @@ import type {
   TriageRole,
 } from '../../types'
 import { isSafeRef } from '../git'
-import { githubMaps, type Links, mapChildren } from './github-map'
+import { githubMaps, mapChildren } from './github-map'
 import type { ReadContext, ReadResult, TrackerSpec } from './index'
-import { isSpecBody, isUnsupported, parseIssueRef, refsIn, storiesIn } from './refs'
+import { bodyEdges, isSpecBody, isUnsupported, parseIssueRef, storiesIn } from './refs'
+import { isRecord, type Links } from './rows'
 
 const ISSUE_FIELDS = 'number,title,body,labels,state,stateReason,createdAt,updatedAt,assignees,url'
 const MAX_ISSUES = 200
@@ -51,8 +52,6 @@ export const prViewArgv = (branch: string) =>
     'number,url,headRefName,baseRefName,isDraft,state',
   ] as const
 
-type Json = Record<string, unknown>
-const isRecord = (v: unknown): v is Json => typeof v === 'object' && v !== null && !Array.isArray(v)
 const text = (v: unknown) => (typeof v === 'string' ? v : undefined)
 
 /** `--paginate` prints one array per page, back to back. */
@@ -69,16 +68,6 @@ function parseArrays(stdout: string): unknown[] | undefined {
     } catch {
       return undefined
     }
-  }
-}
-
-export function bodyEdges(body: string): { blockedBy: IssueRef[]; parent: IssueRef | null } {
-  const head = body.split('\n').slice(0, 40).join('\n')
-  const blocked = /^(?:\*\*)?Blocked by:(?:\*\*)?[ \t]*(.*)$/im.exec(head)?.[1] ?? ''
-  const parent = /^(?:\*\*)?(?:Part of|Parent):?(?:\*\*)?[ \t]*(#\d+)/im.exec(head)?.[1]
-  return {
-    blockedBy: /none/i.test(blocked) ? [] : refsIn(blocked),
-    parent: parent ? (parseIssueRef(parent) ?? null) : null,
   }
 }
 

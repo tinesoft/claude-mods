@@ -5,7 +5,6 @@ import { readTracker, TRACKERS, type ReadContext, type ReadResult } from '../src
 import {
   applyDependencies,
   applySubIssues,
-  bodyEdges,
   dependenciesArgv,
   listIssuesArgv,
   parseIssueList,
@@ -13,6 +12,7 @@ import {
   prViewArgv,
   subIssuesArgv,
 } from '../src/tracker/github'
+import { bodyEdges } from '../src/tracker/refs'
 import type { IssueRef } from '../types'
 
 const SPEC_BODY =
