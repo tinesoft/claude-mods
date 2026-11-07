@@ -75,7 +75,7 @@ import {
   scheduleRefresh,
   touchesTracker,
 } from './shell/sync'
-import { trackerOf } from './shell/tracker'
+import { mapViewOf, trackerOf } from './shell/tracker'
 import {
   detectPlugin,
   glossaryTerms,
@@ -93,11 +93,13 @@ import {
   copyWithToast,
   glossaryQueryOf,
   glossaryViewOf,
+  isMapOpenOf,
   isPickingFeatureOf,
   loadPrefs,
   noteReplyTerms,
   openPane,
   togglePane,
+  toggleMap,
   openPhaseOf,
   PANE,
   paneTabOf,
@@ -238,6 +240,7 @@ const bandActions = ($: EngineInterface): BandActions => ({
   summary: () => void openPane($, 'flow'),
   gear: () => void togglePane($, 'settings'),
   closeCard: () => void closeCard($),
+  map: () => void toggleMap($),
   pickFeature: () => void togglePicker($),
   switchFeature: key => {
     void (async () => {
@@ -442,6 +445,8 @@ export const register: Register = (on, options) => {
       agents: await agentsViewOf($, flow),
       notices: [...events, ...derived],
       open: await openPhaseOf($),
+      map: await mapViewOf($),
+      isMapOpen: await isMapOpenOf($),
       features: featureChoices(await featuresOf($), await draftsOf($), await activeKey($)),
       isPickingFeature: await isPickingFeatureOf($),
       on: bandActions($),
@@ -491,6 +496,8 @@ export const register: Register = (on, options) => {
       tab: await paneTabOf($),
       pluginLine: pluginLine(await pluginOf($)),
       flow,
+      map: await mapViewOf($),
+      isMapOpen: await isMapOpenOf($),
       waiting: waitingForTriage(await trackerOf($)),
       counts: tabCounts({
         flow,
@@ -529,6 +536,8 @@ export const register: Register = (on, options) => {
         search: text => void searchGlossary($, text),
         editTerm: name => void jumpToTerm($, name),
         rail: { phase: actions.phase, triage: actions.triage },
+        map: actions.map,
+        closeCard: actions.closeCard,
       },
     })
   })

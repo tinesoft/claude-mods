@@ -135,6 +135,8 @@ const paneTabState = atom({ plugin: 'craftory', key: 'paneTab' } as const, 'flow
 
 const openPhaseState = atom({ plugin: 'craftory', key: 'openPhase' } as const, null)
 
+const isMapOpenState = atom({ plugin: 'craftory', key: 'isMapOpen' } as const, false)
+
 const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
 
 const glossaryQueryState = atom({ plugin: 'craftory', key: 'glossaryQuery' } as const, '')
@@ -147,6 +149,7 @@ export async function requestRun($: EngineInterface, skill: SkillName, args: str
   const req = requestOf(namespaced(skill), args) ?? { skill, args, phase: null }
   if (await holdForGate($, req, await currentFlow($))) return
   await update($, openPhaseState, () => null)
+  await update($, isMapOpenState, () => false)
   await $.command.run({ command: namespaced(skill), args })
 }
 
@@ -156,6 +159,10 @@ export function paneTabOf($: EngineInterface) {
 
 export function openPhaseOf($: EngineInterface) {
   return read($, openPhaseState)
+}
+
+export function isMapOpenOf($: EngineInterface) {
+  return read($, isMapOpenState)
 }
 
 export function isPickingFeatureOf($: EngineInterface) {
@@ -168,6 +175,7 @@ export function glossaryQueryOf($: EngineInterface) {
 
 export async function closeCard($: EngineInterface) {
   await update($, openPhaseState, () => null)
+  await update($, isMapOpenState, () => false)
   $.ui.invalidate('ui.render')
 }
 
@@ -176,8 +184,16 @@ export async function togglePicker($: EngineInterface) {
   $.ui.invalidate('ui.render')
 }
 
+/** Shows or hides the frontier card; it shares the card slot, so it closes any phase card. */
+export async function toggleMap($: EngineInterface) {
+  await update($, openPhaseState, () => null)
+  await update($, isMapOpenState, open => !open)
+  $.ui.invalidate('ui.render')
+}
+
 export async function closeRailPopups($: EngineInterface) {
   await update($, isPickingFeatureState, () => false)
+  await update($, isMapOpenState, () => false)
   await update($, openPhaseState, () => null)
 }
 
@@ -252,6 +268,7 @@ export async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
 
 export async function pressPhase($: EngineInterface, view: PhaseId | 'triage', fitsCard: boolean) {
   if (!fitsCard) return openPane($, 'flow')
+  await update($, isMapOpenState, () => false)
   await update($, openPhaseState, open => (open === view ? null : view))
   $.ui.invalidate('ui.render')
 }

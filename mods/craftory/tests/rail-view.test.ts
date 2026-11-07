@@ -38,6 +38,7 @@ const on: BandActions = {
   closeCard: () => void calls.push('close'),
   pickFeature: () => void calls.push('pick'),
   switchFeature: key => void calls.push(`switch ${key}`),
+  map: () => void calls.push('map'),
   act: action => void calls.push(action.kind === 'run-phase' ? `run ${action.phase}` : action.kind),
 }
 
@@ -57,6 +58,8 @@ const args = (over: Partial<BandArgs> = {}): BandArgs => ({
   agents: null,
   notices: [],
   open: null,
+  map: null,
+  isMapOpen: false,
   features: [],
   isPickingFeature: false,
   on,

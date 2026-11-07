@@ -16,6 +16,8 @@ import {
 import { DetailCard, type CardActions } from './card'
 import type { Flow, PhaseView } from './evidence'
 import { hexOr, inboxSvg, OFF_TRACK, spinnerSvg, phaseSvg } from './icons'
+import { FrontierCard, MapChip } from './map-card'
+import { mapChipText, type MapView } from './map-view'
 import { NoticeRow } from './notice-row'
 import type { FeatureChoice } from './features'
 import type { NoticeView } from './notices'
@@ -49,6 +51,7 @@ export type BandActions = CardActions & {
   gear: () => void
   pickFeature: () => void
   switchFeature: (key: FeatureKey) => void
+  map: () => void
 }
 
 export type BandArgs = {
@@ -67,6 +70,8 @@ export type BandArgs = {
   agents: AgentsView | null
   notices: readonly NoticeView[]
   open: PhaseId | 'triage' | null
+  map: MapView | null
+  isMapOpen: boolean
   features: readonly FeatureChoice[]
   isPickingFeature: boolean
   on: BandActions
@@ -282,14 +287,22 @@ export const PhaseStrip = ({
   fits,
   id,
   wrap = false,
+  lead,
 }: {
   args: StripArgs
   fits: (phase: PhaseId | 'triage') => boolean
   id: string
   wrap?: boolean
+  /** Drawn between the Inbox and the phases, such as the map chip. */
+  lead?: RenderElement | false
 }) => {
   const { ui, tone, ascii, flow } = args
   const { Box, Text } = ui
+  const divider = (key: string) => (
+    <Text key={key} {...(tone === undefined ? { dimColor: true } : { color: TOKENS[tone].line })}>
+      {'│'}
+    </Text>
+  )
   return (
     <Box
       key={id}
@@ -299,12 +312,9 @@ export const PhaseStrip = ({
       {...(wrap && { flexWrap: 'wrap' as const })}
     >
       <TriageButton args={args} fits={fits('triage')} />
-      <Text
-        key="divider"
-        {...(tone === undefined ? { dimColor: true } : { color: TOKENS[tone].line })}
-      >
-        {'│'}
-      </Text>
+      {divider('divider')}
+      {lead && lead}
+      {lead && divider('divider-map')}
       {flow.phases.map((view, index) => (
         <Box key={`group-${view.phase}`} flexDirection="row" alignItems="center">
           {index > 0 && (
@@ -317,10 +327,22 @@ export const PhaseStrip = ({
   )
 }
 
+const ChipOf = ({ args, view }: { args: BandArgs; view: MapView }) => (
+  <MapChip
+    ui={args.ui}
+    tone={args.tone}
+    ascii={args.ascii}
+    view={view}
+    isOpen={args.isMapOpen}
+    on={args.on}
+  />
+)
+
 const Rail = ({ args, fits }: { args: RailArgs; fits: (phase: PhaseId | 'triage') => boolean }) => {
   const { ui, tone, flow } = args
   const { Box } = ui
   const rich = isRich(ui) && tone !== undefined
+  const lead = args.map !== null && <ChipOf args={args} view={args.map} />
   return (
     <Box
       key="rail"
@@ -336,7 +358,7 @@ const Rail = ({ args, fits }: { args: RailArgs; fits: (phase: PhaseId | 'triage'
       })}
     >
       <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap}>
-        <PhaseStrip id="phases" args={args} fits={fits} />
+        <PhaseStrip id="phases" args={args} fits={fits} lead={lead} />
         <Title args={args} flow={flow} />
       </Box>
       <Gear args={args} />
@@ -351,7 +373,8 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   const look = PHASE_LOOKS[view.state.kind]
   const colours = paint(look.role, tone)
   const rich = isRich(ui) && tone !== undefined
-  const text = clip(chipText(flow), Math.max(10, columns - GEAR_RESERVE - 6))
+  const mapWidth = args.map === null ? 0 : mapChipText(args.map, args.ascii).length + 1
+  const text = clip(chipText(flow), Math.max(10, columns - GEAR_RESERVE - 6 - mapWidth))
   return (
     <Box
       key="summary-row"
@@ -359,34 +382,37 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
       justifyContent="space-between"
       columnGap={SPACE.railGap}
     >
-      <Box
-        key="summary-chip"
-        flexDirection="row"
-        alignItems="center"
-        columnGap={SPACE.phaseGap}
-        {...(rich && {
-          paddingX: SPACE.summaryGap,
-          borderStyle: 'round' as const,
-          borderColor: TOKENS[tone].line,
-          backgroundColor: TOKENS[tone].surface,
-        })}
-      >
-        {rich ? (
-          <Icon
-            ui={ui}
-            svg={phaseIcon(view, args.spinFrame, colours.fg, OFF_TRACK)}
-            alt={look.label}
-          />
-        ) : (
-          <Text
-            {...roleInk(look.role, tone)}
-          >{`${glyphOf(view, args.spinFrame, args.ascii)} `}</Text>
-        )}
-        <Button key="summary" plain onPress={() => on.summary()}>
-          <Text {...inkOf(tone, 'ink')} bold>
-            {text}
-          </Text>
-        </Button>
+      <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap}>
+        {args.map !== null && <ChipOf args={args} view={args.map} />}
+        <Box
+          key="summary-chip"
+          flexDirection="row"
+          alignItems="center"
+          columnGap={SPACE.phaseGap}
+          {...(rich && {
+            paddingX: SPACE.summaryGap,
+            borderStyle: 'round' as const,
+            borderColor: TOKENS[tone].line,
+            backgroundColor: TOKENS[tone].surface,
+          })}
+        >
+          {rich ? (
+            <Icon
+              ui={ui}
+              svg={phaseIcon(view, args.spinFrame, colours.fg, OFF_TRACK)}
+              alt={look.label}
+            />
+          ) : (
+            <Text
+              {...roleInk(look.role, tone)}
+            >{`${glyphOf(view, args.spinFrame, args.ascii)} `}</Text>
+          )}
+          <Button key="summary" plain onPress={() => on.summary()}>
+            <Text {...inkOf(tone, 'ink')} bold>
+              {text}
+            </Text>
+          </Button>
+        </Box>
       </Box>
       <Gear args={args} />
     </Box>
@@ -409,7 +435,14 @@ export function renderBand(args: BandArgs) {
       </Box>
     )
   }
-  const rail = fitRail({ flow, columns, rich: isRich(ui), waiting, features: args.features.length })
+  const rail = fitRail({
+    flow,
+    columns,
+    rich: isRich(ui),
+    waiting,
+    features: args.features.length,
+    mapWidth: args.map === null ? 0 : mapChipText(args.map, args.ascii).length,
+  })
   const asChip = layout === 'summary' || rail.mode === 'chip'
   const cardOf = (phase: PhaseId | 'triage'): CardView =>
     phase === 'triage'
@@ -428,6 +461,7 @@ export function renderBand(args: BandArgs) {
       ? undefined
       : fitCard({ card: cardOf(open), columns, maxRows, rich: isRich(ui), extraRows })
   const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
+  const mapCard = args.isMapOpen && args.map !== null && open === null
   return (
     <Box flexDirection="column">
       {below}
@@ -443,6 +477,11 @@ export function renderBand(args: BandArgs) {
             density={density}
             on={on}
           />
+        </Box>
+      )}
+      {mapCard && args.map !== null && (
+        <Box key="map-slot" flexDirection="column" marginBottom={SPACE.cardAbove}>
+          <FrontierCard ui={ui} tone={tone} ascii={args.ascii} view={args.map} on={on} />
         </Box>
       )}
       {asChip ? <Summary args={railArgs} flow={flow} /> : <Rail args={railArgs} fits={fits} />}

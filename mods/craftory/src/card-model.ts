@@ -80,15 +80,20 @@ export function fitRail(args: {
   rich: boolean
   waiting: number
   features: number
+  /** Width of the map chip, 0 with no map. */
+  mapWidth: number
 }): { mode: 'row' | 'chip'; titleMax: number } {
-  const { flow, columns, rich, waiting, features } = args
+  const { flow, columns, rich, waiting, features, mapWidth } = args
   const phases = flow.phases.reduce((sum, s) => sum + phaseWidth(s, flow, rich), 0)
   const connectors = flow.phases.length - 1
   const items = flow.phases.length + 3
   const triage =
     'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0) + (rich ? RICH_PHASE_EXTRA : 0)
   const gaps = across(SPACE.railGap) * items
-  const fixed = triage + 1 + phases + connectors + GEAR_RESERVE + gaps + (features > 1 ? 2 : 0)
+  const map =
+    mapWidth === 0 ? 0 : mapWidth + 1 + across(SPACE.railGap) * 2 + (rich ? RICH_PHASE_EXTRA : 0)
+  const fixed =
+    triage + 1 + phases + connectors + GEAR_RESERVE + gaps + (features > 1 ? 2 : 0) + map
   const titleMax = Math.min(TITLE_MAX, columns - fixed)
   return titleMax >= Math.min(MIN_TITLE, flow.title.length)
     ? { mode: 'row', titleMax }

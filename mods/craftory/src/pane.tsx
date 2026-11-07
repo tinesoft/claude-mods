@@ -13,6 +13,8 @@ import {
   type TicketsView,
 } from './pane-view'
 import type { Action } from './action'
+import { FrontierCard, MapChip } from './map-card'
+import type { MapView } from './map-view'
 import type { NoticeView } from './notices'
 import { NoticeRow } from './notice-row'
 import { PhaseStrip, type BandActions } from './rail'
@@ -34,6 +36,8 @@ export type PaneActions = {
   search: (text: string) => void
   editTerm: (name: string) => void
   rail: Pick<BandActions, 'phase' | 'triage'>
+  map: () => void
+  closeCard: () => void
   act: (action: Action) => void
 }
 
@@ -46,6 +50,8 @@ export type PaneArgs = {
   tab: PaneTab
   pluginLine: string
   flow: Flow | null
+  map: MapView | null
+  isMapOpen: boolean
   waiting: number
   notices: readonly NoticeView[]
   counts: TabCounts
@@ -277,24 +283,46 @@ const FlowTab = ({
   ascii,
   spinFrame,
   flow,
+  map,
+  isMapOpen,
   waiting,
   notices,
   on,
 }: Pick<
   PaneArgs,
-  'ui' | 'tone' | 'surface' | 'ascii' | 'spinFrame' | 'flow' | 'waiting' | 'notices' | 'on'
+  | 'ui'
+  | 'tone'
+  | 'surface'
+  | 'ascii'
+  | 'spinFrame'
+  | 'flow'
+  | 'map'
+  | 'isMapOpen'
+  | 'waiting'
+  | 'notices'
+  | 'on'
 >) => {
   const { Box, Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  const head = map !== null && surface === 'mobile' && (
+    <Box key="map-head" flexDirection="column" rowGap={SPACE.paneGap}>
+      <MapChip ui={ui} tone={tone} ascii={ascii} view={map} isOpen={isMapOpen} on={on} />
+      {isMapOpen && <FrontierCard ui={ui} tone={tone} ascii={ascii} view={map} on={on} />}
+    </Box>
+  )
   if (flow === null) {
     return (
-      <Text {...inkOf(tone, 'text2')}>
-        No feature in flight. Talk the plan through first with /grill-with-docs.
-      </Text>
+      <Box key="flow" flexDirection="column" rowGap={SPACE.paneGap}>
+        {head}
+        <Text {...inkOf(tone, 'text2')}>
+          No feature in flight. Talk the plan through first with /grill-with-docs.
+        </Text>
+      </Box>
     )
   }
-  const rich = isRich(ui) && tone !== undefined
   return (
     <Box key="flow" flexDirection="column" rowGap={SPACE.paneGap}>
+      {head}
       {notices.map(notice => (
         <NoticeRow key={notice.id} ui={ui} tone={tone} notice={notice} on={on} />
       ))}
