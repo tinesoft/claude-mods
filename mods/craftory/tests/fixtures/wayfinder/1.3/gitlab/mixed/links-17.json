@@ -1,0 +1,13 @@
+<!-- hand-made: canned glab output in the GitLab REST shape that `glab issue list --all --per-page 100 --output json` and `glab api projects/:id/issues/<iid>/links` print; checked against https://docs.gitlab.com/cli/issue/list/, https://docs.gitlab.com/cli/api/, https://docs.gitlab.com/api/issues/ and https://docs.gitlab.com/api/issue_links/; ticket 06 replaces it with a capture -->
+[
+  {
+    "id": 1018,
+    "iid": 18,
+    "project_id": 7,
+    "title": "Refund flow",
+    "state": "opened",
+    "web_url": "https://gitlab.com/acme/app/-/issues/18",
+    "link_type": "blocks",
+    "issue_link_id": 918
+  }
+]

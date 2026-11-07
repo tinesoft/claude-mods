@@ -185,7 +185,7 @@ export type WayMap = {
 
 export type TrackerSnapshot =
   | {
-      kind: 'local' | 'github'
+      kind: 'local' | 'github' | 'gitlab'
       rich: true
       issues: Issue[]
       maps?: WayMap[]
@@ -198,6 +198,8 @@ export type TrackerSnapshot =
       rich: false
       links: TrackerLink[]
       note: string | null
+      /** Only a Local map read beside a GitLab tracker whose own issues could not be read. */
+      maps?: WayMap[]
       at: Millis
     }
 

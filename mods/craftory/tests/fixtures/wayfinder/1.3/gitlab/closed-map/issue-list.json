@@ -1,0 +1,54 @@
+<!-- hand-made: canned glab output in the GitLab REST shape that `glab issue list --all --per-page 100 --output json` and `glab api projects/:id/issues/<iid>/links` print; checked against https://docs.gitlab.com/cli/issue/list/, https://docs.gitlab.com/cli/api/, https://docs.gitlab.com/api/issues/ and https://docs.gitlab.com/api/issue_links/; ticket 06 replaces it with a capture -->
+[
+  {
+    "id": 1012,
+    "iid": 12,
+    "project_id": 7,
+    "title": "Billing v2",
+    "description": "## Destination\n\nA spec for usage-based billing, ready to hand to /to-spec.\n\n## Notes\n\n- Plan, don't do.\n\n## Decisions so far\n\n- #13: charge per seat plus metered usage.\n\n## Not yet specified\n\n- How invoices are archived once a customer is closed.\n\n## Out of scope\n\n- Tax filing.\n",
+    "state": "closed",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-22T10:00:00Z",
+    "closed_at": "2026-10-22T10:00:00Z",
+    "labels": [
+      "wayfinder:map"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/12"
+  },
+  {
+    "id": 1013,
+    "iid": 13,
+    "project_id": 7,
+    "title": "Billing model",
+    "description": "Part of #12\nType: grilling\n\n## Question\n\nBilling model?\n",
+    "state": "closed",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-20T10:00:00Z",
+    "closed_at": "2026-10-20T10:00:00Z",
+    "labels": [
+      "wayfinder:ticket"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/13"
+  },
+  {
+    "id": 1015,
+    "iid": 15,
+    "project_id": 7,
+    "title": "Invoice layout",
+    "description": "Part of #12\nType: prototype\n\n## Question\n\nInvoice layout?\n",
+    "state": "opened",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-20T10:00:00Z",
+    "closed_at": null,
+    "labels": [
+      "wayfinder:ticket"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/15"
+  }
+]

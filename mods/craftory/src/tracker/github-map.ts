@@ -13,7 +13,7 @@ const str = (v: unknown) => (typeof v === 'string' ? v : '')
 /** What `gh api` answered for one issue's sub-issues or blockers: the numbers, or null when it failed. */
 export type Links = ReadonlyMap<number, readonly number[] | null>
 
-type Row = {
+export type Row = {
   number: number
   title: string
   body: string
@@ -69,7 +69,14 @@ const taskListOf = (body: string): number[] =>
  * ticket merely mentions in its prose or a comment joins.
  */
 export function mapChildren(rawRows: readonly unknown[], subs: Links): Map<number, number[]> {
-  const rows = rawRows.flatMap(r => rowOf(r) ?? [])
+  return childrenIn(
+    rawRows.flatMap(r => rowOf(r) ?? []),
+    subs,
+  )
+}
+
+/** `mapChildren` over rows already read, whichever tracker they came from. */
+export function childrenIn(rows: readonly Row[], subs: Links): Map<number, number[]> {
   const known = new Set(rows.map(r => r.number))
   return new Map(
     rows
@@ -113,9 +120,23 @@ function ticketOf(row: Row, blocked: Links): WayTicket {
 
 /** The wayfinder maps of a repo's issue list: the issues labelled `wayfinder:map`, with their children. */
 export function githubMaps(rawRows: readonly unknown[], subs: Links, blocked: Links): WayMap[] {
-  const rows = rawRows.flatMap(r => rowOf(r) ?? [])
+  return mapsIn(
+    rawRows.flatMap(r => rowOf(r) ?? []),
+    subs,
+    blocked,
+    'github',
+  )
+}
+
+/** The maps among rows already read, whichever tracker they came from. */
+export function mapsIn(
+  rows: readonly Row[],
+  subs: Links,
+  blocked: Links,
+  from: WayMap['source'],
+): WayMap[] {
   const byNumber = new Map(rows.map(r => [r.number, r]))
-  const children = mapChildren(rawRows, subs)
+  const children = childrenIn(rows, subs)
   return rows
     .filter(r => r.labels.includes(MAP_LABEL))
     .map(map => {
@@ -126,7 +147,7 @@ export function githubMaps(rawRows: readonly unknown[], subs: Links, blocked: Li
       const kids = (children.get(map.number) ?? []).flatMap(n => byNumber.get(n)?.updatedAt ?? [])
       return {
         ref: ref(map.number),
-        source: 'github',
+        source: from,
         title: map.title,
         origin: `#${map.number}`,
         location: map.url,

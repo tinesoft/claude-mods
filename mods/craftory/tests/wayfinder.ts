@@ -84,3 +84,32 @@ export const gh =
       if (read.kind !== 'run') throw new Error('the GitHub tracker only runs gh')
       return { kind: 'run', argv: read.argv, ...ghAnswer(scenario)(read.argv) }
     })
+
+/**
+ * What a `glab` answers from a GitLab scenario's canned output: `issue-list.json` and
+ * `links-<iid>.json`. A call with no file fails, as a project without native blocking links does
+ * (they are a Premium feature). The first line of each file is its header comment.
+ */
+export const glabAnswer =
+  (scenario: string) =>
+  (argv: readonly string[]): { exitCode: number; stdout: string } => {
+    const links = /^projects\/[^/]+\/issues\/(\d+)\/links$/.exec(argv[2] ?? '')
+    const name =
+      argv[1] === 'issue' ? 'issue-list.json' : links ? `links-${links[1]}.json` : undefined
+    const file =
+      name === undefined
+        ? undefined
+        : WAYFINDER_FIXTURES[`${SKILLS_RANGE}/gitlab/${scenario}/${name}`]
+    return file === undefined
+      ? { exitCode: 1, stdout: '' }
+      : { exitCode: 0, stdout: file.slice(file.indexOf('\n') + 1) }
+  }
+
+/** The same answers as an executor for a reader's reads. */
+export const glab =
+  (scenario: string) =>
+  async (reads: readonly Read[]): Promise<ReadResult[]> =>
+    reads.map((read): ReadResult => {
+      if (read.kind !== 'run') throw new Error('the GitLab tracker only runs glab')
+      return { kind: 'run', argv: read.argv, ...glabAnswer(scenario)(read.argv) }
+    })

@@ -4,10 +4,10 @@
 
 **Blocked by:** 05 (GitHub map reader)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] GitLab is no longer links-only for maps
-- [ ] State rules match GitHub's: structural children, closed is decided, assignee means claimed, native blocking first
-- [ ] `no-native-links` fallback is covered
-- [ ] Hand-made output is checked against the `glab` docs and headed "hand-made"
-- [ ] Reader test file asserts every scenario; no live tracker is touched
+- [x] GitLab is no longer links-only for maps
+- [x] State rules match GitHub's: structural children, closed is decided, assignee means claimed, native blocking first
+- [x] `no-native-links` fallback is covered
+- [x] Hand-made output is checked against the `glab` docs and headed "hand-made"
+- [x] Reader test file asserts every scenario; no live tracker is touched

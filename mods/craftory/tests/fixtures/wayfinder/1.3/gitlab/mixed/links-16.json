@@ -1,0 +1,2 @@
+<!-- hand-made: canned glab output in the GitLab REST shape that `glab issue list --all --per-page 100 --output json` and `glab api projects/:id/issues/<iid>/links` print; checked against https://docs.gitlab.com/cli/issue/list/, https://docs.gitlab.com/cli/api/, https://docs.gitlab.com/api/issues/ and https://docs.gitlab.com/api/issue_links/; ticket 06 replaces it with a capture -->
+[]

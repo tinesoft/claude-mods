@@ -33,7 +33,7 @@ export async function mapViewOf($: EngineInterface) {
     others,
     link: state,
   } = resolveMaps({
-    maps: tracker?.rich ? (tracker.maps ?? []) : [],
+    maps: tracker?.maps ?? [],
     link,
     reachable: tracker?.rich === true && tracker.problem === null,
     picked: await pickedMapOf($),
@@ -104,11 +104,15 @@ export async function loadTracker($: EngineInterface, repo: RepoSnapshot, contex
   const execute = (reads: readonly Read[]) => executeReads($, reads)
   const snapshot = await readTracker(spec, context, execute)
   // a Local map sits beside a remote tracker's own, read with no prompt
-  const local = snapshot.kind !== 'local' && snapshot.rich ? TRACKERS.local : undefined
+  // (GitLab without a readable `glab` is links-only but still gets them; Other never does)
+  const local =
+    snapshot.kind !== 'local' && (snapshot.rich || snapshot.kind === 'gitlab')
+      ? TRACKERS.local
+      : undefined
   const alongside = local && (await readTracker(local, context, execute))
   const merged =
-    snapshot.rich && alongside?.rich
-      ? { ...snapshot, maps: [...(snapshot.maps ?? []), ...(alongside.maps ?? [])] }
+    alongside?.rich && alongside.maps !== undefined
+      ? { ...snapshot, maps: [...(snapshot.maps ?? []), ...alongside.maps] }
       : snapshot
   await update($, trackerState, () => merged)
   return true

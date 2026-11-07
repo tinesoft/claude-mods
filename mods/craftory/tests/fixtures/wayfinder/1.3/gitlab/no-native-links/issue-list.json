@@ -1,0 +1,147 @@
+<!-- hand-made: canned glab output in the GitLab REST shape that `glab issue list --all --per-page 100 --output json` and `glab api projects/:id/issues/<iid>/links` print; checked against https://docs.gitlab.com/cli/issue/list/, https://docs.gitlab.com/cli/api/, https://docs.gitlab.com/api/issues/ and https://docs.gitlab.com/api/issue_links/; ticket 06 replaces it with a capture -->
+[
+  {
+    "id": 1012,
+    "iid": 12,
+    "project_id": 7,
+    "title": "Billing v2",
+    "description": "## Destination\n\nA spec for usage-based billing, ready to hand to /to-spec.\n\n## Notes\n\n- Plan, don't do.\n\n## Decisions so far\n\n- #13: charge per seat plus metered usage.\n\n## Not yet specified\n\n- How invoices are archived once a customer is closed.\n\n## Out of scope\n\n- Tax filing.\n\n## Tickets\n\n- [x] #13 Billing model\n- [x] #14 Gateway limits\n- [ ] #15 Invoice layout\n- [ ] #16 Tax rounding\n- [ ] #17 Proration rules\n- [ ] #18 Refund flow\n",
+    "state": "opened",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-22T10:00:00Z",
+    "closed_at": null,
+    "labels": [
+      "wayfinder:map"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/12"
+  },
+  {
+    "id": 1013,
+    "iid": 13,
+    "project_id": 7,
+    "title": "Billing model",
+    "description": "Part of #12\nType: grilling\n\n## Question\n\nBilling model?\n",
+    "state": "closed",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-20T10:00:00Z",
+    "closed_at": "2026-10-20T10:00:00Z",
+    "labels": [
+      "wayfinder:ticket"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/13"
+  },
+  {
+    "id": 1014,
+    "iid": 14,
+    "project_id": 7,
+    "title": "Gateway limits",
+    "description": "Part of #12\nType: research\n\n## Question\n\nGateway limits?\n",
+    "state": "closed",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-20T10:00:00Z",
+    "closed_at": "2026-10-20T10:00:00Z",
+    "labels": [
+      "wayfinder:ticket"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/14"
+  },
+  {
+    "id": 1015,
+    "iid": 15,
+    "project_id": 7,
+    "title": "Invoice layout",
+    "description": "Part of #12\nBlocked by: #13\nType: prototype\n\n## Question\n\nInvoice layout?\n",
+    "state": "opened",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-20T10:00:00Z",
+    "closed_at": null,
+    "labels": [
+      "wayfinder:ticket"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/15"
+  },
+  {
+    "id": 1016,
+    "iid": 16,
+    "project_id": 7,
+    "title": "Tax rounding",
+    "description": "Part of #12\nBlocked by: None (can start immediately)\nType: grilling\n\n## Question\n\nTax rounding?\n",
+    "state": "opened",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-20T10:00:00Z",
+    "closed_at": null,
+    "labels": [
+      "wayfinder:ticket"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/16"
+  },
+  {
+    "id": 1017,
+    "iid": 17,
+    "project_id": 7,
+    "title": "Proration rules",
+    "description": "Part of #12\nType: grilling\n\n## Question\n\nProration rules?\n",
+    "state": "opened",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-20T10:00:00Z",
+    "closed_at": null,
+    "labels": [
+      "wayfinder:ticket"
+    ],
+    "assignees": [
+      {
+        "id": 50,
+        "username": "tinekondo",
+        "name": "tinekondo",
+        "state": "active",
+        "web_url": "https://gitlab.com/tinekondo"
+      }
+    ],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/17"
+  },
+  {
+    "id": 1018,
+    "iid": 18,
+    "project_id": 7,
+    "title": "Refund flow",
+    "description": "Part of #12\nBlocked by: #17\nType: grilling\n\n## Question\n\nRefund flow?\n",
+    "state": "opened",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-20T10:00:00Z",
+    "closed_at": null,
+    "labels": [
+      "wayfinder:ticket"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/18"
+  },
+  {
+    "id": 1020,
+    "iid": 20,
+    "project_id": 7,
+    "title": "Fix login redirect",
+    "description": "Unrelated bug. Mentions #13 in passing.",
+    "state": "opened",
+    "created_at": "2026-10-01T10:00:00Z",
+    "updated_at": "2026-10-20T10:00:00Z",
+    "closed_at": null,
+    "labels": [
+      "bug"
+    ],
+    "assignees": [],
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/acme/app/-/issues/20"
+  }
+]

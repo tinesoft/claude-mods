@@ -7,6 +7,7 @@ import type {
   TriageLabels,
 } from '../../types'
 import * as github from './github'
+import * as gitlab from './gitlab'
 import * as links from './links'
 import * as local from './local'
 
@@ -46,7 +47,7 @@ export type TrackerSpec = {
 export const TRACKERS: Partial<Record<TrackerKind, TrackerSpec>> = {
   local: local.spec,
   github: github.spec,
-  gitlab: links.gitlab,
+  gitlab: gitlab.spec,
   other: links.other,
 }
 
