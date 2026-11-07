@@ -248,6 +248,11 @@ export const MapTicketsCard = ({
           {`Decided (${decided.length}) ${ascii ? '>' : '▸'}`}
         </Text>
       )}
+      {view.isLinkStale && (
+        <Text key="map-stale" {...inkOf(tone, 'text2')}>
+          Map not found
+        </Text>
+      )}
       <Link key="open-map" href={view.map.location} label="Open map" />
     </Box>
   )

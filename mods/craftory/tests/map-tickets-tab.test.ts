@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { allText, featureWorld, mountPane, startSession, texts } from './harness'
+import { allText, featureJson, featureWorld, mountPane, startSession, texts } from './harness'
 import { scenarioFiles } from './wayfinder'
 
 const mixed = () => ({ files: scenarioFiles('local', 'mixed') })
@@ -130,4 +130,26 @@ test('a closed map is labelled Closed and still shows its tickets', async ($, on
   expect(labels.some(l => l.includes('Invoice layout'))).toBe(true)
   expect(text).toContain('Decided (2)')
   expect(text).not.toContain('Route clear?')
+})
+
+test('a stale map link shows the quiet Map not found line on the card too', async ($, on) => {
+  featureWorld(on, {
+    files: {
+      ...scenarioFiles('local', 'stale-link'),
+      '.craftory/features/csv.json': featureJson({ map: 'notes' }),
+    },
+  })
+  await startSession($)
+  expect(await allText(await ticketsTab($))).toContain('Map not found')
+})
+
+test('a valid link shows no Map not found line on the card', async ($, on) => {
+  featureWorld(on, {
+    files: {
+      ...scenarioFiles('local', 'mixed'),
+      '.craftory/features/csv.json': featureJson({ map: 'billing-v2' }),
+    },
+  })
+  await startSession($)
+  expect(await allText(await ticketsTab($))).not.toContain('Map not found')
 })
