@@ -1,4 +1,4 @@
-import type { Tone, WayTicket } from '../types'
+import type { IssueRef, Tone, WayTicket } from '../types'
 import { mapChipText, routeClearText, type MapView } from './map-view'
 import { paint, SPACE, TOKENS } from './theme'
 import { inkOf, isRich, withTint, type Ui } from './ui'
@@ -7,7 +7,11 @@ import { CardButton } from './widgets'
 /** The most Takeable rows the card lists; the rest are a count. */
 const FRONTIER_ROWS = 5
 
-export type MapActions = { map: () => void; closeCard: () => void }
+export type MapActions = {
+  map: () => void
+  closeCard: () => void
+  pickMap: (ref: IssueRef) => void
+}
 
 /** One chip for the active map: its name, how many tickets are decided and how many are open. */
 export const MapChip = ({
@@ -63,7 +67,7 @@ export const FrontierCard = ({
   tone: Tone | undefined
   ascii: boolean
   view: MapView
-  on: Pick<MapActions, 'closeCard'>
+  on: Pick<MapActions, 'closeCard' | 'pickMap'>
 }) => {
   const { Box, Button, Text } = ui
   const rich = isRich(ui) && tone !== undefined
@@ -118,6 +122,18 @@ export const FrontierCard = ({
           {`+${view.takeable.length - shown.length} more`}
         </Text>
       )}
+      {view.isLinkStale && (
+        <Text key="map-stale" {...inkOf(tone, 'text2')} {...withTint(surface)}>
+          Map not found
+        </Text>
+      )}
+      {view.others.map(other => (
+        <Button key={`map-switch-${other.ref}`} plain onPress={() => on.pickMap(other.ref)}>
+          <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
+            {`${ascii ? '>' : '⇄'} ${other.title}`}
+          </Text>
+        </Button>
+      ))}
       {frontier !== null && (
         <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
           {frontier}

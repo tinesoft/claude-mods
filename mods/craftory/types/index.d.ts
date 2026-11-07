@@ -276,6 +276,8 @@ export type FeatureRecord = {
   skips: Partial<Record<PhaseId, SkipMark>>
   integrationBranch: string
   pr: IssueRef | null
+  /** The wayfinder map this Feature belongs to; the mod reads it and never rewrites it. */
+  map?: IssueRef
   marks: Partial<Record<PhaseId, PhaseMark>>
   /** Keyed by ticket ref string. The latest attempt per ticket wins. */
   agents: Record<string, AgentRecord>
@@ -454,6 +456,7 @@ declare module 'claude-code' {
 
       openPhase: PhaseId | 'triage' | null
       isMapOpen: boolean
+      pickedMap: string | null
       isPickingFeature: boolean
       paneTab: PaneTab
       diffs: Record<string, string>

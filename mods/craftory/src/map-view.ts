@@ -1,4 +1,4 @@
-import type { WayMap, WayTicket } from '../types'
+import type { IssueRef, WayMap, WayTicket } from '../types'
 import { clip } from './ui'
 
 export const MAP_TITLE_MAX = 16
@@ -15,6 +15,10 @@ export type MapView = {
   /** Open, unblocked and unclaimed, in order: the frontier. */
   takeable: WayTicket[]
   blocked: { ticket: WayTicket; waitsOn: string[] }[]
+  /** The other maps, for the card's switcher; empty with one map. */
+  others: { ref: IssueRef; title: string }[]
+  /** The Feature's `map` link points at nothing map-shaped: the card says so, quietly. */
+  isLinkStale: boolean
 }
 
 /** The map the chip shows: the most recently updated open one, else the latest closed one. */
@@ -23,12 +27,47 @@ export function activeMap(maps: readonly WayMap[]): WayMap | null {
   return latest(maps.filter(m => !m.isClosed)) ?? latest(maps) ?? null
 }
 
+export type LinkState = 'none' | 'valid' | 'unknown' | 'stale'
+
+const isLinkTo = (map: WayMap, link: IssueRef) =>
+  map.ref === link || map.origin === link || map.location === link
+
+/**
+ * The active map and the rest. A Feature's `map` link is valid when it names a map, unknown when
+ * the tracker could not be reached (kept, silently), and stale when it names nothing map-shaped.
+ * Unknown and stale both fall back to the most recently updated open map. A map picked in the
+ * switcher wins while it exists.
+ */
+export function resolveMaps(input: {
+  maps: readonly WayMap[]
+  link: IssueRef | null
+  reachable: boolean
+  picked?: string | null
+}): { active: WayMap | null; others: WayMap[]; link: LinkState } {
+  const { maps, link, reachable, picked } = input
+  const linked = link === null ? undefined : maps.find(m => isLinkTo(m, link))
+  const state: LinkState =
+    link === null ? 'none' : linked !== undefined ? 'valid' : reachable ? 'stale' : 'unknown'
+  const active = maps.find(m => m.ref === picked) ?? linked ?? activeMap(maps)
+  return {
+    active,
+    others:
+      active === null
+        ? []
+        : maps.filter(m => m !== active).sort((a, b) => b.updatedAt - a.updatedAt),
+    link: state,
+  }
+}
+
 /** The fact the card states when no ticket is open; the user closes the map, never the mod. */
 export const routeClearText = (map: WayMap) =>
   `No open tickets · Route clear?${map.hasFog ? ' Not yet specified still has fog.' : ''}`
 
 /** State comes from each ticket's structure alone: resolved, claimed, or open and then blocked or takeable. */
-export function mapView(map: WayMap): MapView {
+export function mapView(
+  map: WayMap,
+  extras: { others?: readonly WayMap[]; isLinkStale?: boolean } = {},
+): MapView {
   const byRef = new Map(map.tickets.map(t => [t.ref, t]))
   const open = map.tickets.filter(t => t.state !== 'resolved')
   const waitsOn = (t: WayTicket) =>
@@ -48,6 +87,8 @@ export function mapView(map: WayMap): MapView {
       const waits = waitsOn(ticket)
       return waits.length > 0 ? [{ ticket, waitsOn: waits }] : []
     }),
+    others: (extras.others ?? []).map(m => ({ ref: m.ref, title: m.title })),
+    isLinkStale: extras.isLinkStale ?? false,
   }
 }
 

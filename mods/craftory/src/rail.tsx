@@ -1,5 +1,5 @@
 import type { RenderElement, RenderSurface } from 'claude-code'
-import type { CraftoryConfig, FeatureKey, PhaseId, RailLayout, Tone } from '../types'
+import type { CraftoryConfig, FeatureKey, IssueRef, PhaseId, RailLayout, Tone } from '../types'
 import type { AgentsView } from './build'
 import {
   chipText,
@@ -52,6 +52,7 @@ export type BandActions = CardActions & {
   pickFeature: () => void
   switchFeature: (key: FeatureKey) => void
   map: () => void
+  pickMap: (ref: IssueRef) => void
 }
 
 export type BandArgs = {

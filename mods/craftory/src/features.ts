@@ -183,6 +183,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     skips: parseSkips(json.skips, json.skipped),
     integrationBranch: branch,
     pr: parseIssueRef(text(json.pr) ?? '') ?? null,
+    ...(parseRef(text(json.map) ?? '') && { map: parseRef(text(json.map) ?? '')! }),
     marks: parseMarks(json.marks),
     agents,
   }
@@ -240,6 +241,7 @@ export function serialiseFeature(record: FeatureRecord): string {
       skips: serialiseSkips(record.skips),
       integrationBranch: record.integrationBranch,
       pr: record.pr,
+      ...(record.map && { map: record.map }),
       marks,
       agents,
     },
@@ -301,6 +303,7 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
     skips: mergeSkips(disk.skips, mine.skips),
     integrationBranch: max(disk.integrationBranch, mine.integrationBranch) ?? '',
     pr: maxRef(disk.pr, mine.pr),
+    ...((mine.map ?? disk.map) && { map: (mine.map ?? disk.map)! }),
     marks,
     agents,
   }

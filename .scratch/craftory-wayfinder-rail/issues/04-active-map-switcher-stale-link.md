@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] Active map follows the Feature link, else the most recently updated open map
-- [ ] Switcher appears only with several maps and does not widen the rail
-- [ ] Unreachable tracker keeps the link with no warning
-- [ ] Stale link shows "Map not found", falls back, and is never rewritten
+- [x] Active map follows the Feature link, else the most recently updated open map
+- [x] Switcher appears only with several maps and does not widen the rail
+- [x] Unreachable tracker keeps the link with no warning
+- [x] Stale link shows "Map not found", falls back, and is never rewritten
 - [ ] Tests cover all three link states in the fake world

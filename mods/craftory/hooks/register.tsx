@@ -100,6 +100,7 @@ import {
   openPane,
   togglePane,
   toggleMap,
+  pickMap,
   openPhaseOf,
   PANE,
   paneTabOf,
@@ -241,6 +242,7 @@ const bandActions = ($: EngineInterface): BandActions => ({
   gear: () => void togglePane($, 'settings'),
   closeCard: () => void closeCard($),
   map: () => void toggleMap($),
+  pickMap: ref => void pickMap($, ref),
   pickFeature: () => void togglePicker($),
   switchFeature: key => {
     void (async () => {
@@ -539,6 +541,7 @@ export const register: Register = (on, options) => {
         map: actions.map,
         wayfinder: arg => void requestRun($, SKILLS.wayfinder, arg),
         closeCard: actions.closeCard,
+        pickMap: actions.pickMap,
       },
     })
   })

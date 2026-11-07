@@ -1,5 +1,5 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
-import { activeMap, mapView } from '../../src/map-view'
+import { mapView, resolveMaps } from '../../src/map-view'
 import {
   type Read,
   type ReadContext,
@@ -8,7 +8,9 @@ import {
   TRACKERS,
 } from '../../src/tracker'
 import type { RepoSnapshot } from '../../types'
+import { activeRecord } from './features'
 import { listDir, readText } from './repo'
+import { pickedMapOf } from './ui'
 
 const TRACKER_TIMEOUT_MS = 20_000
 
@@ -24,8 +26,18 @@ export function trackerOf($: EngineInterface) {
 /** The active map of the tracker's last read, as the rail and pane draw it; null with no map. */
 export async function mapViewOf($: EngineInterface) {
   const tracker = await trackerOf($)
-  const map = tracker?.rich ? activeMap(tracker.maps ?? []) : null
-  return map === null ? null : mapView(map)
+  const link = (await activeRecord($))?.map ?? null
+  const {
+    active,
+    others,
+    link: state,
+  } = resolveMaps({
+    maps: tracker?.rich ? (tracker.maps ?? []) : [],
+    link,
+    reachable: tracker?.rich === true && tracker.problem === null,
+    picked: await pickedMapOf($),
+  })
+  return active === null ? null : mapView(active, { others, isLinkStale: state === 'stale' })
 }
 
 function executeReads($: EngineInterface, reads: readonly Read[]) {

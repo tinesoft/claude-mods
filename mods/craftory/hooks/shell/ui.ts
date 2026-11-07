@@ -137,6 +137,8 @@ const openPhaseState = atom({ plugin: 'craftory', key: 'openPhase' } as const, n
 
 const isMapOpenState = atom({ plugin: 'craftory', key: 'isMapOpen' } as const, false)
 
+const pickedMapState = atom({ plugin: 'craftory', key: 'pickedMap' } as const, null)
+
 const isPickingFeatureState = atom({ plugin: 'craftory', key: 'isPickingFeature' } as const, false)
 
 const glossaryQueryState = atom({ plugin: 'craftory', key: 'glossaryQuery' } as const, '')
@@ -163,6 +165,16 @@ export function openPhaseOf($: EngineInterface) {
 
 export function isMapOpenOf($: EngineInterface) {
   return read($, isMapOpenState)
+}
+
+export function pickedMapOf($: EngineInterface) {
+  return read($, pickedMapState)
+}
+
+/** Chooses which map the switcher shows as active; the Feature's link is never touched. */
+export async function pickMap($: EngineInterface, ref: string) {
+  await update($, pickedMapState, () => ref)
+  $.ui.invalidate('ui.render')
 }
 
 export function isPickingFeatureOf($: EngineInterface) {

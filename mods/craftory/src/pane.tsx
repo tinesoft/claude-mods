@@ -1,5 +1,5 @@
 import type { RenderSurface } from 'claude-code'
-import type { PaneTab, Tone } from '../types'
+import type { IssueRef, PaneTab, Tone } from '../types'
 import type { Flow } from './evidence'
 import { WORKTREE_LABELS, type WorktreeKind, type WorktreeRowView, type WorktreesView } from './git'
 import {
@@ -38,6 +38,7 @@ export type PaneActions = {
   rail: Pick<BandActions, 'phase' | 'triage'>
   map: () => void
   wayfinder: (arg: string) => void
+  pickMap: (ref: IssueRef) => void
   closeCard: () => void
   act: (action: Action) => void
 }
