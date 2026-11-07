@@ -281,12 +281,10 @@ test('triage opens its own card, outside the seven phases', () => {
   expect(text).toContain('/triage')
 })
 
-test('a card that does not fit the band is not drawn, and the press says so', () => {
+test('a card taller than the band is still drawn, for the band to scroll', () => {
   const short = args({ open: 'build', maxRows: 12 })
-  expect(byKey(renderBand(short), 'card')).toBeUndefined()
+  expect(byKey(renderBand(short), 'card')).toBeDefined()
   ;(byKey(renderBand(short), 'phase-build')!.props.onPress as () => void)()
-  expect(calls.at(-1)).toBe('view build false')
-  ;(byKey(renderBand(args()), 'phase-build')!.props.onPress as () => void)()
   expect(calls.at(-1)).toBe('view build true')
 })
 

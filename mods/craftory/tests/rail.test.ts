@@ -151,7 +151,7 @@ test('a band too narrow for seven phases collapses to the chip', async ($, on) =
   expect(await find(narrow, 'summary')).toBeDefined()
 })
 
-test('a band without the rows for the card sends the press to the pane', async ($, on) => {
+test('a band without the rows for the card still opens it, for the band to scroll', async ($, on) => {
   const w = featureWorld(on)
   await startSession($)
   const band = await $.ui.mount({
@@ -161,8 +161,8 @@ test('a band without the rows for the card sends the press to the pane', async (
     props: bandProps(200, 10),
   })
   await band.press({ key: 'phase-build' })
-  expect(w.opens).toEqual([expect.objectContaining({ id: 'craftory' })])
-  expect(await find(band, 'card')).toBeUndefined()
+  expect(w.opens).toEqual([])
+  expect(await find(band, 'card')).toBeDefined()
 })
 
 test('the ascii pref draws plain characters', async ($, on) => {

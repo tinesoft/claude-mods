@@ -455,12 +455,13 @@ export function renderBand(args: BandArgs) {
           args.agents,
         )
   const extraRows = above.length + (args.isPickingFeature ? 1 : 0)
-  const fits = (phase: PhaseId | 'triage') =>
-    fitCard({ card: cardOf(phase), columns, maxRows, rich: isRich(ui), extraRows }) !== undefined
+  // A card taller than the band scrolls there, so one that fits in no density is still drawn, compact.
+  const fits = () => true
   const density =
     open === null || asChip
       ? undefined
-      : fitCard({ card: cardOf(open), columns, maxRows, rich: isRich(ui), extraRows })
+      : (fitCard({ card: cardOf(open), columns, maxRows, rich: isRich(ui), extraRows }) ??
+        'compact')
   const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
   const mapCard = args.isMapOpen && args.map !== null && open === null
   return (
