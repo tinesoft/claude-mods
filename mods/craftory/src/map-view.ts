@@ -43,7 +43,7 @@ export function resolveMaps(input: {
   maps: readonly WayMap[]
   link: IssueRef | null
   reachable: boolean
-  picked?: string | null
+  picked?: IssueRef | null
 }): { active: WayMap | null; others: WayMap[]; link: LinkState } {
   const { maps, link, reachable, picked } = input
   const linked = link === null ? undefined : maps.find(m => isLinkTo(m, link))
@@ -92,6 +92,14 @@ export function mapView(
     isLinkStale: extras.isLinkStale ?? false,
   }
 }
+
+/** `2 decided · 4 open (1 claimed) · Closed`: how far along a map is, as its cards say it. */
+export const mapCountsText = (view: MapView) =>
+  `${view.decided} decided · ${view.open} open${view.claimed > 0 ? ` (${view.claimed} claimed)` : ''}${view.map.isClosed ? ' · Closed' : ''}`
+
+/** `Tax rounding (grilling)`: a ticket's title, then its type when it has one. */
+export const ticketLabel = (ticket: WayTicket) =>
+  `${ticket.title}${ticket.type === null ? '' : ` (${ticket.type})`}`
 
 /** `◆ Billing v2 2✓ 4?`: the title, then decided and open; or the route-clear fact, or `Closed`. */
 export function mapChipText(view: MapView, ascii: boolean): string {

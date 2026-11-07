@@ -20,7 +20,7 @@ import type { Ui } from '../../src/ui'
 import { termKeysIn } from '../../src/reply'
 import { resolveTone, type Tone } from '../../src/theme'
 import { TRACKERS } from '../../src/tracker'
-import type { PaneTab, PhaseId, PrefOverrides, SkillName } from '../../types'
+import type { IssueRef, PaneTab, PhaseId, PrefOverrides, SkillName } from '../../types'
 import { featuresOf } from './features'
 import { currentFlow, holdForGate, requestOf } from './flow'
 import { glossaryTerms, repoFacts } from './repo'
@@ -149,11 +149,16 @@ const lastReplyTermsState = atom({ plugin: 'craftory', key: 'lastReplyTerms' } a
 
 const glossaryAtStartState = atom({ plugin: 'craftory', key: 'glossaryAtStart' } as const, null)
 
+/** The phase card and the map card share one slot: closing the slot closes both. */
+async function closeCards($: EngineInterface) {
+  await update($, openPhaseState, () => null)
+  await update($, isMapOpenState, () => false)
+}
+
 export async function requestRun($: EngineInterface, skill: SkillName, args: string) {
   const req = requestOf(namespaced(skill), args) ?? { skill, args, phase: null }
   if (await holdForGate($, req, await currentFlow($))) return
-  await update($, openPhaseState, () => null)
-  await update($, isMapOpenState, () => false)
+  await closeCards($)
   await $.command.run({ command: namespaced(skill), args })
 }
 
@@ -184,7 +189,7 @@ export function pickedMapOf($: EngineInterface) {
 }
 
 /** Chooses which map the switcher shows as active; the Feature's link is never touched. */
-export async function pickMap($: EngineInterface, ref: string) {
+export async function pickMap($: EngineInterface, ref: IssueRef) {
   await update($, pickedMapState, () => ref)
   $.ui.invalidate('ui.render')
 }
@@ -198,8 +203,7 @@ export function glossaryQueryOf($: EngineInterface) {
 }
 
 export async function closeCard($: EngineInterface) {
-  await update($, openPhaseState, () => null)
-  await update($, isMapOpenState, () => false)
+  await closeCards($)
   $.ui.invalidate('ui.render')
 }
 
@@ -217,8 +221,7 @@ export async function toggleMap($: EngineInterface) {
 
 export async function closeRailPopups($: EngineInterface) {
   await update($, isPickingFeatureState, () => false)
-  await update($, isMapOpenState, () => false)
-  await update($, openPhaseState, () => null)
+  await closeCards($)
 }
 
 export async function searchGlossary($: EngineInterface, text: string) {

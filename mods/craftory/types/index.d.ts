@@ -469,7 +469,7 @@ declare module 'claude-code' {
       openPhase: PhaseId | 'triage' | null
       isMapOpen: boolean
       isDecidedOpen: boolean
-      pickedMap: string | null
+      pickedMap: IssueRef | null
       isPickingFeature: boolean
       paneTab: PaneTab
       diffs: Record<string, string>

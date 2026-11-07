@@ -1,5 +1,5 @@
 import type { IssueRef, Tone, WayTicket } from '../types'
-import { mapChipText, routeClearText, type MapView } from './map-view'
+import { mapChipText, mapCountsText, routeClearText, ticketLabel, type MapView } from './map-view'
 import { paint, SPACE, TOKENS } from './theme'
 import { inkOf, isRich, withTint, type Ui } from './ui'
 import { CardButton } from './widgets'
@@ -75,8 +75,7 @@ export const FrontierCard = ({
   const t = tone === undefined ? undefined : TOKENS[tone]
   const colours = paint('skill', tone)
   const shown = view.takeable.slice(0, FRONTIER_ROWS)
-  const claimed = view.claimed > 0 ? ` (${view.claimed} claimed)` : ''
-  const frontier = view.map.isClosed
+  const statusLine = view.map.isClosed
     ? null
     : view.open === 0
       ? routeClearText(view.map)
@@ -105,7 +104,7 @@ export const FrontierCard = ({
         {view.map.title}
       </Text>
       <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
-        {`${view.decided} decided · ${view.open} open${claimed}${view.map.isClosed ? ' · Closed' : ''}`}
+        {mapCountsText(view)}
       </Text>
       {view.map.destination !== '' && (
         <Text {...inkOf(tone, 'ink2')} {...withTint(surface)}>
@@ -114,7 +113,7 @@ export const FrontierCard = ({
       )}
       {shown.map(ticket => (
         <Text key={`frontier-${ticket.ref}`} {...inkOf(tone, 'ink')} {...withTint(surface)}>
-          {`${ascii ? '>' : '▸'} ${ticket.title}${ticket.type === null ? '' : ` (${ticket.type})`}`}
+          {`${ascii ? '>' : '▸'} ${ticketLabel(ticket)}`}
         </Text>
       ))}
       {view.takeable.length > shown.length && (
@@ -134,9 +133,9 @@ export const FrontierCard = ({
           </Text>
         </Button>
       ))}
-      {frontier !== null && (
+      {statusLine !== null && (
         <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
-          {frontier}
+          {statusLine}
         </Text>
       )}
     </Box>
@@ -169,7 +168,6 @@ export const MapTicketsCard = ({
   const { Box, Button, Link, Text } = ui
   const decided = view.map.tickets.filter(t => t.state === 'resolved')
   const claimed = view.map.tickets.filter(t => t.state === 'claimed')
-  const claimedNote = view.claimed > 0 ? ` (${view.claimed} claimed)` : ''
   const row = (ticket: WayTicket, glyph: string, note: string | null, action: boolean) => (
     <Box
       key={`row-${ticket.ref}`}
@@ -178,11 +176,7 @@ export const MapTicketsCard = ({
       flexWrap="wrap"
     >
       <Text {...inkOf(tone, 'ink')}>{glyph}</Text>
-      <Link
-        key={`row-link-${ticket.ref}`}
-        href={ticket.location}
-        label={`${ticket.title}${ticket.type === null ? '' : ` (${ticket.type})`}`}
-      />
+      <Link key={`row-link-${ticket.ref}`} href={ticket.location} label={ticketLabel(ticket)} />
       {note !== null && <Text {...inkOf(tone, 'text2')}>{note}</Text>}
       {action && (
         <CardButton
@@ -211,9 +205,7 @@ export const MapTicketsCard = ({
         alignItems="center"
         columnGap={SPACE.rowLabelGap}
       >
-        <Text {...inkOf(tone, 'text2')}>
-          {`${view.decided} decided · ${view.open} open${claimedNote}${view.map.isClosed ? ' · Closed' : ''}`}
-        </Text>
+        <Text {...inkOf(tone, 'text2')}>{mapCountsText(view)}</Text>
         {view.takeable.length > 0 ? (
           <CardButton
             ui={ui}

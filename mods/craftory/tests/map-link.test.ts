@@ -47,8 +47,12 @@ test('a link to nothing map-shaped is stale and falls back', () => {
 })
 
 test('a picked map overrides the rule while it exists', () => {
-  expect(resolveMaps({ maps, link: null, reachable: true, picked: 'old' }).active?.ref).toBe('old')
-  expect(resolveMaps({ maps, link: null, reachable: true, picked: 'zzz' }).active?.ref).toBe('new')
+  expect(
+    resolveMaps({ maps, link: null, reachable: true, picked: 'old' as IssueRef }).active?.ref,
+  ).toBe('old')
+  expect(
+    resolveMaps({ maps, link: null, reachable: true, picked: 'zzz' as IssueRef }).active?.ref,
+  ).toBe('new')
 })
 
 test('a Feature stores one optional map reference and round-trips it', () => {
