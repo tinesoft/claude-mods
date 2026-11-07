@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A Local map is found by scanning for the map shape (`## Destination` heading) without a prompt
-- [ ] Chip counts add up: decided plus open equals total, and open includes claimed
-- [ ] Card kicker names the source; the chip is hidden when no map exists
-- [ ] Chip heads the Flow tab on mobile; narrow bands show a collapsed summary
-- [ ] Never edits a map or ticket file
-- [ ] Fixtures module is generated from real files, pinned to mattpocock-skills 1.3.x, and `validate` fails on drift
-- [ ] Tests feed the `mixed` scenario through the fake world and assert the rendered chip and card
-- [ ] Glossary defines Frontier and Takeable
+- [x] A Local map is found by scanning for the map shape (`## Destination` heading) without a prompt
+- [x] Chip counts add up: decided plus open equals total, and open includes claimed
+- [x] Card kicker names the source; the chip is hidden when no map exists
+- [x] Chip heads the Flow tab on mobile; narrow bands show a collapsed summary
+- [x] Never edits a map or ticket file
+- [x] Fixtures module is generated from real files, pinned to mattpocock-skills 1.3.x, and `validate` fails on drift
+- [x] Tests feed the `mixed` scenario through the fake world and assert the rendered chip and card
+- [x] Glossary defines Frontier and Takeable
