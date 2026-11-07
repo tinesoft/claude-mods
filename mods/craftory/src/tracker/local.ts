@@ -50,14 +50,14 @@ const numbered = (tickets: ReturnType<typeof filesOf>) =>
     .sort((a, b) => Number(a.n) - Number(b.n))
 
 /**
- * The map folders, once every folder has been listed: those with a `map.md` and no `spec.md`,
- * whose tickets are not a feature's. Whether one is a map is up to the text of its `map.md`.
+ * The map folders, once every folder has been listed: those with a `map.md`, a `spec.md` beside
+ * it or not. Whether one is a map is up to the text of its `map.md`.
  */
 function plannedMaps(results: readonly ReadResult[]): MapPlan[] {
   return dirsOf(results[0]).flatMap((dir, i): MapPlan[] => {
     const own = filesOf(results[1 + 2 * i])
     const map = own.find(e => e.name === 'map.md')
-    if (map === undefined || own.some(e => e.name === 'spec.md')) return []
+    if (map === undefined) return []
     return [
       {
         effort: dir.name,

@@ -1,7 +1,7 @@
 import type { IssueRef, WayMap, WayState, WayTicket } from '../../types'
 import { blockersOf, upstreamLine } from './refs'
 
-/** The files of one effort folder holding a `map.md` and no `spec.md`: a map if its text says so. */
+/** The files of one effort folder holding a `map.md`, with or without a `spec.md`: a map if its text says so. */
 export type MapPlan = {
   effort: string
   map: { path: string; mtimeMs: number }

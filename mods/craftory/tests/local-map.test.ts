@@ -56,6 +56,18 @@ test('a map beside a feature spec leaves the feature readable and the map separa
   expect(snapshot.maps?.map(m => m.ref)).toEqual(['billing-v2'])
 })
 
+test('a map.md with a Destination heading is found even when a spec.md sits beside it', async () => {
+  const files = {
+    ...scenarioFiles('local', 'mixed'),
+    '.scratch/billing-v2/spec.md':
+      '# Billing\n\n## Problem Statement\nx\n\n## User Stories\n1. As an a, I want b\n',
+  }
+  const snapshot = await readTracker(localSpec, ctx, fs(files))
+  if (!snapshot.rich) throw new Error('expected a rich tracker')
+  expect(snapshot.maps?.map(m => m.ref)).toEqual(['billing-v2'])
+  expect(snapshot.issues.some(i => i.ref === 'billing-v2')).toBe(true)
+})
+
 test('route-clear: every ticket is resolved, so nothing is open and the map is not closed', async () => {
   const [map] = await mapsOf(scenarioFiles('local', 'route-clear'))
   expect(map).toMatchObject({ isClosed: false, hasFog: true })
