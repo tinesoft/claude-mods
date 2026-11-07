@@ -278,6 +278,8 @@ export type FeatureRecord = {
   pr: IssueRef | null
   /** The wayfinder map this Feature belongs to; the mod reads it and never rewrites it. */
   map?: IssueRef
+  /** The user dismissed the Chart-a-map suggestion for this Feature. */
+  wayfinderSuggestDismissed?: true
   marks: Partial<Record<PhaseId, PhaseMark>>
   /** Keyed by ticket ref string. The latest attempt per ticket wins. */
   agents: Record<string, AgentRecord>
@@ -290,6 +292,7 @@ export type DraftFeature = {
   enteredFrom: IssueRef | null
   marks: Partial<Record<PhaseId, PhaseMark>>
   startedAt: IsoTime
+  wayfinderSuggestDismissed?: true
 }
 
 export type FeatureKey = `spec:${string}` | `draft:${string}`
@@ -307,6 +310,8 @@ export type Running = {
   startedAt: Millis
   isAwaitingUser: boolean
   progress: string | null
+  /** Questions the grill has asked so far, counted from its turns that end waiting on the user. */
+  questions?: number
 }
 
 export type BudgetState = 'ok' | 'near' | 'over'
@@ -388,6 +393,7 @@ export type EventNotice =
   | { kind: 'drift'; id: string; avoided: string; term: string; count: number }
   | { kind: 'spec-published'; id: string; spec: IssueRef; stories: number | null }
   | { kind: 'retro-ready'; id: string; suggestions: number | null }
+  | { kind: 'suggest-wayfinder'; id: string }
 
 export type GateSignalBasis = { id: string; phase: PhaseId; by: PhaseId; reason: string }
 

@@ -1,5 +1,6 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
 import { mapView, resolveMaps } from '../../src/map-view'
+import type { WayfinderOffer } from '../../src/notices'
 import {
   type Read,
   type ReadContext,
@@ -38,6 +39,29 @@ export async function mapViewOf($: EngineInterface) {
     picked: await pickedMapOf($),
   })
   return active === null ? null : mapView(active, { others, isLinkStale: state === 'stale' })
+}
+
+/** What the suggest notice shows now: the global switch, the active Feature's link, an open map to join. */
+export async function wayfinderOfferOf(
+  $: EngineInterface,
+  suggest: 'long-grill' | 'off',
+): Promise<WayfinderOffer> {
+  const tracker = await trackerOf($)
+  const hasLink = (await activeRecord($))?.map !== undefined
+  const { active } = resolveMaps({
+    maps: tracker?.rich ? (tracker.maps ?? []) : [],
+    link: null,
+    reachable: true,
+    picked: await pickedMapOf($),
+  })
+  return {
+    enabled: suggest === 'long-grill',
+    hasLink,
+    attach:
+      active !== null && !active.isClosed
+        ? { name: active.title, location: active.location }
+        : null,
+  }
 }
 
 function executeReads($: EngineInterface, reads: readonly Read[]) {

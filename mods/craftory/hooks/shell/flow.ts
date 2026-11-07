@@ -230,6 +230,8 @@ export async function skillStarted($: EngineInterface, skill: string) {
   if (found?.kind !== 'phase' && found?.kind !== 'entry') return
   const now = await $.clock.now()
   const phase = found.kind === 'phase' ? found.phase : null
+  if (found.kind === 'entry' && found.entry === 'wayfinder')
+    await removeNotices($, n => n.kind === 'suggest-wayfinder')
   let key = await activeKey($)
   if (key === null && (phase === 'align' || phase === 'spec'))
     key = await createDraft($, { title: 'New feature', entry: phase, enteredFrom: null })
@@ -249,12 +251,26 @@ export async function skillStarted($: EngineInterface, skill: string) {
   if (phase === 'review' || phase === 'ship') await scanDrift($)
 }
 
+/** The notice fires once per grill, on the question that first reaches the configured count. */
+async function suggestWayfinder($: EngineInterface, key: FeatureKey | null, questions: number) {
+  const { suggest, afterQuestions } = (await repoFacts($)).config.entry.wayfinder
+  if (key === null || suggest === 'off' || questions !== afterQuestions) return
+  const feature = featureOf(key, await featuresOf($), await draftsOf($))
+  if (feature === null) return
+  const held = feature.kind === 'draft' ? feature.draft : feature.record
+  if (held.wayfinderSuggestDismissed || (feature.kind === 'specced' && feature.record.map)) return
+  await addNotice($, { kind: 'suggest-wayfinder', id: 'suggest-wayfinder' })
+  await settle($)
+}
+
 export async function finishTurn($: EngineInterface, e: { answer: string; isAborted?: boolean }) {
   const running = await read($, runningState)
   if (running === null || running.isAwaitingUser) return
   const grillAsksNext = running.phase === 'align' && !e.isAborted
   if (grillAsksNext) {
-    await update($, runningState, held => held && { ...held, isAwaitingUser: true })
+    const questions = (running.questions ?? 0) + 1
+    await update($, runningState, held => held && { ...held, isAwaitingUser: true, questions })
+    await suggestWayfinder($, running.feature, questions)
     return
   }
   await update($, runningState, () => null)

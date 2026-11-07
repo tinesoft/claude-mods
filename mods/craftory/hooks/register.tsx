@@ -49,7 +49,14 @@ import {
   stopStaleAgents,
   togglePause,
 } from './shell/agents'
-import { activeKey, activeRecord, draftsOf, featuresOf, loadFeatures } from './shell/features'
+import {
+  activeKey,
+  activeRecord,
+  draftsOf,
+  featuresOf,
+  loadFeatures,
+  recordChange,
+} from './shell/features'
 import {
   allowGate,
   currentFlow,
@@ -75,7 +82,7 @@ import {
   scheduleRefresh,
   touchesTracker,
 } from './shell/sync'
-import { mapViewOf, trackerOf } from './shell/tracker'
+import { mapViewOf, trackerOf, wayfinderOfferOf } from './shell/tracker'
 import {
   detectPlugin,
   glossaryTerms,
@@ -188,6 +195,14 @@ async function dispatch($: EngineInterface, action: Action) {
     }
     case 'dismiss':
       return dropNotice($, action.noticeId)
+    case 'wayfinder':
+      await dropNotice($, action.noticeId)
+      return requestRun($, SKILLS.wayfinder, action.args)
+    case 'dismiss-wayfinder': {
+      const key = await activeKey($)
+      if (key !== null) await recordChange($, key, { kind: 'dismiss-wayfinder' })
+      return dropNotice($, action.noticeId)
+    }
     case 'mark-done':
       return markDone($, action.phase)
     case 'write-pr':
@@ -429,7 +444,12 @@ export const register: Register = (on, options) => {
       firstRunText: firstRunText(signalsOf(repo, plugin)),
       dismissed: await dismissedOf($),
     })
-    const events = derived.some(n => n.replacesRail) ? [] : eventNotices(await heldNotices($))
+    const events = derived.some(n => n.replacesRail)
+      ? []
+      : eventNotices(
+          await heldNotices($),
+          await wayfinderOfferOf($, config.entry.wayfinder.suggest),
+        )
     if (flow === null && derived.length === 0 && events.length === 0) return below
     return renderBand({
       ui: uiFor($, e),

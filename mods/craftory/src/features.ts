@@ -184,6 +184,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     integrationBranch: branch,
     pr: parseIssueRef(text(json.pr) ?? '') ?? null,
     ...(parseRef(text(json.map) ?? '') && { map: parseRef(text(json.map) ?? '')! }),
+    ...(json.wayfinderSuggestDismissed === true && { wayfinderSuggestDismissed: true as const }),
     marks: parseMarks(json.marks),
     agents,
   }
@@ -242,6 +243,7 @@ export function serialiseFeature(record: FeatureRecord): string {
       integrationBranch: record.integrationBranch,
       pr: record.pr,
       ...(record.map && { map: record.map }),
+      ...(record.wayfinderSuggestDismissed && { wayfinderSuggestDismissed: true }),
       marks,
       agents,
     },
@@ -304,6 +306,9 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
     integrationBranch: max(disk.integrationBranch, mine.integrationBranch) ?? '',
     pr: maxRef(disk.pr, mine.pr),
     ...((mine.map ?? disk.map) && { map: (mine.map ?? disk.map)! }),
+    ...((mine.wayfinderSuggestDismissed ?? disk.wayfinderSuggestDismissed) && {
+      wayfinderSuggestDismissed: true as const,
+    }),
     marks,
     agents,
   }
@@ -317,6 +322,7 @@ export type FeatureChange =
   | { kind: 'unskip'; phase: PhaseId; at: IsoTime }
   | { kind: 'agent'; record: AgentRecord }
   | { kind: 'pr'; pr: IssueRef }
+  | { kind: 'dismiss-wayfinder' }
 
 type Marks = Partial<Record<PhaseId, PhaseMark>>
 
@@ -376,6 +382,8 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
     }
     case 'pr':
       return { ...record, pr: change.pr }
+    case 'dismiss-wayfinder':
+      return { ...record, wayfinderSuggestDismissed: true }
     default: {
       const _exhaustive: never = change
       return _exhaustive
@@ -384,6 +392,7 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
 }
 
 export function applyDraftChange(draft: DraftFeature, change: FeatureChange): DraftFeature {
+  if (change.kind === 'dismiss-wayfinder') return { ...draft, wayfinderSuggestDismissed: true }
   return { ...draft, marks: changeMarks(draft.marks, change) }
 }
 
@@ -436,6 +445,7 @@ export function promote(
     skips: {},
     integrationBranch,
     pr: null,
+    ...(draft.wayfinderSuggestDismissed && { wayfinderSuggestDismissed: true as const }),
     marks: draft.marks,
     agents: {},
   }
@@ -523,6 +533,9 @@ export function parseDrafts(stored: unknown): Record<string, DraftFeature> {
         enteredFrom: parseRef(text(value.enteredFrom) ?? '') ?? null,
         marks: parseMarks(value.marks),
         startedAt: text(value.startedAt)!,
+        ...(value.wayfinderSuggestDismissed === true && {
+          wayfinderSuggestDismissed: true as const,
+        }),
       }
       return [[id, draft]]
     }),

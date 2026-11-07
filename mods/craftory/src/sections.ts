@@ -332,7 +332,6 @@ const ENTRY_ROWS: readonly SettingsRow[] = [
     id: 'wayfinder-suggest',
     label: 'Suggest wayfinder',
     file: 'config',
-    inactive: NOT_ACTIVE,
     control: 'choice',
     options: () => [
       ['long-grill', 'When a grill runs long'],

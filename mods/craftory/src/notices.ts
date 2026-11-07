@@ -140,7 +140,14 @@ const dismiss = (id: string): NoticeButton => ({
   action: { kind: 'dismiss', noticeId: id },
 })
 
-export function eventNotice(notice: EventNotice): NoticeView | undefined {
+/** What the suggest notice needs to know now: the switch, the Feature's link, and a map to join. */
+export type WayfinderOffer = {
+  enabled: boolean
+  hasLink: boolean
+  attach: { name: string; location: string } | null
+}
+
+export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): NoticeView | undefined {
   switch (notice.kind) {
     case 'gate':
       return {
@@ -257,6 +264,31 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
           dismiss(notice.id),
         ],
       }
+    case 'suggest-wayfinder':
+      if (offer === undefined || !offer.enabled || offer.hasLink) return undefined
+      return {
+        id: notice.id,
+        role: 'perm',
+        text: 'Chart a map instead? · /wayfinder',
+        replacesRail: false,
+        actions: [
+          {
+            id: 'wayfinder',
+            label: offer.attach ? `Attach to ${offer.attach.name}` : '/wayfinder',
+            action: {
+              kind: 'wayfinder',
+              noticeId: notice.id,
+              args: offer.attach?.location ?? '',
+            },
+            primary: true,
+          },
+          {
+            id: 'dismiss-suggest-wayfinder',
+            label: 'Dismiss',
+            action: { kind: 'dismiss-wayfinder', noticeId: notice.id },
+          },
+        ],
+      }
     default: {
       const _exhaustive: never = notice
       return _exhaustive
@@ -264,5 +296,7 @@ export function eventNotice(notice: EventNotice): NoticeView | undefined {
   }
 }
 
-export const eventNotices = (notices: readonly EventNotice[]): NoticeView[] =>
-  notices.slice(-2).flatMap(n => eventNotice(n) ?? [])
+export const eventNotices = (
+  notices: readonly EventNotice[],
+  offer?: WayfinderOffer,
+): NoticeView[] => notices.flatMap(n => eventNotice(n, offer) ?? []).slice(-2)

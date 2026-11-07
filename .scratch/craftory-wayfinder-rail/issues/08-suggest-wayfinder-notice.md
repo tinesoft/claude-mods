@@ -4,11 +4,11 @@
 
 **Blocked by:** 04 (Several maps, active-map rule, switcher and stale map link)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Fires once per grill at the configured threshold, using the counted-question signal
-- [ ] Dismiss is per Feature; running `/wayfinder` clears the notice
-- [ ] No notice when a `map` link exists; Attach variant when an open map exists
-- [ ] `suggest: "off"` in Settings disables it everywhere
-- [ ] Not shown on mobile
-- [ ] Tests assert the notice, its once-only firing, Dismiss, Attach and the submitted command
+- [x] Fires once per grill at the configured threshold, using the counted-question signal
+- [x] Dismiss is per Feature; running `/wayfinder` clears the notice
+- [x] No notice when a `map` link exists; Attach variant when an open map exists
+- [x] `suggest: "off"` in Settings disables it everywhere
+- [x] Not shown on mobile
+- [x] Tests assert the notice, its once-only firing, Dismiss, Attach and the submitted command
