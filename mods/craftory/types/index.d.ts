@@ -164,6 +164,8 @@ export type WayTicket = {
   state: WayState
   assignee: string | null
   blockedBy: IssueRef[]
+  /** The native-dependency lookup failed: whether anything blocks it is not known. */
+  blockersUnknown?: boolean
   location: string
 }
 

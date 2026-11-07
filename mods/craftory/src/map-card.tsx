@@ -236,7 +236,12 @@ export const MapTicketsCard = ({
       )}
       {view.blocked.length > 0 && heading('Blocked')}
       {view.blocked.map(({ ticket, waitsOn }) =>
-        row(ticket, ascii ? 'x' : '⊘', `waits on ${waitsOn.join(', ')}`, false),
+        row(
+          ticket,
+          ascii ? 'x' : '⊘',
+          waitsOn.length > 0 ? `waits on ${waitsOn.join(', ')}` : 'blockers unknown',
+          false,
+        ),
       )}
       {decided.length > 0 && (
         <Text key="group-decided" {...inkOf(tone, 'text2')}>

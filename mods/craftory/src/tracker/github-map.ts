@@ -106,7 +106,8 @@ function typeOf(row: Row): WayTicket['type'] {
 
 function ticketOf(row: Row, blocked: Links): WayTicket {
   const state: WayState = row.closed ? 'resolved' : row.assignee !== null ? 'claimed' : 'open'
-  const native = blocked.get(row.number) ?? []
+  const found = blocked.get(row.number)
+  const native = found ?? []
   return {
     ref: ref(row.number),
     title: row.title,
@@ -114,6 +115,7 @@ function ticketOf(row: Row, blocked: Links): WayTicket {
     state,
     assignee: row.closed ? null : row.assignee,
     blockedBy: (native.length > 0 ? [...native] : edgesOf(row.body).blockedBy).map(ref),
+    ...(found === null && row.closed === false && { blockersUnknown: true }),
     location: row.url,
   }
 }

@@ -10,7 +10,7 @@ import type {
 import { isSafeRef } from '../git'
 import { githubMaps, type Links, mapChildren } from './github-map'
 import type { ReadContext, ReadResult, TrackerSpec } from './index'
-import { isSpecBody, parseIssueRef, refsIn, storiesIn } from './refs'
+import { isSpecBody, isUnsupported, parseIssueRef, refsIn, storiesIn } from './refs'
 
 const ISSUE_FIELDS = 'number,title,body,labels,state,stateReason,createdAt,updatedAt,assignees,url'
 const MAX_ISSUES = 200
@@ -173,13 +173,17 @@ const runs = (results: readonly ReadResult[]) => results.flatMap(r => (r.kind ==
 const issueNumber = (argv: readonly string[]) =>
   /\/issues\/(\d+)\/(?:sub_issues|dependencies)/.exec(argv[2] ?? '')?.[1]
 
-/** What each `gh api` call answered, by issue number: the numbers it listed, or null if it failed. */
+/**
+ * What each `gh api` call answered, by issue number: the numbers it listed, none when the host has
+ * no such endpoint, or null when the lookup failed and so said nothing.
+ */
 function linksOf(results: readonly ReadResult[], suffix: string): Links {
   return new Map(
     runs(results).flatMap((r): [number, number[] | null][] => {
       const n = issueNumber(r.argv)
       if (n === undefined || !r.argv[2]?.endsWith(suffix)) return []
-      return [[Number(n), r.exitCode === 0 ? numbersIn(r.stdout) : null]]
+      const answer = r.exitCode === 0 ? numbersIn(r.stdout) : isUnsupported(r.stderr) ? [] : null
+      return [[Number(n), answer]]
     }),
   )
 }
@@ -217,7 +221,10 @@ export const spec: TrackerSpec = {
     const has = (suffix: string) => done.some(r => r.argv[2]?.endsWith(suffix))
     if (has('/blocked_by')) return []
     const targets = [
-      ...new Set([...specs.map(ref => Number(ref.slice(1))), ...mapChildren(rawRows(previous), new Map()).keys()]),
+      ...new Set([
+        ...specs.map(ref => Number(ref.slice(1))),
+        ...mapChildren(rawRows(previous), new Map()).keys(),
+      ]),
     ]
     if (!has('/sub_issues') && targets.length > 0) {
       return targets

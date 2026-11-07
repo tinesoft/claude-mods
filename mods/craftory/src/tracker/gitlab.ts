@@ -3,7 +3,7 @@ import { bodyEdges } from './github'
 import { childrenIn, type Links, mapsIn, type Row } from './github-map'
 import type { ReadContext, ReadResult, TrackerSpec } from './index'
 import * as links from './links'
-import { isSpecBody, parseIssueRef } from './refs'
+import { isSpecBody, isUnsupported, parseIssueRef } from './refs'
 
 const MAX_LOOKUPS = 40
 
@@ -61,7 +61,10 @@ const listed = (results: readonly ReadResult[]): { rows: Row[]; raw: Json[] } | 
   return { rows: records.flatMap(r => rowOf(r) ?? []), raw: records }
 }
 
-/** What each `glab api .../links` answered, by issue: the issues blocking it, or null if it failed. */
+/**
+ * What each `glab api .../links` answered, by issue: the issues blocking it, none when the plan
+ * has no such links, or null when the lookup failed and so said nothing.
+ */
 function blockersOf(results: readonly ReadResult[]): Links {
   return new Map(
     runs(results).flatMap((r): [number, number[] | null][] => {
@@ -72,7 +75,9 @@ function blockersOf(results: readonly ReadResult[]): Links {
         [
           Number(n),
           rows === null
-            ? null
+            ? r.exitCode !== 0 && isUnsupported(r.stderr)
+              ? []
+              : null
             : rows.flatMap(l =>
                 isRecord(l) && l.link_type === 'is_blocked_by' && typeof l.iid === 'number'
                   ? [l.iid]

@@ -1,6 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 import { readTracker } from '../src/tracker'
 import { spec as githubSpec } from '../src/tracker/github'
+import { mapView } from '../src/map-view'
+import type { Read } from '../src/tracker'
 import { ctx, gh } from './wayfinder'
 
 const mapsOf = async (scenario: string) => {
@@ -87,4 +89,36 @@ test('prose-trap: state, claims and blockers never come from prose or comment me
     ['#16', 'open', null, []],
   ])
   expect(map!.tickets.map(t => t.ref)).not.toContain('#30')
+})
+
+const failing = (scenario: string, stderr: string) => async (reads: readonly Read[]) =>
+  (await gh(scenario)(reads)).map(r =>
+    r.kind === 'run' && r.argv[2]?.endsWith('/blocked_by')
+      ? { ...r, exitCode: 1, stdout: '', stderr }
+      : r,
+  )
+
+test('a failed dependency lookup is not "no native links": the open tickets are not Takeable', async () => {
+  const snapshot = await readTracker(
+    githubSpec,
+    ctx,
+    failing('no-native-links', 'connection reset'),
+  )
+  if (!snapshot.rich) throw new Error('expected a rich tracker')
+  const view = mapView(snapshot.maps![0]!)
+  expect(view.takeable).toEqual([])
+  expect(view.blocked.length).toBeGreaterThan(0)
+  expect(view.blocked.every(b => b.ticket.blockersUnknown === true)).toBe(true)
+})
+
+test('a lookup the host does not support (HTTP 404) falls back to the Blocked by line', async () => {
+  const snapshot = await readTracker(
+    githubSpec,
+    ctx,
+    failing('no-native-links', 'gh: Not Found (HTTP 404)'),
+  )
+  if (!snapshot.rich) throw new Error('expected a rich tracker')
+  const view = mapView(snapshot.maps![0]!)
+  expect(view.takeable.length).toBeGreaterThan(0)
+  expect(snapshot.maps![0]!.tickets.some(t => t.blockersUnknown === true)).toBe(false)
 })

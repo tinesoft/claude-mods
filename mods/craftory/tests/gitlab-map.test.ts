@@ -1,6 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 import { readTracker } from '../src/tracker'
 import { spec as gitlab } from '../src/tracker/gitlab'
+import { mapView } from '../src/map-view'
+import type { Read } from '../src/tracker'
 import { ctx, glab } from './wayfinder'
 
 const mapsOf = async (scenario: string) => {
@@ -101,4 +103,23 @@ test('a failed glab issue list leaves the links-only snapshot', async () => {
     })),
   )
   expect(snapshot).toMatchObject({ kind: 'gitlab', rich: false })
+})
+
+const failing = (scenario: string, stderr: string) => async (reads: readonly Read[]) =>
+  (await glab(scenario)(reads)).map(r =>
+    r.kind === 'run' && r.argv[1] === 'api' ? { ...r, exitCode: 1, stdout: '', stderr } : r,
+  )
+
+test('a failed links lookup is not "no native links": the open tickets are not Takeable', async () => {
+  const snapshot = await readTracker(gitlab, ctx, failing('no-native-links', 'timeout'))
+  if (!snapshot.rich) throw new Error('expected a rich tracker')
+  const view = mapView(snapshot.maps![0]!)
+  expect(view.takeable).toEqual([])
+  expect(view.blocked.every(b => b.ticket.blockersUnknown === true)).toBe(true)
+})
+
+test('a plan without blocking links (HTTP 403) falls back to the Blocked by line', async () => {
+  const snapshot = await readTracker(gitlab, ctx, failing('no-native-links', '403 Forbidden'))
+  if (!snapshot.rich) throw new Error('expected a rich tracker')
+  expect(mapView(snapshot.maps![0]!).takeable.length).toBeGreaterThan(0)
 })

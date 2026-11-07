@@ -59,7 +59,7 @@ export const ctx: ReadContext = { config: DEFAULT_CONFIG, labels: DEFAULT_LABELS
  */
 export const ghAnswer =
   (scenario: string) =>
-  (argv: readonly string[]): { exitCode: number; stdout: string } => {
+  (argv: readonly string[]): { exitCode: number; stdout: string; stderr?: string } => {
     const api = /\/issues\/(\d+)\/(sub_issues|dependencies\/blocked_by)$/.exec(argv[2] ?? '')
     const name =
       argv[1] === 'issue'
@@ -72,7 +72,7 @@ export const ghAnswer =
         ? undefined
         : WAYFINDER_FIXTURES[`${SKILLS_RANGE}/github/${scenario}/${name}`]
     return file === undefined
-      ? { exitCode: 1, stdout: '' }
+      ? { exitCode: 1, stdout: '', stderr: 'gh: Not Found (HTTP 404)' }
       : { exitCode: 0, stdout: file.slice(file.indexOf('\n') + 1) }
   }
 
@@ -92,7 +92,7 @@ export const gh =
  */
 export const glabAnswer =
   (scenario: string) =>
-  (argv: readonly string[]): { exitCode: number; stdout: string } => {
+  (argv: readonly string[]): { exitCode: number; stdout: string; stderr?: string } => {
     const links = /^projects\/[^/]+\/issues\/(\d+)\/links$/.exec(argv[2] ?? '')
     const name =
       argv[1] === 'issue' ? 'issue-list.json' : links ? `links-${links[1]}.json` : undefined
@@ -101,7 +101,7 @@ export const glabAnswer =
         ? undefined
         : WAYFINDER_FIXTURES[`${SKILLS_RANGE}/gitlab/${scenario}/${name}`]
     return file === undefined
-      ? { exitCode: 1, stdout: '' }
+      ? { exitCode: 1, stdout: '', stderr: '404 Not Found' }
       : { exitCode: 0, stdout: file.slice(file.indexOf('\n') + 1) }
   }
 

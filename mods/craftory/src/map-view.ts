@@ -14,6 +14,7 @@ export type MapView = {
   claimed: number
   /** Open, unblocked and unclaimed, in order: the frontier. */
   takeable: WayTicket[]
+  /** Unclaimed and not takeable; `waitsOn` is empty when the tracker could not say what blocks it. */
   blocked: { ticket: WayTicket; waitsOn: string[] }[]
   /** The other maps, for the card's switcher; empty with one map. */
   others: { ref: IssueRef; title: string }[]
@@ -82,10 +83,10 @@ export function mapView(
     decided: map.tickets.length - open.length,
     open: open.length,
     claimed: open.length - unclaimed.length,
-    takeable: unclaimed.filter(t => waitsOn(t).length === 0),
+    takeable: unclaimed.filter(t => t.blockersUnknown !== true && waitsOn(t).length === 0),
     blocked: unclaimed.flatMap(ticket => {
       const waits = waitsOn(ticket)
-      return waits.length > 0 ? [{ ticket, waitsOn: waits }] : []
+      return waits.length > 0 || ticket.blockersUnknown === true ? [{ ticket, waitsOn: waits }] : []
     }),
     others: (extras.others ?? []).map(m => ({ ref: m.ref, title: m.title })),
     isLinkStale: extras.isLinkStale ?? false,

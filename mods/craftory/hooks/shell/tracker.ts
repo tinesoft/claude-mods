@@ -85,8 +85,14 @@ function executeReads($: EngineInterface, reads: readonly Read[]) {
         case 'run': {
           const result = await $.process
             .run(item.argv, { timeoutMs: TRACKER_TIMEOUT_MS })
-            .catch(() => ({ exitCode: 1, stdout: '' }))
-          return { kind: 'run', argv: item.argv, exitCode: result.exitCode, stdout: result.stdout }
+            .catch(() => ({ exitCode: 1, stdout: '', stderr: '' }))
+          return {
+            kind: 'run',
+            argv: item.argv,
+            exitCode: result.exitCode,
+            stdout: result.stdout,
+            stderr: result.stderr,
+          }
         }
         default: {
           const _exhaustive: never = item

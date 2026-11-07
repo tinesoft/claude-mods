@@ -23,7 +23,7 @@ export type Read =
 export type ReadResult =
   | { kind: 'list'; entries: FsListing[] | null }
   | { kind: 'read'; text: string | null }
-  | { kind: 'run'; argv: readonly string[]; exitCode: number; stdout: string }
+  | { kind: 'run'; argv: readonly string[]; exitCode: number; stdout: string; stderr?: string }
 
 export type ReadContext = {
   config: CraftoryConfig

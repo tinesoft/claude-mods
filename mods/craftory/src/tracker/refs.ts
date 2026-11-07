@@ -33,6 +33,9 @@ export function refsIn(text: string): IssueRef[] {
   return [...new Set(found)].flatMap(raw => parseIssueRef(raw) ?? [])
 }
 
+export const isUnsupported = (stderr: string | undefined) =>
+  /\b(?:404|403|410)\b|not found|forbidden/i.test(stderr ?? '')
+
 /**
  * `to-spec` 1.3.1 applies no `spec` label, so a spec is told apart by its template headings
  * (the same test serves the Local and GitHub trackers).
