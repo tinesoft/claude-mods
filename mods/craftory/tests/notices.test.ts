@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { derivedNotices, eventNotice } from '../src/notices'
+import { derivedNotices, eventNotice, eventNotices } from '../src/notices'
 import type { InstallState, IssueRef, NoticeKey, PluginStatus, RepoSnapshot } from '../types'
 
 const PRESENT: PluginStatus = {
@@ -149,4 +149,16 @@ test('a rebase conflict notice names the worktree and offers Resolve', () => {
   })
   expect(view?.text).toBe('Rebase conflict in .claude/worktrees/45-date-filter · agent stopped')
   expect(view?.actions.map(a => a.label)).toEqual(['Resolve', 'Dismiss'])
+})
+
+test('a suppressed notice does not take one of the two band slots', () => {
+  const budget = (n: number) =>
+    ({ kind: 'budget', id: `b${n}`, ticket: `#${n}` as IssueRef, budget: 100_000 }) as const
+  const suppressed = { kind: 'suggest-wayfinder', id: 'suggest-wayfinder' } as const
+  const off = { enabled: false, hasLink: false, attach: null }
+  expect(eventNotices([budget(1), budget(2), suppressed], off).map(n => n.id)).toEqual(['b1', 'b2'])
+  expect(eventNotices([budget(1), suppressed, budget(2), budget(3)], off).map(n => n.id)).toEqual([
+    'b2',
+    'b3',
+  ])
 })
