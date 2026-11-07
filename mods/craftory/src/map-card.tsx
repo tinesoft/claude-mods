@@ -15,6 +15,29 @@ import { CardButton } from './widgets'
 /** The most Takeable rows the card lists; the rest are a count. */
 const FRONTIER_ROWS = 5
 
+/** What marks a ticket's state, and a group's fold, on rich surfaces and with the glyphs off. */
+const GLYPHS = {
+  takeable: { rich: '▸', ascii: '>' },
+  claimed: { rich: '◐', ascii: 'o' },
+  blocked: { rich: '⊘', ascii: 'x' },
+  decided: { rich: '✓', ascii: '+' },
+  switch: { rich: '⇄', ascii: '>' },
+  expanded: { rich: '▾', ascii: 'v' },
+  collapsed: { rich: '▸', ascii: '>' },
+} as const
+
+const glyph = (name: keyof typeof GLYPHS, ascii: boolean) => GLYPHS[name][ascii ? 'ascii' : 'rich']
+
+/** The quiet line for a Feature whose `map` link names nothing map-shaped. */
+const MapNotFound = ({ ui, tone, tint }: { ui: Ui; tone: Tone | undefined; tint?: string }) => {
+  const { Text } = ui
+  return (
+    <Text key="map-stale" {...inkOf(tone, 'text2')} {...withTint(tint)}>
+      Map not found
+    </Text>
+  )
+}
+
 export type MapActions = {
   map: () => void
   closeCard: () => void
@@ -121,7 +144,7 @@ export const FrontierCard = ({
       )}
       {shown.map(ticket => (
         <Text key={`frontier-${ticket.ref}`} {...inkOf(tone, 'ink')} {...withTint(surface)}>
-          {`${ascii ? '>' : '▸'} ${ticketLabel(ticket)}`}
+          {`${glyph('takeable', ascii)} ${ticketLabel(ticket)}`}
         </Text>
       ))}
       {view.takeable.length > shown.length && (
@@ -129,15 +152,11 @@ export const FrontierCard = ({
           {`+${view.takeable.length - shown.length} more`}
         </Text>
       )}
-      {view.isLinkStale && (
-        <Text key="map-stale" {...inkOf(tone, 'text2')} {...withTint(surface)}>
-          Map not found
-        </Text>
-      )}
+      {view.isLinkStale && <MapNotFound ui={ui} tone={tone} tint={surface} />}
       {view.others.map(other => (
         <Button key={`map-switch-${other.ref}`} plain onPress={() => on.pickMap(other.ref)}>
           <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
-            {`${ascii ? '>' : '⇄'} ${other.title}`}
+            {`${glyph('switch', ascii)} ${other.title}`}
           </Text>
         </Button>
       ))}
@@ -169,7 +188,7 @@ export const MapTicketsCard = ({
   const { Box, Button, Link, Text } = ui
   const decided = view.map.tickets.filter(t => t.state === 'resolved')
   const claimed = view.map.tickets.filter(t => t.state === 'claimed')
-  const row = (ticket: WayTicket, glyph: string, note: string | null, action: boolean) => (
+  const row = (ticket: WayTicket, glyph: string, note: string | null, isTakeable: boolean) => (
     <Box
       key={`row-${ticket.ref}`}
       flexDirection="row"
@@ -179,7 +198,7 @@ export const MapTicketsCard = ({
       <Text {...inkOf(tone, 'ink')}>{glyph}</Text>
       <Link key={`row-link-${ticket.ref}`} href={ticket.location} label={ticketLabel(ticket)} />
       {note !== null && <Text {...inkOf(tone, 'text2')}>{note}</Text>}
-      {action && (
+      {isTakeable && (
         <CardButton
           ui={ui}
           tone={tone}
@@ -217,6 +236,7 @@ export const MapTicketsCard = ({
             onPress={() => on.wayfinder(mapArg(view.map))}
           />
         ) : (
+          // the engine's Button has no disabled prop, so the off state is the hint, not pressable
           <Text key="work-next-off" {...inkOf(tone, 'muted')}>
             Work next ticket · Nothing takeable
           </Text>
@@ -224,16 +244,16 @@ export const MapTicketsCard = ({
       </Box>
       {view.open === 0 && <Text {...inkOf(tone, 'text2')}>{routeClearText(view.map)}</Text>}
       {view.takeable.length > 0 && heading('Takeable')}
-      {view.takeable.map(t => row(t, ascii ? '>' : '▸', null, true))}
+      {view.takeable.map(t => row(t, glyph('takeable', ascii), null, true))}
       {claimed.length > 0 && heading('Claimed')}
       {claimed.map(t =>
-        row(t, ascii ? 'o' : '◐', t.assignee === null ? null : `@${t.assignee}`, false),
+        row(t, glyph('claimed', ascii), t.assignee === null ? null : `@${t.assignee}`, false),
       )}
       {view.blocked.length > 0 && heading('Blocked')}
       {view.blocked.map(({ ticket, waitsOn }) =>
         row(
           ticket,
-          ascii ? 'x' : '⊘',
+          glyph('blocked', ascii),
           waitsOn.length > 0 ? `waits on ${waitsOn.join(', ')}` : 'blockers unknown',
           false,
         ),
@@ -241,16 +261,12 @@ export const MapTicketsCard = ({
       {decided.length > 0 && (
         <Button key="decided-toggle" plain onPress={() => on.decided()}>
           <Text {...inkOf(tone, 'text2')}>
-            {`Decided (${decided.length}) ${isDecidedOpen ? (ascii ? 'v' : '▾') : ascii ? '>' : '▸'}`}
+            {`Decided (${decided.length}) ${glyph(isDecidedOpen ? 'expanded' : 'collapsed', ascii)}`}
           </Text>
         </Button>
       )}
-      {isDecidedOpen && decided.map(t => row(t, ascii ? '+' : '✓', null, false))}
-      {view.isLinkStale && (
-        <Text key="map-stale" {...inkOf(tone, 'text2')}>
-          Map not found
-        </Text>
-      )}
+      {isDecidedOpen && decided.map(t => row(t, glyph('decided', ascii), null, false))}
+      {view.isLinkStale && <MapNotFound ui={ui} tone={tone} />}
       <Link key="open-map" href={view.map.location} label="Open map" />
     </Box>
   )
