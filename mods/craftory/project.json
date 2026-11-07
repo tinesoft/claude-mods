@@ -40,7 +40,7 @@
       },
       "executor": "nx:run-commands",
       "options": {
-        "command": "claude plugin test .",
+        "command": "node ../../tools/check-claude-version.mjs && claude plugin test .",
         "cwd": "{projectRoot}"
       }
     },
