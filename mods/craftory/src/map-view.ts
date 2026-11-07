@@ -71,10 +71,11 @@ export function mapView(
 ): MapView {
   const byRef = new Map(map.tickets.map(t => [t.ref, t]))
   const open = map.tickets.filter(t => t.state !== 'resolved')
+  // a blocker the map does not hold cannot be known resolved, so it blocks, named by its ref
   const waitsOn = (t: WayTicket) =>
     t.blockedBy.flatMap(ref => {
       const blocker = byRef.get(ref)
-      return blocker !== undefined && blocker.state !== 'resolved' ? [blocker.title] : []
+      return blocker === undefined ? [ref] : blocker.state !== 'resolved' ? [blocker.title] : []
     })
   const unclaimed = open.filter(t => t.state === 'open')
   return {
