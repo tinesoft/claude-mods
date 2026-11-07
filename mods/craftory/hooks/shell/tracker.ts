@@ -1,14 +1,16 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
-import { mapArg, mapView, resolveMaps } from '../../src/map-view'
+import { activeMapView, wayfinderOffer } from '../../src/map-view'
 import type { WayfinderOffer } from '../../src/notices'
 import {
   type Read,
   type ReadContext,
   type ReadResult,
+  readsLocalAlongside,
   readTracker,
   TRACKERS,
+  withLocalMaps,
 } from '../../src/tracker'
-import type { RepoSnapshot } from '../../types'
+import type { CraftoryConfig, RepoSnapshot } from '../../types'
 import { activeMapLink } from './features'
 import { listDir, readText } from './repo'
 import { pickedMapOf } from './ui'
@@ -26,42 +28,24 @@ export function trackerOf($: EngineInterface) {
 
 /** The active map of the tracker's last read, as the rail and pane draw it; null with no map. */
 export async function mapViewOf($: EngineInterface) {
-  const tracker = await trackerOf($)
-  const link = await activeMapLink($)
-  const {
-    active,
-    others,
-    link: state,
-  } = resolveMaps({
-    maps: tracker?.maps ?? [],
-    link,
-    reachable: tracker?.rich === true && tracker.problem === null,
+  return activeMapView({
+    tracker: await trackerOf($),
+    link: await activeMapLink($),
     picked: await pickedMapOf($),
   })
-  return active === null ? null : mapView(active, { others, isLinkStale: state === 'stale' })
 }
 
 /** What the suggest notice shows now: the global switch, the active Feature's link, an open map to join. */
 export async function wayfinderOfferOf(
   $: EngineInterface,
-  suggest: 'long-grill' | 'off',
+  suggest: CraftoryConfig['entry']['wayfinder']['suggest'],
 ): Promise<WayfinderOffer> {
-  const tracker = await trackerOf($)
-  const hasLink = (await activeMapLink($)) !== null
-  const { active } = resolveMaps({
-    maps: tracker?.rich ? (tracker.maps ?? []) : [],
-    link: null,
-    reachable: true,
+  return wayfinderOffer({
+    tracker: await trackerOf($),
+    suggest,
+    link: await activeMapLink($),
     picked: await pickedMapOf($),
   })
-  return {
-    enabled: suggest === 'long-grill',
-    hasLink,
-    attach:
-      active !== null && !active.isClosed
-        ? { name: active.title, ref: active.ref, arg: mapArg(active) }
-        : null,
-  }
 }
 
 function executeReads($: EngineInterface, reads: readonly Read[]) {
@@ -109,17 +93,11 @@ export async function loadTracker($: EngineInterface, repo: RepoSnapshot, contex
   if (spec === undefined) return false
   const execute = (reads: readonly Read[]) => executeReads($, reads)
   const snapshot = await readTracker(spec, context, execute)
-  // a Local map sits beside a remote tracker's own, read with no prompt
-  // (GitLab without a readable `glab` is links-only but still gets them; Other never does)
-  const local =
-    snapshot.kind !== 'local' && (snapshot.rich || snapshot.kind === 'gitlab')
-      ? TRACKERS.local
-      : undefined
-  const alongside = local && (await readTracker(local, context, execute))
-  const merged =
-    alongside?.rich && alongside.maps !== undefined
-      ? { ...snapshot, maps: [...(snapshot.maps ?? []), ...alongside.maps] }
-      : snapshot
-  await update($, trackerState, () => merged)
+  const local = TRACKERS.local
+  const alongside =
+    local !== undefined && readsLocalAlongside(snapshot)
+      ? await readTracker(local, context, execute)
+      : null
+  await update($, trackerState, () => withLocalMaps(snapshot, alongside))
   return true
 }

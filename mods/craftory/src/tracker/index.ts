@@ -69,3 +69,20 @@ export async function readTracker(
 export function parentOf(tracker: TrackerSnapshot | null, ref: string): IssueRef | null {
   return (tracker?.rich ? tracker.issues.find(i => i.ref === ref)?.parent : null) ?? null
 }
+
+/**
+ * A Local map sits beside a remote tracker's own, read with no prompt: beside GitHub and GitLab
+ * when it lists its issues, and beside GitLab when it is links-only. Other never gets one.
+ */
+export const readsLocalAlongside = (snapshot: TrackerSnapshot) =>
+  snapshot.kind !== 'local' && (snapshot.rich || snapshot.kind === 'gitlab')
+
+/** The snapshot with the Local maps read beside it, when that read could list them. */
+export function withLocalMaps(
+  snapshot: TrackerSnapshot,
+  local: TrackerSnapshot | null,
+): TrackerSnapshot {
+  return local?.rich && local.maps !== undefined
+    ? { ...snapshot, maps: [...(snapshot.maps ?? []), ...local.maps] }
+    : snapshot
+}

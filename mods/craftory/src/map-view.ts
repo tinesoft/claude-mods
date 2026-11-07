@@ -1,4 +1,5 @@
-import type { IssueRef, WayMap, WayTicket } from '../types'
+import type { CraftoryConfig, IssueRef, TrackerSnapshot, WayMap, WayTicket } from '../types'
+import type { WayfinderOffer } from './notices'
 import { parseIssueRef } from './tracker/refs'
 import { clip } from './ui'
 
@@ -73,6 +74,45 @@ export const mapArg = (map: WayMap) => argOf(map)
 
 /** The argument that takes one named ticket of a map. */
 export const ticketArg = (map: WayMap, ticket: WayTicket) => `${argOf(map)} ${argOf(ticket)}`
+
+/** What the tracker's last read says about the maps: the maps, and whether a missing link means it is stale. */
+const mapsOf = (tracker: TrackerSnapshot | null) => ({
+  maps: tracker?.maps ?? [],
+  reachable: tracker?.rich === true && tracker.problem === null,
+})
+
+/** The active map of the tracker's last read as the rail and pane draw it; null with no map. */
+export function activeMapView(input: {
+  tracker: TrackerSnapshot | null
+  link: IssueRef | null
+  picked: IssueRef | null
+}): MapView | null {
+  const { active, others, link } = resolveMaps({ ...mapsOf(input.tracker), ...input })
+  return active === null ? null : mapView(active, { others, isLinkStale: link === 'stale' })
+}
+
+/** What the suggest notice shows now: the global switch, the Feature's link, an open map to join. */
+export function wayfinderOffer(input: {
+  tracker: TrackerSnapshot | null
+  suggest: CraftoryConfig['entry']['wayfinder']['suggest']
+  link: IssueRef | null
+  picked: IssueRef | null
+}): WayfinderOffer {
+  const { active } = resolveMaps({
+    maps: mapsOf(input.tracker).maps,
+    link: null,
+    reachable: true,
+    picked: input.picked,
+  })
+  return {
+    enabled: input.suggest === 'long-grill',
+    hasLink: input.link !== null,
+    attach:
+      active !== null && !active.isClosed
+        ? { name: active.title, ref: active.ref, arg: mapArg(active) }
+        : null,
+  }
+}
 
 /** The fact the card states when no ticket is open; the user closes the map, never the mod. */
 export const routeClearText = (map: WayMap) =>

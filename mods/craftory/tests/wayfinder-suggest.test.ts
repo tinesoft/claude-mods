@@ -242,3 +242,19 @@ test('Dismiss on an unpromoted draft silences it for that draft only', async ($,
   await grill($, 3)
   expect(await bandText($)).not.toContain(SUGGEST)
 })
+
+test('with GitLab unreachable, a Local map is still offered to Attach to', async ($, on) => {
+  const w = await session(on, {
+    files: {
+      ...scenarioFiles('local', 'mixed'),
+      'docs/agents/issue-tracker.md': '# Issue tracker: GitLab\n',
+    },
+    shell: argv => (argv[0] === 'glab' ? { exitCode: 1, stderr: 'not logged in' } : undefined),
+  })
+  await startSession($)
+  await grill($, 2)
+  const band = await mountBand($, 'terminal', 200)
+  expect((await band.find({ key: 'notice-wayfinder' }))!.text).toContain('Attach to Billing v2')
+  await band.press({ key: 'notice-wayfinder' })
+  expect(w.commandsRun.at(-1)!.args).toBe('.scratch/billing-v2/map.md')
+})
