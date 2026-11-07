@@ -172,3 +172,11 @@ test('a notice is a band thing: the mobile pane does not carry it', async ($, on
   const pane = await mountPane($, 'mobile')
   expect(await allText(pane)).not.toContain(SUGGEST)
 })
+
+test('with a terminal beside a mobile pane the band shows it and the mobile pane still does not', async ($, on) => {
+  await session(on, { surfaces: ['mobile', 'terminal'] })
+  await startSession($, 'mobile')
+  await grill($, 2)
+  expect(await bandText($)).toContain(SUGGEST)
+  expect(await allText(await mountPane($, 'mobile'))).not.toContain(SUGGEST)
+})
