@@ -12,7 +12,12 @@ export type MapPlan = {
 export type MapTexts = { map: string | null; tickets: (string | null)[] }
 
 const lineOf = (head: string, label: string) => upstreamLine(label).exec(head)?.[1] ?? ''
-/** What a file's own `Status:` and `Assignee:` lines say, and nothing it quotes in its prose. */
+/**
+ * What a file's own `Status:` and `Assignee:` lines say, and nothing it quotes in its prose.
+ * `closed` and `done` count as resolved because the Local issue reader (local.ts) takes
+ * them as finished, so a map file that carries either reads the same; an `Assignee:` is the Local claim, as an issue's
+ * assignee is elsewhere (ticket 01's `mixed` scenario has one claimed ticket with an assignee).
+ */
 function stateOf(head: string): { state: WayState; assignee: string | null } {
   const status = lineOf(head, 'Status').toLowerCase()
   const assignee = lineOf(head, 'Assignee').replace(/^@/, '')

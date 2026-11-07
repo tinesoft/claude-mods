@@ -53,7 +53,7 @@ _Avoid_: Ticket (that is a child of a Spec)
 The Decision tickets of a Map that can be taken now: open, unblocked and unclaimed, in order. A Map with no open tickets has no Frontier, and says "No open tickets" rather than "destination reached".
 
 **Takeable**:
-A Decision ticket on the Frontier. A ticket that is claimed (open with an assignee) or blocked (waiting on an unresolved ticket) is not Takeable.
+A Decision ticket on the Frontier. A ticket that is claimed (open with an assignee) or blocked (waiting on an unresolved ticket) is not Takeable. A blocker the Map does not hold, or one the tracker could not answer for, counts as unresolved: the ticket shows as Blocked, with "blockers unknown" when the tracker said nothing at all.
 
 **Active map**:
 The Map the chip shows: the one the active Feature names, else the most recently updated open one.
