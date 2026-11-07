@@ -335,7 +335,6 @@ const FlowTab = ({
           id="pane-rail"
           wrap
           args={{ ui, tone, ascii, spinFrame, flow, waiting, open: null, on: on.rail }}
-          fits={() => false}
         />
       )}
       <Text {...inkOf(tone, 'text2')}>

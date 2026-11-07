@@ -258,8 +258,8 @@ const drawsAnything = async ($: EngineInterface) =>
   (await isSupported($)) && (await $.session.surfaces()).length > 0
 
 const bandActions = ($: EngineInterface): BandActions => ({
-  phase: (phase, fitsCard) => void pressPhase($, phase, fitsCard),
-  triage: fitsCard => void pressPhase($, 'triage', fitsCard),
+  phase: phase => void pressPhase($, phase),
+  triage: () => void pressPhase($, 'triage'),
   summary: () => void openPane($, 'flow'),
   gear: () => void togglePane($, 'settings'),
   closeCard: () => void closeCard($),
@@ -565,7 +565,8 @@ export const register: Register = (on, options) => {
           })(),
         search: text => void searchGlossary($, text),
         editTerm: name => void jumpToTerm($, name),
-        rail: { phase: actions.phase, triage: actions.triage },
+        // the pane has no card to open: a press on its phase strip goes to the Flow tab
+        rail: { phase: () => void openPane($, 'flow'), triage: () => void openPane($, 'flow') },
         map: actions.map,
         wayfinder: arg => void requestRun($, SKILLS.wayfinder, arg),
         decided: () => void toggleDecided($),

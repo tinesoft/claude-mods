@@ -293,8 +293,7 @@ export async function ticketsViewOf($: EngineInterface, flow: Flow | null) {
   })
 }
 
-export async function pressPhase($: EngineInterface, view: PhaseId | 'triage', fitsCard: boolean) {
-  if (!fitsCard) return openPane($, 'flow')
+export async function pressPhase($: EngineInterface, view: PhaseId | 'triage') {
   await update($, isMapOpenState, () => false)
   await update($, openPhaseState, open => (open === view ? null : view))
   $.ui.invalidate('ui.render')

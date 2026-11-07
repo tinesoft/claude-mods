@@ -31,8 +31,8 @@ const withState = (flow: Flow, phase: PhaseId, state: PhaseState): Flow => ({
 
 const calls: string[] = []
 const on: BandActions = {
-  phase: (phase, fits) => void calls.push(`view ${phase} ${fits}`),
-  triage: fits => void calls.push(`triage ${fits}`),
+  phase: phase => void calls.push(`view ${phase}`),
+  triage: () => void calls.push('triage'),
   summary: () => void calls.push('summary'),
   gear: () => void calls.push('gear'),
   closeCard: () => void calls.push('close'),
@@ -285,7 +285,7 @@ test('a card taller than the band is still drawn, for the band to scroll', () =>
   const short = args({ open: 'build', maxRows: 12 })
   expect(byKey(renderBand(short), 'card')).toBeDefined()
   ;(byKey(renderBand(short), 'phase-build')!.props.onPress as () => void)()
-  expect(calls.at(-1)).toBe('view build true')
+  expect(calls.at(-1)).toBe('view build')
 })
 
 test('a derived notice replaces the rail, an event notice sits above it', () => {

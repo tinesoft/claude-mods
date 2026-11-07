@@ -45,8 +45,8 @@ const glyphOf = (view: PhaseView, frame: number, ascii: boolean) => {
 }
 
 export type BandActions = CardActions & {
-  phase: (phase: PhaseId, fitsCard: boolean) => void
-  triage: (fitsCard: boolean) => void
+  phase: (phase: PhaseId) => void
+  triage: () => void
   summary: () => void
   gear: () => void
   pickFeature: () => void
@@ -122,7 +122,7 @@ type PhaseArgs = Pick<RailArgs, 'ui' | 'tone' | 'ascii' | 'spinFrame' | 'flow' |
   on: Pick<BandActions, 'phase'>
 }
 
-const PhaseButton = ({ args, view, fits }: { args: PhaseArgs; view: PhaseView; fits: boolean }) => {
+const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
   const { ui, tone, ascii, spinFrame, flow, open, on } = args
   const { Box, Button, Text } = ui
   const look = PHASE_LOOKS[view.state.kind]
@@ -142,7 +142,7 @@ const PhaseButton = ({ args, view, fits }: { args: PhaseArgs; view: PhaseView; f
     bold: look.bold,
     ...(look.strike && { strikethrough: true }),
   }
-  const press = () => on.phase(view.phase, fits)
+  const press = () => on.phase(view.phase)
   if (!rich) {
     return (
       <Button key={`phase-${view.phase}`} plain onPress={press}>
@@ -193,7 +193,7 @@ type TriageArgs = Pick<RailArgs, 'ui' | 'tone' | 'waiting' | 'open'> & {
   on: Pick<BandActions, 'triage'>
 }
 
-const TriageButton = ({ args, fits }: { args: TriageArgs; fits: boolean }) => {
+const TriageButton = ({ args }: { args: TriageArgs }) => {
   const { ui, tone, waiting, open, on } = args
   const { Box, Button, Text } = ui
   const isOpen = open === 'triage'
@@ -201,7 +201,7 @@ const TriageButton = ({ args, fits }: { args: TriageArgs; fits: boolean }) => {
   const rich = isRich(ui) && tone !== undefined
   if (!rich) {
     return (
-      <Button key="triage" plain onPress={() => on.triage(fits)}>
+      <Button key="triage" plain onPress={() => on.triage()}>
         <Text {...roleInk('hook', tone)} underline={isOpen}>
           {label}
         </Text>
@@ -222,7 +222,7 @@ const TriageButton = ({ args, fits }: { args: TriageArgs; fits: boolean }) => {
       backgroundColor={isOpen ? t.fill : t.surface}
     >
       <Icon ui={ui} svg={inboxSvg(hexOr(t.ink2))} alt="Inbox" />
-      <Button key="triage" plain onPress={() => on.triage(fits)}>
+      <Button key="triage" plain onPress={() => on.triage()}>
         <Text color={t.ink2}>Inbox</Text>
       </Button>
       {waiting > 0 && (
@@ -285,13 +285,11 @@ export type StripArgs = PhaseArgs & TriageArgs & { ascii: boolean }
 /** The Inbox button, a divider and the seven phases joined by connectors, shared by the rail and the pane. */
 export const PhaseStrip = ({
   args,
-  fits,
   id,
   wrap = false,
   lead,
 }: {
   args: StripArgs
-  fits: (phase: PhaseId | 'triage') => boolean
   id: string
   wrap?: boolean
   /** Drawn between the Inbox and the phases, such as the map chip. */
@@ -312,7 +310,7 @@ export const PhaseStrip = ({
       columnGap={SPACE.railGap}
       {...(wrap && { flexWrap: 'wrap' as const })}
     >
-      <TriageButton args={args} fits={fits('triage')} />
+      <TriageButton args={args} />
       {divider('divider')}
       {lead && lead}
       {lead && divider('divider-map')}
@@ -321,7 +319,7 @@ export const PhaseStrip = ({
           {index > 0 && (
             <Connector ui={ui} tone={tone} ascii={ascii} before={flow.phases[index - 1]!} />
           )}
-          <PhaseButton args={args} view={view} fits={fits(view.phase)} />
+          <PhaseButton args={args} view={view} />
         </Box>
       ))}
     </Box>
@@ -339,7 +337,7 @@ const ChipOf = ({ args, view }: { args: BandArgs; view: MapView }) => (
   />
 )
 
-const Rail = ({ args, fits }: { args: RailArgs; fits: (phase: PhaseId | 'triage') => boolean }) => {
+const Rail = ({ args }: { args: RailArgs }) => {
   const { ui, tone, flow } = args
   const { Box } = ui
   const rich = isRich(ui) && tone !== undefined
@@ -359,7 +357,7 @@ const Rail = ({ args, fits }: { args: RailArgs; fits: (phase: PhaseId | 'triage'
       })}
     >
       <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap}>
-        <PhaseStrip id="phases" args={args} fits={fits} lead={lead} />
+        <PhaseStrip id="phases" args={args} lead={lead} />
         <Title args={args} flow={flow} />
       </Box>
       <Gear args={args} />
@@ -456,7 +454,6 @@ export function renderBand(args: BandArgs) {
         )
   const extraRows = above.length + (args.isPickingFeature ? 1 : 0)
   // A card taller than the band scrolls there, so one that fits in no density is still drawn, compact.
-  const fits = () => true
   const density =
     open === null || asChip
       ? undefined
@@ -486,7 +483,7 @@ export function renderBand(args: BandArgs) {
           <FrontierCard ui={ui} tone={tone} ascii={args.ascii} view={args.map} on={on} />
         </Box>
       )}
-      {asChip ? <Summary args={railArgs} flow={flow} /> : <Rail args={railArgs} fits={fits} />}
+      {asChip ? <Summary args={railArgs} flow={flow} /> : <Rail args={railArgs} />}
     </Box>
   )
 }
