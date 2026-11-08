@@ -12,7 +12,8 @@ import {
   type AgentsView,
 } from './build'
 import { ROW_ROLES, paint, SPACE, TOKENS } from './theme'
-import { inkOf, isRich, roleInk, type Ui } from './ui'
+import { branchSvg, hexOr } from './icons'
+import { Icon, inkOf, isRich, roleInk, type Ui } from './ui'
 import { Badge, CardButton, HookNote } from './widgets'
 
 const BAR_CELLS = { terminal: 12, rich: 16 } as const
@@ -118,7 +119,14 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
         </Box>
       )}
       {hasWorktreeLine(row) && (
-        <Box flexDirection="row" columnGap={SPACE.rowLabelGap} flexWrap="wrap">
+        <Box
+          key={`agent-worktree-${row.ref}`}
+          flexDirection="row"
+          columnGap={SPACE.rowLabelGap}
+          flexWrap="wrap"
+          alignItems="center"
+        >
+          {rich && <Icon ui={ui} svg={branchSvg(hexOr(t?.ink2))} alt="" px={12} />}
           {row.worktree !== null && (
             <Text mono={rich} {...inkOf(tone, 'ink2')}>
               {row.worktree}

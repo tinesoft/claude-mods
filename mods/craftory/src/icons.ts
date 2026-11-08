@@ -43,6 +43,12 @@ export const inboxSvg = (color: string) => stroke(`<path d="${INBOX_PATH}"/>`, c
 export const lockSvg = (color: string) => stroke(`<path d="${LOCK_PATH}"/>`, color)
 export const helperSvg = (color: string) =>
   stroke('<path d="M8 2L14 5 8 8 2 5zM2 8l6 3 6-3M2 11l6 3 6-3"/>', color)
+/** The board's branch mark on an agent's worktree line. */
+export const branchSvg = (color: string) =>
+  stroke(
+    '<circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="6" r="1.5"/><path d="M4.5 5v6M11.5 7.5c0 2.5-7 1.5-7 3.5"/>',
+    color,
+  )
 export const closeSvg = (color: string) => stroke('<path d="M4 4l8 8M12 4l-8 8"/>', color)
 
 /** The Wayfinder map's diamond, filled as on the board's map chip. */

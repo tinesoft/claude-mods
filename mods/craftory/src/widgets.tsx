@@ -218,7 +218,10 @@ export const Badge = ({
   )
 }
 
-/** A bordered button on rich surfaces, `[ label ]` elsewhere; `primary` fills it with the inverse ink. */
+/**
+ * A bordered button on rich surfaces, `[ label ]` elsewhere; `primary` fills it with the inverse ink.
+ * On rich surfaces the look is the Box's: Desktop drops any colour inside a Button.
+ */
 export const CardButton = ({
   ui,
   tone,
@@ -249,7 +252,7 @@ export const CardButton = ({
       backgroundColor={primary ? t.inverseBg : t.surface}
     >
       <Button key={id} plain onPress={press => onPress(press.surface)}>
-        <Text color={primary ? t.onInk : t.ink}>{label}</Text>
+        {label}
       </Button>
     </Box>
   )

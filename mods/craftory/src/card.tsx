@@ -66,6 +66,9 @@ const CardRow = ({
     </Box>
   )
 }
+/** The board's close mark: one glyph, so Desktop draws it bare, not as a grey pill. */
+const CLOSE_GLYPH = { glyph: '×', ascii: 'x' } as const
+
 export type CardActions = Acts & { closeCard: () => void }
 
 export const DetailCard = ({
@@ -100,18 +103,23 @@ export const DetailCard = ({
       rowGap={space.gap}
       {...withTint(surface)}
     >
-      <Box flexDirection="column" rowGap={SPACE.lineGap}>
-        <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.cardHeadGap}>
-          <Box flexShrink={1} minWidth={0}>
-            <Text mono size="caption" color={colours.fg} wrap="truncate-end" {...withTint(surface)}>
-              {card.kicker}
-            </Text>
-          </Box>
-          <Button key="close" plain hotkey="x" label="Close" onPress={() => on.closeCard()} />
+      <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.cardHeadGap}>
+        <Box flexDirection="column" rowGap={SPACE.lineGap} flexShrink={1} minWidth={0}>
+          <Text mono size="caption" color={colours.fg} wrap="truncate-end" {...withTint(surface)}>
+            {card.kicker}
+          </Text>
+          <Text
+            bold
+            size={rich ? 'heading' : 'body'}
+            {...inkOf(tone, 'ink')}
+            {...withTint(surface)}
+          >
+            {card.title}
+          </Text>
         </Box>
-        <Text bold size={rich ? 'heading' : 'body'} {...inkOf(tone, 'ink')} {...withTint(surface)}>
-          {card.title}
-        </Text>
+        <Button key="close" plain hotkey="x" label="Close" onPress={() => on.closeCard()}>
+          {ascii ? CLOSE_GLYPH.ascii : CLOSE_GLYPH.glyph}
+        </Button>
       </Box>
       <Text {...inkOf(tone, 'ink2')} {...withTint(surface)}>
         {card.why}
@@ -158,6 +166,7 @@ export const DetailCard = ({
             <Button
               key="primary"
               hotkey="r"
+              {...(rich && { variant: 'primary' as const })}
               label={`r: ${card.primary.label}`}
               onPress={() => on.act(card.primary!.action)}
             />
