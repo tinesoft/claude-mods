@@ -7,6 +7,7 @@ import type { EngineInterface, Register, RenderSurface } from 'claude-code'
 import { firstRunText } from '../src/agents-md'
 import {
   KEEP_REASONS,
+  runningAgents,
   type KeepWhy,
   samePath,
   stoppedAnswer,
@@ -267,6 +268,7 @@ const bandActions = ($: EngineInterface): BandActions => ({
   map: () => void toggleMap($),
   pickMap: ref => void pickMap($, ref),
   wayfinder: arg => void requestRun($, SKILLS.wayfinder, arg),
+  openFolder: (folder, surface) => void openFolder($, folder, surface),
   pickFeature: () => void togglePicker($),
   switchFeature: key => {
     void (async () => {
@@ -528,8 +530,7 @@ export const register: Register = (on, options) => {
       tab: await paneTabOf($),
       pluginLine: pluginLine(await pluginOf($)),
       flow,
-      agents: (agents?.rows ?? []).filter(r => r.status === 'running' || r.status === 'near')
-        .length,
+      agents: runningAgents(agents).length,
       map: await mapViewOf($),
       isMapOpen: await isMapOpenOf($),
       isDecidedOpen: await isDecidedOpenOf($),

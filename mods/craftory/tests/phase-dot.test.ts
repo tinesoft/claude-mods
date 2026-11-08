@@ -10,9 +10,9 @@ for (const tone of TONES) {
   const perm = TRIPLES.perm[tone]
   const hook = TRIPLES.hook[tone]
 
-  test(`${tone}: not started is a grey ring with the step number`, () => {
+  test(`${tone}: not started is a strong grey ring with the step number`, () => {
     expect(dotOf('todo', 6, tone)).toEqual({
-      ring: t.lineDashed,
+      ring: t.lineStrong,
       fill: null,
       mark: { kind: 'number', n: 6, color: t.muted },
       dashed: false,
@@ -21,10 +21,10 @@ for (const tone of TONES) {
     })
   })
 
-  test(`${tone}: up next is a blue ring with the step number`, () => {
+  test(`${tone}: up next is a blue ring on a pale blue disc with the step number`, () => {
     expect(dotOf('next', 4, tone)).toEqual({
       ring: skill.fg,
-      fill: null,
+      fill: skill.bg,
       mark: { kind: 'number', n: 4, color: skill.fg },
       dashed: false,
       strike: false,
@@ -32,21 +32,21 @@ for (const tone of TONES) {
     })
   })
 
-  test(`${tone}: running is a blue fill with a light number and a spinner ring`, () => {
+  test(`${tone}: running is a blue fill with an on-ink number and a spinner ring`, () => {
     expect(dotOf('running', 4, tone)).toEqual({
       ring: null,
       fill: skill.fg,
-      mark: { kind: 'number', n: 4, color: t.surface },
+      mark: { kind: 'number', n: 4, color: t.onInk },
       dashed: false,
       strike: false,
       spinner: { color: skill.fg, track: skill.bd },
     })
   })
 
-  test(`${tone}: done is a teal ring with a check`, () => {
+  test(`${tone}: done is a teal ring on a pale teal disc with a check`, () => {
     expect(dotOf('done', 1, tone)).toEqual({
       ring: perm.fg,
-      fill: null,
+      fill: perm.bg,
       mark: { kind: 'glyph', glyph: 'done', color: perm.fg },
       dashed: false,
       strike: false,
@@ -106,4 +106,5 @@ test('the dot carries its colours, a dash for skipped and a turning arc for runn
   expect(running(0)).toContain(TRIPLES.skill.light.bd)
   expect(running(0)).not.toBe(running(1))
   expect(phaseDotSvg(dotOf('todo', 2, 'light'))).not.toContain('stroke-dasharray')
+  expect(phaseDotSvg(dotOf('next', 2, 'light'))).toContain(`fill="${TRIPLES.skill.light.bg}"`)
 })

@@ -4,7 +4,7 @@ import { helperSvg, hexOr } from './icons'
 import { CARD_SPACE, type CardDensity, type CardView } from './card-model'
 import type { Acts } from './action'
 import { AgentsList } from './agents-list'
-import { paint, SPACE, TOKENS, TRIPLES } from './theme'
+import { CLOSE, paint, SPACE, TOKENS, TRIPLES } from './theme'
 import { Icon, inkOf, isRich, roleInk, withTint, type Ui } from './ui'
 import { HookNote } from './widgets'
 
@@ -66,8 +66,6 @@ const CardRow = ({
     </Box>
   )
 }
-/** The board's close mark: one glyph, so Desktop draws it bare, not as a grey pill. */
-const CLOSE_GLYPH = { glyph: '×', ascii: 'x' } as const
 
 export type CardActions = Acts & { closeCard: () => void }
 
@@ -118,7 +116,7 @@ export const DetailCard = ({
           </Text>
         </Box>
         <Button key="close" plain hotkey="x" label="Close" onPress={() => on.closeCard()}>
-          {ascii ? CLOSE_GLYPH.ascii : CLOSE_GLYPH.glyph}
+          {ascii ? CLOSE.ascii : CLOSE.glyph}
         </Button>
       </Box>
       <Text {...inkOf(tone, 'ink2')} {...withTint(surface)}>

@@ -648,6 +648,13 @@ export const ROW_LABELS: Record<RowStatus, string> = {
   stopped: 'Stopped',
 }
 
+/** An agent still at work: running, or running near its budget. */
+export const isRunning = (row: AgentRow) => row.status === 'running' || row.status === 'near'
+
+/** The Feature's agents still at work, for the pane header's progress and the agents list. */
+export const runningAgents = (view: Pick<AgentsView, 'rows'> | null): AgentRow[] =>
+  (view?.rows ?? []).filter(isRunning)
+
 export function agentSummary(rows: readonly AgentRow[]): string {
   const n = (...statuses: RowStatus[]) => rows.filter(r => statuses.includes(r.status)).length
   const parts: [number, string][] = [

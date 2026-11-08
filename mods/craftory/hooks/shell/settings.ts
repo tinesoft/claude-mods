@@ -27,7 +27,7 @@ import {
   type SettingsFacts,
   type SettingsRow,
 } from '../../src/sections'
-import type { SettingsArgs } from '../../src/settings'
+import type { SettingsData } from '../../src/settings'
 import type { AgentSetup, GlossaryDoc, PluginStatus, RepoSnapshot, TermDraft } from '../../types'
 import { settle } from './flow'
 import { refreshTracker } from './sync'
@@ -416,7 +416,7 @@ export async function jumpToTerm($: EngineInterface, name: string) {
 export async function settingsArgs(
   $: EngineInterface,
   options: Readonly<Record<string, unknown>>,
-): Promise<Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly' | 'ascii' | 'pluginLine'>> {
+): Promise<SettingsData> {
   const [facts, repo, plugin, section, draft, error, note] = await Promise.all([
     settingsFacts($, options),
     repoSnapshot($),

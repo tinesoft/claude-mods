@@ -188,16 +188,23 @@ export const Field = ({
   )
 }
 
-/** A status word: bordered and tinted where the surface is rich, `[word]` where it is not. */
+/**
+ * A status word: bordered and tinted where the surface is rich, `[word]` where it is not. With
+ * `outline` it is a caption word in the role's colour, ringed in it, with no fill (a ticket's type).
+ */
 export const Badge = ({
   ui,
   tone,
   role,
   text,
   id,
+  boxKey = `badge-${id}`,
+  outline = false,
 }: Common & {
   role: Role
   text: string
+  boxKey?: string
+  outline?: boolean
 }) => {
   const { Box, Text } = ui
   const colours = paint(role, tone)
@@ -208,19 +215,31 @@ export const Badge = ({
       </Text>
     )
   }
+  const border = outline ? colours.fg : colours.bd
   return (
     <Box
-      key={`badge-${id}`}
+      key={boxKey}
       paddingX={SPACE.chipPadX}
       borderStyle="round"
-      {...(colours.bd !== undefined && { borderColor: colours.bd })}
-      backgroundColor={colours.bg ?? TOKENS[tone].fill}
+      {...(border !== undefined && { borderColor: border })}
+      {...(!outline && { backgroundColor: colours.bg ?? TOKENS[tone].fill })}
     >
-      <Text bold color={colours.fg}>
+      <Text bold {...(outline && { size: 'caption' as const })} color={colours.fg}>
         {text}
       </Text>
     </Box>
   )
+}
+
+/** The frame a card button draws on rich surfaces: the inverse ink when `primary`, else outlined. */
+export const buttonFrame = (tone: Tone, primary = false) => {
+  const t = TOKENS[tone]
+  return {
+    paddingX: SPACE.buttonPadX,
+    borderStyle: 'round' as const,
+    borderColor: primary ? t.inverseBg : t.line,
+    backgroundColor: primary ? t.inverseBg : t.surface,
+  }
 }
 
 /**
@@ -247,15 +266,8 @@ export const CardButton = ({
       </Button>
     )
   }
-  const t = TOKENS[tone]
   return (
-    <Box
-      key={`${id}-box`}
-      paddingX={SPACE.buttonPadX}
-      borderStyle="round"
-      borderColor={primary ? t.inverseBg : t.line}
-      backgroundColor={primary ? t.inverseBg : t.surface}
-    >
+    <Box key={`${id}-box`} {...buttonFrame(tone, primary)}>
       <Button key={id} plain onPress={press => onPress(press.surface)}>
         {label}
       </Button>

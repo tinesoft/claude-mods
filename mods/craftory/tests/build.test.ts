@@ -19,6 +19,7 @@ import {
   raiseRunBudget,
   recordOf,
   recordUsage,
+  runningAgents,
   seated,
   slotsUsed,
   splitArgv,
@@ -427,6 +428,9 @@ test('the rows show what the user sees: status, bar numbers, TDD step and worktr
   expect(rows[4]!.note).toBe('ready-for-human · not for agents')
   expect(rows[5]!.note).toBe('ready to start')
   expect(agentSummary(rows)).toBe('1 running · 1 merged · 3 queued · 1 for you')
+  expect(runningAgents({ rows }).map(r => r.ref)).toEqual(['#44'])
+  expect(runningAgents({ rows: [{ ...rows[1]!, status: 'near' }] })).toHaveLength(1)
+  expect(runningAgents(null)).toEqual([])
 })
 
 test('a row reads near and over from the live budget, and a stored over-budget survives a restart', () => {

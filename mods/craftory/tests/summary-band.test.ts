@@ -78,6 +78,7 @@ const on: BandActions = {
   pickMap: ref => void calls.push(`pick ${ref}`),
   act: action => void calls.push(action.kind),
   wayfinder: arg => void calls.push(`wayfinder ${arg}`),
+  openFolder: folder => void calls.push(`open ${folder}`),
 }
 
 const band = (over: Partial<BandArgs> = {}) =>
@@ -159,6 +160,12 @@ for (const tone of ['light', 'dark'] as Tone[]) {
     const count = byKey(out, 'summary-count')!
     expect(count.props.backgroundColor).toBeDefined()
     expect(count.props.color).toBe(TOKENS[tone].text2)
+  })
+
+  test(`desktop ${tone}: the summary chip is outlined with no fill at rest`, () => {
+    const chip = byKey(band({ ui: fakeUi(true), surface: 'desktop', tone }), 'summary-chip')!
+    expect(chip.props).toMatchObject({ borderStyle: 'round', borderColor: TOKENS[tone].line })
+    expect(chip.props.backgroundColor).toBeUndefined()
   })
 }
 

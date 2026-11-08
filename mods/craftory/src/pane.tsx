@@ -20,9 +20,11 @@ import type { MapView } from './map-view'
 import type { NoticeView } from './notices'
 import { NoticeRow } from './notice-row'
 import { PhaseStrip, type BandActions } from './rail'
-import { SettingsTab, type SettingsArgs } from './settings'
-import { DOT_PX, dotOf, phaseDotSvg, VBAR_SIZE, vbarSvg } from './icons'
+import { SettingsTab, type SettingsData } from './settings'
+import { barSvg, DOT_PX, dotOf, hexOr, phaseDotSvg, VBAR_SIZE } from './icons'
 import {
+  CLOSE,
+  connectorColor,
   FLOW_JOIN,
   GEAR,
   MINUS,
@@ -30,10 +32,9 @@ import {
   SPACE,
   PHASE_LOOKS,
   TOKENS,
-  TRIPLES,
   type Role,
 } from './theme'
-import { Icon, inkOf, isRich, roleInk, type Ui } from './ui'
+import { Chip, Icon, inkOf, isRich, roleInk, type Ui } from './ui'
 import { Badge, CardButton } from './widgets'
 
 export type PaneActions = {
@@ -80,7 +81,7 @@ export type PaneArgs = {
   worktrees: WorktreesView | null
   glossary: GlossaryView
   query: string
-  settings: Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly' | 'ascii' | 'pluginLine'>
+  settings: SettingsData
   on: PaneActions
 }
 
@@ -256,9 +257,16 @@ const TabRow = ({
   counts,
   on,
 }: Pick<PaneArgs, 'ui' | 'tone' | 'tab' | 'counts' | 'on'>) => {
-  const { Box, Button, Text } = ui
+  const { Box, Text } = ui
   const rich = isRich(ui) && tone !== undefined
   const t = tone === undefined ? undefined : TOKENS[tone]
+  // the selected tab is a surface card on the strip's fill; the others are bare
+  const look = t && {
+    pressedBorder: t.line,
+    pressedFill: t.surface,
+    padX: SPACE.tabPad,
+    gap: SPACE.chipGap,
+  }
   return (
     <Box
       key="tabs"
@@ -271,39 +279,31 @@ const TabRow = ({
         const isOn = tab === id
         const count = counts[id]
         return (
-          <Box
-            key={`tab-${id}-box`}
-            flexDirection="row"
-            alignItems="center"
-            paddingX={SPACE.tabPad}
-            columnGap={SPACE.chipGap}
-            {...(rich &&
-              t !== undefined &&
-              isOn && {
-                backgroundColor: t.surface,
-                borderStyle: 'round' as const,
-                borderColor: t.line,
-              })}
+          <Chip
+            key={id}
+            ui={ui}
+            tone={tone}
+            id={`tab-${id}`}
+            boxKey={`tab-${id}-box`}
+            look={look}
+            layout={{ padX: SPACE.tabPad, gap: SPACE.chipGap }}
+            ink={inkOf(tone, isOn ? 'ink' : 'text2')}
+            label={title}
+            pressed={isOn}
+            pressedStyle="bold"
+            inside
+            hotkey={hotkey}
+            onPress={() => on.tab(id)}
           >
-            <Button key={`tab-${id}`} plain hotkey={hotkey} onPress={() => on.tab(id)}>
-              {/* Desktop drops colour inside a Button: the tab Box carries the state there. */}
-              <Text
-                bold={isOn}
-                {...(!rich && {
-                  dimColor: !isOn && tone === undefined,
-                  ...(tone !== undefined && inkOf(tone, isOn ? 'ink' : 'text2')),
-                })}
-              >
-                {title}
-              </Text>
-              {!rich && count !== undefined && <Text {...inkOf(tone, 'muted')}>{` ${count}`}</Text>}
-            </Button>
-            {rich && count !== undefined && (
-              <Text mono {...inkOf(tone, 'muted')}>
-                {count}
-              </Text>
-            )}
-          </Box>
+            {count !== undefined &&
+              (rich ? (
+                <Text mono {...inkOf(tone, 'muted')}>
+                  {count}
+                </Text>
+              ) : (
+                <Text {...inkOf(tone, 'muted')}>{` ${count}`}</Text>
+              ))}
+          </Chip>
         )
       })}
     </Box>
@@ -331,9 +331,8 @@ const FlowMark = ({
 }) => {
   const { Box, Svg, Text } = ui
   const look = PHASE_LOOKS[row.state]
-  const isDone = row.state === 'done'
-  if (Svg !== undefined && tone !== undefined) {
-    const bar = isDone ? TRIPLES.perm[tone].bd : TOKENS[tone].line
+  const join = connectorColor(row.state === 'done', tone)
+  if (Svg !== undefined && tone !== undefined && join !== undefined) {
     return (
       <Box key={`flow-mark-${row.phase}`} flexDirection="column" alignItems="center" rowGap="xs">
         <Icon
@@ -344,7 +343,11 @@ const FlowMark = ({
         />
         {!isLast && (
           <Box key={`flow-join-${row.phase}`} flexGrow={1} alignItems="center">
-            <Svg source={vbarSvg(bar)} alt="" {...VBAR_SIZE} />
+            <Svg
+              source={barSvg(VBAR_SIZE.width, VBAR_SIZE.height, hexOr(join))}
+              alt=""
+              {...VBAR_SIZE}
+            />
           </Box>
         )}
       </Box>
@@ -357,7 +360,7 @@ const FlowMark = ({
       </Text>
       {!isLast && (
         <Box key={`flow-join-${row.phase}`}>
-          <Text {...(isDone ? roleInk('perm', tone) : inkOf(tone, 'muted'))}>
+          <Text {...(join === undefined ? { dimColor: true } : { color: join })}>
             {ascii ? FLOW_JOIN.ascii : FLOW_JOIN.glyph}
           </Text>
         </Box>
@@ -834,7 +837,12 @@ const PaneHeader = ({
           label={ascii ? GEAR.ascii : GEAR.glyph}
           onPress={() => on.settings()}
         />
-        <Button key="pane-close" plain label={ascii ? 'x' : '×'} onPress={() => on.close()} />
+        <Button
+          key="pane-close"
+          plain
+          label={ascii ? CLOSE.ascii : CLOSE.glyph}
+          onPress={() => on.close()}
+        />
       </Box>
     </Box>
   )

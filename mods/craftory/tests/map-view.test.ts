@@ -3,6 +3,7 @@ import type { IssueRef, WayMap, WayState, WayTicket } from '../types'
 import {
   mapArg,
   mapChipCompact,
+  mapChipCompactText,
   mapChipText,
   mapView,
   routeStatus,
@@ -87,6 +88,12 @@ test('the compact counts are decided and open marks, ascii-safe', () => {
   expect(mapChipCompact(billing([ticket(1, 'open')], { isClosed: true }), false)).toBe(
     '0✓ 1? Closed',
   )
+})
+
+test('the compact chip is the mark, the clipped name and the compact counts', () => {
+  const view = billing([ticket(1, 'resolved'), ticket(2, 'open')])
+  expect(mapChipCompactText(view, false)).toBe('◆ Billing v2 1✓ 1?')
+  expect(mapChipCompactText(view, true)).toBe('* Billing v2 1v 1?')
 })
 
 test('the route status asks whether the route is clear only when no ticket is open', () => {

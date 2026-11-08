@@ -1,3 +1,4 @@
+import type { RenderSurface } from 'claude-code'
 import type { IssueRef, Tone, WayTicket } from '../types'
 import {
   mapArg,
@@ -14,8 +15,8 @@ import {
 } from './map-view'
 import { paint, SPACE, TOKENS } from './theme'
 import { diamondSvg, hexOr, ruleSvg } from './icons'
-import { Chip, inkOf, isRich, withTint, type Ui } from './ui'
-import { CardButton } from './widgets'
+import { Chip, inkOf, isRich, roleLook, withTint, type Ui } from './ui'
+import { Badge, buttonFrame, CardButton } from './widgets'
 
 /** The most Takeable rows the card lists; the rest are a count. */
 const FRONTIER_ROWS = 5
@@ -80,6 +81,8 @@ export const MapChip = ({
       tone={tone}
       id="map-chip"
       role="agent"
+      // the Wayfinder board rings the open map chip in the agent colour, not the strong line
+      look={roleLook('agent', tone, colours => colours.fg)}
       icon={diamondSvg(hexOr(agent.fg))}
       glyph={mapChipGlyph(ascii)}
       label={mapChipName(view, ascii)}
@@ -142,17 +145,16 @@ const FrontierRow = ({
           {ticket.title}
         </Text>
       </Box>
-      {type !== null && (
-        <Box
-          key={`frontier-type-${ticket.ref}`}
-          paddingX={SPACE.chipPadX}
-          borderStyle="round"
-          borderColor={typeInk}
-        >
-          <Text bold size="caption" color={typeInk}>
-            {type}
-          </Text>
-        </Box>
+      {type !== null && ticket.type !== null && (
+        <Badge
+          ui={ui}
+          tone={tone}
+          id={ticket.ref}
+          boxKey={`frontier-type-${ticket.ref}`}
+          role={ticketTypeRole(ticket.type)}
+          text={type}
+          outline
+        />
       )}
     </Box>
   )
@@ -173,7 +175,11 @@ export const FrontierCard = ({
   tone: Tone | undefined
   ascii: boolean
   view: MapView
-  on: Pick<MapActions, 'closeCard' | 'pickMap'> & { wayfinder: (arg: string) => void }
+  on: Pick<MapActions, 'closeCard' | 'pickMap'> & {
+    wayfinder: (arg: string) => void
+    /** Copies a map's location where the surface has no link to press. */
+    openFolder: (folder: string, surface: RenderSurface) => void
+  }
 }) => {
   const { Box, Button, Link, Svg, Text } = ui
   const rich = isRich(ui) && tone !== undefined
@@ -290,19 +296,21 @@ export const FrontierCard = ({
             </Text>
           </Box>
         )}
-        {/* the Tickets tab's link, framed as the secondary button on rich surfaces */}
-        <Box
-          key="frontier-open-map"
-          {...(rich &&
-            t !== undefined && {
-              paddingX: SPACE.buttonPadX,
-              borderStyle: 'round',
-              borderColor: t.line,
-              backgroundColor: t.surface,
-            })}
-        >
-          <Link href={view.map.location} label="Open map" />
-        </Box>
+        {/* Desktop keeps the Tickets tab's link, framed as the secondary button; the terminal
+            has no link to press beside Work next ticket, so a bracketed button copies the path. */}
+        {rich ? (
+          <Box key="frontier-open-map" {...buttonFrame(tone)}>
+            <Link href={view.map.location} label="Open map" />
+          </Box>
+        ) : (
+          <CardButton
+            ui={ui}
+            tone={tone}
+            id="frontier-open-map"
+            label="Open map"
+            onPress={surface => on.openFolder(view.map.location, surface)}
+          />
+        )}
       </Box>
     </Box>
   )

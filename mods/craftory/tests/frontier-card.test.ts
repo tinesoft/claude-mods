@@ -57,12 +57,9 @@ for (const surface of BAND_SURFACES) {
     const w = featureWorld(on, { surfaces: [surface], ...mixed() })
     const band = await openCard($, surface)
     // the same Link as the Tickets tab's: Desktop draws a local path as plain text
-    const open = (await band.find({ key: 'frontier-open-map' }))!
-    expect(open.text).toBe('Open map')
-    if (surface === 'terminal') {
-      const links = await band.findAll({ type: 'Link' })
-      expect(links.find(l => l.props.href === MAP)?.props.label).toBe('Open map')
-    }
+    // Desktop keeps the Tickets tab's link, which it draws as plain text for a local path
+    if (surface === 'desktop')
+      expect((await band.find({ key: 'frontier-open-map' }))!.text).toBe('Open map')
     await band.press({ key: 'frontier-work-next' })
     expect(w.commandsRun).toEqual([{ command: 'mattpocock-skills:wayfinder', args: MAP }])
   })
@@ -74,10 +71,21 @@ for (const surface of BAND_SURFACES) {
     expect(await band.find({ key: 'frontier-head' })).toBeUndefined()
     const hint = (await band.find({ key: 'frontier-work-next-off' }))!
     expect(hint.text).toBe('Work next ticket · Nothing takeable')
-    expect((await band.find({ key: 'frontier-open-map' }))!.text).toBe('Open map')
+    expect((await band.find({ key: 'frontier-open-map' }))!.text).toMatch(/Open map/)
     expect(w.commandsRun).toEqual([])
   })
 }
+
+test('terminal: Open map is a bracketed button beside Work next ticket, and copies the map path', async ($, on) => {
+  const w = featureWorld(on, { surfaces: ['terminal'], ...mixed() })
+  const band = await openCard($, 'terminal')
+  expect((await band.find({ key: 'frontier-open-map' }))!.text).toBe('[ Open map ]')
+  expect((await band.findAll({ type: 'Link' })).filter(l => l.props.label === 'Open map')).toEqual(
+    [],
+  )
+  await band.press({ key: 'frontier-open-map' })
+  expect(w.copied).toEqual([expect.objectContaining({ text: MAP })])
+})
 
 for (const tone of ['light', 'dark'] as const) {
   test(`desktop ${tone}: an agent kicker, a framed Frontier with a header strip, and outlined type badges`, async ($, on) => {

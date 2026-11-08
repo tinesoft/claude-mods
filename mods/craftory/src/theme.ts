@@ -179,6 +179,22 @@ export const SPIN_MS = 150
 
 export const CONNECTOR = { glyph: '─', ascii: '-' } as const
 
+/**
+ * The line joining a phase to the next, across the rail or down the Flow timeline: teal once the
+ * earlier phase is Done, else the quiet line. `undefined` on a toneless terminal, which dims it.
+ */
+export const connectorColor = (isDone: boolean, tone: Tone | undefined): Color | undefined =>
+  isDone
+    ? tone === undefined
+      ? TERMINAL_KEY.perm
+      : TRIPLES.perm[tone].bd
+    : tone === undefined
+      ? undefined
+      : TOKENS[tone].line
+
+/** The board's close mark on cards and the pane: one glyph, so Desktop draws it bare, not as a grey pill. */
+export const CLOSE = { glyph: '×', ascii: 'x' } as const
+
 /** Joins one Flow-tab phase to the next on the terminal. */
 export const FLOW_JOIN = { glyph: '│', ascii: '|' } as const
 

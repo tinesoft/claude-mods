@@ -6,6 +6,7 @@ import {
   elapsedText,
   hasMeterLine,
   hasWorktreeLine,
+  isRunning,
   kTokens,
   ROW_LABELS,
   type AgentRow,
@@ -62,7 +63,7 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
   const stepInk =
     row.status === 'over' || row.status === 'failed'
       ? roleInk('danger', tone)
-      : row.status === 'running' || row.status === 'near'
+      : isRunning(row)
         ? inkOf(tone, 'ink2')
         : inkOf(tone, 'muted')
   return (

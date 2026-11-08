@@ -165,17 +165,14 @@ export function mapView(
 export const mapCountsText = (view: MapView) =>
   `${view.decided} decided · ${view.open} open${view.claimed > 0 ? ` (${view.claimed} claimed)` : ''}${view.map.isClosed ? ' · Closed' : ''}`
 
-/** `Tax rounding (grilling)`: a ticket's title, then its type when it has one. */
-export const ticketLabel = (ticket: WayTicket) =>
-  `${ticket.title}${ticket.type === null ? '' : ` (${ticket.type})`}`
-
 /**
- * Map chip text, shared by the rail, the summary and the pane (tickets 01, 05, 11):
+ * Map chip text, one wording for the rail, the collapsed summary and the pane:
  * - `mapChipGlyph(ascii)`: `◆`, or `*` with ASCII glyphs.
  * - `mapChipName(view, ascii)`: the title clipped to MAP_TITLE_MAX.
  * - `mapChipCounts(view)`: `2 decided · 4 open`, then ` · Closed` when the map is closed.
  * - `mapChipText(view, ascii)`: the whole chip, `◆ Billing v2 · 2 decided · 4 open`.
  * - `mapChipCompact(view, ascii)`: the summary's counts, `2✓ 4?` (`2v 4?`), then ` Closed`.
+ * - `mapChipCompactText(view, ascii)`: the whole compact chip, `◆ Billing v2 2✓ 4?`.
  * - `routeStatus(view)`: the route question for the cards, null while a ticket is open or the
  *   map is closed. The chip never carries it.
  */
@@ -194,6 +191,9 @@ export const mapChipText = (view: MapView, ascii: boolean) =>
 
 export const mapChipCompact = (view: MapView, ascii: boolean) =>
   `${view.decided}${ascii ? 'v' : '✓'} ${view.open}?${closedTail(view, ' ')}`
+
+export const mapChipCompactText = (view: MapView, ascii: boolean) =>
+  `${mapChipGlyph(ascii)} ${mapChipName(view, ascii)} ${mapChipCompact(view, ascii)}`
 
 /** The fact the cards state when no ticket is open; the user closes the map, never the mod. */
 export const routeStatus = (view: MapView): string | null =>

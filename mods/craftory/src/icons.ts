@@ -67,17 +67,15 @@ export const ruleSvg = (color: string) =>
 export const listSvg = (color: string) =>
   stroke('<path d="M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.1M2.5 8h.1M2.5 12h.1"/>', color)
 
-export const BAR_SIZE = { width: 12, height: 2 } as const
-
 /** The short bar joining two phase steps on rich surfaces. */
-export const barSvg = (color: string) =>
-  `<svg ${XMLNS} viewBox="0 0 12 2"><rect width="12" height="2" rx="1" fill="${color}"/></svg>`
+export const BAR_SIZE = { width: 12, height: 2 } as const
 
 /** The thin vertical bar joining two phases of the Flow timeline on rich surfaces. */
 export const VBAR_SIZE = { width: 2, height: 16 } as const
 
-export const vbarSvg = (color: string) =>
-  `<svg ${XMLNS} viewBox="0 0 2 16"><rect width="2" height="16" rx="1" fill="${color}"/></svg>`
+/** A rounded bar `w`×`h`: the line joining two phases, across the rail or down the Flow timeline. */
+export const barSvg = (w: number, h: number, color: string) =>
+  `<svg ${XMLNS} viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" rx="1" fill="${color}"/></svg>`
 
 export const OFF_TRACK = '#C4C8D0'
 const RING_ARC = 'M8 2.5a5.5 5.5 0 0 1 5.5 5.5'
@@ -153,21 +151,21 @@ export const dotOf = (state: PhaseState['kind'], n: number, tone: Tone): Dot => 
   })
   switch (state) {
     case 'todo':
-      return { ...plain, ring: t.lineDashed, mark: number(t.muted) }
+      return { ...plain, ring: t.lineStrong, mark: number(t.muted) }
     case 'next':
-      return { ...plain, ring: skill.fg, mark: number(skill.fg) }
+      return { ...plain, ring: skill.fg, fill: skill.bg, mark: number(skill.fg) }
     case 'running':
       return {
         ...plain,
         ring: null,
         fill: skill.fg,
-        mark: number(t.surface),
+        mark: number(t.onInk),
         spinner: { color: skill.fg, track: skill.bd },
       }
     case 'skipped':
       return { ...plain, ring: t.muted, mark: number(t.muted), dashed: true, strike: true }
     case 'done':
-      return glyph('done', TRIPLES.perm[tone].fg)
+      return { ...glyph('done', TRIPLES.perm[tone].fg), fill: TRIPLES.perm[tone].bg }
     case 'needs-you':
       return glyph('needs-you', TRIPLES.hook[tone].fg)
     case 'gated':
@@ -216,7 +214,11 @@ export const phaseDotSvg = (dot: Dot, frame = 0) => {
       : `<circle cx="12" cy="12" r="10.6" fill="none" stroke="${dot.spinner.track}" stroke-width="1.6"/>` +
         `<path d="M12 1.4a10.6 10.6 0 0 1 10.6 10.6" fill="none" stroke="${dot.spinner.color}" ` +
         `stroke-width="1.6" stroke-linecap="round" transform="rotate(${(frame % 4) * 90} 12 12)"/>`
-  const fill = dot.fill === null ? '' : `<circle cx="12" cy="12" r="8" fill="${dot.fill}"/>`
+  // a ringed disc fills up to its ring; Running's disc sits inside the spinner's track
+  const fill =
+    dot.fill === null
+      ? ''
+      : `<circle cx="12" cy="12" r="${dot.ring === null ? 8 : 10}" fill="${dot.fill}"/>`
   const mark =
     dot.mark.kind === 'number'
       ? numberMark(dot.mark.n, dot.mark.color)
@@ -225,5 +227,5 @@ export const phaseDotSvg = (dot: Dot, frame = 0) => {
     dot.strike && dot.mark.kind === 'number'
       ? `<path d="M6.5 12h11" stroke="${dot.mark.color}" stroke-width="1.6" stroke-linecap="round"/>`
       : ''
-  return `<svg ${XMLNS} viewBox="0 0 24 24">${ring}${spinner}${fill}${mark}${strike}</svg>`
+  return `<svg ${XMLNS} viewBox="0 0 24 24">${fill}${ring}${spinner}${mark}${strike}</svg>`
 }

@@ -28,7 +28,7 @@ for (const tone of ['light', 'dark'] as const) {
     expect(await dot('build')).toContain(TRIPLES.skill[tone].fg)
     expect(await dot('review')).toContain(TOKENS[tone].text2)
     expect(await dot('retro')).toContain('data-n="7"')
-    expect(await dot('retro')).toContain(TOKENS[tone].lineDashed)
+    expect(await dot('retro')).toContain(TOKENS[tone].lineStrong)
   })
 }
 

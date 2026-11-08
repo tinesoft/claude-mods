@@ -41,6 +41,7 @@ const on: BandActions = {
   map: () => void calls.push('map'),
   pickMap: ref => void calls.push(`pick ${ref}`),
   wayfinder: arg => void calls.push(`wayfinder ${arg}`),
+  openFolder: folder => void calls.push(`open ${folder}`),
   act: action => void calls.push(action.kind === 'run-phase' ? `run ${action.phase}` : action.kind),
 }
 

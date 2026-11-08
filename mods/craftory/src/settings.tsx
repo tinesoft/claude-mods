@@ -54,6 +54,9 @@ export type SettingsArgs = {
   on: SettingsActions
 }
 
+/** What the Settings tab shows, read from the repo and the store; the pane adds how to draw it. */
+export type SettingsData = Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly' | 'ascii' | 'pluginLine'>
+
 const hintOf = (row: SettingsRow) => row.hint
 
 const RowView = ({
