@@ -22,7 +22,7 @@ const wayfinder = (files: Map<string, string>, file: string, status: 'claimed' |
 }
 
 const chip = async ($: Engine) =>
-  (await (await mountBand($, 'terminal', 200)).find({ key: 'map-chip' }))!.text
+  (await (await mountBand($, 'terminal', 200)).find({ key: 'box-map-chip' }))!.text
 
 const card = async ($: Engine) => {
   await (await mountBand($, 'terminal', 200)).press({ key: 'map-chip' })
@@ -42,19 +42,19 @@ test('a claim and then a resolve by /wayfinder update the chip, card and Tickets
   const pane = await mountPane($, 'terminal')
   await pane.press({ key: 'tab-tickets' })
 
-  expect(await chip($)).toContain('Billing v2 2✓ 4?')
+  expect(await chip($)).toContain('Billing v2 · 2 decided · 4 open')
   expect(await card($)).toContain('2 decided · 4 open (1 claimed)')
   expect(await ticketsTab(pane)).toContain('2 decided · 4 open (1 claimed)')
 
   wayfinder(w.files, '03-invoice-layout.md', 'claimed')
   await turnComplete($)
-  expect(await chip($)).toContain('Billing v2 2✓ 4?')
+  expect(await chip($)).toContain('Billing v2 · 2 decided · 4 open')
   expect(await card($)).toContain('2 decided · 4 open (2 claimed)')
   expect(await ticketsTab(pane)).toContain('2 decided · 4 open (2 claimed)')
 
   wayfinder(w.files, '03-invoice-layout.md', 'resolved')
   await turnComplete($)
-  expect(await chip($)).toContain('Billing v2 3✓ 3?')
+  expect(await chip($)).toContain('Billing v2 · 3 decided · 3 open')
   expect(await card($)).toContain('3 decided · 3 open (1 claimed)')
   const tab = await ticketsTab(pane)
   expect(tab).toContain('3 decided · 3 open (1 claimed)')

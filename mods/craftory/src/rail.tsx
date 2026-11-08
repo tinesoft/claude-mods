@@ -17,7 +17,7 @@ import { DetailCard, type CardActions } from './card'
 import type { Flow, PhaseView } from './evidence'
 import { hexOr, inboxSvg, OFF_TRACK, spinnerSvg, phaseSvg } from './icons'
 import { FrontierCard, MapChip } from './map-card'
-import { mapChipText, type MapView } from './map-view'
+import { mapChipCompact, mapChipGlyph, mapChipName, mapChipText, type MapView } from './map-view'
 import { NoticeRow } from './notice-row'
 import type { FeatureChoice } from './features'
 import type { NoticeView } from './notices'
@@ -326,8 +326,17 @@ export const PhaseStrip = ({
   )
 }
 
-const ChipOf = ({ args, view }: { args: BandArgs; view: MapView }) => (
+const ChipOf = ({
+  args,
+  view,
+  compact = false,
+}: {
+  args: BandArgs
+  view: MapView
+  compact?: boolean
+}) => (
   <MapChip
+    compact={compact}
     ui={args.ui}
     tone={args.tone}
     ascii={args.ascii}
@@ -372,7 +381,11 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   const look = PHASE_LOOKS[view.state.kind]
   const colours = paint(look.role, tone)
   const rich = isRich(ui) && tone !== undefined
-  const mapWidth = args.map === null ? 0 : mapChipText(args.map, args.ascii).length + 1
+  const mapWidth =
+    args.map === null
+      ? 0
+      : `${mapChipGlyph(args.ascii)} ${mapChipName(args.map)} ${mapChipCompact(args.map, args.ascii)}`
+          .length + 1
   const text = clip(chipText(flow), Math.max(10, columns - GEAR_RESERVE - 6 - mapWidth))
   return (
     <Box
@@ -382,7 +395,7 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
       columnGap={SPACE.railGap}
     >
       <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap}>
-        {args.map !== null && <ChipOf args={args} view={args.map} />}
+        {args.map !== null && <ChipOf args={args} view={args.map} compact />}
         <Box
           key="summary-chip"
           flexDirection="row"

@@ -114,10 +114,6 @@ export function wayfinderOffer(input: {
   }
 }
 
-/** The fact the card states when no ticket is open; the user closes the map, never the mod. */
-export const routeClearText = (map: WayMap) =>
-  `No open tickets · Route clear?${map.hasFog ? ' Not yet specified still has fog.' : ''}`
-
 /** State comes from each ticket's structure alone: resolved, claimed, or open and then blocked or takeable. */
 export function mapView(
   map: WayMap,
@@ -156,12 +152,33 @@ export const mapCountsText = (view: MapView) =>
 export const ticketLabel = (ticket: WayTicket) =>
   `${ticket.title}${ticket.type === null ? '' : ` (${ticket.type})`}`
 
-/** `◆ Billing v2 2✓ 4?`: the title, then decided and open; or the route-clear fact, or `Closed`. */
-export function mapChipText(view: MapView, ascii: boolean): string {
-  const head = `${ascii ? '*' : '◆'} ${clip(view.map.title, MAP_TITLE_MAX)}`
-  const counts = `${view.decided}${ascii ? 'v' : '✓'} ${view.open}?`
-  if (view.map.isClosed) return `${head} ${counts} Closed`
-  if (view.open === 0)
-    return `${head} No open tickets · Route clear?${view.map.hasFog ? ' · fog' : ''}`
-  return `${head} ${counts}`
-}
+/**
+ * Map chip text, shared by the rail, the summary and the pane (tickets 01, 05, 11):
+ * - `mapChipGlyph(ascii)`: `◆`, or `*` with ASCII glyphs.
+ * - `mapChipName(view)`: the title clipped to MAP_TITLE_MAX.
+ * - `mapChipCounts(view)`: `2 decided · 4 open`, then ` · Closed` when the map is closed.
+ * - `mapChipText(view, ascii)`: the whole chip, `◆ Billing v2 · 2 decided · 4 open`.
+ * - `mapChipCompact(view, ascii)`: the summary's counts, `2✓ 4?` (`2v 4?`), then ` Closed`.
+ * - `routeStatus(view)`: the route question for the cards, null while a ticket is open or the
+ *   map is closed. The chip never carries it.
+ */
+export const mapChipGlyph = (ascii: boolean) => (ascii ? '*' : '◆')
+
+export const mapChipName = (view: MapView) => clip(view.map.title, MAP_TITLE_MAX)
+
+const closedTail = (view: MapView, sep: string) => (view.map.isClosed ? `${sep}Closed` : '')
+
+export const mapChipCounts = (view: MapView) =>
+  `${view.decided} decided · ${view.open} open${closedTail(view, ' · ')}`
+
+export const mapChipText = (view: MapView, ascii: boolean) =>
+  `${mapChipGlyph(ascii)} ${mapChipName(view)} · ${mapChipCounts(view)}`
+
+export const mapChipCompact = (view: MapView, ascii: boolean) =>
+  `${view.decided}${ascii ? 'v' : '✓'} ${view.open}?${closedTail(view, ' ')}`
+
+/** The fact the cards state when no ticket is open; the user closes the map, never the mod. */
+export const routeStatus = (view: MapView): string | null =>
+  view.map.isClosed || view.open > 0
+    ? null
+    : `No open tickets · Route clear?${view.map.hasFog ? ' Not yet specified still has fog.' : ''}`

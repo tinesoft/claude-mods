@@ -83,7 +83,8 @@ export const TOKENS: Record<Tone, Tokens> = {
 
 export type Triple = { fg: string; bg: string; bd: string }
 
-export const TRIPLES: Record<'skill' | 'perm' | 'hook', Record<Tone, Triple>> = {
+/** `agent` is session-activity's agent palette (its terminal key `merged`), so both mods agree. */
+export const TRIPLES: Record<'skill' | 'perm' | 'hook' | 'agent', Record<Tone, Triple>> = {
   skill: {
     light: { fg: '#1F4FC1', bg: '#EDF2FD', bd: '#C9D7F7' },
     dark: { fg: '#8FB0FF', bg: '#1B2A4A', bd: '#2D4373' },
@@ -96,14 +97,19 @@ export const TRIPLES: Record<'skill' | 'perm' | 'hook', Record<Tone, Triple>> = 
     light: { fg: '#9A4A0B', bg: '#FDF1E6', bd: '#F0CFAE' },
     dark: { fg: '#F5B47A', bg: '#3D2614', bd: '#643F20' },
   },
+  agent: {
+    light: { fg: '#5B3A99', bg: '#F3EEFB', bd: '#D9CCF0' },
+    dark: { fg: '#C3A8F5', bg: '#2C2147', bd: '#463470' },
+  },
 }
 
-export type Role = 'skill' | 'perm' | 'hook' | 'danger' | 'neutral' | 'muted'
+export type Role = 'skill' | 'perm' | 'hook' | 'agent' | 'danger' | 'neutral' | 'muted'
 
 const TERMINAL_KEY: Record<Role, Color> = {
   skill: 'suggestion',
   perm: 'planMode',
   hook: 'warning',
+  agent: 'merged',
   danger: 'error',
   neutral: 'text',
   muted: 'subtle',
@@ -118,6 +124,7 @@ export function paint(role: Role, tone: Tone | undefined): Paint {
     case 'skill':
     case 'perm':
     case 'hook':
+    case 'agent':
       return { fg: TRIPLES[role][tone].fg, bg: TRIPLES[role][tone].bg, bd: TRIPLES[role][tone].bd }
     case 'danger':
       return { fg: t.danger, bg: t.surface, bd: t.dangerBd }

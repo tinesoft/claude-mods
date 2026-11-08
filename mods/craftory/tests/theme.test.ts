@@ -19,6 +19,12 @@ test('the tokens are the session-activity palette in both tones', () => {
   expect(TRIPLES.hook.dark).toEqual({ fg: '#F5B47A', bg: '#3D2614', bd: '#643F20' })
 })
 
+test("the agent colour is session-activity's agent palette, in both tones", () => {
+  expect(paint('agent', 'light')).toEqual({ fg: '#5B3A99', bg: '#F3EEFB', bd: '#D9CCF0' })
+  expect(paint('agent', 'dark')).toEqual({ fg: '#C3A8F5', bg: '#2C2147', bd: '#463470' })
+  expect(paint('agent', undefined)).toEqual({ fg: 'merged', bg: undefined, bd: undefined })
+})
+
 test('a role paints from its triple, and from theme keys when the tone is unknown', () => {
   expect(paint('hook', 'light')).toEqual({ fg: '#9A4A0B', bg: '#FDF1E6', bd: '#F0CFAE' })
   expect(paint('danger', 'dark')).toEqual({ fg: '#F97066', bg: '#1B1D21', bd: '#7A2E28' })

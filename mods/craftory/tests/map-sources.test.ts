@@ -13,7 +13,9 @@ test('a GitHub map lights up the chip and card with the GitHub kicker', async ($
   featureWorld(on, { files: GITHUB_TRACKER, gh: ghAnswer('mixed') })
   await startSession($)
   const band = await mountBand($, 'terminal', 200)
-  expect((await band.find({ key: 'map-chip' }))!.text).toContain('Billing v2 2✓ 4?')
+  expect((await band.find({ key: 'box-map-chip' }))!.text).toContain(
+    'Billing v2 · 2 decided · 4 open',
+  )
   expect(await kickerAfterOpening($)).toContain('Wayfinder · GitHub · #12')
 })
 
@@ -55,7 +57,9 @@ test('a GitLab map lights up the chip and card with the GitLab kicker', async ($
   featureWorld(on, { files: GITLAB_TRACKER, shell: glabShell('mixed') })
   await startSession($)
   const band = await mountBand($, 'terminal', 200)
-  expect((await band.find({ key: 'map-chip' }))!.text).toContain('Billing v2 2✓ 4?')
+  expect((await band.find({ key: 'box-map-chip' }))!.text).toContain(
+    'Billing v2 · 2 decided · 4 open',
+  )
   expect(await kickerAfterOpening($)).toContain('Wayfinder · GitLab · #12')
 })
 

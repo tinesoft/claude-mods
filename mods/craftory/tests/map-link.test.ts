@@ -114,7 +114,9 @@ test('picking a map in the switcher makes it the active one, and the chip stays 
   await startSession($)
   await (await openCard($)).press({ key: 'map-switch-billing-v2' })
   const band = await mountBand($, 'terminal', 200)
-  expect((await band.find({ key: 'map-chip' }))!.text).toContain('Billing v2 2✓ 4?')
+  expect((await band.find({ key: 'box-map-chip' }))!.text).toContain(
+    'Billing v2 · 2 decided · 4 open',
+  )
   expect((await band.find({ key: 'map-switch-refunds' }))!.text).toContain('Refunds')
 })
 

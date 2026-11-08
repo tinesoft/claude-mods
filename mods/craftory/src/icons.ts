@@ -45,6 +45,10 @@ export const helperSvg = (color: string) =>
   stroke('<path d="M8 2L14 5 8 8 2 5zM2 8l6 3 6-3M2 11l6 3 6-3"/>', color)
 export const closeSvg = (color: string) => stroke('<path d="M4 4l8 8M12 4l-8 8"/>', color)
 
+/** The Wayfinder map's diamond, filled as on the board's map chip. */
+export const diamondSvg = (color: string) =>
+  `<svg ${XMLNS} viewBox="0 0 16 16" fill="${color}"><path d="M8 1.5L14.5 8 8 14.5 1.5 8z"/></svg>`
+
 export const OFF_TRACK = '#C4C8D0'
 const RING_ARC = 'M8 2.5a5.5 5.5 0 0 1 5.5 5.5'
 

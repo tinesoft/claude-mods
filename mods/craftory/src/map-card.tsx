@@ -1,15 +1,19 @@
 import type { IssueRef, Tone, WayTicket } from '../types'
 import {
   mapArg,
-  mapChipText,
+  mapChipCompact,
+  mapChipCounts,
+  mapChipGlyph,
+  mapChipName,
   mapCountsText,
-  routeClearText,
+  routeStatus,
   ticketArg,
   ticketLabel,
   type MapView,
 } from './map-view'
 import { paint, SPACE, TOKENS } from './theme'
-import { inkOf, isRich, withTint, type Ui } from './ui'
+import { diamondSvg, hexOr } from './icons'
+import { Chip, inkOf, isRich, withTint, type Ui } from './ui'
 import { CardButton } from './widgets'
 
 /** The most Takeable rows the card lists; the rest are a count. */
@@ -44,13 +48,17 @@ export type MapActions = {
   pickMap: (ref: IssueRef) => void
 }
 
-/** One chip for the active map: its name, how many tickets are decided and how many are open. */
+/**
+ * One chip for the active map, in the agent colour: `◆ <name> · n decided · n open`, or with
+ * `compact` the summary's `◆ <name> 2✓ 4?`. Drawn with the chip pattern; `map-chip` is the press.
+ */
 export const MapChip = ({
   ui,
   tone,
   ascii,
   view,
   isOpen,
+  compact = false,
   on,
 }: {
   ui: Ui
@@ -58,31 +66,34 @@ export const MapChip = ({
   ascii: boolean
   view: MapView
   isOpen: boolean
+  compact?: boolean
   on: Pick<MapActions, 'map'>
 }) => {
-  const { Box, Button, Text } = ui
-  const text = mapChipText(view, ascii)
-  const button = (
-    <Button key="map-chip" plain onPress={() => on.map()}>
-      <Text {...(tone === undefined ? {} : { color: paint('skill', tone).fg })} underline={isOpen}>
-        {text}
-      </Text>
-    </Button>
-  )
-  if (!isRich(ui) || tone === undefined) return button
-  const t = TOKENS[tone]
+  const { Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  const agent = paint('agent', tone)
+  const counts = compact ? mapChipCompact(view, ascii) : `· ${mapChipCounts(view)}`
   return (
-    <Box
-      key="box-map-chip"
-      flexDirection="row"
-      alignItems="center"
-      paddingX={SPACE.phasePadX}
-      borderStyle="round"
-      borderColor={isOpen ? t.lineStrong : t.surface}
-      backgroundColor={isOpen ? t.fill : t.surface}
+    <Chip
+      ui={ui}
+      tone={tone}
+      id="map-chip"
+      role="agent"
+      icon={diamondSvg(hexOr(agent.fg))}
+      glyph={mapChipGlyph(ascii)}
+      label={mapChipName(view)}
+      bold={rich}
+      pressed={isOpen}
+      onPress={() => on.map()}
     >
-      {button}
-    </Box>
+      {rich ? (
+        <Text mono size="caption" color={agent.fg}>
+          {counts}
+        </Text>
+      ) : (
+        <Text underline={isOpen}>{` ${counts}`}</Text>
+      )}
+    </Chip>
   )
 }
 
@@ -106,13 +117,9 @@ export const FrontierCard = ({
   const t = tone === undefined ? undefined : TOKENS[tone]
   const colours = paint('skill', tone)
   const shown = view.takeable.slice(0, FRONTIER_ROWS)
-  const statusLine = view.map.isClosed
-    ? null
-    : view.open === 0
-      ? routeClearText(view.map)
-      : view.takeable.length === 0
-        ? 'Nothing takeable'
-        : null
+  const statusLine =
+    routeStatus(view) ??
+    (!view.map.isClosed && view.takeable.length === 0 ? 'Nothing takeable' : null)
   return (
     <Box
       key="map-card"
@@ -188,6 +195,7 @@ export const MapTicketsCard = ({
   const { Box, Button, Link, Text } = ui
   const decided = view.map.tickets.filter(t => t.state === 'resolved')
   const claimed = view.map.tickets.filter(t => t.state === 'claimed')
+  const route = routeStatus(view)
   const row = (ticket: WayTicket, glyph: string, note: string | null, isTakeable: boolean) => (
     <Box
       key={`row-${ticket.ref}`}
@@ -242,7 +250,7 @@ export const MapTicketsCard = ({
           </Text>
         )}
       </Box>
-      {view.open === 0 && <Text {...inkOf(tone, 'text2')}>{routeClearText(view.map)}</Text>}
+      {route !== null && <Text {...inkOf(tone, 'text2')}>{route}</Text>}
       {view.takeable.length > 0 && heading('Takeable')}
       {view.takeable.map(t => row(t, glyph('takeable', ascii), null, true))}
       {claimed.length > 0 && heading('Claimed')}

@@ -12,6 +12,7 @@ const NOTICE_GLYPH: Record<Role, string> = {
   danger: '!',
   skill: '>',
   perm: '>',
+  agent: '>',
   neutral: '>',
   muted: '>',
 }
