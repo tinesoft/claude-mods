@@ -175,7 +175,8 @@ test('desktop draws state icons as images and meta in a mono badge', () => {
   const badge = findAll(out, n => n.type === 'Text' && textOf(n).trim() === '1/5')[0]!
   expect(badge.props).toMatchObject({ mono: true })
   const rail = byKey(out, 'rail')!
-  expect(rail.props).toMatchObject({ borderStyle: 'round', backgroundColor: '#FFFFFF' })
+  expect(rail.props.borderStyle).toBeUndefined()
+  expect(rail.props.backgroundColor).toBeUndefined()
 })
 
 test('desktop steps keep a hover tint, at rest and open', () => {

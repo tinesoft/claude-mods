@@ -78,31 +78,70 @@ const phaseWidth = (view: PhaseView, flow: Flow, rich: boolean) => {
 }
 
 const MIN_TITLE = 8
+/** The gear draws one glyph; its gap is counted with the others. */
+const GEAR_CELLS = 1
+/**
+ * Desktop draws UI text about 30% narrower than one code-font cell, the unit of `bodyColumns`
+ * (probe: ten bordered steps measured 119 cells and fitted in 85).
+ */
+const RICH_CELL_SCALE = 0.7
 
+export type RailFit = {
+  /** `row` draws the rail, `chip` the summary in its place. */
+  mode: 'row' | 'chip'
+  titleMax: number
+  /** The map chip draws its compact counts (`2✓ 4?`) so the row fits the terminal. */
+  compactMap: boolean
+  /** The row may wrap onto further lines (rich surfaces). */
+  wrap: boolean
+  /** Lines the rail takes in the band, for the card's height budget. */
+  lines: number
+}
+
+/**
+ * How the rail fits the band. Rich surfaces always draw the row and wrap it; the terminal draws
+ * the row on one line when it fits in cells, first with the full map chip, then with the compact
+ * one, and otherwise the summary.
+ */
 export function fitRail(args: {
   flow: Flow
   columns: number
   rich: boolean
   waiting: number
   features: number
-  /** Width of the map chip, 0 with no map. */
-  mapWidth: number
-}): { mode: 'row' | 'chip'; titleMax: number } {
-  const { flow, columns, rich, waiting, features, mapWidth } = args
+  /** Cells of the map chip, full and compact; null with no map. */
+  map: { full: number; compact: number } | null
+}): RailFit {
+  const { flow, columns, rich, waiting, features, map } = args
+  const extra = rich ? RICH_PHASE_EXTRA : 0
+  const gap = across(SPACE.railGap)
   const phases = flow.phases.reduce((sum, s) => sum + phaseWidth(s, flow, rich), 0)
   const connectors = flow.phases.length - 1
-  const items = flow.phases.length + 3
-  const triage =
-    'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0) + (rich ? RICH_PHASE_EXTRA : 0)
-  const gaps = across(SPACE.railGap) * items
-  const map =
-    mapWidth === 0 ? 0 : mapWidth + 1 + across(SPACE.railGap) * 2 + (rich ? RICH_PHASE_EXTRA : 0)
-  const fixed =
-    triage + 1 + phases + connectors + GEAR_RESERVE + gaps + (features > 1 ? 2 : 0) + map
-  const titleMax = Math.min(TITLE_MAX, columns - fixed)
-  return titleMax >= Math.min(MIN_TITLE, flow.title.length)
-    ? { mode: 'row', titleMax }
-    : { mode: 'chip', titleMax: 0 }
+  // Inbox, the divider and the phases in the strip, then the title and the gear.
+  const gaps = gap * (flow.phases.length + 3)
+  const triage = 'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0) + extra
+  const fixed = (mapCells: number | null) =>
+    triage +
+    1 +
+    phases +
+    connectors +
+    GEAR_CELLS +
+    gaps +
+    (features > 1 ? 2 : 0) +
+    (mapCells === null ? 0 : mapCells + extra + 1 + 2 * gap)
+  if (rich) {
+    const cells = fixed(map?.full ?? null) + Math.min(TITLE_MAX, flow.title.length) + extra
+    const lines = Math.max(1, Math.ceil((cells * RICH_CELL_SCALE) / Math.max(1, columns)))
+    return { mode: 'row', titleMax: TITLE_MAX, compactMap: false, wrap: true, lines }
+  }
+  const least = Math.min(MIN_TITLE, flow.title.length)
+  const chips = map === null ? [null] : [map.full, map.compact]
+  for (const [index, chip] of chips.entries()) {
+    const titleMax = Math.min(TITLE_MAX, columns - fixed(chip))
+    if (titleMax >= least)
+      return { mode: 'row', titleMax, compactMap: index > 0, wrap: false, lines: 1 }
+  }
+  return { mode: 'chip', titleMax: 0, compactMap: false, wrap: false, lines: 1 }
 }
 
 export type CardDensity = 'roomy' | 'compact'
@@ -324,17 +363,24 @@ export function fitCard(args: {
   maxRows: number
   rich: boolean
   extraRows: number
+  /** Lines the rail takes (fitRail); a wrapped rail on a rich surface leaves only compact. */
+  railLines: number
 }): CardDensity | undefined {
-  const { card, columns, maxRows, rich, extraRows } = args
-  return DENSITIES.find(density =>
+  const { card, columns, maxRows, rich, extraRows, railLines } = args
+  const densities = rich && railLines > 1 ? (['compact'] as const) : DENSITIES
+  return densities.find(density =>
     rich
       ? maxRows * DESKTOP_PT.line >=
         DESKTOP_PT.band +
-          DESKTOP_PT.railRow +
+          DESKTOP_PT.railRow * railLines +
           extraRows * DESKTOP_PT.line +
           points(SPACE.cardAbove) +
           cardPoints(card, columns, density)
       : maxRows >=
-        PROMPT_ROWS + 1 + extraRows + down(SPACE.cardAbove) + cardRows(card, columns, density),
+        PROMPT_ROWS +
+          railLines +
+          extraRows +
+          down(SPACE.cardAbove) +
+          cardRows(card, columns, density),
   )
 }

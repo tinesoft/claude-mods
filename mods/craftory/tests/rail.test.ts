@@ -42,11 +42,9 @@ for (const surface of BAND_SURFACES) {
       } else {
         const alts = (await band.findAll({ type: 'Svg' })).map(s => s.props.alt)
         expect(alts).toEqual(expect.arrayContaining(['Done', 'Up next', 'Gated', 'Not started']))
-        expect(rail!.props).toMatchObject({
-          borderStyle: 'round',
-          borderColor: TOKENS[tone].line,
-          backgroundColor: TOKENS[tone].surface,
-        })
+        // Desktop frames the band; the rail sits on that frame with none of its own.
+        expect(rail!.props.borderStyle).toBeUndefined()
+        expect(rail!.props.backgroundColor).toBeUndefined()
         const next = (await band.findAll({ type: 'Svg' })).find(s => s.props.alt === 'Up next')
         expect(String(next?.props.source)).toContain(TRIPLES.skill[tone].fg)
         expect((await label('Build'))?.props.color).toBeUndefined()

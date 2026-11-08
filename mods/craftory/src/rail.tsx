@@ -12,6 +12,7 @@ import {
   TITLE_MAX,
   triageCard,
   type CardView,
+  type RailFit,
 } from './card-model'
 import { DetailCard, type CardActions } from './card'
 import type { Flow, PhaseView } from './evidence'
@@ -424,11 +425,12 @@ const ChipOf = ({
   />
 )
 
-const Rail = ({ args }: { args: RailArgs }) => {
-  const { ui, tone, flow } = args
+/** The rail draws no frame of its own: Desktop frames the band, the terminal never framed it. */
+const Rail = ({ args, fit }: { args: RailArgs; fit: RailFit }) => {
+  const { ui, flow } = args
   const { Box } = ui
-  const rich = isRich(ui) && tone !== undefined
-  const lead = args.map !== null && <ChipOf args={args} view={args.map} />
+  const lead = args.map !== null && <ChipOf args={args} view={args.map} compact={fit.compactMap} />
+  const wrap = fit.wrap && { flexWrap: 'wrap' as const }
   return (
     <Box
       key="rail"
@@ -436,14 +438,15 @@ const Rail = ({ args }: { args: RailArgs }) => {
       alignItems="center"
       justifyContent="space-between"
       columnGap={SPACE.railGap}
-      {...(rich && {
-        borderStyle: 'round' as const,
-        borderColor: TOKENS[tone].line,
-        backgroundColor: TOKENS[tone].surface,
-        paddingX: SPACE.railPadX,
-      })}
+      {...wrap}
     >
-      <PhaseStrip id="phases" args={args} lead={lead} title={<Title args={args} flow={flow} />} />
+      <PhaseStrip
+        id="phases"
+        args={args}
+        lead={lead}
+        title={<Title args={args} flow={flow} />}
+        wrap={fit.wrap}
+      />
       <Gear args={args} />
     </Box>
   )
@@ -563,7 +566,15 @@ export function renderBand(args: BandArgs) {
     rich: isRich(ui),
     waiting,
     features: args.features.length,
-    mapWidth: args.map === null ? 0 : mapChipText(args.map, args.ascii).length,
+    map:
+      args.map === null
+        ? null
+        : {
+            full: mapChipText(args.map, args.ascii).length,
+            compact:
+              `${mapChipGlyph(args.ascii)} ${mapChipName(args.map)} ${mapChipCompact(args.map, args.ascii)}`
+                .length,
+          },
   })
   const asChip = layout === 'summary' || rail.mode === 'chip'
   const cardOf = (phase: PhaseId | 'triage'): CardView =>
@@ -580,8 +591,14 @@ export function renderBand(args: BandArgs) {
   const density =
     open === null || asChip
       ? undefined
-      : (fitCard({ card: cardOf(open), columns, maxRows, rich: isRich(ui), extraRows }) ??
-        'compact')
+      : (fitCard({
+          card: cardOf(open),
+          columns,
+          maxRows,
+          rich: isRich(ui),
+          extraRows,
+          railLines: rail.lines,
+        }) ?? 'compact')
   const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
   const mapCard = args.isMapOpen && args.map !== null && open === null
   return (
@@ -606,7 +623,7 @@ export function renderBand(args: BandArgs) {
           <FrontierCard ui={ui} tone={tone} ascii={args.ascii} view={args.map} on={on} />
         </Box>
       )}
-      {asChip ? <Summary args={railArgs} flow={flow} /> : <Rail args={railArgs} />}
+      {asChip ? <Summary args={railArgs} flow={flow} /> : <Rail args={railArgs} fit={rail} />}
     </Box>
   )
 }
