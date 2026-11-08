@@ -256,6 +256,8 @@ const TabRow = ({
         return (
           <Box
             key={`tab-${id}-box`}
+            flexDirection="row"
+            alignItems="center"
             paddingX={SPACE.tabPad}
             columnGap={SPACE.chipGap}
             {...(rich &&
@@ -267,17 +269,23 @@ const TabRow = ({
               })}
           >
             <Button key={`tab-${id}`} plain hotkey={hotkey} onPress={() => on.tab(id)}>
+              {/* Desktop drops colour inside a Button: the tab Box carries the state there. */}
               <Text
                 bold={isOn}
-                dimColor={!isOn && tone === undefined}
-                {...(tone !== undefined && inkOf(tone, isOn ? 'ink' : 'text2'))}
+                {...(!rich && {
+                  dimColor: !isOn && tone === undefined,
+                  ...(tone !== undefined && inkOf(tone, isOn ? 'ink' : 'text2')),
+                })}
               >
                 {title}
               </Text>
-              {count !== undefined && (
-                <Text mono={rich} {...inkOf(tone, 'muted')}>{` ${count}`}</Text>
-              )}
+              {!rich && count !== undefined && <Text {...inkOf(tone, 'muted')}>{` ${count}`}</Text>}
             </Button>
+            {rich && count !== undefined && (
+              <Text mono {...inkOf(tone, 'muted')}>
+                {count}
+              </Text>
+            )}
           </Box>
         )
       })}
