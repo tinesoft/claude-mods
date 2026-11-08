@@ -41,6 +41,8 @@ export type SettingsArgs = {
   ui: Ui
   tone: Tone | undefined
   readOnly: boolean
+  /** ASCII marks where no Svg draws them. */
+  ascii: boolean
   facts: SettingsFacts
   section: SettingsSection
   isDraft: boolean
@@ -58,10 +60,13 @@ const RowView = ({
   ui,
   tone,
   row,
+  ascii,
   facts,
   readOnly,
   on,
-}: Pick<SettingsArgs, 'ui' | 'tone' | 'facts' | 'readOnly' | 'on'> & { row: SettingsRow }) => {
+}: Pick<SettingsArgs, 'ui' | 'tone' | 'ascii' | 'facts' | 'readOnly' | 'on'> & {
+  row: SettingsRow
+}) => {
   const { Box, Text } = ui
   const note = row.inactive && (
     <Text key={`inactive-${row.id}`} wrap="wrap" color={paint('hook', tone).fg}>
@@ -76,6 +81,7 @@ const RowView = ({
             ui={ui}
             tone={tone}
             id={row.id}
+            ascii={ascii}
             title={row.label}
             description={hintOf(row)}
             isOn={row.read(facts)}
@@ -318,6 +324,7 @@ const Body = ({
             ui={ui}
             tone={tone}
             row={row}
+            ascii={args.ascii}
             facts={facts}
             readOnly={readOnly}
             on={on}
@@ -352,6 +359,7 @@ export const SettingsTab = (args: SettingsArgs) => {
           ui={ui}
           tone={tone}
           row={row}
+          ascii={args.ascii}
           facts={facts}
           readOnly={readOnly}
           on={on}

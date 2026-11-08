@@ -1,7 +1,7 @@
 import type { RenderSurface } from 'claude-code'
 import type { Tone } from '../types'
 import { hexOr, lockSvg, switchSvg, SWITCH_SIZE } from './icons'
-import { paint, type Role, SPACE, TOKENS, TRIPLES } from './theme'
+import { paint, type Role, SPACE, SWITCH_MARK, TOKENS, TRIPLES } from './theme'
 import { Icon, inkOf, isRich, roleInk, withTint, type Ui } from './ui'
 
 export const Eyebrow = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => (
@@ -20,11 +20,13 @@ export const SwitchRow = ({
   ui,
   tone,
   id,
+  ascii = false,
   title,
   description,
   isOn,
   onChange,
 }: Common & {
+  ascii?: boolean
   title: string
   description?: string | undefined
   isOn: boolean
@@ -33,6 +35,8 @@ export const SwitchRow = ({
   const { Box, Button, Text, Svg } = ui
   const t = tone === undefined ? undefined : TOKENS[tone]
   const word = isOn ? 'On' : 'Off'
+  const mark = SWITCH_MARK[isOn ? 'on' : 'off']
+  const shown = Svg ? word : ascii ? mark.ascii : mark.glyph
   return (
     <Box
       key={`row-${id}`}
@@ -60,10 +64,11 @@ export const SwitchRow = ({
           />
         )}
         {onChange === undefined ? (
-          <Text {...inkOf(tone, 'muted')}>{Svg ? word : isOn ? '●' : '○'}</Text>
+          <Text {...inkOf(tone, 'muted')}>{shown}</Text>
         ) : (
+          // Desktop drops colour inside a Button, so only the terminal's mark is tinted
           <Button key={`set-${id}`} plain onPress={() => onChange(!isOn)}>
-            <Text {...inkOf(tone, 'muted')}>{Svg ? word : isOn ? '●' : '○'}</Text>
+            <Text {...(!Svg && inkOf(tone, 'muted'))}>{shown}</Text>
           </Button>
         )}
       </Box>
@@ -121,7 +126,7 @@ export const Segments = ({
               <Text
                 bold={isOn}
                 underline={isOn && !rich}
-                {...(isOn ? inkOf(tone, 'ink') : inkOf(tone, 'text2'))}
+                {...(!rich && (isOn ? inkOf(tone, 'ink') : inkOf(tone, 'text2')))}
               >
                 {label}
               </Text>

@@ -172,7 +172,7 @@ export const ticketLabel = (ticket: WayTicket) =>
 /**
  * Map chip text, shared by the rail, the summary and the pane (tickets 01, 05, 11):
  * - `mapChipGlyph(ascii)`: `◆`, or `*` with ASCII glyphs.
- * - `mapChipName(view)`: the title clipped to MAP_TITLE_MAX.
+ * - `mapChipName(view, ascii)`: the title clipped to MAP_TITLE_MAX.
  * - `mapChipCounts(view)`: `2 decided · 4 open`, then ` · Closed` when the map is closed.
  * - `mapChipText(view, ascii)`: the whole chip, `◆ Billing v2 · 2 decided · 4 open`.
  * - `mapChipCompact(view, ascii)`: the summary's counts, `2✓ 4?` (`2v 4?`), then ` Closed`.
@@ -181,7 +181,8 @@ export const ticketLabel = (ticket: WayTicket) =>
  */
 export const mapChipGlyph = (ascii: boolean) => (ascii ? '*' : '◆')
 
-export const mapChipName = (view: MapView) => clip(view.map.title, MAP_TITLE_MAX)
+export const mapChipName = (view: MapView, ascii = false) =>
+  clip(view.map.title, MAP_TITLE_MAX, ascii)
 
 const closedTail = (view: MapView, sep: string) => (view.map.isClosed ? `${sep}Closed` : '')
 
@@ -189,7 +190,7 @@ export const mapChipCounts = (view: MapView) =>
   `${view.decided} decided · ${view.open} open${closedTail(view, ' · ')}`
 
 export const mapChipText = (view: MapView, ascii: boolean) =>
-  `${mapChipGlyph(ascii)} ${mapChipName(view)} · ${mapChipCounts(view)}`
+  `${mapChipGlyph(ascii)} ${mapChipName(view, ascii)} · ${mapChipCounts(view)}`
 
 export const mapChipCompact = (view: MapView, ascii: boolean) =>
   `${view.decided}${ascii ? 'v' : '✓'} ${view.open}?${closedTail(view, ' ')}`

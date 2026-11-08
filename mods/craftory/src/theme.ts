@@ -179,11 +179,32 @@ export const SPIN_MS = 150
 
 export const CONNECTOR = { glyph: '─', ascii: '-' } as const
 
-/** Between the map chip and the feature in the collapsed summary: Map › Feature. */
 /** Joins one Flow-tab phase to the next on the terminal. */
 export const FLOW_JOIN = { glyph: '│', ascii: '|' } as const
 
+/** Between the map chip and the feature in the collapsed summary: Map › Feature. */
 export const SUMMARY_SEP = { glyph: '›', ascii: '>' } as const
+
+/** Splits the rail's Inbox, map chip and title on the terminal. */
+export const RAIL_DIVIDER = { glyph: '│', ascii: '|' } as const
+
+/** The Settings button, one cell. */
+export const GEAR = { glyph: '\u2699', ascii: '=' } as const
+
+/** After the title when it opens the feature switcher. */
+export const CARET = { glyph: '▾', ascii: 'v' } as const
+
+/** Before a count of deleted lines. */
+export const MINUS = { glyph: '−', ascii: '-' } as const
+
+/** A switch's state where no Svg draws it. */
+export const SWITCH_MARK = {
+  on: { glyph: '●', ascii: '*' },
+  off: { glyph: '○', ascii: 'o' },
+} as const
+
+/** Ends clipped text; ASCII spends three cells on it. */
+export const ELLIPSIS = { glyph: '…', ascii: '...' } as const
 
 /** A border drawn but not seen, so a step at rest keeps its size and a hover can still restyle it. */
 export const CLEAR = 'transparent'

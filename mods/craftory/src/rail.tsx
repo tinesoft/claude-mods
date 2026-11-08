@@ -36,8 +36,10 @@ import type { FeatureChoice } from './features'
 import type { NoticeView } from './notices'
 import { PHASES } from './phases'
 import {
+  CARET,
   CLEAR,
   CONNECTOR,
+  GEAR,
   HOVER_MIX,
   mix,
   paint,
@@ -47,6 +49,7 @@ import {
   SUMMARY_SEP,
   SPIN_MS,
   PHASE_LOOKS,
+  RAIL_DIVIDER,
   TOKENS,
   TRIPLES,
 } from './theme'
@@ -280,7 +283,7 @@ const Gear = ({ args }: { args: BandArgs }) => {
       role="neutral"
       ink={inkOf(tone, 'text2')}
       {...(t && { look: { border: CLEAR, hover: t.fill } })}
-      label={'\u2699'}
+      label={args.ascii ? GEAR.ascii : GEAR.glyph}
       pressed={false}
       onPress={() => on.gear()}
     />
@@ -294,7 +297,7 @@ const Gear = ({ args }: { args: BandArgs }) => {
 const Title = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   const { ui, tone, features, isPickingFeature, on } = args
   const { Box, Text } = ui
-  const text = clip(flow.title, args.titleMax)
+  const text = clip(flow.title, args.titleMax, args.ascii)
   const rich = isRich(ui) && tone !== undefined
   const t = tone === undefined ? undefined : TOKENS[tone]
   const look = t && {
@@ -336,7 +339,7 @@ const Title = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
       ink={inkOf(tone, 'ink')}
       {...(look && { look })}
       {...(icon !== undefined && { icon })}
-      label={`${text} ▾`}
+      label={`${text} ${args.ascii ? CARET.ascii : CARET.glyph}`}
       bold
       pressed={isPickingFeature}
       onPress={() => on.pickFeature()}
@@ -351,8 +354,12 @@ const FeaturePicker = ({ args }: { args: BandArgs }) => {
     <Box key="feature-picker" flexDirection="row" columnGap={SPACE.pickerGap}>
       {features.map(feature => (
         <Button key={`feature-${feature.key}`} plain onPress={() => on.switchFeature(feature.key)}>
-          <Text bold={feature.isActive} underline={feature.isActive} {...inkOf(tone, 'ink2')}>
-            {clip(feature.title, TITLE_MAX)}
+          <Text
+            bold={feature.isActive}
+            underline={feature.isActive}
+            {...(!isRich(ui) && inkOf(tone, 'ink2'))}
+          >
+            {clip(feature.title, TITLE_MAX, args.ascii)}
           </Text>
         </Button>
       ))}
@@ -385,7 +392,7 @@ export const PhaseStrip = ({
   const { Box, Text } = ui
   const divider = (key: string) => (
     <Text key={key} {...(tone === undefined ? { dimColor: true } : { color: TOKENS[tone].line })}>
-      {'│'}
+      {ascii ? RAIL_DIVIDER.ascii : RAIL_DIVIDER.glyph}
     </Text>
   )
   return (
@@ -474,13 +481,13 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   const mapWidth =
     args.map === null
       ? 0
-      : `${mapChipGlyph(args.ascii)} ${mapChipName(args.map)} ${mapChipCompact(args.map, args.ascii)} ${sep}`
+      : `${mapChipGlyph(args.ascii)} ${mapChipName(args.map, args.ascii)} ${mapChipCompact(args.map, args.ascii)} ${sep}`
           .length + 1
   const parts = summaryParts(flow)
   const phaseText = `· ${parts.phase}`
   const rest = 1 + phaseText.length + (parts.count === null ? 0 : 1 + parts.count.length)
   const titleMax = Math.min(TITLE_MAX, columns - GEAR_RESERVE - 6 - mapWidth - rest)
-  const title = clip(parts.title, Math.max(SUMMARY_TITLE_MIN, titleMax))
+  const title = clip(parts.title, Math.max(SUMMARY_TITLE_MIN, titleMax), args.ascii)
   const t = rich ? TOKENS[tone] : undefined
   return (
     <Box
@@ -580,7 +587,7 @@ export function renderBand(args: BandArgs) {
         : {
             full: mapChipText(args.map, args.ascii).length,
             compact:
-              `${mapChipGlyph(args.ascii)} ${mapChipName(args.map)} ${mapChipCompact(args.map, args.ascii)}`
+              `${mapChipGlyph(args.ascii)} ${mapChipName(args.map, args.ascii)} ${mapChipCompact(args.map, args.ascii)}`
                 .length,
           },
   })

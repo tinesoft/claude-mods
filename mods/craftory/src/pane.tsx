@@ -22,7 +22,17 @@ import { NoticeRow } from './notice-row'
 import { PhaseStrip, type BandActions } from './rail'
 import { SettingsTab, type SettingsArgs } from './settings'
 import { DOT_PX, dotOf, phaseDotSvg, VBAR_SIZE, vbarSvg } from './icons'
-import { FLOW_JOIN, paint, SPACE, PHASE_LOOKS, TOKENS, TRIPLES, type Role } from './theme'
+import {
+  FLOW_JOIN,
+  GEAR,
+  MINUS,
+  paint,
+  SPACE,
+  PHASE_LOOKS,
+  TOKENS,
+  TRIPLES,
+  type Role,
+} from './theme'
 import { Icon, inkOf, isRich, roleInk, type Ui } from './ui'
 import { Badge, CardButton } from './widgets'
 
@@ -70,7 +80,7 @@ export type PaneArgs = {
   worktrees: WorktreesView | null
   glossary: GlossaryView
   query: string
-  settings: Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly' | 'pluginLine'>
+  settings: Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly' | 'ascii' | 'pluginLine'>
   on: PaneActions
 }
 
@@ -86,9 +96,10 @@ const KIND_ROLES: Record<WorktreeKind, Role> = {
 const WorktreeCard = ({
   ui,
   tone,
+  ascii,
   row,
   on,
-}: Pick<PaneArgs, 'ui' | 'tone' | 'on'> & { row: WorktreeRowView }) => {
+}: Pick<PaneArgs, 'ui' | 'tone' | 'ascii' | 'on'> & { row: WorktreeRowView }) => {
   const { Box, Text } = ui
   const rich = isRich(ui) && tone !== undefined
   const role = KIND_ROLES[row.kind]
@@ -148,7 +159,10 @@ const WorktreeCard = ({
           <Text mono={rich} color={paint('perm', tone).fg}>{`+${row.added}`}</Text>
         )}
         {row.deleted !== null && (
-          <Text mono={rich} color={paint('danger', tone).fg}>{`−${row.deleted}`}</Text>
+          <Text
+            mono={rich}
+            color={paint('danger', tone).fg}
+          >{`${ascii ? MINUS.ascii : MINUS.glyph}${row.deleted}`}</Text>
         )}
         {row.link !== null && (
           <Text mono={rich} {...inkOf(tone, 'muted')}>
@@ -195,9 +209,10 @@ const WorktreeCard = ({
 const WorktreesTab = ({
   ui,
   tone,
+  ascii,
   view,
   on,
-}: Pick<PaneArgs, 'ui' | 'tone' | 'on'> & { view: WorktreesView | null }) => {
+}: Pick<PaneArgs, 'ui' | 'tone' | 'ascii' | 'on'> & { view: WorktreesView | null }) => {
   const { Box, Text } = ui
   if (view === null) {
     return <Text {...inkOf(tone, 'text2')}>Reading the worktrees…</Text>
@@ -224,7 +239,7 @@ const WorktreesTab = ({
         )}
       </Box>
       {view.rows.map(row => (
-        <WorktreeCard key={row.shown} ui={ui} tone={tone} row={row} on={on} />
+        <WorktreeCard key={row.shown} ui={ui} tone={tone} ascii={ascii} row={row} on={on} />
       ))}
       <Text {...inkOf(tone, 'text2')}>
         Each agent works in its own worktree, branched from the integration branch. When its ticket
@@ -813,7 +828,12 @@ const PaneHeader = ({
         </Text>
       </Box>
       <Box flexDirection="row" flexShrink={0} columnGap={SPACE.cardHeadGap}>
-        <Button key="pane-gear" plain label="⚙" onPress={() => on.settings()} />
+        <Button
+          key="pane-gear"
+          plain
+          label={ascii ? GEAR.ascii : GEAR.glyph}
+          onPress={() => on.settings()}
+        />
         <Button key="pane-close" plain label={ascii ? 'x' : '×'} onPress={() => on.close()} />
       </Box>
     </Box>
@@ -844,7 +864,9 @@ export function renderPane(args: PaneArgs) {
           on={on}
         />
       )}
-      {tab === 'worktrees' && <WorktreesTab ui={ui} tone={tone} view={args.worktrees} on={on} />}
+      {tab === 'worktrees' && (
+        <WorktreesTab ui={ui} tone={tone} ascii={args.ascii} view={args.worktrees} on={on} />
+      )}
       {tab === 'glossary' && (
         <GlossaryTab ui={ui} tone={tone} view={args.glossary} query={args.query} on={on} />
       )}
@@ -855,6 +877,7 @@ export function renderPane(args: PaneArgs) {
           readOnly={args.surface === 'mobile'}
           pluginLine={pluginLine}
           {...args.settings}
+          ascii={args.ascii}
         />
       )}
     </Box>

@@ -82,7 +82,7 @@ export const MapChip = ({
       role="agent"
       icon={diamondSvg(hexOr(agent.fg))}
       glyph={mapChipGlyph(ascii)}
-      label={mapChipName(view)}
+      label={mapChipName(view, ascii)}
       bold={rich}
       pressed={isOpen}
       onPress={() => on.map()}
@@ -262,7 +262,7 @@ export const FrontierCard = ({
       {view.isLinkStale && <MapNotFound ui={ui} tone={tone} tint={surface} />}
       {view.others.map(other => (
         <Button key={`map-switch-${other.ref}`} plain onPress={() => on.pickMap(other.ref)}>
-          <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
+          <Text {...(!rich && inkOf(tone, 'text2'))} {...withTint(surface)}>
             {`${glyph('switch', ascii)} ${other.title}`}
           </Text>
         </Button>
@@ -421,7 +421,7 @@ export const MapTicketsCard = ({
       )}
       {decided.length > 0 && (
         <Button key="decided-toggle" plain onPress={() => on.decided()}>
-          <Text {...inkOf(tone, 'text2')}>
+          <Text {...(!isRich(ui) && inkOf(tone, 'text2'))}>
             {`Decided (${decided.length}) ${glyph(isDecidedOpen ? 'expanded' : 'collapsed', ascii)}`}
           </Text>
         </Button>

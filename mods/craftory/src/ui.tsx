@@ -1,6 +1,6 @@
 import type { Color, ElementTable, RenderElement } from 'claude-code'
 import type { Tone } from '../types'
-import { HOVER_MIX, mix, paint, type Role, SPACE, TOKENS } from './theme'
+import { ELLIPSIS, HOVER_MIX, mix, paint, type Role, SPACE, TOKENS } from './theme'
 
 /** `Svg` exists on every surface that draws rich (remote) elements, never on the terminal. */
 export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button' | 'Link'> & {
@@ -11,8 +11,11 @@ export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button' | 'Link'> & {
 
 export const isRich = (ui: Ui) => ui.Svg !== undefined
 
-export const clip = (text: string, max: number) =>
-  text.length <= max ? text : `${text.slice(0, Math.max(1, max - 1))}…`
+export const clip = (text: string, max: number, ascii = false) => {
+  if (text.length <= max) return text
+  const end = ascii ? ELLIPSIS.ascii : ELLIPSIS.glyph
+  return `${text.slice(0, Math.max(1, max - end.length))}${end}`
+}
 const ICON_PX = 14
 
 export const roleInk = (role: Role, tone: Tone | undefined) => {

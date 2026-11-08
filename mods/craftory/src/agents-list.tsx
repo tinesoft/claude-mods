@@ -11,7 +11,7 @@ import {
   type AgentRow,
   type AgentsView,
 } from './build'
-import { ROW_ROLES, paint, SPACE, TOKENS } from './theme'
+import { MINUS, ROW_ROLES, paint, SPACE, TOKENS } from './theme'
 import { branchSvg, hexOr } from './icons'
 import { Icon, inkOf, isRich, roleInk, type Ui } from './ui'
 import { Badge, CardButton, HookNote } from './widgets'
@@ -145,7 +145,10 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
             <Text mono={rich} {...roleInk('perm', tone)}>{`+${row.added}`}</Text>
           )}
           {row.deleted !== null && (
-            <Text mono={rich} {...roleInk('danger', tone)}>{`−${row.deleted}`}</Text>
+            <Text
+              mono={rich}
+              {...roleInk('danger', tone)}
+            >{`${ascii ? MINUS.ascii : MINUS.glyph}${row.deleted}`}</Text>
           )}
           {row.commits !== null && (
             <Text mono={rich} {...inkOf(tone, 'muted')}>
