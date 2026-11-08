@@ -63,6 +63,8 @@ export type BandActions = CardActions & {
   switchFeature: (key: FeatureKey) => void
   map: () => void
   pickMap: (ref: IssueRef) => void
+  /** Run /wayfinder with this argument: the frontier card's Work next ticket. */
+  wayfinder: (arg: string) => void
 }
 
 export type BandArgs = {

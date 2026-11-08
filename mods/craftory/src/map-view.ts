@@ -1,6 +1,7 @@
 import type { CraftoryConfig, IssueRef, TrackerSnapshot, WayMap, WayTicket } from '../types'
 import type { WayfinderOffer } from './notices'
 import { parseIssueRef } from './tracker/refs'
+import type { Role } from './theme'
 import { clip } from './ui'
 
 export const MAP_TITLE_MAX = 16
@@ -23,6 +24,22 @@ export type MapView = {
   /** The Feature's `map` link points at nothing map-shaped: the card says so, quietly. */
   isLinkStale: boolean
 }
+
+type TicketType = NonNullable<WayTicket['type']>
+
+const TICKET_TYPES: Record<TicketType, { label: string; role: Role }> = {
+  research: { label: 'Research', role: 'perm' },
+  prototype: { label: 'Prototype', role: 'agent' },
+  grilling: { label: 'Grilling', role: 'skill' },
+  task: { label: 'Task', role: 'neutral' },
+}
+
+/** `Prototype`: the word a Decision ticket's type badge shows; an untyped ticket has none. */
+export const ticketTypeLabel = (type: WayTicket['type']): string | null =>
+  type === null ? null : TICKET_TYPES[type].label
+
+/** The colour a type badge takes, as the Wayfinder board draws them (Prototype agent, Grilling skill). */
+export const ticketTypeRole = (type: TicketType): Role => TICKET_TYPES[type].role
 
 /** The map the chip shows: the most recently updated open one, else the latest closed one. */
 export function activeMap(maps: readonly WayMap[]): WayMap | null {

@@ -9,10 +9,12 @@ import {
   routeStatus,
   ticketArg,
   ticketLabel,
+  ticketTypeLabel,
+  ticketTypeRole,
   type MapView,
 } from './map-view'
 import { paint, SPACE, TOKENS } from './theme'
-import { diamondSvg, hexOr } from './icons'
+import { diamondSvg, hexOr, ruleSvg } from './icons'
 import { Chip, inkOf, isRich, withTint, type Ui } from './ui'
 import { CardButton } from './widgets'
 
@@ -97,7 +99,70 @@ export const MapChip = ({
   )
 }
 
-/** The frontier card: where the map is, how far along, and the tickets that can be taken now. */
+/** One Takeable row: `▸ title` and the ticket's type, as an outlined badge where the surface is rich. */
+const FrontierRow = ({
+  ui,
+  tone,
+  ascii,
+  ticket,
+  tint,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  ascii: boolean
+  ticket: WayTicket
+  tint: string | undefined
+}) => {
+  const { Box, Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  const type = ticketTypeLabel(ticket.type)
+  const typeInk = ticket.type === null ? undefined : paint(ticketTypeRole(ticket.type), tone).fg
+  const key = `frontier-${ticket.ref}`
+  if (!rich) {
+    return (
+      <Box key={key} flexDirection="row">
+        <Text {...inkOf(tone, 'ink')}>
+          {`${glyph('takeable', ascii)} ${ticket.title}${type === null ? '' : ' '}`}
+        </Text>
+        {type !== null && <Text color={typeInk}>{type}</Text>}
+      </Box>
+    )
+  }
+  return (
+    <Box
+      key={key}
+      flexDirection="row"
+      alignItems="center"
+      columnGap={SPACE.rowLabelGap}
+      paddingX={SPACE.chipPadX}
+      {...withTint(tint)}
+    >
+      <Text color={paint('skill', tone).fg}>{glyph('takeable', ascii)}</Text>
+      <Box flexGrow={1} flexShrink={1} minWidth={0}>
+        <Text bold {...inkOf(tone, 'ink')} wrap="truncate-end">
+          {ticket.title}
+        </Text>
+      </Box>
+      {type !== null && (
+        <Box
+          key={`frontier-type-${ticket.ref}`}
+          paddingX={SPACE.chipPadX}
+          borderStyle="round"
+          borderColor={typeInk}
+        >
+          <Text bold size="caption" color={typeInk}>
+            {type}
+          </Text>
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+/**
+ * The frontier card: where the map is, how far along, the Takeable tickets under "Frontier ·
+ * takeable now", then Work next ticket and Open map. Desktop frames the list with a header strip.
+ */
 export const FrontierCard = ({
   ui,
   tone,
@@ -109,30 +174,70 @@ export const FrontierCard = ({
   tone: Tone | undefined
   ascii: boolean
   view: MapView
-  on: Pick<MapActions, 'closeCard' | 'pickMap'>
+  on: Pick<MapActions, 'closeCard' | 'pickMap'> & { wayfinder: (arg: string) => void }
 }) => {
-  const { Box, Button, Text } = ui
+  const { Box, Button, Link, Svg, Text } = ui
   const rich = isRich(ui) && tone !== undefined
   const surface = rich ? TOKENS[tone].surface : undefined
   const t = tone === undefined ? undefined : TOKENS[tone]
-  const colours = paint('skill', tone)
+  const agent = paint('agent', tone)
   const shown = view.takeable.slice(0, FRONTIER_ROWS)
-  const statusLine =
-    routeStatus(view) ??
-    (!view.map.isClosed && view.takeable.length === 0 ? 'Nothing takeable' : null)
+  const route = routeStatus(view)
+  const more = view.takeable.length - shown.length
+  const heading = 'Frontier · takeable now'
+  const rows = shown.map(ticket => (
+    <FrontierRow
+      key={ticket.ref}
+      ui={ui}
+      tone={tone}
+      ascii={ascii}
+      ticket={ticket}
+      tint={surface}
+    />
+  ))
+  const frontier =
+    shown.length === 0 ? null : rich && t !== undefined ? (
+      <Box
+        key="frontier"
+        flexDirection="column"
+        borderStyle="round"
+        borderColor={t.line}
+        {...withTint(surface)}
+      >
+        <Box key="frontier-head" paddingX={SPACE.chipPadX} backgroundColor={t.surface2}>
+          <Text bold size="caption" {...inkOf(tone, 'ink')}>
+            {heading}
+          </Text>
+        </Box>
+        {rows.flatMap((row, i) =>
+          i === 0 || Svg === undefined
+            ? [row]
+            : [<Svg key={`rule-${i}`} source={ruleSvg(t.lineSoft)} alt="" height={1} />, row],
+        )}
+      </Box>
+    ) : (
+      <Box key="frontier" flexDirection="column">
+        <Box key="frontier-head">
+          <Text bold {...inkOf(tone, 'ink')}>
+            {heading}
+          </Text>
+        </Box>
+        {rows}
+      </Box>
+    )
   return (
     <Box
       key="map-card"
       flexDirection="column"
       borderStyle="round"
-      borderColor={t === undefined ? colours.fg : t.line}
+      borderColor={t === undefined ? agent.fg : t.line}
       paddingX={SPACE.cardPadX}
       rowGap={SPACE.cardGap}
       {...withTint(surface)}
     >
       <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.cardHeadGap}>
         <Box flexShrink={1} minWidth={0}>
-          <Text mono size="caption" color={colours.fg} wrap="truncate-end" {...withTint(surface)}>
+          <Text mono size="caption" color={agent.fg} wrap="truncate-end" {...withTint(surface)}>
             {view.kicker}
           </Text>
         </Box>
@@ -149,14 +254,10 @@ export const FrontierCard = ({
           {`Destination: ${view.map.destination}`}
         </Text>
       )}
-      {shown.map(ticket => (
-        <Text key={`frontier-${ticket.ref}`} {...inkOf(tone, 'ink')} {...withTint(surface)}>
-          {`${glyph('takeable', ascii)} ${ticketLabel(ticket)}`}
-        </Text>
-      ))}
-      {view.takeable.length > shown.length && (
+      {frontier}
+      {more > 0 && (
         <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
-          {`+${view.takeable.length - shown.length} more`}
+          {`+${more} more`}
         </Text>
       )}
       {view.isLinkStale && <MapNotFound ui={ui} tone={tone} tint={surface} />}
@@ -167,11 +268,43 @@ export const FrontierCard = ({
           </Text>
         </Button>
       ))}
-      {statusLine !== null && (
+      {route !== null && (
         <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
-          {statusLine}
+          {route}
         </Text>
       )}
+      <Box flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={SPACE.buttonsGap}>
+        {view.takeable.length > 0 ? (
+          <CardButton
+            ui={ui}
+            tone={tone}
+            id="frontier-work-next"
+            label="Work next ticket"
+            primary
+            onPress={() => on.wayfinder(mapArg(view.map))}
+          />
+        ) : (
+          // the engine's Button has no disabled prop, so the off state is the hint, not pressable
+          <Box key="frontier-work-next-off">
+            <Text {...inkOf(tone, 'muted')} {...withTint(surface)}>
+              Work next ticket · Nothing takeable
+            </Text>
+          </Box>
+        )}
+        {/* the Tickets tab's link, framed as the secondary button on rich surfaces */}
+        <Box
+          key="frontier-open-map"
+          {...(rich &&
+            t !== undefined && {
+              paddingX: SPACE.buttonPadX,
+              borderStyle: 'round',
+              borderColor: t.line,
+              backgroundColor: t.surface,
+            })}
+        >
+          <Link href={view.map.location} label="Open map" />
+        </Box>
+      </Box>
     </Box>
   )
 }

@@ -40,6 +40,7 @@ const on: BandActions = {
   switchFeature: key => void calls.push(`switch ${key}`),
   map: () => void calls.push('map'),
   pickMap: ref => void calls.push(`pick ${ref}`),
+  wayfinder: arg => void calls.push(`wayfinder ${arg}`),
   act: action => void calls.push(action.kind === 'run-phase' ? `run ${action.phase}` : action.kind),
 }
 

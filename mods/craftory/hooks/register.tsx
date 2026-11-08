@@ -266,6 +266,7 @@ const bandActions = ($: EngineInterface): BandActions => ({
   closeCard: () => void closeCard($),
   map: () => void toggleMap($),
   pickMap: ref => void pickMap($, ref),
+  wayfinder: arg => void requestRun($, SKILLS.wayfinder, arg),
   pickFeature: () => void togglePicker($),
   switchFeature: key => {
     void (async () => {

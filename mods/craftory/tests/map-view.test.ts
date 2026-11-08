@@ -7,6 +7,8 @@ import {
   mapView,
   routeStatus,
   ticketArg,
+  ticketTypeLabel,
+  ticketTypeRole,
 } from '../src/map-view'
 
 const ticket = (n: number, state: WayState, blockedBy: string[] = []): WayTicket => ({
@@ -94,4 +96,19 @@ test('the route status asks whether the route is clear only when no ticket is op
     'No open tickets · Route clear? Not yet specified still has fog.',
   )
   expect(routeStatus(billing([ticket(1, 'resolved')], { isClosed: true }))).toBeNull()
+})
+
+test('a ticket type reads as its badge word, and an untyped ticket has none', () => {
+  expect(ticketTypeLabel('research')).toBe('Research')
+  expect(ticketTypeLabel('prototype')).toBe('Prototype')
+  expect(ticketTypeLabel('grilling')).toBe('Grilling')
+  expect(ticketTypeLabel('task')).toBe('Task')
+  expect(ticketTypeLabel(null)).toBeNull()
+})
+
+test('ticket types take the Wayfinder board colours: Prototype agent, Grilling skill', () => {
+  expect(ticketTypeRole('prototype')).toBe('agent')
+  expect(ticketTypeRole('grilling')).toBe('skill')
+  expect(ticketTypeRole('research')).toBe('perm')
+  expect(ticketTypeRole('task')).toBe('neutral')
 })
