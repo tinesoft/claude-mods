@@ -1,3 +1,7 @@
+import type { Tone } from '../types'
+import type { PhaseState } from './evidence'
+import { TOKENS, TRIPLES } from './theme'
+
 const XMLNS = 'xmlns="http://www.w3.org/2000/svg"'
 
 const NEUTRAL = '#8B909A'
@@ -87,3 +91,133 @@ export const switchSvg = (isOn: boolean, onColor: string, offColor: string) =>
   `<svg ${XMLNS} viewBox="0 0 40 24">` +
   `<rect width="40" height="24" rx="12" fill="${isOn ? onColor : offColor}"/>` +
   `<circle cx="${isOn ? 28 : 12}" cy="12" r="9" fill="#FFFFFF"/></svg>`
+
+/** The phase dot's size on rich surfaces, as the board's numbered step marker. */
+export const DOT_PX = 18
+
+/**
+ * Step numbers as stroked paths in a 5×8 box: Desktop's `Svg` is not known to draw `<text>`, so the
+ * number never depends on a font.
+ */
+const DIGIT_PATHS: Record<string, string> = {
+  '0': 'M2.5 0C.5 0 0 2 0 4s.5 4 2.5 4S5 6 5 4 4.5 0 2.5 0z',
+  '1': 'M1 1.6L3 0v8',
+  '2': 'M.2 1.8C.5.6 1.4 0 2.5 0c1.4 0 2.3.9 2.3 2.2 0 1-.6 1.7-1.5 2.5L0 8h5',
+  '3': 'M.3.8C.8.3 1.6 0 2.5 0c1.3 0 2.2.8 2.2 1.9 0 1.2-1 2-2.3 2 1.5 0 2.6.8 2.6 2.1C5 7.2 3.9 8 2.5 8 1.5 8 .7 7.6.2 7',
+  '4': 'M3.8 8V0L0 5.6h5',
+  '5': 'M4.6 0H.8L.4 3.6C.9 3.2 1.6 3 2.4 3 3.9 3 5 4 5 5.5S3.9 8 2.4 8C1.4 8 .6 7.6.1 7',
+  '6': 'M4.3.4C3.8.1 3.2 0 2.6 0 1 0 0 1.6 0 4.5 0 6.8 1 8 2.6 8 4 8 5 7 5 5.6S4 3.2 2.6 3.2C1.4 3.2.4 4 0 5',
+  '7': 'M0 0h5L1.8 8',
+  '8': 'M2.5 3.8C1.3 3.8.4 3.1.4 1.9S1.3 0 2.5 0s2.1.7 2.1 1.9-.9 1.9-2.1 1.9zm0 0C1.1 3.8 0 4.6 0 5.9S1.1 8 2.5 8 5 7.2 5 5.9 3.9 3.8 2.5 3.8z',
+  '9': 'M.7 7.6c.5.3 1.1.4 1.7.4C4 8 5 6.4 5 3.5 5 1.2 4 0 2.4 0 1 0 0 1 0 2.4s1 2.4 2.4 2.4c1.2 0 2.2-.8 2.6-1.8',
+}
+
+const DIGIT_W = 5
+const DIGIT_GAP = 1.5
+
+/** The glyph states keep their own phase icon inside the dot; the rest show the step number. */
+export type DotGlyph = Extract<
+  PhaseIconKind,
+  'done' | 'needs-you' | 'gated' | 'failed' | 'over-budget'
+>
+
+export type Dot = {
+  /** The ring's colour, or `null` when the dot is a filled disc. */
+  ring: string | null
+  fill: string | null
+  mark:
+    { kind: 'number'; n: number; color: string } | { kind: 'glyph'; glyph: DotGlyph; color: string }
+  dashed: boolean
+  /** A line struck through the number (Skipped). */
+  strike: boolean
+  /** Running: an arc that turns around the disc, on its track. */
+  spinner: { color: string; track: string } | null
+}
+
+/** Which dot a phase in `state` draws as step `n`, in the tone's design tokens. */
+export const dotOf = (state: PhaseState['kind'], n: number, tone: Tone): Dot => {
+  const t = TOKENS[tone]
+  const skill = TRIPLES.skill[tone]
+  const plain = { fill: null, dashed: false, strike: false, spinner: null }
+  const number = (color: string) => ({ kind: 'number' as const, n, color })
+  const glyph = (kind: DotGlyph, color: string): Dot => ({
+    ...plain,
+    ring: color,
+    mark: { kind: 'glyph', glyph: kind, color },
+  })
+  switch (state) {
+    case 'todo':
+      return { ...plain, ring: t.lineDashed, mark: number(t.muted) }
+    case 'next':
+      return { ...plain, ring: skill.fg, mark: number(skill.fg) }
+    case 'running':
+      return {
+        ...plain,
+        ring: null,
+        fill: skill.fg,
+        mark: number(t.surface),
+        spinner: { color: skill.fg, track: skill.bd },
+      }
+    case 'skipped':
+      return { ...plain, ring: t.muted, mark: number(t.muted), dashed: true, strike: true }
+    case 'done':
+      return glyph('done', TRIPLES.perm[tone].fg)
+    case 'needs-you':
+      return glyph('needs-you', TRIPLES.hook[tone].fg)
+    case 'gated':
+      return glyph('gated', t.text2)
+    case 'failed':
+    case 'over-budget':
+      return glyph(state, t.danger)
+    default: {
+      const _exhaustive: never = state
+      return _exhaustive
+    }
+  }
+}
+
+const numberMark = (n: number, color: string) => {
+  const digits = String(n).split('')
+  const scale = digits.length > 1 ? 0.8 : 1
+  const width = (digits.length * DIGIT_W + (digits.length - 1) * DIGIT_GAP) * scale
+  const paths = digits
+    .map(
+      (d, i) =>
+        `<path transform="translate(${i * (DIGIT_W + DIGIT_GAP)} 0)" d="${DIGIT_PATHS[d]}"/>`,
+    )
+    .join('')
+  return (
+    `<g data-n="${n}" fill="none" stroke="${color}" stroke-width="${1.7 / scale}" ` +
+    `stroke-linecap="round" stroke-linejoin="round" ` +
+    `transform="translate(${12 - width / 2} ${12 - 4 * scale}) scale(${scale})">${paths}</g>`
+  )
+}
+
+const glyphMark = (kind: DotGlyph, color: string) =>
+  `<g fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ` +
+  `transform="translate(6 6) scale(0.75)"><path d="${PHASE_PATHS[kind]}"/></g>`
+
+/** The dot (from `dotOf`) as a 24×24 image; `frame` turns the Running spinner as `spinnerSvg` does. */
+export const phaseDotSvg = (dot: Dot, frame = 0) => {
+  const ring =
+    dot.ring === null
+      ? ''
+      : `<circle cx="12" cy="12" r="10" fill="none" stroke="${dot.ring}" stroke-width="1.6"` +
+        `${dot.dashed ? ' stroke-dasharray="3 2.2"' : ''}/>`
+  const spinner =
+    dot.spinner === null
+      ? ''
+      : `<circle cx="12" cy="12" r="10.6" fill="none" stroke="${dot.spinner.track}" stroke-width="1.6"/>` +
+        `<path d="M12 1.4a10.6 10.6 0 0 1 10.6 10.6" fill="none" stroke="${dot.spinner.color}" ` +
+        `stroke-width="1.6" stroke-linecap="round" transform="rotate(${(frame % 4) * 90} 12 12)"/>`
+  const fill = dot.fill === null ? '' : `<circle cx="12" cy="12" r="8" fill="${dot.fill}"/>`
+  const mark =
+    dot.mark.kind === 'number'
+      ? numberMark(dot.mark.n, dot.mark.color)
+      : glyphMark(dot.mark.glyph, dot.mark.color)
+  const strike =
+    dot.strike && dot.mark.kind === 'number'
+      ? `<path d="M6.5 12h11" stroke="${dot.mark.color}" stroke-width="1.6" stroke-linecap="round"/>`
+      : ''
+  return `<svg ${XMLNS} viewBox="0 0 24 24">${ring}${spinner}${fill}${mark}${strike}</svg>`
+}

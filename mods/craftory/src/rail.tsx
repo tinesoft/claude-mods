@@ -19,11 +19,14 @@ import type { Flow, PhaseView } from './evidence'
 import {
   BAR_SIZE,
   barSvg,
+  DOT_PX,
+  dotOf,
   hexOr,
   inboxSvg,
   listSvg,
   OFF_TRACK,
   spinnerSvg,
+  phaseDotSvg,
   phaseSvg,
 } from './icons'
 import { FrontierCard, MapChip } from './map-card'
@@ -180,9 +183,14 @@ const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
     )
   }
   const t = TOKENS[tone]
-  // The state's colour lives on the marker only; Desktop drops colour inside a Button.
+  // The state's colour lives on the numbered dot only; Desktop drops colour inside a Button.
   const marker = (
-    <Icon ui={ui} svg={phaseIcon(view, spinFrame, colours.fg, OFF_TRACK)} alt={look.label} />
+    <Icon
+      ui={ui}
+      svg={phaseDotSvg(dotOf(view.state.kind, PHASES[view.phase].n, tone), spinFrame)}
+      alt={look.label}
+      px={DOT_PX}
+    />
   )
   return (
     <Box
