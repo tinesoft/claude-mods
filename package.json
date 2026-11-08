@@ -17,7 +17,9 @@
     "format": "prettier --write .",
     "sync:check": "node tools/sync-plugin-version.mjs --check",
     "sa:dev": "nx dev session-activity",
-    "cf:dev": "nx dev craftory"
+    "cf:dev": "nx dev craftory",
+    "sa:install": "nx install session-activity",
+    "cf:install": "nx install craftory"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",

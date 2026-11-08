@@ -38,6 +38,21 @@
       "executor": "nx:run-commands",
       "cache": false,
       "options": { "command": "claude --plugin-dir {projectRoot}", "cwd": "{workspaceRoot}" }
+    },
+    "install": {
+      "metadata": {
+        "description": "Replace the installed tinesoft-mods marketplace with this repo and install this mod from it."
+      },
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "commands": [
+          "claude plugin marketplace remove tinesoft-mods || true",
+          "claude plugin install session-activity --marketplace ./"
+        ],
+        "parallel": false,
+        "cwd": "{workspaceRoot}"
+      }
     }
   }
 }
