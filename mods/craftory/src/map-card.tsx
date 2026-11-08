@@ -8,7 +8,6 @@ import {
   mapCountsText,
   routeStatus,
   ticketArg,
-  ticketLabel,
   ticketTypeLabel,
   ticketTypeRole,
   type MapView,
@@ -309,11 +308,6 @@ export const FrontierCard = ({
   )
 }
 
-// TODO(merge): use ticketTypeLabel from map-view
-/** A Decision ticket's type as the rows print it: Research, Prototype, Grilling or Task. */
-const typeText = (type: WayTicket['type']) =>
-  type === null ? null : `${type.charAt(0).toUpperCase()}${type.slice(1)}`
-
 /** The map card that opens the Tickets tab: counts, Work next ticket, then Takeable, Claimed, Blocked, Decided. */
 export const MapTicketsCard = ({
   ui,
@@ -345,7 +339,7 @@ export const MapTicketsCard = ({
       <Link key={`row-link-${ticket.ref}`} href={ticket.location} label={ticket.title} />
       {ticket.type !== null && (
         <Text mono size="caption" {...inkOf(tone, 'text2')}>
-          {typeText(ticket.type)}
+          {ticketTypeLabel(ticket.type)}
         </Text>
       )}
       {note !== null && <Text {...inkOf(tone, 'text2')}>{note}</Text>}
