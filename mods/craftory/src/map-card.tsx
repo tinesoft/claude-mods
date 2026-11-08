@@ -176,6 +176,11 @@ export const FrontierCard = ({
   )
 }
 
+// TODO(merge): use ticketTypeLabel from map-view
+/** A Decision ticket's type as the rows print it: Research, Prototype, Grilling or Task. */
+const typeText = (type: WayTicket['type']) =>
+  type === null ? null : `${type.charAt(0).toUpperCase()}${type.slice(1)}`
+
 /** The map card that opens the Tickets tab: counts, Work next ticket, then Takeable, Claimed, Blocked, Decided. */
 export const MapTicketsCard = ({
   ui,
@@ -190,7 +195,7 @@ export const MapTicketsCard = ({
   ascii: boolean
   view: MapView
   isDecidedOpen: boolean
-  on: { wayfinder: (arg: string) => void; decided: () => void }
+  on: { wayfinder: (arg: string) => void; decided: () => void } & Pick<MapActions, 'pickMap'>
 }) => {
   const { Box, Button, Link, Text } = ui
   const decided = view.map.tickets.filter(t => t.state === 'resolved')
@@ -204,7 +209,12 @@ export const MapTicketsCard = ({
       flexWrap="wrap"
     >
       <Text {...inkOf(tone, 'ink')}>{glyph}</Text>
-      <Link key={`row-link-${ticket.ref}`} href={ticket.location} label={ticketLabel(ticket)} />
+      <Link key={`row-link-${ticket.ref}`} href={ticket.location} label={ticket.title} />
+      {ticket.type !== null && (
+        <Text mono size="caption" {...inkOf(tone, 'text2')}>
+          {typeText(ticket.type)}
+        </Text>
+      )}
       {note !== null && <Text {...inkOf(tone, 'text2')}>{note}</Text>}
       {isTakeable && (
         <CardButton
@@ -224,9 +234,25 @@ export const MapTicketsCard = ({
   )
   return (
     <Box key="tickets-map" flexDirection="column" rowGap={SPACE.lineGap}>
-      <Text key="map-kicker" mono size="caption" {...inkOf(tone, 'text2')}>
-        {view.kicker}
-      </Text>
+      <Box
+        key="tickets-map-head"
+        flexDirection="row"
+        flexWrap="wrap"
+        alignItems="center"
+        columnGap={SPACE.rowLabelGap}
+      >
+        <Text key="map-kicker" mono size="caption" {...inkOf(tone, 'text2')}>
+          {view.kicker}
+        </Text>
+        {view.others.map(other => (
+          <Button
+            key={`tickets-switch-${other.ref}`}
+            plain
+            label={`${glyph('switch', ascii)} ${other.title}`}
+            onPress={() => on.pickMap(other.ref)}
+          />
+        ))}
+      </Box>
       <Box
         flexDirection="row"
         justifyContent="space-between"

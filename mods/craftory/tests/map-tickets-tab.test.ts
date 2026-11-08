@@ -159,14 +159,81 @@ test('Decided is collapsed by default, expands on press, and its rows link to th
   await startSession($)
   const pane = await ticketsTab($)
   const links = async () => (await pane.findAll({ type: 'Link' })).map(l => String(l.props.label))
-  expect(await links()).not.toContain('Billing model (grilling)')
+  expect(await links()).not.toContain('Billing model')
   await pane.press({ key: 'decided-toggle' })
   await pane.redraw()
-  expect(await links()).toContain('Billing model (grilling)')
-  expect(await links()).toContain('Gateway limits (research)')
+  expect(await links()).toContain('Billing model')
+  expect(await links()).toContain('Gateway limits')
   const hrefs = (await pane.findAll({ type: 'Link' })).map(l => String(l.props.href))
   expect(hrefs).toContain('.scratch/billing-v2/issues/01-billing-model.md')
   await pane.press({ key: 'decided-toggle' })
   await pane.redraw()
-  expect(await links()).not.toContain('Billing model (grilling)')
+  expect(await links()).not.toContain('Billing model')
 })
+
+const twoMaps = () => {
+  const refunds = Object.fromEntries(
+    Object.entries(scenarioFiles('local', 'mixed')).map(([path, text]) => [
+      path.replace('billing-v2', 'refunds'),
+      text.replace('# Billing v2', '# Refunds'),
+    ]),
+  )
+  return { files: { ...scenarioFiles('local', 'mixed'), ...refunds } }
+}
+
+const ticketsOn = async ($: Engine, surface: 'terminal' | 'desktop') => {
+  const pane = await mountPane($, surface)
+  await pane.press({ key: 'tab-tickets' })
+  await pane.redraw()
+  return pane
+}
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`${surface}: the map card header holds the kicker and the switcher on one row`, async ($, on) => {
+    const w = featureWorld(on, twoMaps())
+    w.mtimes.set('.scratch/refunds/map.md', 500)
+    await startSession($)
+    const pane = await ticketsOn($, surface)
+    const head = (await pane.find({ key: 'tickets-map-head' }))!
+    expect(head.props.flexDirection).toBe('row')
+    expect(head.props.flexWrap).toBe('wrap')
+    expect(head.text).toContain('Wayfinder · Local · .scratch/refunds')
+    const pick = (await pane.find({ key: 'tickets-switch-billing-v2' }))!
+    expect(head.text).toContain(pick.text)
+    expect(pick.text).toContain('Billing v2')
+    expect(await pane.find({ key: 'tickets-switch-refunds' })).toBeUndefined()
+  })
+
+  test(`${surface}: picking a map in the Tickets header makes it the active one`, async ($, on) => {
+    const w = featureWorld(on, twoMaps())
+    w.mtimes.set('.scratch/refunds/map.md', 500)
+    await startSession($)
+    const pane = await ticketsOn($, surface)
+    await pane.press({ key: 'tickets-switch-billing-v2' })
+    await pane.redraw()
+    expect((await pane.find({ key: 'tickets-map-head' }))!.text).toContain('.scratch/billing-v2')
+    expect((await pane.find({ key: 'tickets-switch-refunds' }))!.text).toContain('Refunds')
+  })
+
+  test(`${surface}: one map has no switcher in the Tickets header`, async ($, on) => {
+    featureWorld(on, mixed())
+    await startSession($)
+    const pane = await ticketsOn($, surface)
+    expect((await pane.find({ key: 'tickets-map-head' }))!.text).toContain('.scratch/billing-v2')
+    expect(await pane.find({ key: 'tickets-switch-billing-v2' })).toBeUndefined()
+  })
+
+  test(`${surface}: each ticket row shows its type in mono beside the title`, async ($, on) => {
+    featureWorld(on, mixed())
+    await startSession($)
+    const pane = await ticketsOn($, surface)
+    const tax = (await pane.find({ key: 'row-billing-v2/04' }))!.text
+    expect(tax).toContain('Tax rounding')
+    expect(tax).toContain('Grilling')
+    expect(tax).not.toContain('(grilling)')
+    expect((await pane.find({ key: 'row-billing-v2/03' }))!.text).toContain('Prototype')
+    const types = await pane.findAll({ type: 'Text', text: 'Grilling' })
+    expect(types.length).toBeGreaterThan(0)
+    expect(types.every(t => t.props.mono === true)).toBe(true)
+  })
+}
