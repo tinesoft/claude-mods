@@ -228,7 +228,8 @@ test('a title press opens the switcher only when several features are in flight'
 test('the summary layout is one chip naming the feature and phase, with the gear', () => {
   const flow = withState(baseFlow(), 'build', { kind: 'running', progress: '2/5' })
   const out = renderBand(args({ flow, layout: 'summary' }))
-  expect(textOf(byKey(out, 'summary'))).toBe('Export invoices as CSV · Build 2/5')
+  expect(textOf(byKey(out, 'summary'))).toBe('Export invoices as CSV')
+  expect(textOf(byKey(out, 'summary-chip'))).toBe('◐ Export invoices as CSV · Build 2/5')
   expect(byKey(out, 'phase-build')).toBeUndefined()
   expect(byKey(out, 'gear')).toBeDefined()
   ;(byKey(out, 'summary')!.props.onPress as () => void)()

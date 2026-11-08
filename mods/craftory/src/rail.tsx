@@ -2,7 +2,7 @@ import type { RenderElement, RenderSurface } from 'claude-code'
 import type { CraftoryConfig, FeatureKey, IssueRef, PhaseId, RailLayout, Tone } from '../types'
 import type { AgentsView } from './build'
 import {
-  chipText,
+  summaryParts,
   fitCard,
   fitRail,
   focusPhase,
@@ -40,6 +40,7 @@ import {
   SPACE,
   SPINNER,
   SPINNER_ASCII,
+  SUMMARY_SEP,
   SPIN_MS,
   PHASE_LOOKS,
   TOKENS,
@@ -448,6 +449,9 @@ const Rail = ({ args }: { args: RailArgs }) => {
   )
 }
 
+/** The fewest title cells the summary keeps before it clips. */
+const SUMMARY_TITLE_MIN = 6
+
 const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   const { ui, tone, columns, on } = args
   const { Box, Button, Text } = ui
@@ -455,12 +459,18 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   const look = PHASE_LOOKS[view.state.kind]
   const colours = paint(look.role, tone)
   const rich = isRich(ui) && tone !== undefined
+  const sep = args.ascii ? SUMMARY_SEP.ascii : SUMMARY_SEP.glyph
   const mapWidth =
     args.map === null
       ? 0
-      : `${mapChipGlyph(args.ascii)} ${mapChipName(args.map)} ${mapChipCompact(args.map, args.ascii)}`
+      : `${mapChipGlyph(args.ascii)} ${mapChipName(args.map)} ${mapChipCompact(args.map, args.ascii)} ${sep}`
           .length + 1
-  const text = clip(chipText(flow), Math.max(10, columns - GEAR_RESERVE - 6 - mapWidth))
+  const parts = summaryParts(flow)
+  const phaseText = `· ${parts.phase}`
+  const rest = 1 + phaseText.length + (parts.count === null ? 0 : 1 + parts.count.length)
+  const titleMax = Math.min(TITLE_MAX, columns - GEAR_RESERVE - 6 - mapWidth - rest)
+  const title = clip(parts.title, Math.max(SUMMARY_TITLE_MIN, titleMax))
+  const t = rich ? TOKENS[tone] : undefined
   return (
     <Box
       key="summary-row"
@@ -470,6 +480,11 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
     >
       <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap}>
         {args.map !== null && <ChipOf args={args} view={args.map} compact />}
+        {args.map !== null && (
+          <Text key="summary-sep" {...inkOf(tone, 'muted')}>
+            {sep}
+          </Text>
+        )}
         <Box
           key="summary-chip"
           flexDirection="row"
@@ -494,10 +509,31 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
             >{`${glyphOf(view, args.spinFrame, args.ascii)} `}</Text>
           )}
           <Button key="summary" plain onPress={() => on.summary()}>
-            <Text {...inkOf(tone, 'ink')} bold>
-              {text}
+            <Text {...(t === undefined && inkOf(tone, 'ink'))} bold>
+              {title}
             </Text>
           </Button>
+          {t === undefined ? (
+            <Text key="summary-phase" {...inkOf(tone, 'ink')} bold>{` ${phaseText}`}</Text>
+          ) : (
+            <Text key="summary-phase" color={colours.fg}>
+              {phaseText}
+            </Text>
+          )}
+          {parts.count !== null &&
+            (t === undefined ? (
+              <Text key="summary-count" {...inkOf(tone, 'ink')} bold>{` ${parts.count}`}</Text>
+            ) : (
+              <Text
+                key="summary-count"
+                mono
+                size="caption"
+                color={t.text2}
+                backgroundColor={mix(t.surface, t.countBg.base, t.countBg.alpha)}
+              >
+                {` ${parts.count} `}
+              </Text>
+            ))}
         </Box>
       </Box>
       <Gear args={args} />

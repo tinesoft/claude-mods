@@ -53,10 +53,15 @@ export function focusPhase(flow: Flow): PhaseView {
   )
 }
 
-export function chipText(flow: Flow): string {
+/** The summary's three parts: the feature title, the focus phase's name and its count, if any. */
+export function summaryParts(flow: Flow): { title: string; phase: string; count: string | null } {
   const view = focusPhase(flow)
-  const meta = phaseMeta(view, flow)
-  return `${clip(flow.title, TITLE_MAX)} · ${PHASES[view.phase].label}${meta ? ` ${meta}` : ''}`
+  return { title: flow.title, phase: PHASES[view.phase].label, count: phaseMeta(view, flow) }
+}
+
+export function chipText(flow: Flow): string {
+  const { title, phase, count } = summaryParts(flow)
+  return `${clip(title, TITLE_MAX)} · ${phase}${count ? ` ${count}` : ''}`
 }
 
 export const GEAR_RESERVE = 3

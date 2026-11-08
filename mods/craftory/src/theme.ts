@@ -179,6 +179,9 @@ export const SPIN_MS = 150
 
 export const CONNECTOR = { glyph: '─', ascii: '-' } as const
 
+/** Between the map chip and the feature in the collapsed summary: Map › Feature. */
+export const SUMMARY_SEP = { glyph: '›', ascii: '>' } as const
+
 /** A border drawn but not seen, so a step at rest keeps its size and a hover can still restyle it. */
 export const CLEAR = 'transparent'
 

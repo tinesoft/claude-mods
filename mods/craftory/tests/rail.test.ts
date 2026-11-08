@@ -142,7 +142,8 @@ test('rail_layout summary draws one chip, and so does a narrow band', async ($, 
   await startSession($)
   const chip = await mountBand($, 'terminal', 200)
   expect(await find(chip, 'phase-build')).toBeUndefined()
-  expect((await find(chip, 'summary'))!.text).toBe('Export invoices as CSV · Build')
+  expect((await find(chip, 'summary'))!.text).toBe('Export invoices as CSV')
+  expect((await find(chip, 'summary-chip'))!.text).toBe('▸ Export invoices as CSV · Build')
 })
 
 test('a band too narrow for seven phases collapses to the chip', async ($, on) => {
