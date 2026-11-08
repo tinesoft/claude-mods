@@ -5,6 +5,7 @@ import { WORKTREE_LABELS, type WorktreeKind, type WorktreeRowView, type Worktree
 import {
   flowRows,
   paneHeader,
+  type FlowRowView,
   TABS,
   type GlossaryView,
   type InboxAction,
@@ -20,8 +21,9 @@ import type { NoticeView } from './notices'
 import { NoticeRow } from './notice-row'
 import { PhaseStrip, type BandActions } from './rail'
 import { SettingsTab, type SettingsArgs } from './settings'
-import { paint, SPACE, PHASE_LOOKS, TOKENS, type Role } from './theme'
-import { inkOf, isRich, type Ui } from './ui'
+import { DOT_PX, dotOf, phaseDotSvg, VBAR_SIZE, vbarSvg } from './icons'
+import { FLOW_JOIN, paint, SPACE, PHASE_LOOKS, TOKENS, TRIPLES, type Role } from './theme'
+import { Icon, inkOf, isRich, roleInk, type Ui } from './ui'
 import { Badge, CardButton } from './widgets'
 
 export type PaneActions = {
@@ -293,6 +295,62 @@ const TabRow = ({
   )
 }
 
+/**
+ * A Flow row's state mark and the line joining it to the next row: the numbered dot and a thin
+ * bar on rich surfaces, the phase glyph and `│` on the terminal. The last row has no line.
+ */
+const FlowMark = ({
+  ui,
+  tone,
+  ascii,
+  spinFrame,
+  row,
+  isLast,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  ascii: boolean
+  spinFrame: number
+  row: FlowRowView
+  isLast: boolean
+}) => {
+  const { Box, Svg, Text } = ui
+  const look = PHASE_LOOKS[row.state]
+  const isDone = row.state === 'done'
+  if (Svg !== undefined && tone !== undefined) {
+    const bar = isDone ? TRIPLES.perm[tone].bd : TOKENS[tone].line
+    return (
+      <Box key={`flow-mark-${row.phase}`} flexDirection="column" alignItems="center" rowGap="xs">
+        <Icon
+          ui={ui}
+          svg={phaseDotSvg(dotOf(row.state, row.n, tone), spinFrame)}
+          alt={look.label}
+          px={DOT_PX}
+        />
+        {!isLast && (
+          <Box key={`flow-join-${row.phase}`} flexGrow={1} alignItems="center">
+            <Svg source={vbarSvg(bar)} alt="" {...VBAR_SIZE} />
+          </Box>
+        )}
+      </Box>
+    )
+  }
+  return (
+    <Box key={`flow-mark-${row.phase}`} flexDirection="column">
+      <Text key={`flow-glyph-${row.phase}`} bold {...roleInk(look.role, tone)}>
+        {ascii ? look.ascii : look.glyph}
+      </Text>
+      {!isLast && (
+        <Box key={`flow-join-${row.phase}`}>
+          <Text {...(isDone ? roleInk('perm', tone) : inkOf(tone, 'muted'))}>
+            {ascii ? FLOW_JOIN.ascii : FLOW_JOIN.glyph}
+          </Text>
+        </Box>
+      )}
+    </Box>
+  )
+}
+
 const FlowTab = ({
   ui,
   tone,
@@ -321,7 +379,9 @@ const FlowTab = ({
 >) => {
   const { Box, Text } = ui
   const rich = isRich(ui) && tone !== undefined
-  const head = map !== null && surface === 'mobile' && (
+  // No band on mobile or in VS Code: the tab heads with the rail and the map chip instead.
+  const isBandless = surface === 'mobile' || surface === 'vscode'
+  const head = map !== null && isBandless && (
     <Box key="map-head" flexDirection="column" rowGap={SPACE.paneGap}>
       <MapChip ui={ui} tone={tone} ascii={ascii} view={map} isOpen={isMapOpen} on={on} />
       {isMapOpen && <FrontierCard ui={ui} tone={tone} ascii={ascii} view={map} on={on} />}
@@ -331,9 +391,6 @@ const FlowTab = ({
     return (
       <Box key="flow" flexDirection="column" rowGap={SPACE.paneGap}>
         {head}
-        <Text {...inkOf(tone, 'text2')}>
-          No feature in flight. Talk the plan through first with /grill-with-docs.
-        </Text>
       </Box>
     )
   }
@@ -343,7 +400,7 @@ const FlowTab = ({
       {notices.map(notice => (
         <NoticeRow key={notice.id} ui={ui} tone={tone} notice={notice} on={on} />
       ))}
-      {surface === 'mobile' && (
+      {isBandless && (
         <PhaseStrip
           id="pane-rail"
           wrap
@@ -353,14 +410,19 @@ const FlowTab = ({
       <Text {...inkOf(tone, 'text2')}>
         {`${flow.title} · ${flow.doneCount} of ${flow.enabledCount} phases done`}
       </Text>
-      {flowRows(flow).map(row => {
+      {flowRows(flow).map((row, i, rows) => {
         const look = PHASE_LOOKS[row.state]
         const colours = paint(look.role, tone)
         return (
           <Box key={`flow-${row.phase}`} flexDirection="row" columnGap={SPACE.rowLabelGap}>
-            <Text key={`flow-glyph-${row.phase}`} bold color={colours.fg}>
-              {ascii ? look.ascii : look.glyph}
-            </Text>
+            <FlowMark
+              ui={ui}
+              tone={tone}
+              ascii={ascii}
+              spinFrame={spinFrame}
+              row={row}
+              isLast={i === rows.length - 1}
+            />
             <Box flexDirection="column" flexShrink={1} minWidth={0}>
               <Box flexDirection="row" columnGap={SPACE.rowLabelGap} flexWrap="wrap">
                 <Text

@@ -73,6 +73,12 @@ export const BAR_SIZE = { width: 12, height: 2 } as const
 export const barSvg = (color: string) =>
   `<svg ${XMLNS} viewBox="0 0 12 2"><rect width="12" height="2" rx="1" fill="${color}"/></svg>`
 
+/** The thin vertical bar joining two phases of the Flow timeline on rich surfaces. */
+export const VBAR_SIZE = { width: 2, height: 16 } as const
+
+export const vbarSvg = (color: string) =>
+  `<svg ${XMLNS} viewBox="0 0 2 16"><rect width="2" height="16" rx="1" fill="${color}"/></svg>`
+
 export const OFF_TRACK = '#C4C8D0'
 const RING_ARC = 'M8 2.5a5.5 5.5 0 0 1 5.5 5.5'
 

@@ -94,13 +94,20 @@ test('the terminal and desktop do not repeat the rail inside the pane', async ($
   expect(await pane.find({ key: 'pane-rail' })).toBeUndefined()
 })
 
-test('desktop, dark: a done phase glyph takes the done colour, the next one the running colour', async ($, on) => {
+test('desktop, dark: a done phase dot takes the done colour, the next one the running colour', async ($, on) => {
   await session(on, $, 'desktop', { theme: 'dark' })
   const pane = await open($, 'desktop', 'flow')
-  const colourOf = async (glyph: string) =>
-    (await pane.findAll({ type: 'Text', text: glyph }))[0]?.props.color
-  expect(await colourOf('✓')).toBe(paint('perm', 'dark').fg)
-  expect(await colourOf('▸')).toBe(paint('skill', 'dark').fg)
+  const dotOf = async (phase: string) => {
+    const mark = (await pane.find({ key: `flow-mark-${phase}` })) as { children?: unknown[] }
+    const svg = (mark.children ?? []).find(
+      (c): c is { type: string; props: { source: string } } =>
+        typeof c === 'object' && c !== null && (c as { type?: string }).type === 'Svg',
+    )
+    return svg?.props.source ?? ''
+  }
+  expect(await dotOf('align')).toContain(paint('perm', 'dark').fg)
+  expect(await dotOf('build')).toContain(paint('skill', 'dark').fg)
+  expect(await pane.findAll({ type: 'Text', text: '✓' })).toEqual([])
 })
 
 test('the Glossary tab lists terms, counts those added this session and the terms the last reply used', async ($, on) => {
