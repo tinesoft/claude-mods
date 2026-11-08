@@ -77,6 +77,7 @@ const on: BandActions = {
   map: () => void calls.push('map'),
   pickMap: ref => void calls.push(`pick ${ref}`),
   act: action => void calls.push(action.kind),
+  wayfinder: arg => void calls.push(`wayfinder ${arg}`),
 }
 
 const band = (over: Partial<BandArgs> = {}) =>
