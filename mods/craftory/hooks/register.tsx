@@ -96,6 +96,7 @@ import {
 import { jumpToTerm, settingsArgs, signalsOf } from './shell/settings'
 import {
   closeCard,
+  closePane,
   closeRailPopups,
   copyWithToast,
   glossaryQueryOf,
@@ -515,6 +516,7 @@ export const register: Register = (on, options) => {
     ])
     const worktrees = await worktreesViewOf($)
     const tickets = await ticketsViewOf($, flow)
+    const agents = await agentsViewOf($, flow)
     const actions = bandActions($)
     return renderPane({
       ui: uiFor($, e),
@@ -525,6 +527,8 @@ export const register: Register = (on, options) => {
       tab: await paneTabOf($),
       pluginLine: pluginLine(await pluginOf($)),
       flow,
+      agents: (agents?.rows ?? []).filter(r => r.status === 'running' || r.status === 'near')
+        .length,
       map: await mapViewOf($),
       isMapOpen: await isMapOpenOf($),
       isDecidedOpen: await isDecidedOpenOf($),
@@ -572,6 +576,8 @@ export const register: Register = (on, options) => {
         decided: () => void toggleDecided($),
         closeCard: actions.closeCard,
         pickMap: actions.pickMap,
+        settings: () => void openPane($, 'settings'),
+        close: () => void closePane($),
       },
     })
   })

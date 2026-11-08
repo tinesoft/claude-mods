@@ -312,3 +312,34 @@ export function glossaryView(args: {
     hasFile: true,
   }
 }
+
+export type PaneHeaderView = { kicker: string; title: string; progress: string }
+
+const STANDING: Partial<Record<Flow['phases'][number]['state']['kind'], string>> = {
+  running: 'running',
+  'needs-you': 'needs you',
+}
+
+/** What the pane says on top: which Feature, and where it stands; `agents` counts running agents. */
+export function paneHeader(flow: Flow | null, agents: number): PaneHeaderView {
+  if (flow === null)
+    return {
+      kicker: 'Craftory',
+      title: 'No feature in flight',
+      progress: 'Talk the plan through first with /grill-with-docs.',
+    }
+  const spec = flow.feature.kind === 'specced' ? flow.feature.record.spec : ''
+  const current = flow.phases.find(p => p.phase === flow.current)
+  const standing = current === undefined ? undefined : STANDING[current.state.kind]
+  const crew = agents > 0 ? `, ${agents} ${agents === 1 ? 'agent' : 'agents'}` : ''
+  return {
+    kicker: spec === '' ? 'Craftory' : `Craftory · spec ${spec}`,
+    title: flow.title,
+    progress: [
+      `${flow.doneCount} of ${flow.enabledCount} phases done`,
+      ...(current !== undefined && standing !== undefined
+        ? [`${PHASES[current.phase].label} ${standing}${crew}`]
+        : []),
+    ].join(' · '),
+  }
+}

@@ -68,6 +68,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   const ran: string[][] = []
   const writes: { path: string; text: string }[] = []
   const opens: { id: string; title?: string }[] = []
+  const closes: { id: string }[] = []
   const toasts: string[] = []
   const toastTimeouts: (number | undefined)[] = []
   const statuses: (string | undefined)[] = []
@@ -106,7 +107,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   on('ui.render', ($, e) => $.ui.resolve(e).Box({}))
   const panes = new Set<string>()
   on('ui.open', (_$, e) => (opens.push(e), panes.add(e.id), { value: { isPlaced: true } }))
-  on('ui.close', (_$, e) => (panes.delete(e.id), { value: undefined }))
+  on('ui.close', (_$, e) => (closes.push(e), panes.delete(e.id), { value: undefined }))
   on('ui.panes', () => ({
     value: [...panes].map(id => ({
       id,
@@ -246,6 +247,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
     ran,
     writes,
     opens,
+    closes,
     panes,
     toasts,
     toastTimeouts,

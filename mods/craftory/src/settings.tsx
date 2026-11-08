@@ -47,6 +47,8 @@ export type SettingsArgs = {
   firstRun: string
   glossary: GlossaryEdit
   note: string | null
+  /** Which mattpocock-skills was found, shown at the top of the tab. */
+  pluginLine: string
   on: SettingsActions
 }
 
@@ -327,12 +329,13 @@ const Body = ({
 }
 
 export const SettingsTab = (args: SettingsArgs) => {
-  const { ui, tone, readOnly, facts, section, isDraft, firstRun, note, on } = args
+  const { ui, tone, readOnly, facts, section, isDraft, firstRun, note, pluginLine, on } = args
   const { Box, Text } = ui
   const def = SECTIONS.find(s => s.id === section) ?? SECTIONS[0]!
   const headerRows = SECTIONS.flatMap(s => visibleRows(s, facts)).filter(r => r.header === true)
   return (
     <Box key="settings" flexDirection="column" rowGap={SPACE.paneGap}>
+      <Text {...inkOf(tone, 'text2')}>{pluginLine}</Text>
       <Text wrap="wrap" {...inkOf(tone, 'text2')}>
         An SDLC framework, built on top of Matt Pocock’s skills, as a mod. Shared values are written
         to docs/agents/*.md, the glossary and .craftory/config.json, so every skill and every

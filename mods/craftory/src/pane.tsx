@@ -4,6 +4,7 @@ import type { Flow } from './evidence'
 import { WORKTREE_LABELS, type WorktreeKind, type WorktreeRowView, type WorktreesView } from './git'
 import {
   flowRows,
+  paneHeader,
   TABS,
   type GlossaryView,
   type InboxAction,
@@ -42,6 +43,8 @@ export type PaneActions = {
   pickMap: (ref: IssueRef) => void
   closeCard: () => void
   act: (action: Action) => void
+  settings: () => void
+  close: () => void
 }
 
 export type PaneArgs = {
@@ -53,6 +56,8 @@ export type PaneArgs = {
   tab: PaneTab
   pluginLine: string
   flow: Flow | null
+  /** Agents running for the Feature, for the header's progress line. */
+  agents: number
   map: MapView | null
   isMapOpen: boolean
   isDecidedOpen: boolean
@@ -63,7 +68,7 @@ export type PaneArgs = {
   worktrees: WorktreesView | null
   glossary: GlossaryView
   query: string
-  settings: Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly'>
+  settings: Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly' | 'pluginLine'>
   on: PaneActions
 }
 
@@ -708,9 +713,46 @@ const GlossaryTab = ({
   )
 }
 
+const PaneHeader = ({
+  ui,
+  tone,
+  ascii,
+  flow,
+  agents,
+  on,
+}: Pick<PaneArgs, 'ui' | 'tone' | 'ascii' | 'flow' | 'agents' | 'on'>) => {
+  const { Box, Text, Button } = ui
+  const rich = isRich(ui) && tone !== undefined
+  const head = paneHeader(flow, agents)
+  return (
+    <Box
+      key="pane-header"
+      flexDirection="row"
+      justifyContent="space-between"
+      columnGap={SPACE.cardHeadGap}
+    >
+      <Box flexDirection="column" flexShrink={1} minWidth={0} rowGap={SPACE.lineGap}>
+        <Text mono size="caption" wrap="truncate-end" {...inkOf(tone, 'text2')}>
+          {head.kicker}
+        </Text>
+        <Text bold size={rich ? 'heading' : 'body'} wrap="wrap" {...inkOf(tone, 'ink')}>
+          {head.title}
+        </Text>
+        <Text wrap="wrap" {...inkOf(tone, 'ink2')}>
+          {head.progress}
+        </Text>
+      </Box>
+      <Box flexDirection="row" flexShrink={0} columnGap={SPACE.cardHeadGap}>
+        <Button key="pane-gear" plain label="⚙" onPress={() => on.settings()} />
+        <Button key="pane-close" plain label={ascii ? 'x' : '×'} onPress={() => on.close()} />
+      </Box>
+    </Box>
+  )
+}
+
 export function renderPane(args: PaneArgs) {
   const { ui, tone, ascii, map, tab, pluginLine, on } = args
-  const { Box, Text } = ui
+  const { Box } = ui
   return (
     <Box
       flexDirection="column"
@@ -718,8 +760,7 @@ export function renderPane(args: PaneArgs) {
       paddingRight={SPACE.paneRight}
       rowGap={SPACE.paneGap}
     >
-      <Text bold>Craftory</Text>
-      <Text {...inkOf(tone, 'text2')}>{pluginLine}</Text>
+      <PaneHeader {...args} />
       <TabRow ui={ui} tone={tone} tab={tab} counts={args.counts} on={on} />
       {tab === 'flow' && <FlowTab {...args} />}
       {tab === 'tickets' && (
@@ -738,7 +779,13 @@ export function renderPane(args: PaneArgs) {
         <GlossaryTab ui={ui} tone={tone} view={args.glossary} query={args.query} on={on} />
       )}
       {tab === 'settings' && (
-        <SettingsTab ui={ui} tone={tone} readOnly={args.surface === 'mobile'} {...args.settings} />
+        <SettingsTab
+          ui={ui}
+          tone={tone}
+          readOnly={args.surface === 'mobile'}
+          pluginLine={pluginLine}
+          {...args.settings}
+        />
       )}
     </Box>
   )
