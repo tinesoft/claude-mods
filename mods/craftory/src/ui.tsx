@@ -58,11 +58,26 @@ export const Icon = ({
  * label (underlined when `pressed`), then `children`. Children are siblings after the Button on both
  * surfaces, so the caller paints and spaces them (a leading space on the terminal).
  */
+/**
+ * A neutral chip's look on a rich surface, in place of a role's: its border (`dashed` for the Inbox),
+ * an optional fill, and what pressing and hovering change. Leave `fill` out for no fill at rest.
+ */
+export type ChipLook = {
+  border: Color
+  fill?: Color
+  dashed?: boolean
+  pressedBorder?: Color
+  pressedFill?: Color
+  hover: Color
+}
+
 export const Chip = ({
   ui,
   tone,
   id,
   role,
+  look,
+  ink,
   icon,
   glyph,
   label,
@@ -75,6 +90,10 @@ export const Chip = ({
   tone: Tone | undefined
   id: string
   role: Role
+  /** Overrides the role's look on rich surfaces; the role still colours the terminal glyph. */
+  look?: ChipLook
+  /** The label's colour on the terminal only: rich surfaces drop colour inside a Button. */
+  ink?: { color?: Color; dimColor?: boolean }
   /** Svg source, drawn on rich surfaces in place of `glyph`. */
   icon?: string
   /** One-cell mark drawn on the terminal before the label. */
@@ -90,7 +109,7 @@ export const Chip = ({
   const rich = isRich(ui) && tone !== undefined
   const button = (
     <Button key={id} plain onPress={onPress}>
-      <Text bold={bold} {...(!rich && { underline: pressed })}>
+      <Text bold={bold} {...(!rich && { ...ink, underline: pressed })}>
         {label}
       </Text>
     </Button>
@@ -105,6 +124,13 @@ export const Chip = ({
     )
   }
   const rest = colours.bg ?? TOKENS[tone].surface
+  const drawn = look ?? {
+    border: colours.bd ?? rest,
+    fill: rest,
+    pressedBorder: colours.fg,
+    hover: mix(rest, colours.fg, HOVER_MIX),
+  }
+  const fill = pressed ? (drawn.pressedFill ?? drawn.fill) : drawn.fill
   return (
     <Box
       key={`box-${id}`}
@@ -112,10 +138,10 @@ export const Chip = ({
       alignItems="center"
       columnGap={SPACE.phaseGap}
       paddingX={SPACE.phasePadX}
-      borderStyle="round"
-      borderColor={pressed ? colours.fg : (colours.bd ?? rest)}
-      backgroundColor={rest}
-      hover={{ backgroundColor: mix(rest, colours.fg, HOVER_MIX) }}
+      borderStyle={drawn.dashed ? 'dashed' : 'round'}
+      borderColor={pressed ? (drawn.pressedBorder ?? drawn.border) : drawn.border}
+      {...withTint(fill)}
+      hover={{ backgroundColor: drawn.hover }}
     >
       {icon !== undefined && <Icon ui={ui} svg={icon} alt="" />}
       {button}

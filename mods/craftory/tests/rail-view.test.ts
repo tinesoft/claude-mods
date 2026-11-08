@@ -153,14 +153,14 @@ test("another mod's row is the first child of the band, in its own row", () => {
   expect(findAll(out.children[0], n => n.type === 'Text')).toEqual([])
 })
 
-test('the rail reads triage, divider, phases, title and gear in that order', () => {
+test('the rail reads triage, divider, title, phases and gear in that order', () => {
   const out = renderBand(args({ waiting: 3 }))
-  expect(textOf(byKey(out, 'triage'))).toBe('Inbox 3')
+  expect(textOf(byKey(out, 'box-triage'))).toBe('Inbox 3')
   const all = textOf(out)
   expect(all.indexOf('Inbox 3')).toBeLessThan(all.indexOf('│'))
-  expect(all.indexOf('│')).toBeLessThan(all.indexOf('Align'))
-  expect(all.indexOf('Retro')).toBeLessThan(all.indexOf('Export invoices as CSV'))
-  expect(all.indexOf('Export invoices as CSV')).toBeLessThan(all.indexOf('⚙'))
+  expect(all.indexOf('│')).toBeLessThan(all.indexOf('Export invoices as CSV'))
+  expect(all.indexOf('Export invoices as CSV')).toBeLessThan(all.indexOf('Align'))
+  expect(all.indexOf('Retro')).toBeLessThan(all.indexOf('⚙'))
 })
 
 test('desktop draws state icons as images and meta in a mono badge', () => {
@@ -175,6 +175,15 @@ test('desktop draws state icons as images and meta in a mono badge', () => {
   expect(badge.props).toMatchObject({ mono: true })
   const rail = byKey(out, 'rail')!
   expect(rail.props).toMatchObject({ borderStyle: 'round', backgroundColor: '#FFFFFF' })
+})
+
+test('desktop steps keep a hover tint, at rest and open', () => {
+  const ui = fakeUi(true)
+  const out = renderBand(args({ ui, surface: 'desktop', tone: 'dark', open: 'build' }))
+  for (const phase of ['spec', 'build'])
+    expect(byKey(out, `box-phase-${phase}`)!.props.hover).toMatchObject({
+      backgroundColor: expect.any(String),
+    })
 })
 
 test('a feature entered from triage shows the issue it came from on the entry view', () => {

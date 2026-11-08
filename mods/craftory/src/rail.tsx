@@ -15,7 +15,16 @@ import {
 } from './card-model'
 import { DetailCard, type CardActions } from './card'
 import type { Flow, PhaseView } from './evidence'
-import { hexOr, inboxSvg, OFF_TRACK, spinnerSvg, phaseSvg } from './icons'
+import {
+  BAR_SIZE,
+  barSvg,
+  hexOr,
+  inboxSvg,
+  listSvg,
+  OFF_TRACK,
+  spinnerSvg,
+  phaseSvg,
+} from './icons'
 import { FrontierCard, MapChip } from './map-card'
 import { mapChipCompact, mapChipGlyph, mapChipName, mapChipText, type MapView } from './map-view'
 import { NoticeRow } from './notice-row'
@@ -23,6 +32,7 @@ import type { FeatureChoice } from './features'
 import type { NoticeView } from './notices'
 import { PHASES } from './phases'
 import {
+  CLEAR,
   CONNECTOR,
   HOVER_MIX,
   mix,
@@ -35,7 +45,7 @@ import {
   TOKENS,
   TRIPLES,
 } from './theme'
-import { clip, Icon, inkOf, isRich, roleInk, type Ui } from './ui'
+import { Chip, clip, Icon, inkOf, isRich, roleInk, type Ui, withTint } from './ui'
 
 const glyphOf = (view: PhaseView, frame: number, ascii: boolean) => {
   const look = PHASE_LOOKS[view.state.kind]
@@ -93,8 +103,16 @@ const Connector = ({
   ascii: boolean
   before: PhaseView
 }) => {
-  const { Text } = ui
+  const { Box, Svg, Text } = ui
   const isDone = before.state.kind === 'done'
+  if (Svg !== undefined && tone !== undefined) {
+    const bar = isDone ? TRIPLES.perm[tone].bd : TOKENS[tone].line
+    return (
+      <Box key={`connector-${before.phase}`} flexDirection="row" alignItems="center">
+        <Svg source={barSvg(bar)} alt="" {...BAR_SIZE} />
+      </Box>
+    )
+  }
   const color = isDone
     ? tone === undefined
       ? paint('perm', tone).fg
@@ -158,7 +176,10 @@ const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
     )
   }
   const t = TOKENS[tone]
-  const selected = isOpen
+  // The state's colour lives on the marker only; Desktop drops colour inside a Button.
+  const marker = (
+    <Icon ui={ui} svg={phaseIcon(view, spinFrame, colours.fg, OFF_TRACK)} alt={look.label} />
+  )
   return (
     <Box
       key={`box-phase-${view.phase}`}
@@ -167,13 +188,15 @@ const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
       columnGap={SPACE.phaseGap}
       paddingX={SPACE.phasePadX}
       borderStyle="round"
-      borderColor={selected ? t.lineStrong : t.surface}
-      backgroundColor={selected ? t.fill : t.surface}
-      hover={{ backgroundColor: mix(t.surface, colours.fg, HOVER_MIX) }}
+      borderColor={isOpen ? t.lineStrong : CLEAR}
+      {...withTint(isOpen ? t.fill : undefined)}
+      hover={{ backgroundColor: mix(t.fill, colours.fg, HOVER_MIX) }}
     >
-      <Icon ui={ui} svg={phaseIcon(view, spinFrame, colours.fg, OFF_TRACK)} alt={look.label} />
+      {marker}
       <Button key={`phase-${view.phase}`} plain onPress={press}>
-        <Text {...ink}>{label}</Text>
+        <Text bold={look.bold} {...(look.strike && { strikethrough: true })}>
+          {label}
+        </Text>
       </Button>
       {meta !== null && (
         <Text
@@ -195,72 +218,117 @@ type TriageArgs = Pick<RailArgs, 'ui' | 'tone' | 'waiting' | 'open'> & {
 
 const TriageButton = ({ args }: { args: TriageArgs }) => {
   const { ui, tone, waiting, open, on } = args
-  const { Box, Button, Text } = ui
-  const isOpen = open === 'triage'
-  const label = waiting > 0 ? `Inbox ${waiting}` : 'Inbox'
+  const { Text } = ui
   const rich = isRich(ui) && tone !== undefined
-  if (!rich) {
-    return (
-      <Button key="triage" plain onPress={() => on.triage()}>
-        <Text {...roleInk('hook', tone)} underline={isOpen}>
-          {label}
-        </Text>
-      </Button>
+  const hook = paint('hook', tone)
+  const count =
+    waiting === 0 ? undefined : rich ? (
+      <Text mono bold size="caption" color={hook.fg} backgroundColor={hook.bg}>
+        {` ${waiting} `}
+      </Text>
+    ) : (
+      <Text {...roleInk('hook', tone)}>{` ${waiting}`}</Text>
     )
-  }
-  const t = TOKENS[tone]
-  const hook = TRIPLES.hook[tone]
+  const t = tone === undefined ? undefined : TOKENS[tone]
   return (
-    <Box
-      key="box-triage"
-      flexDirection="row"
-      alignItems="center"
-      columnGap={SPACE.phaseGap}
-      paddingX={SPACE.phasePadX}
-      borderStyle="dashed"
-      borderColor={isOpen ? hook.fg : t.lineDashed}
-      backgroundColor={isOpen ? t.fill : t.surface}
+    <Chip
+      ui={ui}
+      tone={tone}
+      id="triage"
+      role="hook"
+      ink={roleInk('hook', tone)}
+      {...(t && {
+        look: {
+          border: t.lineDashed,
+          dashed: true,
+          pressedBorder: hook.fg,
+          pressedFill: t.fill,
+          hover: mix(t.fill, hook.fg, HOVER_MIX),
+        },
+        icon: inboxSvg(hexOr(t.ink2)),
+      })}
+      label="Inbox"
+      pressed={open === 'triage'}
+      onPress={() => on.triage()}
     >
-      <Icon ui={ui} svg={inboxSvg(hexOr(t.ink2))} alt="Inbox" />
-      <Button key="triage" plain onPress={() => on.triage()}>
-        <Text color={t.ink2}>Inbox</Text>
-      </Button>
-      {waiting > 0 && (
-        <Text mono bold size="caption" color={hook.fg} backgroundColor={hook.bg}>
-          {` ${waiting} `}
-        </Text>
-      )}
-    </Box>
+      {count}
+    </Chip>
   )
 }
 
+/** A one-glyph plain Button: Desktop draws the glyph alone, with a hover tint. */
 const Gear = ({ args }: { args: BandArgs }) => {
   const { ui, tone, on } = args
-  const { Button, Text } = ui
+  const t = tone === undefined ? undefined : TOKENS[tone]
   return (
-    <Button key="gear" plain onPress={() => on.gear()}>
-      <Text {...inkOf(tone, 'text2')}>{'\u2699'}</Text>
-    </Button>
+    <Chip
+      ui={ui}
+      tone={tone}
+      id="gear"
+      role="neutral"
+      ink={inkOf(tone, 'text2')}
+      {...(t && { look: { border: CLEAR, hover: t.fill } })}
+      label={'\u2699'}
+      pressed={false}
+      onPress={() => on.gear()}
+    />
   )
 }
 
+/**
+ * The feature title, between the map chip and the phases. On rich surfaces a fill-tinted pill with
+ * a list icon; with several features in flight it is the Feature switcher.
+ */
 const Title = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   const { ui, tone, features, isPickingFeature, on } = args
-  const { Button, Text } = ui
+  const { Box, Text } = ui
   const text = clip(flow.title, args.titleMax)
+  const rich = isRich(ui) && tone !== undefined
+  const t = tone === undefined ? undefined : TOKENS[tone]
+  const look = t && {
+    border: t.fill,
+    fill: t.fill,
+    pressedBorder: t.lineStrong,
+    hover: mix(t.fill, t.ink, HOVER_MIX),
+  }
+  const icon = t && listSvg(hexOr(t.ink2))
   if (features.length < 2) {
-    return (
+    const label = (
       <Text key="title" bold {...inkOf(tone, 'ink')}>
         {text}
       </Text>
     )
+    if (!rich || look === undefined) return <Box key="box-title">{label}</Box>
+    return (
+      <Box
+        key="box-title"
+        flexDirection="row"
+        alignItems="center"
+        columnGap={SPACE.phaseGap}
+        paddingX={SPACE.phasePadX}
+        borderStyle="round"
+        borderColor={look.border}
+        backgroundColor={look.fill}
+      >
+        {icon !== undefined && <Icon ui={ui} svg={icon} alt="" />}
+        {label}
+      </Box>
+    )
   }
   return (
-    <Button key="title-switch" plain onPress={() => on.pickFeature()}>
-      <Text bold underline={isPickingFeature} {...inkOf(tone, 'ink')}>
-        {`${text} ▾`}
-      </Text>
-    </Button>
+    <Chip
+      ui={ui}
+      tone={tone}
+      id="title-switch"
+      role="neutral"
+      ink={inkOf(tone, 'ink')}
+      {...(look && { look })}
+      {...(icon !== undefined && { icon })}
+      label={`${text} ▾`}
+      bold
+      pressed={isPickingFeature}
+      onPress={() => on.pickFeature()}
+    />
   )
 }
 
@@ -282,18 +350,24 @@ const FeaturePicker = ({ args }: { args: BandArgs }) => {
 
 export type StripArgs = PhaseArgs & TriageArgs & { ascii: boolean }
 
-/** The Inbox button, a divider and the seven phases joined by connectors, shared by the rail and the pane. */
+/**
+ * The Inbox button, a divider, the `lead` (the map chip) and a divider, the `title`, then the seven
+ * phases joined by connectors. Shared by the rail and the pane's mobile Flow head.
+ */
 export const PhaseStrip = ({
   args,
   id,
   wrap = false,
   lead,
+  title,
 }: {
   args: StripArgs
   id: string
   wrap?: boolean
   /** Drawn between the Inbox and the phases, such as the map chip. */
   lead?: RenderElement | false
+  /** Drawn just before the phases, such as the feature title. */
+  title?: RenderElement
 }) => {
   const { ui, tone, ascii, flow } = args
   const { Box, Text } = ui
@@ -314,6 +388,7 @@ export const PhaseStrip = ({
       {divider('divider')}
       {lead && lead}
       {lead && divider('divider-map')}
+      {title}
       {flow.phases.map((view, index) => (
         <Box key={`group-${view.phase}`} flexDirection="row" alignItems="center">
           {index > 0 && (
@@ -365,10 +440,7 @@ const Rail = ({ args }: { args: RailArgs }) => {
         paddingX: SPACE.railPadX,
       })}
     >
-      <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap}>
-        <PhaseStrip id="phases" args={args} lead={lead} />
-        <Title args={args} flow={flow} />
-      </Box>
+      <PhaseStrip id="phases" args={args} lead={lead} title={<Title args={args} flow={flow} />} />
       <Gear args={args} />
     </Box>
   )

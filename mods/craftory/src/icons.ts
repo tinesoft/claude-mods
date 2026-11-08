@@ -55,6 +55,16 @@ export const closeSvg = (color: string) => stroke('<path d="M4 4l8 8M12 4l-8 8"/
 export const diamondSvg = (color: string) =>
   `<svg ${XMLNS} viewBox="0 0 16 16" fill="${color}"><path d="M8 1.5L14.5 8 8 14.5 1.5 8z"/></svg>`
 
+/** The board's list mark on the feature title pill. */
+export const listSvg = (color: string) =>
+  stroke('<path d="M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.1M2.5 8h.1M2.5 12h.1"/>', color)
+
+export const BAR_SIZE = { width: 12, height: 2 } as const
+
+/** The short bar joining two phase steps on rich surfaces. */
+export const barSvg = (color: string) =>
+  `<svg ${XMLNS} viewBox="0 0 12 2"><rect width="12" height="2" rx="1" fill="${color}"/></svg>`
+
 export const OFF_TRACK = '#C4C8D0'
 const RING_ARC = 'M8 2.5a5.5 5.5 0 0 1 5.5 5.5'
 

@@ -179,6 +179,9 @@ export const SPIN_MS = 150
 
 export const CONNECTOR = { glyph: '─', ascii: '-' } as const
 
+/** A border drawn but not seen, so a step at rest keeps its size and a hover can still restyle it. */
+export const CLEAR = 'transparent'
+
 export const SPACE = {
   noticeGap: 'sm',
   noticePadX: 'md',

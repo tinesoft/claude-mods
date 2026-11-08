@@ -47,7 +47,9 @@ for (const surface of BAND_SURFACES) {
           borderColor: TOKENS[tone].line,
           backgroundColor: TOKENS[tone].surface,
         })
-        expect((await label('Build'))?.props.color).toBe(TRIPLES.skill[tone].fg)
+        const next = (await band.findAll({ type: 'Svg' })).find(s => s.props.alt === 'Up next')
+        expect(String(next?.props.source)).toContain(TRIPLES.skill[tone].fg)
+        expect((await label('Build'))?.props.color).toBeUndefined()
       }
     })
   }
