@@ -84,6 +84,8 @@ export const roleLook = (
   }
 }
 
+const STEP_PAD_X = 'xs'
+
 /** A phase step: clear at rest, fill and a strong border when open, a hover toward `accent`. */
 export const stepLook = (tone: Tone | undefined, accent: Color): ChipLook | undefined => {
   if (tone === undefined) return undefined
@@ -93,6 +95,10 @@ export const stepLook = (tone: Tone | undefined, accent: Color): ChipLook | unde
     pressedBorder: t.lineStrong,
     pressedFill: t.fill,
     hover: mix(t.fill, accent, HOVER_MIX),
+    // Desktop's native button already pads its label, so the step adds only a sliver around it
+    // and no gap of its own: the board's `padding: 0 8px 0 5px; gap: 6px`.
+    padX: STEP_PAD_X,
+    gap: 0,
   }
 }
 
@@ -141,6 +147,7 @@ export const Chip = ({
   glyph,
   glyphBold = false,
   label,
+  size,
   bold = false,
   strike = false,
   pressed = false,
@@ -170,6 +177,8 @@ export const Chip = ({
   glyph?: string
   glyphBold?: boolean
   label: string
+  /** The label's text size on rich surfaces; the terminal has one size. */
+  size?: 'caption' | 'footnote' | 'body'
   bold?: boolean
   strike?: boolean
   pressed?: boolean
@@ -186,6 +195,7 @@ export const Chip = ({
     <Text
       key={onPress === undefined ? id : undefined}
       bold={bold || marked}
+      {...(rich && size !== undefined && { size })}
       {...(strike && { strikethrough: true })}
       {...((!rich || onPress === undefined) && ink)}
       {...(!rich && pressedStyle === 'underline' && { underline: pressed })}

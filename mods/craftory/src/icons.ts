@@ -68,7 +68,7 @@ export const listSvg = (color: string) =>
   stroke('<path d="M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.1M2.5 8h.1M2.5 12h.1"/>', color)
 
 /** The short bar joining two phase steps on rich surfaces. */
-export const BAR_SIZE = { width: 12, height: 2 } as const
+export const BAR_SIZE = { width: 10, height: 2 } as const
 
 /** The thin vertical bar joining two phases of the Flow timeline on rich surfaces. */
 export const VBAR_SIZE = { width: 2, height: 16 } as const

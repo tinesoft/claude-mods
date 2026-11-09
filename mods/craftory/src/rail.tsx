@@ -140,6 +140,9 @@ type PhaseArgs = Pick<RailArgs, 'ui' | 'tone' | 'ascii' | 'spinFrame' | 'flow' |
   on: Pick<BandActions, 'phase'>
 }
 
+/** The longest meta a Desktop step shows, so a long spec slug keeps its step as short as the board's `#42`. */
+const STEP_META_MAX = 10
+
 const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
   const { ui, tone, ascii, spinFrame, flow, open, on } = args
   const { Text } = ui
@@ -170,6 +173,8 @@ const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
       glyph={glyphOf(view, spinFrame, ascii)}
       glyphBold={look.bold}
       label={PHASES[view.phase].label}
+      // The board's 13px step label, a size under the body text.
+      {...(rich && { size: 'footnote' as const })}
       bold={look.bold}
       strike={look.strike}
       pressed={open === view.phase}
@@ -186,7 +191,7 @@ const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
             color={t.text2}
             backgroundColor={mix(t.surface, t.countBg.base, t.countBg.alpha)}
           >
-            {` ${meta} `}
+            {` ${clip(meta, STEP_META_MAX, ascii)} `}
           </Text>
         ))}
     </Chip>

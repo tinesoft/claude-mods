@@ -175,6 +175,23 @@ test('the Triage button leads with a tray: a glyph on the terminal, the inbox ic
   expect(textOf(desk)).toBe('Triage')
 })
 
+test("desktop steps take the board's size: a footnote label and a short meta", () => {
+  const flow = withState(baseFlow(), 'build', {
+    kind: 'running',
+    progress: 'csv-export-button-ticket',
+  })
+  const out = renderBand(
+    args({ ui: fakeUi(true), surface: 'desktop', tone: 'light', flow, columns: 200 }),
+  )
+  const label = findAll(byKey(out, 'phase-build')!, n => n.type === 'Text')[0]!
+  expect(label.props.size).toBe('footnote')
+  // Desktop's native button pads the label itself; the step adds only a sliver.
+  expect(byKey(out, 'box-phase-build')!.props).toMatchObject({ paddingX: 'xs', columnGap: 0 })
+  expect(textOf(byKey(out, 'box-phase-build')!)).toContain(' csv-expor… ')
+  const terminal = renderBand(args({ flow }))
+  expect(textOf(byKey(terminal, 'box-phase-build')!)).toContain('csv-export-button-ticket')
+})
+
 test('desktop draws state icons as images and meta in a mono badge', () => {
   const flow = withState(baseFlow(), 'build', { kind: 'running', progress: '1/5' })
   const out = renderBand(
