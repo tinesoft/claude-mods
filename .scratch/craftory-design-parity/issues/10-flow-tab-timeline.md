@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 46–48.
 
 **Blocked by:** 04 (the numbered dot)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Each Flow row holds mark, label, mono command and result in that order; a joining line sits between rows but not after the last.
 - [ ] Desktop uses the `Svg` dot and a bar; the terminal uses glyphs and `│`.

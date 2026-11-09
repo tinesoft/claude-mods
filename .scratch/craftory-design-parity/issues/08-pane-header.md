@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 41–44.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The pane tree starts with kicker, title, progress line, gear and close on both surfaces.
 - [ ] A pure helper builds the progress line from the Feature's phase states and agents; helper tests cover none done, some done with Running and agents, and all done.

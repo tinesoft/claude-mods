@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), story 45. Limits: [analysis.md](../analysis.md), de
 
 **Blocked by:** 01 (the chip pattern)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Tab state is carried by the tab Box on Desktop; no `Text` inside a tab Button carries a `color`.
 - [ ] Counts sit outside the Button on Desktop.

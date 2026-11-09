@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 51–53. Limits: [analysis.md](../analysis.
 
 **Blocked by:** 03, 05, 06, 07, 09, 10, 11 (every tree must already be clean)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The guard test mounts each band and pane state on Desktop through the harness and fails on any coloured `Text` inside a `Button`.
 - [ ] With ASCII glyphs on, the band and pane trees on the terminal hold no non-ASCII mark from this spec.

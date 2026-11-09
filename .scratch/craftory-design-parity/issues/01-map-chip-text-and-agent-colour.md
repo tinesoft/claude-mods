@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 1–6 and 38. Limits: [analysis.md](../anal
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The chip text helper returns `◆ <name> · n decided · n open`, `… Closed` when closed, never the route status; a compact `n✓ n?` form exists for the summary (ASCII forms too).
 - [ ] A shared route-status helper produces "No open tickets · Route clear?" (with the fog hint when Not yet specified is non-empty); the frontier card shows it when the Active map has no open tickets.

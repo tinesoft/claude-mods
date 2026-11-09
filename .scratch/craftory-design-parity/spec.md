@@ -1,6 +1,6 @@
 # Spec: Craftory design parity on the terminal and Desktop
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Target: the boards in `docs/design/craftory/artboards/` (Main, Wayfinder, States, Panel; Settings
 and Mobile only where they touch the rail or the pane header) and `docs/design/craftory/DESIGN.md`.

@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 10–12. Limits: [analysis.md](../analysis.
 
 **Blocked by:** 03 (the new phase step)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] A pure helper picks the dot (ring colour, fill, number or glyph, dashed or not) per phase state; helper tests cover every state.
 - [ ] On Desktop each phase step holds an `Svg` dot; on the terminal no `Svg` appears and the glyphs are unchanged.

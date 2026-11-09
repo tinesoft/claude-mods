@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 33–37, 39 and 40.
 
 **Blocked by:** 01 (the agent role and the route-status line in the card)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The kicker uses the agent role on both surfaces.
 - [ ] Each Takeable row carries its ticket type; Desktop draws a bordered Frontier section with type badges, the terminal a heading and text types (ASCII forms too).

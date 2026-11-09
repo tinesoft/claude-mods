@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 21–25. Limits: [analysis.md](../analysis.
 
 **Blocked by:** 01 (the new map chip width)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The fit rule takes the surface's kind: rich surfaces always give `row` with wrap; the terminal gives `row` or `summary` by cells.
 - [ ] The summary layout setting forces the summary on every surface.

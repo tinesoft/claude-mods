@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 7–9 and 13–20. Limits: [analysis.md](..
 
 **Blocked by:** 01 (the chip pattern)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The band tree holds Inbox, map chip, title, seven phases and gear in that order on the terminal and Desktop.
 - [ ] On Desktop the title pill is a tinted Box with an `Svg` list icon and an ink label, and still switches the Feature.

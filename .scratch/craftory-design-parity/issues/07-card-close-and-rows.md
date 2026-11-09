@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 29–32. Limits: [analysis.md](../analysis.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] On Desktop the close is a one-glyph `×` Button at the top right (ASCII form too); no `role="dismiss"`.
 - [ ] Card rows appear in the board's order on both surfaces; Desktop chips, tile and gate line carry the board's look props.

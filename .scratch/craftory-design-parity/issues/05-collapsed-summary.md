@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 26–28. Limits: [analysis.md](../analysis.
 
 **Blocked by:** 01 (compact counts and the chip pattern)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The summary tree holds the map chip in compact form, a `›` (ASCII form too), then the title, phase and count in that order on both surfaces.
 - [ ] On Desktop the phase name and count sit outside the Button and carry their colours; no `Text` inside the Button has a `color`.

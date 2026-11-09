@@ -6,7 +6,7 @@ Spec: [spec.md](../spec.md), stories 49–50.
 
 **Blocked by:** 01 (the route-status helper)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Kicker and switcher share one header row on both surfaces.
 - [ ] Each ticket row shows its type in mono `Text`.
