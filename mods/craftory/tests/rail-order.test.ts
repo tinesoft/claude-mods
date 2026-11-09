@@ -20,7 +20,7 @@ const PHASE_KEYS = ['align', 'spec', 'tickets', 'build', 'review', 'ship', 'retr
 )
 
 for (const surface of BAND_SURFACES) {
-  test(`${surface}: the rail reads Inbox, map chip, title and gear, then the seven phases on their own row`, async ($, on) => {
+  test(`${surface}: the rail reads Triage, map chip, title and gear, then the seven phases on their own row`, async ($, on) => {
     featureWorld(on, { surfaces: [surface], ...mixed() })
     await startSession($, surface)
     const band = await mountBand($, surface, 200)
@@ -91,7 +91,7 @@ for (const tone of TONES) {
     expect(open.props).toMatchObject({ backgroundColor: t.fill, borderColor: t.lineStrong })
   })
 
-  test(`desktop ${tone}: no text inside a step, Inbox or gear Button is coloured, counts sit outside`, async ($, on) => {
+  test(`desktop ${tone}: no text inside a step, Triage or gear Button is coloured, counts sit outside`, async ($, on) => {
     featureWorld(on, { surfaces: ['desktop'], theme: tone })
     await startSession($, 'desktop')
     const band = await mountBand($, 'desktop', 200)

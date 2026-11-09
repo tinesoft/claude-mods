@@ -16,7 +16,8 @@
 An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. It guides a feature from idea to merged PR in seven phases: Align, Spec, Tickets, Build, Review, Ship and Retro. Each phase runs one of Matt Pocock's skills from the [`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Craftory does not do the work itself. A phase rail above the prompt shows where the active feature is and what to run next, the `/craftory` pane holds the tickets, worktrees, glossary and settings, and Craftory steers the parallel agents that `/implement-spec` starts.
 
 ```text
- Inbox 3 │ ✓ Align ─ ✓ Spec #42 ─ ✓ Tickets 5 ─ ◐ Build 1/5 ─ ⊘ Review ─ Ship ─ Retro   Export invoices as CSV ⚙
+ ⊟ Triage 3 │ Export invoices as CSV                                                                                ⚙
+ ✓ Align ─ ✓ Spec #42 ─ ✓ Tickets 5 ─ ◐ Build 1/5 ─ ⊘ Review ─ Ship ─ Retro
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ > _                                                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

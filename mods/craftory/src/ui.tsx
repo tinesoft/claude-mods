@@ -53,7 +53,7 @@ export const Icon = ({
 
 /**
  * How a chip draws on a rich surface: its border at rest (none when left out, `dashed` for the
- * Inbox), an optional fill, what pressing changes, an optional hover tint, and its padding and gap
+ * Triage), an optional fill, what pressing changes, an optional hover tint, and its padding and gap
  * when they differ from a phase step's. Leave `fill` out for no fill at rest.
  */
 export type ChipLook = {

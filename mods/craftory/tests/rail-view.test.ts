@@ -156,13 +156,23 @@ test("another mod's row is the first child of the band, in its own row", () => {
 
 test('the rail reads triage, divider, title and gear, then the phases', () => {
   const out = renderBand(args({ waiting: 3 }))
-  expect(textOf(byKey(out, 'box-triage'))).toBe('Inbox 3')
+  expect(textOf(byKey(out, 'box-triage'))).toBe('⊟ Triage 3')
   const all = textOf(out)
-  expect(all.indexOf('Inbox 3')).toBeLessThan(all.indexOf('│'))
+  expect(all.indexOf('⊟ Triage 3')).toBeLessThan(all.indexOf('│'))
   expect(all.indexOf('│')).toBeLessThan(all.indexOf('Export invoices as CSV'))
   expect(all.indexOf('Export invoices as CSV')).toBeLessThan(all.indexOf('⚙'))
   expect(all.indexOf('⚙')).toBeLessThan(all.indexOf('Align'))
   expect(all.indexOf('Align')).toBeLessThan(all.indexOf('Retro'))
+})
+
+test('the Triage button leads with a tray: a glyph on the terminal, the inbox icon on desktop', () => {
+  expect(textOf(byKey(renderBand(args({ ascii: true })), 'box-triage'))).toBe('# Triage')
+  const desk = byKey(
+    renderBand(args({ ui: fakeUi(true), surface: 'desktop', tone: 'light', columns: 200 })),
+    'box-triage',
+  )!
+  expect(findAll(desk, n => n.type === 'Svg')).toHaveLength(1)
+  expect(textOf(desk)).toBe('Triage')
 })
 
 test('desktop draws state icons as images and meta in a mono badge', () => {

@@ -106,8 +106,8 @@ export function fitRail(args: {
   const steps =
     flow.phases.reduce((sum, s) => sum + phaseWidth(s, flow), 0) +
     (flow.phases.length - 1) * (1 + gap)
-  // The head row, less its title: the Inbox, the divider, the gear and the gaps between them.
-  const triage = 'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0)
+  // The head row, less its title: the Triage button (tray glyph and label), the divider, the gear and the gaps between them.
+  const triage = 2 + 'Triage'.length + (waiting > 0 ? 1 + String(waiting).length : 0)
   const head = (mapCells: number | null) =>
     triage +
     1 +

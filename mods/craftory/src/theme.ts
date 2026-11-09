@@ -201,10 +201,13 @@ export const FLOW_JOIN = { glyph: '│', ascii: '|' } as const
 /** Between the map chip and the feature in the collapsed summary: Map › Feature. */
 export const SUMMARY_SEP = { glyph: '›', ascii: '>' } as const
 
-/** Splits the rail's Inbox, map chip and title on the terminal. */
+/** Splits the rail's Triage button, map chip and title on the terminal. */
 export const RAIL_DIVIDER = { glyph: '│', ascii: '|' } as const
 
 /** The Settings button, one cell. */
+/** The Triage button's tray on the terminal, where Desktop draws the board's inbox icon. */
+export const TRAY = { glyph: '⊟', ascii: '#' } as const
+
 export const GEAR = { glyph: '\u2699', ascii: '=' } as const
 
 /** After the title when it opens the feature switcher. */

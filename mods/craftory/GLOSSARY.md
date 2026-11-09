@@ -62,7 +62,7 @@ The Map the chip shows: the one the active Feature names, else the most recently
 An item on the tracker that has not been triaged into a Spec or a Ticket.
 
 **Inbox**:
-The queue of untriaged Issues, shown as `Inbox 3` at the left of the rail.
+The queue of untriaged Issues, listed in the Tickets tab and counted by the rail's Triage button (`Triage 3`).
 
 **Triage**:
 Choosing the phase an Issue enters a Feature at. Phases before it show as Skipped.

@@ -39,6 +39,7 @@ import {
   CONNECTOR,
   connectorColor,
   GEAR,
+  TRAY,
   mix,
   paint,
   SPACE,
@@ -192,7 +193,7 @@ const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
   )
 }
 
-type TriageArgs = Pick<RailArgs, 'ui' | 'tone' | 'waiting' | 'open'> & {
+type TriageArgs = Pick<RailArgs, 'ui' | 'tone' | 'waiting' | 'open' | 'ascii'> & {
   on: Pick<BandActions, 'triage'>
 }
 
@@ -220,7 +221,8 @@ const TriageButton = ({ args }: { args: TriageArgs }) => {
       ink={roleInk('hook', tone)}
       look={step && t && { ...step, border: t.lineDashed, dashed: true, pressedBorder: hook.fg }}
       {...(t && { icon: inboxSvg(hexOr(t.ink2)) })}
-      label="Inbox"
+      glyph={args.ascii ? TRAY.ascii : TRAY.glyph}
+      label="Triage"
       pressed={open === 'triage'}
       onPress={() => on.triage()}
     >
@@ -296,7 +298,7 @@ const FeaturePicker = ({ args }: { args: BandArgs }) => {
 export type StripArgs = PhaseArgs & TriageArgs & { ascii: boolean }
 
 /**
- * Two rows, as on the boards: the Inbox button, a divider, the `lead` (the map chip) and a divider,
+ * Two rows, as on the boards: the Triage button, a divider, the `lead` (the map chip) and a divider,
  * the `title` and the `trailing` (the gear) on the first; the seven phases joined by connectors on
  * their own row below. Shared by the rail and the pane's mobile Flow head.
  */
@@ -311,7 +313,7 @@ export const PhaseStrip = ({
   args: StripArgs
   id: string
   wrap?: boolean
-  /** Drawn between the Inbox and the phases, such as the map chip. */
+  /** Drawn between the Triage button and the title, such as the map chip. */
   lead?: RenderElement | false
   /** Drawn last on the head row, such as the feature title. */
   title?: RenderElement
