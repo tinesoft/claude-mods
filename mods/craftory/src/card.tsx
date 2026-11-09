@@ -21,24 +21,50 @@ const CommandChip = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text:
   )
 }
 
-const HelperChip = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => {
+const HelperChip = ({ ui, tone, text }: { ui: Ui; tone: Tone; text: string }) => {
   const { Box, Text } = ui
-  if (!isRich(ui) || tone === undefined) return <Text {...roleInk('skill', tone)}>{text}</Text>
   const skill = TRIPLES.skill[tone]
   return (
     <Box
       key={`helper-${text}`}
       flexDirection="row"
-      columnGap={SPACE.chipGap}
-      paddingX={SPACE.chipPadX}
+      alignItems="center"
+      columnGap="xs"
+      paddingX="xs"
+      paddingY={0}
       borderStyle="round"
       borderColor={skill.bd}
       backgroundColor={skill.bg}
     >
-      <Icon ui={ui} svg={helperSvg(hexOr(skill.fg))} alt="" px={12} />
-      <Text mono color={skill.fg}>
+      <Icon ui={ui} svg={helperSvg(hexOr(skill.fg))} alt="" px={11} />
+      <Text mono size="footnote" color={skill.fg}>
         {text}
       </Text>
+    </Box>
+  )
+}
+
+/**
+ * The phase's helper skills on one line: comma-separated text on the terminal, a row of tinted
+ * chips on rich surfaces. The chips sit directly in one row Box so they never stack.
+ */
+const HelpersLine = ({
+  ui,
+  tone,
+  helpers,
+}: {
+  ui: Ui
+  tone: Tone | undefined
+  helpers: readonly string[]
+}) => {
+  const { Box, Text } = ui
+  if (!isRich(ui) || tone === undefined)
+    return <Text {...roleInk('skill', tone)}>{helpers.join(', ')}</Text>
+  return (
+    <Box key="helpers" flexDirection="row" columnGap={SPACE.chipGap} flexWrap="wrap">
+      {helpers.map(helper => (
+        <HelperChip key={helper} ui={ui} tone={tone} text={helper} />
+      ))}
     </Box>
   )
 }
@@ -136,11 +162,7 @@ export const DetailCard = ({
         </CardRow>
         {card.helpers.length > 0 && (
           <CardRow ui={ui} tone={tone} label="Helpers">
-            <>
-              {card.helpers.map(helper => (
-                <HelperChip key={helper} ui={ui} tone={tone} text={helper} />
-              ))}
-            </>
+            <HelpersLine ui={ui} tone={tone} helpers={card.helpers} />
           </CardRow>
         )}
       </Box>

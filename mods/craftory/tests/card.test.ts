@@ -75,7 +75,12 @@ for (const surface of BAND_SURFACES) {
       featureWorld(on, { surfaces: [surface], theme: tone })
       const band = await openPhase($, surface, 'build')
       const tree = keyed(await band.drawn(), 'card')
-      const words = (await texts(band)).filter(w => BOARD_ORDER.includes(w))
+      const helpersLine = 'tdd, diagnosing-bugs, codebase-design'
+      const all = await texts(band)
+      if (surface === 'terminal') expect(all).toContain(helpersLine)
+      const words = all
+        .map(w => (w === helpersLine ? 'tdd' : w))
+        .filter(w => BOARD_ORDER.includes(w))
       expect(words.filter((w, i) => words.indexOf(w) === i)).toEqual(BOARD_ORDER)
       expect(textIn(tree).indexOf('×')).toBeLessThan(textIn(tree).indexOf('Runs every'))
       const primary = await band.find({ key: 'primary' })
@@ -94,7 +99,11 @@ for (const surface of BAND_SURFACES) {
       expect(keyed(tree, 'cmd-/implement-spec')?.props).toMatchObject({
         backgroundColor: t.inverseBg,
       })
-      const helper = keyed(tree, 'helper-tdd')!
+      const row = keyed(tree, 'helpers')!
+      expect(row.props?.flexDirection).toBe('row')
+      for (const name of ['tdd', 'diagnosing-bugs', 'codebase-design'])
+        expect(keyed(row, `helper-${name}`)).toBeDefined()
+      const helper = keyed(row, 'helper-tdd')!
       expect(helper.props).toMatchObject({ borderColor: skill.bd, backgroundColor: skill.bg })
       expect(nodes(helper).some(n => n.type === 'Svg')).toBe(true)
       expect(keyed(tree, 'artifact')?.props).toMatchObject({ backgroundColor: t.tile })
