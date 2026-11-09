@@ -296,8 +296,9 @@ const FeaturePicker = ({ args }: { args: BandArgs }) => {
 export type StripArgs = PhaseArgs & TriageArgs & { ascii: boolean }
 
 /**
- * The Inbox button, a divider, the `lead` (the map chip) and a divider, the `title`, then the seven
- * phases joined by connectors. Shared by the rail and the pane's mobile Flow head.
+ * Two rows, as on the boards: the Inbox button, a divider, the `lead` (the map chip) and a divider,
+ * the `title` and the `trailing` (the gear) on the first; the seven phases joined by connectors on
+ * their own row below. Shared by the rail and the pane's mobile Flow head.
  */
 export const PhaseStrip = ({
   args,
@@ -305,14 +306,17 @@ export const PhaseStrip = ({
   wrap = false,
   lead,
   title,
+  trailing,
 }: {
   args: StripArgs
   id: string
   wrap?: boolean
   /** Drawn between the Inbox and the phases, such as the map chip. */
   lead?: RenderElement | false
-  /** Drawn just before the phases, such as the feature title. */
+  /** Drawn last on the head row, such as the feature title. */
   title?: RenderElement
+  /** Drawn at the right end of the head row, such as the gear. */
+  trailing?: RenderElement
 }) => {
   const { ui, tone, ascii, flow } = args
   const { Box, Text } = ui
@@ -321,27 +325,41 @@ export const PhaseStrip = ({
       {ascii ? RAIL_DIVIDER.ascii : RAIL_DIVIDER.glyph}
     </Text>
   )
+  const wraps = wrap && { flexWrap: 'wrap' as const }
   return (
-    <Box
-      key={id}
-      flexDirection="row"
-      alignItems="center"
-      columnGap={SPACE.railGap}
-      {...(wrap && { flexWrap: 'wrap' as const })}
-    >
-      <TriageButton args={args} />
-      {divider('divider')}
-      {lead && lead}
-      {lead && divider('divider-map')}
-      {title}
-      {flow.phases.map((view, index) => (
-        <Box key={`group-${view.phase}`} flexDirection="row" alignItems="center">
-          {index > 0 && (
-            <Connector ui={ui} tone={tone} ascii={ascii} before={flow.phases[index - 1]!} />
-          )}
-          <PhaseButton args={args} view={view} />
+    <Box key={id} flexDirection="column" rowGap={SPACE.railRowGap}>
+      <Box
+        key={`${id}-head`}
+        flexDirection="row"
+        alignItems="center"
+        justifyContent="space-between"
+        columnGap={SPACE.railGap}
+      >
+        <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap} {...wraps}>
+          <TriageButton args={args} />
+          {divider('divider')}
+          {lead && lead}
+          {lead && divider('divider-map')}
+          {title}
         </Box>
-      ))}
+        {trailing}
+      </Box>
+      <Box
+        key={`${id}-steps`}
+        flexDirection="row"
+        alignItems="center"
+        columnGap={SPACE.railGap}
+        {...wraps}
+      >
+        {flow.phases.map((view, index) => (
+          <Box key={`group-${view.phase}`} flexDirection="row" alignItems="center">
+            {index > 0 && (
+              <Connector ui={ui} tone={tone} ascii={ascii} before={flow.phases[index - 1]!} />
+            )}
+            <PhaseButton args={args} view={view} />
+          </Box>
+        ))}
+      </Box>
     </Box>
   )
 }
@@ -371,24 +389,16 @@ const Rail = ({ args, fit }: { args: RailArgs; fit: RailFit }) => {
   const { ui, flow } = args
   const { Box } = ui
   const lead = args.map !== null && <ChipOf args={args} view={args.map} compact={fit.compactMap} />
-  const wrap = fit.wrap && { flexWrap: 'wrap' as const }
   return (
-    <Box
-      key="rail"
-      flexDirection="row"
-      alignItems="center"
-      justifyContent="space-between"
-      columnGap={SPACE.railGap}
-      {...wrap}
-    >
+    <Box key="rail" flexDirection="column">
       <PhaseStrip
         id="phases"
         args={args}
         lead={lead}
         title={<Title args={args} flow={flow} />}
+        trailing={<Gear args={args} />}
         wrap={fit.wrap}
       />
-      <Gear args={args} />
     </Box>
   )
 }

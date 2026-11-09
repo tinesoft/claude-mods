@@ -154,14 +154,15 @@ test("another mod's row is the first child of the band, in its own row", () => {
   expect(findAll(out.children[0], n => n.type === 'Text')).toEqual([])
 })
 
-test('the rail reads triage, divider, title, phases and gear in that order', () => {
+test('the rail reads triage, divider, title and gear, then the phases', () => {
   const out = renderBand(args({ waiting: 3 }))
   expect(textOf(byKey(out, 'box-triage'))).toBe('Inbox 3')
   const all = textOf(out)
   expect(all.indexOf('Inbox 3')).toBeLessThan(all.indexOf('│'))
   expect(all.indexOf('│')).toBeLessThan(all.indexOf('Export invoices as CSV'))
-  expect(all.indexOf('Export invoices as CSV')).toBeLessThan(all.indexOf('Align'))
-  expect(all.indexOf('Retro')).toBeLessThan(all.indexOf('⚙'))
+  expect(all.indexOf('Export invoices as CSV')).toBeLessThan(all.indexOf('⚙'))
+  expect(all.indexOf('⚙')).toBeLessThan(all.indexOf('Align'))
+  expect(all.indexOf('Align')).toBeLessThan(all.indexOf('Retro'))
 })
 
 test('desktop draws state icons as images and meta in a mono badge', () => {

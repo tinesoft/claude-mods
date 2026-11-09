@@ -32,7 +32,7 @@ test('terminal at 115 columns with a map and a long title shows the full rail', 
   expect(await band.find({ key: 'summary' })).toBeUndefined()
 })
 
-test('terminal: whenever the rail shows, its one line fits the band', async ($, on) => {
+test('terminal: whenever the rail shows, each of its lines fits the band', async ($, on) => {
   featureWorld(on, mixed())
   await startSession($)
   let shown = 0
@@ -64,7 +64,7 @@ test('desktop at 85 body columns keeps the row with a map and wraps it', async (
   expect(rail).toBeDefined()
   expect(await band.find({ key: 'summary' })).toBeUndefined()
   expect(await band.find({ key: 'phase-retro' })).toBeDefined()
-  expect((await band.find({ key: 'phases' }))!.props.flexWrap).toBe('wrap')
+  expect((await band.find({ key: 'phases-steps' }))!.props.flexWrap).toBe('wrap')
   expect(rail.props.borderStyle).toBeUndefined()
   expect(rail.props.backgroundColor).toBeUndefined()
 })

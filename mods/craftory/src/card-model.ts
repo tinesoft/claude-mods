@@ -64,26 +64,15 @@ export function chipText(flow: Flow): string {
 }
 
 export const GEAR_RESERVE = 3
-const RICH_PHASE_EXTRA = 4
 
-const phaseWidth = (view: PhaseView, flow: Flow, rich: boolean) => {
+const phaseWidth = (view: PhaseView, flow: Flow) => {
   const meta = phaseMeta(view, flow)
-  return (
-    2 +
-    PHASES[view.phase].label.length +
-    (meta ? 1 + meta.length : 0) +
-    (rich ? RICH_PHASE_EXTRA : 0)
-  )
+  return 2 + PHASES[view.phase].label.length + (meta ? 1 + meta.length : 0)
 }
 
 const MIN_TITLE = 8
 /** The gear draws one glyph; its gap is counted with the others. */
 const GEAR_CELLS = 1
-/**
- * Desktop draws UI text about 30% narrower than one code-font cell, the unit of `bodyColumns`
- * (probe: ten bordered steps measured 119 cells and fitted in 85).
- */
-const RICH_CELL_SCALE = 0.7
 
 export type RailFit = {
   /** `row` draws the rail, `chip` the summary in its place. */
@@ -91,16 +80,14 @@ export type RailFit = {
   titleMax: number
   /** The map chip draws its compact counts (`2✓ 4?`) so the row fits the terminal. */
   compactMap: boolean
-  /** The row may wrap onto further lines (rich surfaces). */
+  /** The rows may wrap onto further lines (rich surfaces). */
   wrap: boolean
-  /** Lines the rail takes in the band, for the card's height budget. */
-  lines: number
 }
 
 /**
- * How the rail fits the band. Rich surfaces always draw the row and wrap it; the terminal draws
- * the row on one line when it fits in cells, first with the full map chip, then with the compact
- * one, and otherwise the summary.
+ * How the rail fits the band. Rich surfaces always draw its two rows and wrap them; the terminal
+ * draws them when the phases row fits in cells and the head row keeps a title, first with the full
+ * map chip, then with the compact one, and otherwise the summary.
  */
 export function fitRail(args: {
   flow: Flow
@@ -112,35 +99,30 @@ export function fitRail(args: {
   map: { full: number; compact: number } | null
 }): RailFit {
   const { flow, columns, rich, waiting, features, map } = args
-  const extra = rich ? RICH_PHASE_EXTRA : 0
+  // Rich surfaces always draw both rows and let them wrap.
+  if (rich) return { mode: 'row', titleMax: TITLE_MAX, compactMap: false, wrap: true }
   const gap = across(SPACE.railGap)
-  const phases = flow.phases.reduce((sum, s) => sum + phaseWidth(s, flow, rich), 0)
-  const connectors = flow.phases.length - 1
-  // Inbox, the divider and the phases in the strip, then the title and the gear.
-  const gaps = gap * (flow.phases.length + 3)
-  const triage = 'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0) + extra
-  const fixed = (mapCells: number | null) =>
+  // The phases row: the seven steps, their connectors and the gaps between them.
+  const steps =
+    flow.phases.reduce((sum, s) => sum + phaseWidth(s, flow), 0) +
+    (flow.phases.length - 1) * (1 + gap)
+  // The head row, less its title: the Inbox, the divider, the gear and the gaps between them.
+  const triage = 'Inbox'.length + (waiting > 0 ? 1 + String(waiting).length : 0)
+  const head = (mapCells: number | null) =>
     triage +
     1 +
-    phases +
-    connectors +
     GEAR_CELLS +
-    gaps +
+    3 * gap +
     (features > 1 ? 2 : 0) +
-    (mapCells === null ? 0 : mapCells + extra + 1 + 2 * gap)
-  if (rich) {
-    const cells = fixed(map?.full ?? null) + Math.min(TITLE_MAX, flow.title.length) + extra
-    const lines = Math.max(1, Math.ceil((cells * RICH_CELL_SCALE) / Math.max(1, columns)))
-    return { mode: 'row', titleMax: TITLE_MAX, compactMap: false, wrap: true, lines }
-  }
+    (mapCells === null ? 0 : mapCells + 1 + 2 * gap)
   const least = Math.min(MIN_TITLE, flow.title.length)
   const chips = map === null ? [null] : [map.full, map.compact]
-  for (const [index, chip] of chips.entries()) {
-    const titleMax = Math.min(TITLE_MAX, columns - fixed(chip))
-    if (titleMax >= least)
-      return { mode: 'row', titleMax, compactMap: index > 0, wrap: false, lines: 1 }
-  }
-  return { mode: 'chip', titleMax: 0, compactMap: false, wrap: false, lines: 1 }
+  if (steps <= columns)
+    for (const [index, chip] of chips.entries()) {
+      const titleMax = Math.min(TITLE_MAX, columns - head(chip))
+      if (titleMax >= least) return { mode: 'row', titleMax, compactMap: index > 0, wrap: false }
+    }
+  return { mode: 'chip', titleMax: 0, compactMap: false, wrap: false }
 }
 
 /**

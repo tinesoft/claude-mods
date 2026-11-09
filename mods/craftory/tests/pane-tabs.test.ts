@@ -81,8 +81,8 @@ test('the Flow tab puts the card buttons on a phase that is waiting, and none on
 test('mobile has no band, so the Flow tab heads with the same rail, wrapping', async ($, on) => {
   await session(on, $, 'mobile')
   const pane = await open($, 'mobile', 'flow')
-  const rail = await pane.find({ key: 'pane-rail' })
-  expect(rail?.props.flexWrap).toBe('wrap')
+  expect(await pane.find({ key: 'pane-rail' })).toBeDefined()
+  expect((await pane.find({ key: 'pane-rail-steps' }))?.props.flexWrap).toBe('wrap')
   for (const phase of Object.keys(PHASES))
     expect(await pane.find({ key: `phase-${phase}` })).toBeDefined()
   expect(await pane.find({ key: 'triage' })).toBeDefined()

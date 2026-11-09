@@ -20,16 +20,24 @@ const PHASE_KEYS = ['align', 'spec', 'tickets', 'build', 'review', 'ship', 'retr
 )
 
 for (const surface of BAND_SURFACES) {
-  test(`${surface}: the rail reads Inbox, map chip, title, the seven phases, then the gear`, async ($, on) => {
+  test(`${surface}: the rail reads Inbox, map chip, title and gear, then the seven phases on their own row`, async ($, on) => {
     featureWorld(on, { surfaces: [surface], ...mixed() })
     await startSession($, surface)
     const band = await mountBand($, surface, 200)
-    const keys = keysOf((await band.find({ key: 'rail' })) as Node)
-    const order = ['triage', 'map-chip', 'box-title', ...PHASE_KEYS, 'gear'].map(k =>
-      keys.indexOf(k),
+    const rail = (await band.find({ key: 'phases' })) as Node
+    expect(rail.props.flexDirection).toBe('column')
+    const inOrder = (row: string, wanted: string[]) => {
+      const keys = keysOf(within(rail).find(n => n.props.key === row)!)
+      const order = wanted.map(k => keys.indexOf(k))
+      expect({ row, order: order.every(i => i >= 0) }).toEqual({ row, order: true })
+      expect([...order].sort((a, b) => a - b)).toEqual(order)
+    }
+    inOrder('phases-head', ['triage', 'map-chip', 'box-title', 'gear'])
+    inOrder('phases-steps', PHASE_KEYS)
+    expect(keysOf(within(rail).find(n => n.props.key === 'phases-steps')!)).not.toContain('triage')
+    expect(keysOf(within(rail).find(n => n.props.key === 'phases-head')!)).not.toContain(
+      'phase-align',
     )
-    expect(order.every(i => i >= 0)).toBe(true)
-    expect([...order].sort((a, b) => a - b)).toEqual(order)
     expect(await band.find({ key: 'box-triage' })).toBeDefined()
   })
 
