@@ -92,20 +92,14 @@ for (const surface of ['terminal', 'desktop'] as const) {
   })
 }
 
-for (const maxRows of [12, 40]) {
-  test(`desktop: a card over a wrapped rail is compact so both fit the band (${maxRows} rows)`, async ($, on) => {
-    featureWorld(on, { surfaces: ['desktop'], theme: 'light', ...mixed() })
-    await startSession($, 'desktop')
-    await (await mountBand($, 'desktop', 85, maxRows)).press({ key: 'phase-build' })
-    const card = (await (await mountBand($, 'desktop', 85, maxRows)).find({ key: 'card' }))!
-    expect(card.props.paddingY).toBe('xs')
-  })
+for (const surface of ['terminal', 'desktop'] as const) {
+  for (const phase of ['spec', 'review', 'build'] as const) {
+    test(`${surface}: the ${phase} card keeps the roomy spacing in a short band`, async ($, on) => {
+      featureWorld(on, { surfaces: [surface], theme: 'light', ...mixed() })
+      await startSession($, surface)
+      await (await mountBand($, surface, 120, 12)).press({ key: `phase-${phase}` })
+      const card = (await (await mountBand($, surface, 120, 12)).find({ key: 'card' }))!
+      expect(card.props).toMatchObject({ paddingX: 'lg', paddingY: 'lg', rowGap: 'md' })
+    })
+  }
 }
-
-test('desktop: the same card over a one-line rail is roomy when the band is tall', async ($, on) => {
-  featureWorld(on, { surfaces: ['desktop'], theme: 'light' })
-  await startSession($, 'desktop')
-  await (await mountBand($, 'desktop', 200, 40)).press({ key: 'phase-build' })
-  const card = (await (await mountBand($, 'desktop', 200, 40)).find({ key: 'card' }))!
-  expect(card.props.paddingY).toBe('lg')
-})

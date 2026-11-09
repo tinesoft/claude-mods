@@ -3,7 +3,6 @@ import type { CraftoryConfig, FeatureKey, IssueRef, PhaseId, RailLayout, Tone } 
 import type { AgentsView } from './build'
 import {
   summaryParts,
-  fitCard,
   fitRail,
   focusPhase,
   GEAR_RESERVE,
@@ -79,7 +78,6 @@ export type BandArgs = {
   ui: Ui
   surface: RenderSurface
   columns: number
-  maxRows: number
   tone: Tone | undefined
   ascii: boolean
   spinFrame: number
@@ -476,8 +474,7 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
 }
 
 export function renderBand(args: BandArgs) {
-  const { ui, columns, maxRows, tone, below, layout, flow, config, waiting, notices, open, on } =
-    args
+  const { ui, columns, tone, below, layout, flow, config, waiting, notices, open, on } = args
   const { Box } = ui
   const replacing = notices.find(n => n.replacesRail)
   const above = notices.filter(n => !n.replacesRail)
@@ -515,19 +512,6 @@ export function renderBand(args: BandArgs) {
           config,
           args.agents,
         )
-  const extraRows = above.length + (args.isPickingFeature ? 1 : 0)
-  // A card taller than the band scrolls there, so one that fits in no density is still drawn, compact.
-  const density =
-    open === null || asChip
-      ? undefined
-      : (fitCard({
-          card: cardOf(open),
-          columns,
-          maxRows,
-          rich: isRich(ui),
-          extraRows,
-          railLines: rail.lines,
-        }) ?? 'compact')
   const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
   const mapCard = args.isMapOpen && args.map !== null && open === null
   return (
@@ -535,16 +519,9 @@ export function renderBand(args: BandArgs) {
       {below}
       {noticeRows(above)}
       {args.isPickingFeature && args.features.length > 1 && <FeaturePicker args={args} />}
-      {open !== null && density !== undefined && (
+      {open !== null && !asChip && (
         <Box key="card-slot" flexDirection="column" marginBottom={SPACE.cardAbove}>
-          <DetailCard
-            ui={ui}
-            tone={tone}
-            ascii={args.ascii}
-            card={cardOf(open)}
-            density={density}
-            on={on}
-          />
+          <DetailCard ui={ui} tone={tone} ascii={args.ascii} card={cardOf(open)} on={on} />
         </Box>
       )}
       {mapCard && args.map !== null && (

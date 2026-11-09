@@ -466,7 +466,6 @@ export const register: Register = (on, options) => {
       ui: uiFor($, e),
       surface: e.surface,
       columns: e.props.bodyColumns,
-      maxRows: e.props.maxRows,
       tone: await toneOf($, options, e.surface),
       ascii: prefs.ascii,
       spinFrame: spinFrameOf(await $.clock.now()),

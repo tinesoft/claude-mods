@@ -86,7 +86,6 @@ const band = (over: Partial<BandArgs> = {}) =>
     ui: fakeUi(),
     surface: 'terminal',
     columns: 140,
-    maxRows: 40,
     tone: undefined,
     ascii: false,
     spinFrame: 0,

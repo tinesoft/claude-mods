@@ -49,7 +49,6 @@ const args = (over: Partial<BandArgs> = {}): BandArgs => ({
   ui: fakeUi(),
   surface: 'terminal',
   columns: 140,
-  maxRows: 40,
   tone: undefined,
   ascii: false,
   spinFrame: 0,
@@ -294,8 +293,8 @@ test('triage opens its own card, outside the seven phases', () => {
   expect(text).toContain('/triage')
 })
 
-test('a card taller than the band is still drawn, for the band to scroll', () => {
-  const short = args({ open: 'build', maxRows: 12 })
+test('the Build card is drawn and its phase still answers', () => {
+  const short = args({ open: 'build' })
   expect(byKey(renderBand(short), 'card')).toBeDefined()
   ;(byKey(renderBand(short), 'phase-build')!.props.onPress as () => void)()
   expect(calls.at(-1)).toBe('view build')

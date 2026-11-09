@@ -1,14 +1,13 @@
 import type { Space } from 'claude-code'
 import type { CraftoryConfig, PhaseId, SkillName } from '../types'
 import type { Action } from './action'
-import { budgetK, hasMeterLine, hasWorktreeLine, type AgentRow, type AgentsView } from './build'
+import { budgetK, type AgentsView } from './build'
 import type { Flow, PhaseView } from './evidence'
 import { PHASE_ORDER, PHASES, type PhaseSpec } from './phases'
-import { across, down, type Role, SPACE, PHASE_LOOKS } from './theme'
+import { across, type Role, SPACE, PHASE_LOOKS } from './theme'
 import { clip } from './ui'
 
 export const TITLE_MAX = 24
-const PROMPT_ROWS = 6
 
 export function phaseMeta(view: PhaseView, flow: Flow): string | null {
   const s = view.state
@@ -144,15 +143,15 @@ export function fitRail(args: {
   return { mode: 'chip', titleMax: 0, compactMap: false, wrap: false, lines: 1 }
 }
 
-export type CardDensity = 'roomy' | 'compact'
-
-export const CARD_SPACE = {
-  roomy: { padX: 'lg', padY: 'lg', gap: 'md' },
-  // `xs` is no row on the terminal, and a little air on desktop.
-  compact: { padX: 'lg', padY: 'xs', gap: 'xs' },
-} as const satisfies Record<CardDensity, { padX: Space; padY: Space; gap: Space }>
-
-const DENSITIES = ['roomy', 'compact'] as const satisfies readonly CardDensity[]
+/**
+ * Every card's spacing, on every surface, however tall the card is: a card taller than the band
+ * scrolls there, so a tall card (Build with its agents) never trades padding for height.
+ */
+export const CARD_SPACE = { padX: 'lg', padY: 'lg', gap: 'md' } as const satisfies {
+  padX: Space
+  padY: Space
+  gap: Space
+}
 
 export type CardView = {
   kicker: string
@@ -268,119 +267,4 @@ export function phaseCard(
     ...phaseButtons(view, flow),
     agents: view.phase === 'build' ? agents : null,
   }
-}
-
-const agentLines = (row: AgentRow) =>
-  1 + (hasMeterLine(row) ? 1 : 0) + (hasWorktreeLine(row) ? 1 : 0)
-
-export const agentsRows = (view: AgentsView) =>
-  2 +
-  view.rows.reduce((sum, row) => sum + agentLines(row), 0) +
-  (view.more > 0 ? 1 : 0) +
-  (view.note === null ? 0 : 1)
-
-export function cardRows(card: CardView, columns: number, density: CardDensity): number {
-  const space = CARD_SPACE[density]
-  const inner = Math.max(10, columns - 2 - 2 * across(space.padX))
-  const lines = (text: string | null) =>
-    text === null ? 0 : Math.max(1, Math.ceil(text.length / inner))
-  const parts = [
-    1 + 1 + down(SPACE.lineGap),
-    lines(card.why),
-    1,
-    card.helpers.length > 0 ? 1 : 0,
-    card.artifact === null ? 0 : 1,
-    card.agents === null ? 0 : agentsRows(card.agents),
-    lines(card.gate),
-    card.primary !== null || card.secondary.length > 0 ? 1 : 0,
-  ].filter(n => n > 0)
-  return (
-    2 +
-    2 * down(space.padY) +
-    parts.reduce((a, b) => a + b, 0) +
-    (parts.length - 1) * down(space.gap)
-  )
-}
-
-const DESKTOP_PT = {
-  line: 20.5,
-  step: { xs: 6, sm: 9, md: 12, lg: 16, xl: 24 },
-  border: 2,
-  header: 36,
-  whyLine: 20,
-  whyPerCell: 1.2,
-  row: 28,
-  gateLine: 20,
-  buttons: 36,
-  band: 13,
-  railRow: 36,
-  agentsHead: 34,
-  agentsFoot: 46,
-  agentLine: 24,
-  agentGap: 14,
-  agentsNote: 34,
-} as const
-
-const points = (space: Space) => (typeof space === 'number' ? space : DESKTOP_PT.step[space])
-
-const agentsPoints = (view: AgentsView) =>
-  DESKTOP_PT.agentsHead +
-  DESKTOP_PT.agentsFoot +
-  view.rows.reduce(
-    (sum, row) => sum + agentLines(row) * DESKTOP_PT.agentLine + DESKTOP_PT.agentGap,
-    0,
-  ) +
-  (view.more > 0 ? DESKTOP_PT.agentLine : 0) +
-  (view.note === null ? 0 : DESKTOP_PT.agentsNote)
-
-/** Points the card takes on desktop, where the band shows `maxRows` lines whole and scrolls the rest. */
-export function cardPoints(card: CardView, columns: number, density: CardDensity): number {
-  const space = CARD_SPACE[density]
-  const inner = Math.max(10, columns - 2 * across(space.padX))
-  const wrapped = (text: string | null, perLine: number, line: number) =>
-    text === null ? 0 : Math.max(1, Math.ceil(text.length / (inner * perLine))) * line
-  const parts = [
-    DESKTOP_PT.header,
-    wrapped(card.why, DESKTOP_PT.whyPerCell, DESKTOP_PT.whyLine),
-    DESKTOP_PT.row,
-    card.helpers.length > 0 ? DESKTOP_PT.row : 0,
-    card.artifact === null ? 0 : DESKTOP_PT.row + 16,
-    card.agents === null ? 0 : agentsPoints(card.agents),
-    wrapped(card.gate, DESKTOP_PT.whyPerCell, DESKTOP_PT.gateLine),
-    card.primary !== null || card.secondary.length > 0 ? DESKTOP_PT.buttons : 0,
-  ].filter(n => n > 0)
-  return (
-    DESKTOP_PT.border +
-    2 * points(space.padY) +
-    parts.reduce((a, b) => a + b, 0) +
-    (parts.length - 1) * points(space.gap)
-  )
-}
-
-export function fitCard(args: {
-  card: CardView
-  columns: number
-  maxRows: number
-  rich: boolean
-  extraRows: number
-  /** Lines the rail takes (fitRail); a wrapped rail on a rich surface leaves only compact. */
-  railLines: number
-}): CardDensity | undefined {
-  const { card, columns, maxRows, rich, extraRows, railLines } = args
-  const densities = rich && railLines > 1 ? (['compact'] as const) : DENSITIES
-  return densities.find(density =>
-    rich
-      ? maxRows * DESKTOP_PT.line >=
-        DESKTOP_PT.band +
-          DESKTOP_PT.railRow * railLines +
-          extraRows * DESKTOP_PT.line +
-          points(SPACE.cardAbove) +
-          cardPoints(card, columns, density)
-      : maxRows >=
-        PROMPT_ROWS +
-          railLines +
-          extraRows +
-          down(SPACE.cardAbove) +
-          cardRows(card, columns, density),
-  )
 }
