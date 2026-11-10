@@ -55,6 +55,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     retroOnPr: false,
     handoffAt80: false,
     weeklyArchitecture: false,
+    nudgeUnmetDone: false,
   },
   deny: { skipGate: false, editOnIntegrationBranch: false },
 }

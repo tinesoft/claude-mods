@@ -274,15 +274,23 @@ async function suggestWayfinder(
   await settle($)
 }
 
-export async function finishTurn($: EngineInterface, e: { answer: string; isAborted?: boolean }) {
+/** Ends the main turn's phase run. Returns the phase that was Running as the turn ended, if any. */
+export async function finishTurn(
+  $: EngineInterface,
+  e: { answer: string; isAborted?: boolean },
+): Promise<{ feature: FeatureKey; phase: PhaseId } | null> {
   const running = await read($, runningState)
-  if (running === null || running.isAwaitingUser) return
+  if (running === null || running.isAwaitingUser) return null
+  const ended =
+    running.feature !== null && running.phase !== null
+      ? { feature: running.feature, phase: running.phase }
+      : null
   const grillAsksNext = running.phase === 'align' && !e.isAborted
   if (grillAsksNext) {
     const questions = (running.questions ?? 0) + 1
     await update($, runningState, held => held && { ...held, isAwaitingUser: true, questions })
     await suggestWayfinder($, running.feature, questions, running.isSuggested === true)
-    return
+    return ended
   }
   await update($, runningState, () => null)
   if (running.feature !== null && running.phase !== null) {
@@ -299,6 +307,7 @@ export async function finishTurn($: EngineInterface, e: { answer: string; isAbor
       suggestions: retroSuggestions(e.answer),
     })
   }
+  return ended
 }
 
 export async function markDone($: EngineInterface, phase: PhaseId) {

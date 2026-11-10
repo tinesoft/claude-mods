@@ -137,6 +137,7 @@ function parseMark(value: unknown): PhaseMark {
     ...(text(value.endedAt) && { endedAt: text(value.endedAt)! }),
     ...(text(value.markedDoneAt) && { markedDoneAt: text(value.markedDoneAt)! }),
     ...(artifacts && artifacts.length > 0 && { artifacts }),
+    ...(text(value.nudgedAt) && { nudgedAt: text(value.nudgedAt)! }),
   }
 }
 
@@ -240,6 +241,7 @@ export function serialiseFeature(record: FeatureRecord): string {
                 ...(m.endedAt && { endedAt: m.endedAt }),
                 ...(m.markedDoneAt && { markedDoneAt: m.markedDoneAt }),
                 ...(m.artifacts && { artifacts: m.artifacts }),
+                ...(m.nudgedAt && { nudgedAt: m.nudgedAt }),
               },
             ],
           ]
@@ -293,11 +295,13 @@ const mergeMark = (a: PhaseMark = {}, b: PhaseMark = {}): PhaseMark => {
   const endedAt = max(a.endedAt, b.endedAt)
   const markedDoneAt = min(a.markedDoneAt, b.markedDoneAt)
   const artifacts = union(a.artifacts, b.artifacts)
+  const nudgedAt = min(a.nudgedAt, b.nudgedAt)
   return {
     ...(ranAt && { ranAt }),
     ...(endedAt && { endedAt }),
     ...(markedDoneAt && { markedDoneAt }),
     ...(artifacts.length > 0 && { artifacts }),
+    ...(nudgedAt && { nudgedAt }),
   }
 }
 
@@ -359,6 +363,7 @@ export type FeatureChange =
   | { kind: 'ran'; phase: PhaseId; at: IsoTime }
   | { kind: 'ended'; phase: PhaseId; at: IsoTime; artifacts?: string[] }
   | { kind: 'mark-done'; phase: PhaseId; at: IsoTime }
+  | { kind: 'nudged'; phase: PhaseId; at: IsoTime }
   | { kind: 'skip'; phase: PhaseId; at: IsoTime }
   | { kind: 'unskip'; phase: PhaseId; at: IsoTime }
   | { kind: 'agent'; record: AgentRecord }
@@ -387,6 +392,8 @@ function changeMarks(marks: Marks, change: FeatureChange): Marks {
         ...marks,
         [change.phase]: mergeMark(marks[change.phase], { markedDoneAt: change.at }),
       }
+    case 'nudged':
+      return { ...marks, [change.phase]: mergeMark(marks[change.phase], { nudgedAt: change.at }) }
     default:
       return marks
   }
@@ -405,6 +412,7 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
     case 'ran':
     case 'ended':
     case 'mark-done':
+    case 'nudged':
       return { ...record, marks: changeMarks(record.marks, change) }
     case 'skip':
       return {

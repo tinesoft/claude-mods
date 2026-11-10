@@ -80,6 +80,7 @@ import {
   noteHandoffStart,
   noteHandoffWrite,
   noteMainStep,
+  noteTurnEnded,
   rearmAutomations,
 } from './shell/automations'
 import { gitOf } from './shell/git'
@@ -344,7 +345,7 @@ export const register: Register = (on, options) => {
       return result
     }
     await noteReplyTerms($, e.answer)
-    await finishTurn($, e)
+    await noteTurnEnded($, await finishTurn($, e))
     await finishHandoff($, e.isAborted === true)
     scheduleRefresh($)
     return result

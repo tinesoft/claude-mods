@@ -7,8 +7,8 @@
  * - one action at most, a skill submitted on the click; Craftory edits no files for it;
  * - once per scope ({@link isArmed}): a press or a dismiss both leave the scope fired.
  */
-import type { AutomationNotice, EventNotice } from '../types'
-import { namespaced, SKILLS } from './phases'
+import type { AutomationNotice, EventNotice, FeatureKey, PhaseId, TrackerKind } from '../types'
+import { namespaced, PHASES, SKILLS } from './phases'
 
 /** A scope fired with this prefix re-arms when a new session starts. */
 export const SESSION_SCOPE = 'session:'
@@ -56,3 +56,52 @@ export const isHandoffDocument = (path: string) => !/(^|\/)\.craftory\//.test(pa
 /** What a finished handoff run links: its last document, unless the run was cancelled. */
 export const handoffLink = (run: { path: string | null }, isAborted: boolean) =>
   isAborted ? null : run.path
+
+/**
+ * What each phase still lacks while its Done-when is unmet, after the Phase evidence table in
+ * docs/design/craftory/plan.md: the Local column, then the one every remote tracker shares.
+ */
+const UNMET: Record<PhaseId, { local: string; remote: string }> = {
+  align: { local: 'no spec has been created yet', remote: 'no spec has been created yet' },
+  spec: {
+    local: 'no .scratch/<feature>/spec.md has been created in this feature yet',
+    remote: 'no issue with the spec label has been created yet',
+  },
+  tickets: {
+    local: 'no .scratch/<feature>/issues/NN-*.md files with Blocked by: edges exist yet',
+    remote: 'no sub-issues of the spec exist yet',
+  },
+  build: {
+    local: 'not every ready-for-agent ticket is done and merged into the integration branch',
+    remote: 'not every ready-for-agent ticket is closed by a merge into the integration branch',
+  },
+  review: {
+    local: 'code-review has not run on the integration branch since the last ticket merged',
+    remote: 'code-review has not run on the integration branch since the last ticket merged',
+  },
+  ship: {
+    local: 'the PR from the integration branch is not ready for review yet',
+    remote: 'the PR from the integration branch is not ready for review yet',
+  },
+  retro: { local: 'retro has not run since Ship', remote: 'retro has not run since Ship' },
+}
+
+export const nudgeText = (phase: PhaseId, tracker: TrackerKind) => {
+  const { label } = PHASES[phase]
+  const unmet = UNMET[phase][tracker === 'local' ? 'local' : 'remote']
+  return `${label} is still running: ${unmet}. Ask for it, or mark ${label} done.`
+}
+
+export const NUDGE_PREFIX = 'nudge-'
+
+/** The unmet Done-when nudge: informs only, so it has no run action, just Dismiss. */
+export const nudgeNotice = (
+  feature: FeatureKey,
+  phase: PhaseId,
+  tracker: TrackerKind,
+): AutomationNotice => ({
+  kind: 'automation',
+  id: `${NUDGE_PREFIX}${phase}`,
+  scope: `feature:${feature}:nudge:${phase}`,
+  text: nudgeText(phase, tracker),
+})

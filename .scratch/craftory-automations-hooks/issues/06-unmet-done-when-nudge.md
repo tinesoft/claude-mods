@@ -4,11 +4,11 @@
 
 **Blocked by:** 01 (Automation notice pattern, proven with Handoff at 80%)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `automation.nudgeUnmetDone` exists, off by default, and appears in Settings
-- [ ] Fires on turn end in a Running phase with unmet evidence; silent when the evidence is met
-- [ ] Wording names the phase and quotes the Phase-evidence text
-- [ ] No submit action
-- [ ] At most once per phase per Feature; dismissed per Feature
-- [ ] Fake-world tests assert the wording, the once-per-phase limit, dismiss and switch off
+- [x] `automation.nudgeUnmetDone` exists, off by default, and appears in Settings
+- [x] Fires on turn end in a Running phase with unmet evidence; silent when the evidence is met
+- [x] Wording names the phase and quotes the Phase-evidence text
+- [x] No submit action
+- [x] At most once per phase per Feature; dismissed per Feature
+- [x] Fake-world tests assert the wording, the once-per-phase limit, dismiss and switch off

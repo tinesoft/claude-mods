@@ -53,6 +53,7 @@ export type AutomationConfig = {
   retroOnPr: boolean
   handoffAt80: boolean
   weeklyArchitecture: boolean
+  nudgeUnmetDone: boolean
 }
 
 /** Opt-in guardrails that deny a tool call. Both default off. */
@@ -254,6 +255,8 @@ export type PhaseMark = {
   endedAt?: IsoTime
   markedDoneAt?: IsoTime
   artifacts?: string[]
+  /** The unmet Done-when nudge was raised for this phase; it is not raised again for this Feature. */
+  nudgedAt?: IsoTime
 }
 
 /**
@@ -507,6 +510,8 @@ declare module 'claude-code' {
       dismissed: NoticeKey[]
       /** Automation scopes that already raised their notice (AutomationNotice `scope`). */
       automationsFired: string[]
+      /** The phase the last main turn ended in, until the refresh after it checks its Done-when. */
+      nudgeEnded: { feature: FeatureKey; phase: PhaseId } | null
       /** A handoff skill run in flight: the Feature it belongs to and the last file it wrote. */
       handoffRun: { feature: FeatureKey | null; path: string | null } | null
       lastReplyTerms: string[]

@@ -568,6 +568,13 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
     { inactive: NOT_ACTIVE },
   ),
   toggle(
+    'auto-nudge-unmet-done',
+    'Nudge when a phase ends without its evidence',
+    'When a turn ends in a running phase whose Done-when is not met, the band says what is missing.',
+    c => au(c).nudgeUnmetDone,
+    on => ({ automation: { nudgeUnmetDone: on } }),
+  ),
+  toggle(
     'deny-skip-gate',
     'Deny a gated phase until the one before it is done',
     'Refuses the phase’s skill when an agent calls it early, instead of asking. The denial names this switch.',

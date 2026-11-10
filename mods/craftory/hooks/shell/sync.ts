@@ -6,6 +6,7 @@ import { type ReadContext, TRACKERS } from '../../src/tracker'
 import { DEFAULT_LABELS } from '../../src/agents-md'
 import { worktreeRemoveArgv } from '../../src/git'
 import type { GitSnapshot, RepoSnapshot } from '../../types'
+import { nudgeUnmetDone } from './automations'
 import { activeKey, draftsOf, featureOfTicket, featuresOf, reloadFeatures } from './features'
 import { bindDrafts, settle } from './flow'
 import { cleanupInputs, gitOf, loadGit } from './git'
@@ -63,6 +64,7 @@ export async function refreshTracker($: EngineInterface) {
 async function refreshAll($: EngineInterface) {
   await refreshFiles($)
   await refreshTracker($)
+  await nudgeUnmetDone($)
 }
 
 export function scheduleRefresh($: EngineInterface) {
