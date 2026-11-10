@@ -219,7 +219,15 @@ export const world = (on: On, options: WorldOptions = {}) => {
   on('process.run', async (_$, e) => {
     ran.push([...e.argv])
     ranIn.push({ argv: [...e.argv], cwd: e.init?.cwd })
-    if (options.stall?.when(e.argv)) await clock.sleep(options.stall.ms)
+    if (options.stall?.when(e.argv)) {
+      // As the engine does: a child still running at its timeout is killed and the call rejects
+      const limit = e.init?.timeoutMs ?? 30_000
+      if (options.stall.ms > limit) {
+        await clock.sleep(limit)
+        return { deny: `${e.argv[0]}: timed out after ${limit} ms` }
+      }
+      await clock.sleep(options.stall.ms)
+    }
     const done = (exitCode: number, stdout = '', stderr = '') => ({
       value: { exitCode, stdout, stderr, isStdoutTruncated: false, isStderrTruncated: false },
     })

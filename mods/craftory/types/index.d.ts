@@ -41,6 +41,9 @@ export type WorktreeConfig = {
   rebaseOnMove: boolean
   keepFailed: boolean
   pruneStale: boolean
+  /** The project's test command, run in a ticket's worktree after its implementer's turn; '' is unset. */
+  test: string
+  testTimeoutSec: number
 }
 
 export type AutomationConfig = {
@@ -262,6 +265,18 @@ export type AgentRecord = {
   outcome: AgentOutcome
   startedAt: IsoTime
   endedAt?: IsoTime
+  /** The latest `worktrees.test` run in this attempt's worktree. */
+  test?: TestRun
+}
+
+/** One run of `worktrees.test`. A failed run makes a done attempt Failed until a later run passes. */
+export type TestRun = {
+  at: IsoTime
+  passed: boolean
+  /** Why it failed: `exit 1`, `timed out`, or what kept it from running. */
+  reason?: string
+  /** The last lines of its output, for the ticket card. */
+  tail?: string
 }
 
 /**

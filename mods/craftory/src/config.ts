@@ -45,6 +45,8 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     rebaseOnMove: true,
     keepFailed: true,
     pruneStale: false,
+    test: '',
+    testTimeoutSec: 600,
   },
   automation: {
     suggestNext: true,
@@ -67,6 +69,8 @@ const RANGES: Record<string, readonly [number, number]> = {
   'entry.wayfinder.afterQuestions': [1, 50],
   'worktrees.maxParallel': [1, 6],
   'worktrees.tokenBudget': [10_000, 1_000_000],
+  // the engine kills a child at ten minutes at most
+  'worktrees.testTimeoutSec': [10, 600],
 }
 
 function overlay(defaults: unknown, raw: unknown, path: string, problems: string[]): unknown {

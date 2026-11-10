@@ -12,7 +12,7 @@ import type {
   SkillName,
   TrackerSnapshot,
 } from '../types'
-import { budgetK } from './build'
+import { budgetK, outcomeOf } from './build'
 import { isSkipped } from './features'
 import { PHASE_ORDER, PHASES, predecessor } from './phases'
 import { argFor, byNumber } from './tracker/refs'
@@ -241,7 +241,7 @@ function buildAttention(f: Facts): PhaseState | undefined {
   const over = open.find(a => a.outcome === 'over-budget' && a.tokens >= budgetOf(a))
   if (over !== undefined)
     return { kind: 'over-budget', ticket: over.ticket, budget: budgetOf(over) }
-  const failed = open.find(a => a.outcome === 'failed')
+  const failed = open.find(a => outcomeOf(a) === 'failed')
   return failed === undefined ? undefined : { kind: 'failed', meta: `${failed.ticket} failed` }
 }
 

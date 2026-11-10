@@ -10,6 +10,7 @@ import type {
   Millis,
   SeatPlan,
   StopCause,
+  TestRun,
   Worktree,
 } from '../types'
 import { slugify, ticketBranchFor } from './config'
@@ -460,6 +461,54 @@ export const KEEP_REASONS: Record<KeepWhy, string> = {
   stopped: `its agent was stopped${USER_DECIDES}`,
 }
 
+const TAIL_LINES = 3
+const TAIL_CHARS = 240
+
+/** The last few non-empty lines of a run's output, on one line, for a ticket card. */
+export function outputTail(stdout: string, stderr: string): string {
+  const lines = `${stdout}\n${stderr}`
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+  const tail = lines.slice(-TAIL_LINES).join(' · ')
+  return tail.length > TAIL_CHARS ? `…${tail.slice(-(TAIL_CHARS - 1))}` : tail
+}
+
+/** What one run of `worktrees.test` says about the ticket. */
+export function testRunOf(
+  outcome:
+    | { kind: 'exited'; exitCode: number; stdout: string; stderr: string }
+    | { kind: 'timed-out' }
+    | { kind: 'not-run'; message: string },
+  at: Millis,
+): TestRun {
+  const base = { at: isoOf(at) }
+  switch (outcome.kind) {
+    case 'exited': {
+      if (outcome.exitCode === 0) return { ...base, passed: true }
+      const tail = outputTail(outcome.stdout, outcome.stderr)
+      return { ...base, passed: false, reason: `exit ${outcome.exitCode}`, ...(tail && { tail }) }
+    }
+    case 'timed-out':
+      return { ...base, passed: false, reason: 'timed out' }
+    case 'not-run':
+      return { ...base, passed: false, reason: `could not run: ${outcome.message}` }
+    default: {
+      const _exhaustive: never = outcome
+      return _exhaustive
+    }
+  }
+}
+
+/** The attempt's outcome with its latest test run applied: a done attempt whose tests fail is Failed. */
+export const outcomeOf = (r: AgentRecord): AgentRecord['outcome'] =>
+  r.outcome === 'done' && r.test?.passed === false ? 'failed' : r.outcome
+
+const testNote = (r: AgentRecord): string | null =>
+  r.test === undefined || r.test.passed
+    ? null
+    : `tests ${r.test.reason ?? 'failed'}${r.test.tail ? `: ${r.test.tail}` : ''}`
+
 export function cleanupPlan(args: {
   records: readonly AgentRecord[]
   merged: ReadonlySet<string>
@@ -470,13 +519,14 @@ export function cleanupPlan(args: {
   const remove: string[] = []
   const keep: { path: string; why: KeepWhy }[] = []
   for (const r of records) {
-    if (running.has(r.worktree) || r.outcome === 'running') {
+    const outcome = outcomeOf(r)
+    if (running.has(r.worktree) || outcome === 'running') {
       keep.push({ path: r.worktree, why: 'running' })
-    } else if (r.outcome === 'done') {
+    } else if (outcome === 'done') {
       if (merged.has(r.ticket) && config.worktrees.removeAfterMerge) remove.push(r.worktree)
       else keep.push({ path: r.worktree, why: 'unmerged' })
     } else if (config.worktrees.keepFailed) {
-      keep.push({ path: r.worktree, why: r.outcome })
+      keep.push({ path: r.worktree, why: outcome })
     } else {
       remove.push(r.worktree)
     }
@@ -516,7 +566,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 const recordRowStatus = (r: AgentRecord): RowStatus =>
   r.outcome === 'over-budget' && r.tokens >= r.budget
     ? 'over'
-    : r.outcome === 'failed'
+    : outcomeOf(r) === 'failed'
       ? 'failed'
       : r.outcome === 'done'
         ? 'awaiting-merge'
@@ -606,7 +656,7 @@ export function agentRows(args: {
           note:
             record.outcome === 'over-budget' && record.tokens < record.budget
               ? `budget raised to ${budgetK(record.budget)} · run it again to continue`
-              : null,
+              : testNote(record),
           ...withGit(record.worktree),
         }
       }

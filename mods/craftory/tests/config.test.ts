@@ -178,3 +178,16 @@ test('the wayfinder suggestion defaults to long grills after 12 questions and ca
   expect(bad.value.entry.wayfinder.suggest).toBe('long-grill')
   expect(bad.problem).toContain('entry.wayfinder.suggest')
 })
+
+test('worktrees.test is unset by default, and its timeout defaults to 600 s within 10 to 600', () => {
+  expect(DEFAULT_CONFIG.worktrees.test).toBe('')
+  expect(DEFAULT_CONFIG.worktrees.testTimeoutSec).toBe(600)
+  const set = okValue('{"worktrees":{"test":"pnpm test","testTimeoutSec":120}}').value.worktrees
+  expect(set).toMatchObject({ test: 'pnpm test', testTimeoutSec: 120 })
+  expect(okValue('{"worktrees":{"testTimeoutSec":5000}}').value.worktrees.testTimeoutSec).toBe(600)
+  expect(okValue('{"worktrees":{"testTimeoutSec":1}}').value.worktrees.testTimeoutSec).toBe(10)
+  const bad = okValue('{"worktrees":{"test":["pnpm","test"],"testTimeoutSec":"slow"}}')
+  expect(bad.value.worktrees).toMatchObject({ test: '', testTimeoutSec: 600 })
+  expect(bad.problem).toContain('worktrees.test')
+  expect(bad.problem).toContain('worktrees.testTimeoutSec')
+})

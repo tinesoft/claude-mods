@@ -467,6 +467,29 @@ const WORKTREE_ROWS: readonly SettingsRow[] = [
     read: f => wt(f.config).copy.join(', '),
     write: text => ({ config: { worktrees: { copy: listOf(text) } } }),
   },
+  line(
+    'wt-test',
+    'Test command',
+    'Runs in a ticket’s worktree after its implementer’s turn; a failure marks the ticket Failed. Leave empty to run nothing.',
+    c => wt(c).test,
+    text => ({ worktrees: { test: text } }),
+    { allowEmpty: true },
+  ),
+  {
+    id: 'wt-test-timeout',
+    label: 'Test timeout',
+    hint: 'A run still going then is stopped and the ticket is Failed, timed out.',
+    file: 'config',
+    control: 'choice',
+    options: f =>
+      numbers(
+        [60, 300, 600],
+        n => (n % 60 === 0 ? `${n / 60} min` : `${n} s`),
+        wt(f.config).testTimeoutSec,
+      ),
+    read: f => String(wt(f.config).testTimeoutSec),
+    write: value => ({ config: { worktrees: { testTimeoutSec: Number(value) } } }),
+  },
   toggle(
     'wt-remove-after-merge',
     'Remove a worktree after its ticket merges',

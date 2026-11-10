@@ -70,6 +70,28 @@ test('the main turn ending does not hold turn.complete for the tracker read', as
   await w.clock.advance(SLOW_MS * 2)
 })
 
+test('an implementer that finishes does not hold its turn.complete for worktrees.test', async ($, on) => {
+  const TEST_MS = 30_000
+  const isTest = (argv: readonly string[]) => argv[0] === 'pnpm' && argv[1] === 'test'
+  const { w } = await building(on, $, {
+    files: {
+      '.craftory/config.json': JSON.stringify({
+        worktrees: { test: 'pnpm test', testTimeoutSec: 30 },
+      }),
+    },
+    stall: { when: isTest, ms: TEST_MS - 1 },
+  })
+  await start($, 43, 'Export button')
+  let finished = false
+  void $.turn.complete(complete({ agentId: 'agent-tu43' }) as never).then(() => (finished = true))
+  await w.clock.settle()
+  expect(finished).toBe(true)
+  expect(w.sent).toHaveLength(0)
+  expect(w.submitted).toHaveLength(0)
+  await w.clock.advance(TEST_MS)
+  expect(w.ran.filter(isTest)).toHaveLength(1)
+})
+
 test('a main step past 80% with the handoff on does not wait on the git or tracker reads', async ($, on) => {
   let isStalled = false
   const w = featureWorld(on, {

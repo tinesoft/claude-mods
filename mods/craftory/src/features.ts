@@ -13,6 +13,7 @@ import type {
   PhaseId,
   PhaseMark,
   SkipMark,
+  TestRun,
   TrackerSnapshot,
 } from '../types'
 import { isSafeRef } from './git'
@@ -140,10 +141,21 @@ function parseMarks(value: unknown): Partial<Record<PhaseId, PhaseMark>> {
   )
 }
 
+function parseTest(value: unknown): TestRun | undefined {
+  if (!isRecord(value) || !text(value.at) || typeof value.passed !== 'boolean') return undefined
+  return {
+    at: text(value.at)!,
+    passed: value.passed,
+    ...(text(value.reason) && { reason: text(value.reason)! }),
+    ...(text(value.tail) && { tail: text(value.tail)! }),
+  }
+}
+
 function parseAgent(key: string, value: unknown): AgentRecord | undefined {
   if (!isRecord(value)) return undefined
   const ticket = parseRef(text(value.ticket) ?? key)
   const outcome = OUTCOMES.find(o => o === value.outcome)
+  const test = parseTest(value.test)
   if (
     !ticket ||
     !outcome ||
@@ -163,6 +175,7 @@ function parseAgent(key: string, value: unknown): AgentRecord | undefined {
     outcome,
     startedAt: text(value.startedAt)!,
     ...(text(value.endedAt) && { endedAt: text(value.endedAt)! }),
+    ...(test && { test }),
   }
 }
 
@@ -244,6 +257,7 @@ export function serialiseFeature(record: FeatureRecord): string {
             outcome: a.outcome,
             startedAt: a.startedAt,
             ...(a.endedAt && { endedAt: a.endedAt }),
+            ...(a.test && { test: a.test }),
           },
         ]
       }),
@@ -286,11 +300,15 @@ function mergeAgent(a: AgentRecord, b: AgentRecord): AgentRecord {
   const [first, second] =
     OUTCOMES.indexOf(a.outcome) >= OUTCOMES.indexOf(b.outcome) ? [a, b] : [b, a]
   const endedAt = max(first.endedAt, second.endedAt)
+  // the latest test run of the attempt wins, so a passing re-run clears a failed one
+  const tests = [a.test, b.test].filter(t => t !== undefined)
+  const test = tests.sort((x, y) => (x.at < y.at ? 1 : x.at > y.at ? -1 : 0))[0]
   return {
     ...first,
     tokens: Math.max(a.tokens, b.tokens),
     budget: Math.max(a.budget, b.budget),
     ...(endedAt && { endedAt }),
+    ...(test && { test }),
   }
 }
 

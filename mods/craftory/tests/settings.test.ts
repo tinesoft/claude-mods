@@ -269,3 +269,14 @@ test('config.json edited between that re-read and the write is not overwritten',
   await pane.redraw()
   expect(await allText(pane)).toContain('.craftory/config.json changed since it was planned')
 })
+
+test('Worktrees shows the test command, unset, and its 600 s timeout', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'worktrees')
+  const text = await allText(pane)
+  expect(text).toContain('Test command')
+  expect(text).toContain('Test timeout')
+  await pane.input({ key: 'set-wt-test', text: 'pnpm test' })
+  await pane.press({ key: 'set-wt-test-timeout-300' })
+  const config = JSON.parse(w.files.get('.craftory/config.json')!)
+  expect(config.worktrees).toMatchObject({ test: 'pnpm test', testTimeoutSec: 300 })
+})

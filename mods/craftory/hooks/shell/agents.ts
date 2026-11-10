@@ -7,11 +7,14 @@ import {
   freshTokens,
   isoOf,
   pauseText,
+  recordOf,
   type SpawnDecision,
+  splitArgv,
   tddStepOf,
+  testRunOf,
 } from '../../src/build'
 import { specKey } from '../../src/features'
-import type { AgentId, IssueRef, SeatPlan } from '../../types'
+import type { AgentId, AgentRun, IssueRef, SeatPlan } from '../../types'
 import { activeRecord, featureOfTicket, featuresOf, recordChange, recordRun } from './features'
 import { currentFlow, settle } from './flow'
 import {
@@ -20,11 +23,12 @@ import {
   endRun,
   ledgerOf,
   raiseBudgetOf,
+  runOf,
   seatRun,
   setPaused,
 } from './ledger'
 import { addNotice } from './notices'
-import { repoFacts } from './repo'
+import { repoFacts, repoPath } from './repo'
 import { refreshGit, scheduleGit, scheduleRefresh } from './sync'
 
 /**
@@ -112,12 +116,46 @@ export async function countStep(
   await settle($)
 }
 
+/**
+ * An implementer's turn ended. Its first end closes the run; any end of a run that finished with
+ * its answer, the first or a later one, runs `worktrees.test` in its worktree, off the turn.
+ */
 export async function finishAgent($: EngineInterface, agentId: AgentId, reason: FinishReason) {
-  const run = await endRun($, agentId, reason, await $.clock.now())
-  if (run === null) return
-  await recordRun($, run)
-  scheduleGit($)
-  scheduleRefresh($)
+  const ended = await endRun($, agentId, reason, await $.clock.now())
+  if (ended !== null) {
+    await recordRun($, ended)
+    scheduleGit($)
+    scheduleRefresh($)
+  }
+  const run = ended ?? (await runOf($, agentId))
+  if (run?.status === 'done') $.clock.after(0, () => void testTicket($, run))
+}
+
+async function testTicket($: EngineInterface, run: AgentRun) {
+  const { worktrees } = (await repoFacts($)).config
+  const argv = splitArgv(worktrees.test)
+  if (argv === null) return
+  const timeoutMs = worktrees.testTimeoutSec * 1000
+  const started = await $.clock.now()
+  const outcome = await $.process
+    .run(argv, { cwd: await repoPath($, run.worktree), timeoutMs })
+    .then(r => ({ kind: 'exited' as const, ...r }))
+    .catch(async (error: unknown) =>
+      (await $.clock.now()) - started >= timeoutMs
+        ? { kind: 'timed-out' as const }
+        : {
+            kind: 'not-run' as const,
+            message: error instanceof Error ? error.message : String(error),
+          },
+    )
+  const test = testRunOf(outcome, await $.clock.now())
+  const record = (await featureOfTicket($, run.ticket)) ?? (await activeRecord($))
+  if (record === null) return
+  await recordChange($, specKey(record.spec), {
+    kind: 'agent',
+    record: { ...recordOf(run), test },
+  })
+  await settle($)
 }
 
 export async function togglePause($: EngineInterface) {

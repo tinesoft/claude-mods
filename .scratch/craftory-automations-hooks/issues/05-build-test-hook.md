@@ -4,14 +4,14 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `worktrees.test` (unset by default) and `worktrees.testTimeoutSec` (default 600, validated range) parse in config and appear in Settings
-- [ ] Unset command: no run, no state change
-- [ ] Runs only after a Build implementer's final turn, in its ticket worktree; never mid-run, never for the main session
-- [ ] Non-zero exit → ticket Failed with the output tail on its card
-- [ ] Timeout → ticket Failed with "timed out"
-- [ ] `keepFailed` keeps the worktree of a failed ticket
-- [ ] A passing re-run on the next turn clears Failed
-- [ ] The hook never blocks the turn or re-prompts the agent
-- [ ] Fake-world tests cover Failed, "timed out", cleared and unset; config tests pin defaults; latency test covers the hook
+- [x] `worktrees.test` (unset by default) and `worktrees.testTimeoutSec` (default 600, validated range) parse in config and appear in Settings
+- [x] Unset command: no run, no state change
+- [x] Runs only after a Build implementer's final turn, in its ticket worktree; never mid-run, never for the main session
+- [x] Non-zero exit → ticket Failed with the output tail on its card
+- [x] Timeout → ticket Failed with "timed out"
+- [x] `keepFailed` keeps the worktree of a failed ticket
+- [x] A passing re-run on the next turn clears Failed
+- [x] The hook never blocks the turn or re-prompts the agent
+- [x] Fake-world tests cover Failed, "timed out", cleared and unset; config tests pin defaults; latency test covers the hook
