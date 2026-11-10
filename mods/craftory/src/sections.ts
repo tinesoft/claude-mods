@@ -565,7 +565,6 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
     'Runs improve-codebase-architecture and files what it finds with the needs-triage label.',
     c => au(c).weeklyArchitecture,
     on => ({ automation: { weeklyArchitecture: on } }),
-    { inactive: NOT_ACTIVE },
   ),
   toggle(
     'auto-nudge-unmet-done',

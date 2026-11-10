@@ -22,6 +22,8 @@ export const AGENT_DOCS = {
 export const GITIGNORE = '.gitignore'
 export const CONFIG_FILE = '.craftory/config.json'
 export const FEATURES_DIR = '.craftory/features/'
+/** Repo state that is not settings, such as `architectureLastRun`: git-ignored, one per repo. */
+export const STATE_FILE = '.craftory/state.json'
 
 export const withSlash = (path: string) => (path.endsWith('/') ? path : `${path}/`)
 
@@ -45,6 +47,7 @@ export function isWritable(path: string, ctx: WritableContext): boolean {
     glossary !== undefined && glossary.endsWith('.md') && !inside(glossary, OWN_DIR)
   const exact = [
     CONFIG_FILE,
+    STATE_FILE,
     AGENT_DOCS.tracker,
     AGENT_DOCS.triage,
     AGENT_DOCS.domain,

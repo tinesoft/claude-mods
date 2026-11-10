@@ -510,6 +510,8 @@ declare module 'claude-code' {
       dismissed: NoticeKey[]
       /** Automation scopes that already raised their notice (AutomationNotice `scope`). */
       automationsFired: string[]
+      /** The architecture check started in the main session and has not reported yet. */
+      architectureRun: boolean
       /** The phase the last main turn ended in, until the refresh after it checks its Done-when. */
       nudgeEnded: { feature: FeatureKey; phase: PhaseId } | null
       /** A handoff skill run in flight: the Feature it belongs to and the last file it wrote. */

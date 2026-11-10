@@ -64,7 +64,7 @@ test('a GitHub setup writes the upstream templates byte for byte', () => {
   expect(textOf(writes, AGENT_DOCS.tracker)).toBe(up['issue-tracker-github.md'])
   expect(textOf(writes, AGENT_DOCS.triage)).toBe(up['triage-labels.md'])
   expect(textOf(writes, AGENT_DOCS.domain)).toBe(up['domain.md'])
-  expect(textOf(writes, '.gitignore')).toBe('.claude/worktrees/\n')
+  expect(textOf(writes, '.gitignore')).toBe('.claude/worktrees/\n.craftory/state.json\n')
 })
 
 test('GitLab writes its template, and the PRs flag changes only that line', () => {
@@ -196,7 +196,7 @@ test('hand-edited docs that already say the same thing are not rewritten', () =>
     triage: up['triage-labels.md']!.replace('Edit the right-hand', 'Please edit the right-hand'),
     domain: `${up['domain.md']}\nExtra.\n`,
     claudeMd: renderAgentSkillsBlock(GITHUB),
-    gitignore: 'node_modules\n.claude/worktrees/\n',
+    gitignore: 'node_modules\n.claude/worktrees/\n.craftory/state.json\n',
   }
   expect(planSetup(GITHUB, files, OPTIONS)).toEqual([])
 })
@@ -212,7 +212,7 @@ test('every planned write carries the text it was planned against', () => {
   expect(writes.find(w => w.path === '.gitignore')).toEqual({
     path: '.gitignore',
     before: 'dist\n',
-    after: 'dist\n.claude/worktrees/\n',
+    after: 'dist\n.claude/worktrees/\n.craftory/state.json\n',
   })
   expect(writes.find(w => w.path === AGENT_DOCS.tracker)?.before).toBeNull()
   expect(writes.find(w => w.path === 'CLAUDE.md')?.before).toBe('# T\n')

@@ -1,28 +1,39 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
 import {
+  ARCHITECTURE_SCOPE,
+  architectureLastRunOf,
+  architectureNotice,
   contextTokens,
   HANDOFF_SCOPE,
   handoffLink,
   handoffNotice,
+  isArchitectureDue,
+  isArchitectureSkill,
   isArmed,
   isHandoffDocument,
   isHandoffSkill,
   isHandoffDue,
+  isMidBuild,
   NUDGE_PREFIX,
   nudgeNotice,
   rearmSession,
   SESSION_SCOPE,
+  withArchitectureRun,
 } from '../../src/automations'
 import { isoOf } from '../../src/build'
+import { STATE_FILE } from '../../src/files'
 import type { AutomationNotice, FeatureKey, PhaseId } from '../../types'
-import { activeKey, recordChange } from './features'
+import { activeKey, featuresOf, recordChange } from './features'
 import { currentFlow } from './flow'
 import { addNotice, removeNotices } from './notices'
-import { repoFacts, repoSnapshot } from './repo'
+import { readText, repoFacts, repoSnapshot, writableContext, writeRepoFile } from './repo'
 import { trackerKindOf } from './tracker'
 
 const firedState = atom({ plugin: 'craftory', key: 'automationsFired' } as const, [])
 const handoffRunState = atom({ plugin: 'craftory', key: 'handoffRun' } as const, null)
+
+/** The architecture check has started in the main session and has not reported yet. */
+const architectureRunState = atom({ plugin: 'craftory', key: 'architectureRun' } as const, false)
 
 async function hasFired($: EngineInterface, scope: string) {
   return !isArmed(await read($, firedState), scope)
@@ -60,6 +71,33 @@ export async function noteMainStep(
     .then(u => u.context.window)
     .catch(() => 0)
   if (isHandoffDue(contextTokens(usage), window)) await raiseAutomation($, handoffNotice())
+}
+
+/** At session start: offers the architecture check when its last run is over 7 days old. */
+export async function offerArchitecture($: EngineInterface) {
+  const { config } = await repoFacts($)
+  if (!config.automation.weeklyArchitecture || (await hasFired($, ARCHITECTURE_SCOPE))) return
+  if (Object.values(await featuresOf($)).some(isMidBuild)) return
+  const last = architectureLastRunOf(await readText($, STATE_FILE))
+  if (isArchitectureDue(last, await $.clock.now())) await raiseAutomation($, architectureNotice())
+}
+
+/** The skill's prompt is loading: its done report will be this turn's answer. */
+export async function noteSkillStarted($: EngineInterface, skill: string) {
+  if (isArchitectureSkill(skill)) await update($, architectureRunState, () => true)
+}
+
+/**
+ * A main turn ended. The architecture check's done report records `architectureLastRun`; a
+ * cancelled run leaves it as it was.
+ */
+export async function noteMainTurnEnd($: EngineInterface, isAborted: boolean) {
+  if (!(await read($, architectureRunState))) return
+  await update($, architectureRunState, () => false)
+  if (isAborted) return
+  const before = await readText($, STATE_FILE)
+  const after = withArchitectureRun(before, isoOf(await $.clock.now()))
+  await writeRepoFile($, { path: STATE_FILE, before, after }, await writableContext($))
 }
 
 /** The handoff skill started: watch what it writes, for the active Feature. */

@@ -143,3 +143,43 @@ test('a main step past 80% with the handoff on does not wait on the git or track
   expect(finished).toBe(true)
   await w.clock.advance(SLOW_MS * 2)
 })
+
+const ARCHITECTURE_ON = {
+  '.craftory/config.json': JSON.stringify({ automation: { weeklyArchitecture: true } }),
+}
+
+test('session start with the weekly architecture check on returns before the slow git read', async ($, on) => {
+  const w = featureWorld(on, {
+    shell: fakeGit().shell,
+    stall: { when: gitList, ms: SLOW_MS },
+    files: ARCHITECTURE_ON,
+  })
+  let returned = false
+  void $.session.start({ cwd: '/repo', surface: 'terminal' } as never).then(() => (returned = true))
+  await w.clock.settle()
+  expect(returned).toBe(true)
+  await w.clock.advance(SLOW_MS)
+})
+
+test('the architecture check reporting done does not hold turn.complete for the git or tracker reads', async ($, on) => {
+  let isStalled = false
+  const w = featureWorld(on, {
+    shell: fakeGit().shell,
+    stall: { when: argv => isStalled && (gitList(argv) || argv[0] === 'gh'), ms: SLOW_MS },
+    files: ARCHITECTURE_ON,
+  })
+  await startSession($)
+  await $.skill.prompt({
+    skill: 'mattpocock-skills:improve-codebase-architecture',
+    text: '',
+    frontmatter: {},
+    source: 'plugin',
+  } as never)
+  isStalled = true
+  let finished = false
+  void $.turn.complete(complete() as never).then(() => (finished = true))
+  await w.clock.settle()
+  expect(finished).toBe(true)
+  expect(w.writes.map(x => x.path)).toContain('.craftory/state.json')
+  await w.clock.advance(SLOW_MS * 2)
+})

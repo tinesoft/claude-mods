@@ -7,7 +7,14 @@
  * - one action at most, a skill submitted on the click; Craftory edits no files for it;
  * - once per scope ({@link isArmed}): a press or a dismiss both leave the scope fired.
  */
-import type { AutomationNotice, EventNotice, FeatureKey, PhaseId, TrackerKind } from '../types'
+import type {
+  AutomationNotice,
+  EventNotice,
+  FeatureKey,
+  FeatureRecord,
+  PhaseId,
+  TrackerKind,
+} from '../types'
 import { namespaced, PHASES, SKILLS } from './phases'
 
 /** A scope fired with this prefix re-arms when a new session starts. */
@@ -44,6 +51,65 @@ export const handoffNotice = (): AutomationNotice => ({
   scope: HANDOFF_SCOPE,
   text: 'Context is 80% full · write a handoff so a fresh session can pick up',
   run: { label: 'Write handoff', skill: SKILLS.handoff, args: '' },
+})
+
+/** How old the last architecture check may be before the weekly check is offered again. */
+export const ARCHITECTURE_EVERY_MS = 7 * 24 * 60 * 60 * 1000
+
+/** Session-scoped: a dismiss silences it for the session; the 7-day rule decides the next one. */
+export const ARCHITECTURE_SCOPE = `${SESSION_SCOPE}architecture`
+
+export const ARCHITECTURE_ARGS =
+  'File each finding as an issue in the tracker with the needs-triage label.'
+
+/** The repo's `.craftory/state.json`, read leniently: anything unreadable is an empty state. */
+export function parseRepoState(text: string | null): Record<string, unknown> {
+  if (text === null) return {}
+  try {
+    const value: unknown = JSON.parse(text)
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {}
+  } catch {
+    return {}
+  }
+}
+
+export function architectureLastRunOf(text: string | null): string | null {
+  const last = parseRepoState(text).architectureLastRun
+  return typeof last === 'string' && !Number.isNaN(Date.parse(last)) ? last : null
+}
+
+/** The state file with `architectureLastRun` set, every other key kept. */
+export const withArchitectureRun = (text: string | null, at: string) =>
+  `${JSON.stringify({ ...parseRepoState(text), architectureLastRun: at }, null, 2)}\n`
+
+/** Due when it never ran, or ran more than 7 days before `now`. */
+export const isArchitectureDue = (lastRun: string | null, now: number) =>
+  lastRun === null || now - Date.parse(lastRun) > ARCHITECTURE_EVERY_MS
+
+/**
+ * A Feature is mid-Build from the record alone, since no agent survives a restart: Build ran,
+ * nobody marked it done, and no later phase has started.
+ */
+export const isMidBuild = (record: Pick<FeatureRecord, 'marks'>) => {
+  const { build, review, ship, retro } = record.marks
+  return (
+    build?.ranAt !== undefined &&
+    build.markedDoneAt === undefined &&
+    [review, ship, retro].every(m => m?.ranAt === undefined)
+  )
+}
+
+export const isArchitectureSkill = (skill: string) =>
+  skill.replace(/^\//, '').replace(/^[^:]*:/, '') === SKILLS.improveArchitecture
+
+export const architectureNotice = (): AutomationNotice => ({
+  kind: 'automation',
+  id: 'architecture',
+  scope: ARCHITECTURE_SCOPE,
+  text: 'Weekly architecture check is due · look for deepening opportunities',
+  run: { label: 'Check architecture', skill: SKILLS.improveArchitecture, args: ARCHITECTURE_ARGS },
 })
 
 /** The handoff skill, by the name a skill prompt carries. */

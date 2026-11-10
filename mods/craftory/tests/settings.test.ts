@@ -168,7 +168,7 @@ test('mobile draws every value but no control that changes one', async ($, on) =
 test('rows whose behaviour is not built yet say so', async ($, on) => {
   const { pane } = await settings(on, $, 'local', {}, 'terminal', 'automation')
   const words = await texts(pane)
-  expect(words.filter(w => w.startsWith('Not active yet'))).toHaveLength(2)
+  expect(words.filter(w => w.startsWith('Not active yet'))).toHaveLength(1)
 })
 
 test('the deny rules appear under Automation, off, and turning one on writes deny in config.json', async ($, on) => {

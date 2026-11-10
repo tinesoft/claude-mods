@@ -80,6 +80,9 @@ import {
   noteHandoffStart,
   noteHandoffWrite,
   noteMainStep,
+  noteMainTurnEnd,
+  noteSkillStarted,
+  offerArchitecture,
   noteTurnEnded,
   rearmAutomations,
 } from './shell/automations'
@@ -309,6 +312,7 @@ export const register: Register = (on, options) => {
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($), rearmAutomations($)])
     await stopStaleAgents($)
     await rememberGlossaryAtStart($)
+    await offerArchitecture($)
     await settle($)
     $.clock.after(0, () => void refreshAtStart($))
     return next(e)
@@ -327,6 +331,7 @@ export const register: Register = (on, options) => {
 
   on('skill.prompt', async ($, e, next) => {
     await skillStarted($, e.skill)
+    await noteSkillStarted($, e.skill)
     await noteHandoffStart($, e.skill)
     return next(e)
   })
@@ -346,6 +351,7 @@ export const register: Register = (on, options) => {
     }
     await noteReplyTerms($, e.answer)
     await noteTurnEnded($, await finishTurn($, e))
+    await noteMainTurnEnd($, e.isAborted === true)
     await finishHandoff($, e.isAborted === true)
     scheduleRefresh($)
     return result

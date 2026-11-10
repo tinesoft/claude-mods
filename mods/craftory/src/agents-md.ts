@@ -10,7 +10,7 @@ import type {
   TriageRole,
 } from '../types'
 import { CONFIG_PATH, configOf, parseConfig, patchConfig } from './config'
-import { AGENT_DOCS, GITIGNORE, type FileWrite } from './files'
+import { AGENT_DOCS, GITIGNORE, type FileWrite, STATE_FILE } from './files'
 import { TEMPLATES } from './templates'
 
 export { AGENT_DOCS, GITIGNORE }
@@ -221,6 +221,10 @@ export function ensureGitignore(text: string | null, entry: string): string {
   return `${text}${text.endsWith('\n') ? '' : eol}${entry}${eol}`
 }
 
+/** The lines Craftory's setup keeps in `.gitignore`: the worktree folder and the repo state file. */
+export const ensureCraftoryIgnores = (text: string | null, worktreeFolder: string) =>
+  ensureGitignore(ensureGitignore(text, worktreeFolder), STATE_FILE)
+
 const prsOf = (t: TrackerSetup) => 'prsAsRequests' in t && t.prsAsRequests
 
 const sameTracker = (a: TrackerSetup, b: TrackerSetup) => a.kind === b.kind && prsOf(a) === prsOf(b)
@@ -277,7 +281,7 @@ export function planSetup(
       : upsertBlock(steering, renderAgentSkillsBlock(setup)),
   )
 
-  put(GITIGNORE, files.gitignore, ensureGitignore(files.gitignore, options.worktreeFolder))
+  put(GITIGNORE, files.gitignore, ensureCraftoryIgnores(files.gitignore, options.worktreeFolder))
   return writes
 }
 
@@ -362,7 +366,7 @@ export function planSettingsWrites(args: {
     writes.push({
       path: GITIGNORE,
       before: files.gitignore,
-      after: ensureGitignore(files.gitignore, nextConfig.worktrees.folder),
+      after: ensureCraftoryIgnores(files.gitignore, nextConfig.worktrees.folder),
     })
   return { writes, nextConfig, nextSetup }
 }

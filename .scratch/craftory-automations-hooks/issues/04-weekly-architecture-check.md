@@ -4,14 +4,14 @@
 
 **Blocked by:** 01 (Automation notice pattern, proven with Handoff at 80%)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Off by default
-- [ ] Notice when the last run is missing or over 7 days old; silent when within 7 days
-- [ ] Skipped while any Feature is mid-Build
-- [ ] The click submits `/improve-codebase-architecture`; findings show as `needs-triage` Inbox items
-- [ ] `architectureLastRun` is written on the skill's done report, not on submit; a cancelled run leaves it unchanged
-- [ ] `.craftory/state.json` is git-ignored by the setup Craftory writes
-- [ ] Silent after dismiss for the session
-- [ ] Settings exposes `weeklyArchitecture` as active
-- [ ] Fake-world tests cover the 7-day rule, the mid-Build rule, cancelled run and dismiss
+- [x] Off by default
+- [x] Notice when the last run is missing or over 7 days old; silent when within 7 days
+- [x] Skipped while any Feature is mid-Build
+- [x] The click submits `/improve-codebase-architecture`; findings show as `needs-triage` Inbox items
+- [x] `architectureLastRun` is written on the skill's done report, not on submit; a cancelled run leaves it unchanged
+- [x] `.craftory/state.json` is git-ignored by the setup Craftory writes
+- [x] Silent after dismiss for the session
+- [x] Settings exposes `weeklyArchitecture` as active
+- [x] Fake-world tests cover the 7-day rule, the mid-Build rule, cancelled run and dismiss

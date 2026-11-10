@@ -2,7 +2,7 @@ import { atom, type EngineInterface, read, update } from 'claude-code'
 import {
   AGENT_DOCS,
   docsOf,
-  ensureGitignore,
+  ensureCraftoryIgnores,
   readSetup,
   remoteHostOf,
   type SetupFiles,
@@ -122,7 +122,7 @@ export async function loadRepo($: EngineInterface) {
     hasScratch,
     hasGitignoreEntry:
       files.gitignore !== null &&
-      ensureGitignore(files.gitignore, worktrees.folder) === files.gitignore,
+      ensureCraftoryIgnores(files.gitignore, worktrees.folder) === files.gitignore,
     at,
   }
   await update($, repoState, () => snapshot)

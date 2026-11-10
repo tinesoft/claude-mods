@@ -46,6 +46,7 @@ export const SKILLS = {
   setupMattPocockSkills: skill('setup-matt-pocock-skills'),
   waitWhat: skill('wait-what'),
   handoff: skill('handoff'),
+  improveArchitecture: skill('improve-codebase-architecture'),
 } as const
 
 export const PHASES = {
