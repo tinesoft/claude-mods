@@ -76,6 +76,7 @@ import {
   switchFeature,
 } from './shell/flow'
 import {
+  answerAutomation,
   finishHandoff,
   noteHandoffStart,
   noteHandoffWrite,
@@ -211,8 +212,10 @@ async function dispatch($: EngineInterface, action: Action) {
       return openPane($, 'flow')
     }
     case 'dismiss':
+      await answerAutomation($, action.noticeId)
       return dropNotice($, action.noticeId)
     case 'automation-run': {
+      await answerAutomation($, action.noticeId)
       await dropNotice($, action.noticeId)
       return requestRun($, action.skill, action.args)
     }

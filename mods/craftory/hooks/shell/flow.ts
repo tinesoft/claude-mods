@@ -1,7 +1,7 @@
 import { atom, type EngineInterface, read, type Timer, update } from 'claude-code'
 import { integrationContext, isoOf } from '../../src/build'
 import { integrationBranchFor } from '../../src/config'
-import { driftDiffArgv, findDrift, retroSuggestions } from '../../src/drift'
+import { driftDiffArgv, findDrift, rankedText, retroSuggestions } from '../../src/drift'
 import { deriveFlow, type Flow } from '../../src/evidence'
 import { enteredRecord, featureOf, specKey } from '../../src/features'
 import { dropText, type RunRequest } from '../../src/gates'
@@ -293,18 +293,21 @@ export async function finishTurn(
     return ended
   }
   await update($, runningState, () => null)
+  const suggestions = running.phase === 'retro' && !e.isAborted ? retroSuggestions(e.answer) : null
   if (running.feature !== null && running.phase !== null) {
     await recordChange($, running.feature, {
       kind: 'ended',
       phase: running.phase,
       at: isoOf(await $.clock.now()),
+      // The ranked suggestions are the Retro phase's evidence
+      ...(suggestions !== null && { artifacts: [rankedText(suggestions)] }),
     })
   }
   if (running.phase === 'retro' && !e.isAborted) {
     await addNotice($, {
       kind: 'retro-ready',
       id: `retro-${await $.clock.now()}`,
-      suggestions: retroSuggestions(e.answer),
+      suggestions,
     })
   }
   return ended

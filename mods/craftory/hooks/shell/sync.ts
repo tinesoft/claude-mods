@@ -11,6 +11,7 @@ import { activeKey, draftsOf, featureOfTicket, featuresOf, reloadFeatures } from
 import { bindDrafts, settle } from './flow'
 import { cleanupInputs, gitOf, loadGit } from './git'
 import { ledgerOf, stopForConflict } from './ledger'
+import { noteMergedPr } from './automations'
 import { addNotice } from './notices'
 import { loadRepo, repoFacts, repoSnapshot, sh } from './repo'
 import { loadTracker, trackerKindOf } from './tracker'
@@ -58,6 +59,7 @@ export async function refreshTracker($: EngineInterface) {
   if (!(await loadTracker($, repo, await readContext($, repo)))) return
   await bindDrafts($)
   await cleanupMerged($)
+  await noteMergedPr($)
   await settle($)
 }
 

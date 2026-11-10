@@ -13,6 +13,7 @@ import type {
   FeatureKey,
   FeatureRecord,
   PhaseId,
+  PullRequest,
   TrackerKind,
 } from '../types'
 import { namespaced, PHASES, SKILLS } from './phases'
@@ -51,6 +52,35 @@ export const handoffNotice = (): AutomationNotice => ({
   scope: HANDOFF_SCOPE,
   text: 'Context is 80% full · write a handoff so a fresh session can pick up',
   run: { label: 'Write handoff', skill: SKILLS.handoff, args: '' },
+})
+
+/**
+ * Retro on PR is offered once a session until the user answers it; the answer (run or dismiss)
+ * is stored on the Feature, so it is final for that Feature across sessions.
+ */
+const RETRO_SCOPE = `${SESSION_SCOPE}retro:`
+
+export const retroScope = (key: FeatureKey) => `${RETRO_SCOPE}${key}`
+
+/** The Feature a retro notice's scope names, or null for any other scope. */
+export const retroFeatureOf = (scope: string): FeatureKey | null =>
+  scope.startsWith(RETRO_SCOPE) ? (scope.slice(RETRO_SCOPE.length) as FeatureKey) : null
+
+/** The Feature's own PR has merged, the retro has not run, and the user has not answered yet. */
+export const isRetroDue = (record: FeatureRecord, pr: PullRequest | null) =>
+  pr !== null &&
+  pr.state === 'merged' &&
+  record.integrationBranch !== '' &&
+  pr.branch === record.integrationBranch &&
+  record.retroOffered !== true &&
+  record.marks.retro?.ranAt === undefined
+
+export const retroNotice = (key: FeatureKey): AutomationNotice => ({
+  kind: 'automation',
+  id: 'retro',
+  scope: retroScope(key),
+  text: 'The pull request merged · run a retro while it is fresh',
+  run: { label: 'Run retro', skill: SKILLS.retro, args: '' },
 })
 
 /** How old the last architecture check may be before the weekly check is offered again. */

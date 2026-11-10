@@ -144,6 +144,30 @@ test('a main step past 80% with the handoff on does not wait on the git or track
   await w.clock.advance(SLOW_MS * 2)
 })
 
+test('a gh call with retro on PR on does not wait on the tracker read that looks for the merge', async ($, on) => {
+  let isStalled = false
+  const w = world(on, {
+    commands: mattCommands(...MATT_SKILLS),
+    plugins: IN_RANGE,
+    files: {
+      ...SETUP_FILES,
+      'docs/agents/issue-tracker.md': '# Issue tracker: GitHub\n',
+      '.craftory/config.json': JSON.stringify({ automation: { retroOnPr: true } }),
+    },
+    gh: () => ({ exitCode: 0, stdout: '[]' }),
+    stall: { when: argv => isStalled && argv[0] === 'gh', ms: SLOW_MS },
+  })
+  await startSession($)
+  isStalled = true
+  let finished = false
+  void $.tool
+    .call({ tool: 'Bash', command: 'gh pr merge 50 --squash' } as never)
+    .then(() => (finished = true))
+  await w.clock.settle()
+  expect(finished).toBe(true)
+  await w.clock.advance(SLOW_MS * 2)
+})
+
 const ARCHITECTURE_ON = {
   '.craftory/config.json': JSON.stringify({ automation: { weeklyArchitecture: true } }),
 }

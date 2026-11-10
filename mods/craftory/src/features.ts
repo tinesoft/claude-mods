@@ -221,6 +221,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     skips: parseSkips(json.skips, json.skipped),
     integrationBranch: branch,
     pr: parseIssueRef(text(json.pr) ?? '') ?? null,
+    ...(json.retroOffered === true && { retroOffered: true as const }),
     ...parseSharedFields(json),
     marks: parseMarks(json.marks),
     agents,
@@ -281,6 +282,7 @@ export function serialiseFeature(record: FeatureRecord): string {
       skips: serialiseSkips(record.skips),
       integrationBranch: record.integrationBranch,
       pr: record.pr,
+      ...(record.retroOffered && { retroOffered: true }),
       ...sharedFields(record),
       marks,
       agents,
@@ -354,6 +356,7 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
       wayfinderSuggestDismissed: mine.wayfinderSuggestDismissed ?? disk.wayfinderSuggestDismissed,
       handoff: mine.handoff ?? disk.handoff,
     }),
+    ...((mine.retroOffered || disk.retroOffered) && { retroOffered: true as const }),
     marks,
     agents,
   }
@@ -370,6 +373,7 @@ export type FeatureChange =
   | { kind: 'pr'; pr: IssueRef }
   | { kind: 'dismiss-wayfinder' }
   | { kind: 'link-map'; map: IssueRef }
+  | { kind: 'retro-offered' }
   /** The latest handoff document wins: the card links the one written last. */
   | { kind: 'handoff'; path: string }
 
@@ -442,6 +446,8 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
     }
     case 'pr':
       return { ...record, pr: change.pr }
+    case 'retro-offered':
+      return { ...record, retroOffered: true }
     case 'dismiss-wayfinder':
     case 'link-map':
     case 'handoff':

@@ -76,8 +76,6 @@ export type SectionDef = {
   custom?: 'glossary'
 }
 
-const NOT_ACTIVE = 'Stored for a later release; it changes nothing yet.'
-
 const toggle = (
   id: string,
   label: string,
@@ -546,11 +544,10 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
   ),
   toggle(
     'auto-retro-on-pr',
-    'Run retro when the PR opens',
-    'Otherwise retro waits until you run /retro.',
+    'Offer a retro when the PR merges',
+    'A band notice offers Run retro once the Feature’s PR merges. Otherwise retro waits until you run /retro.',
     c => au(c).retroOnPr,
     on => ({ automation: { retroOnPr: on } }),
-    { inactive: NOT_ACTIVE },
   ),
   toggle(
     'auto-handoff',

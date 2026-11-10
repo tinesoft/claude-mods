@@ -259,7 +259,7 @@ test('Ship is done when the pull request from the integration branch is ready fo
   ])
 })
 
-test('Retro is done when retro ran and ended after Ship', () => {
+test('Retro is done when retro ended after Ship with ranked suggestions', () => {
   const retroOf = (retro: PhaseMark, pull: PullRequest | null) =>
     view(
       flowOf({ feature: feature({ ...EARLIER, retro }), tracker: tracker(BUILT, pull) }),
@@ -269,5 +269,12 @@ test('Retro is done when retro ran and ended after Ship', () => {
   expect(retroOf({ ranAt: AT(50), endedAt: AT(55) }, pr()).blockers).toEqual(['Ship is not done'])
   expect(retroOf({}, ready).blockers).toEqual(['not run yet'])
   expect(retroOf({ ranAt: AT(50) }, ready).blockers).toEqual(['the retro has not finished'])
-  expect(retroOf({ ranAt: AT(50), endedAt: AT(55) }, ready).state.kind).toBe('done')
+  expect(retroOf({ ranAt: AT(50), endedAt: AT(55) }, ready).blockers).toEqual([
+    'the retro produced no ranked suggestions',
+  ])
+  const done = retroOf(
+    { ranAt: AT(50), endedAt: AT(55), artifacts: ['3 ranked suggestions'] },
+    ready,
+  )
+  expect(done.state).toEqual({ kind: 'done', artifact: '3 ranked suggestions' })
 })

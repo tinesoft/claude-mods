@@ -52,7 +52,8 @@ export function retroSuggestions(answer: string): number | null {
   return n > 0 ? n : null
 }
 
+export const rankedText = (suggestions: number) =>
+  `${suggestions} ranked ${suggestions === 1 ? 'suggestion' : 'suggestions'}`
+
 export const retroText = (suggestions: number | null) =>
-  suggestions === null
-    ? 'Retro ready'
-    : `Retro ready · ${suggestions} ranked ${suggestions === 1 ? 'suggestion' : 'suggestions'}`
+  suggestions === null ? 'Retro ready' : `Retro ready · ${rankedText(suggestions)}`

@@ -205,7 +205,11 @@ const RULES: Record<PhaseId, Rule> = {
     if (!EVIDENCE.ship(f).done) return { done: false, blockers: ['Ship is not done'] }
     if (mark?.ranAt === undefined) return { done: false, blockers: ['not run yet'] }
     if (mark.endedAt === undefined) return { done: false, blockers: ['the retro has not finished'] }
-    return { done: true, artifact: null }
+    // The ranked suggestions /retro produced are the evidence; the finish alone is not
+    const ranked = mark.artifacts?.at(-1)
+    if (ranked === undefined)
+      return { done: false, blockers: ['the retro produced no ranked suggestions'] }
+    return { done: true, artifact: ranked }
   },
 }
 

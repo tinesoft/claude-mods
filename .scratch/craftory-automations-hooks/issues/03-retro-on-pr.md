@@ -4,12 +4,12 @@
 
 **Blocked by:** 01 (Automation notice pattern, proven with Handoff at 80%)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Off by default
-- [ ] A merge seen in-session raises the notice once the turn is idle
-- [ ] A merge made outside the session raises the notice at `session.start`
-- [ ] The click submits `/retro`; one notice per Feature; silent after dismiss
-- [ ] The Retro phase reads the ranked suggestions as its evidence and completes by fact
-- [ ] Settings exposes `retroOnPr` as active
-- [ ] Fake-world tests cover in-session and out-of-session merges, once-only, dismiss and switch off
+- [x] Off by default
+- [x] A merge seen in-session raises the notice once the turn is idle
+- [x] A merge made outside the session raises the notice at `session.start`
+- [x] The click submits `/retro`; one notice per Feature; silent after dismiss
+- [x] The Retro phase reads the ranked suggestions as its evidence and completes by fact
+- [x] Settings exposes `retroOnPr` as active
+- [x] Fake-world tests cover in-session and out-of-session merges, once-only, dismiss and switch off

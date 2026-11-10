@@ -13,21 +13,24 @@ import {
   isHandoffDocument,
   isHandoffSkill,
   isHandoffDue,
+  isRetroDue,
   isMidBuild,
   NUDGE_PREFIX,
   nudgeNotice,
   rearmSession,
+  retroFeatureOf,
+  retroNotice,
   SESSION_SCOPE,
   withArchitectureRun,
 } from '../../src/automations'
 import { isoOf } from '../../src/build'
 import { STATE_FILE } from '../../src/files'
 import type { AutomationNotice, FeatureKey, PhaseId } from '../../types'
-import { activeKey, featuresOf, recordChange } from './features'
+import { activeKey, activeRecord, featuresOf, recordChange } from './features'
 import { currentFlow } from './flow'
-import { addNotice, removeNotices } from './notices'
+import { addNotice, heldNotices, removeNotices } from './notices'
 import { readText, repoFacts, repoSnapshot, writableContext, writeRepoFile } from './repo'
-import { trackerKindOf } from './tracker'
+import { trackerKindOf, trackerOf } from './tracker'
 
 const firedState = atom({ plugin: 'craftory', key: 'automationsFired' } as const, [])
 const handoffRunState = atom({ plugin: 'craftory', key: 'handoffRun' } as const, null)
@@ -71,6 +74,26 @@ export async function noteMainStep(
     .then(u => u.context.window)
     .catch(() => 0)
   if (isHandoffDue(contextTokens(usage), window)) await raiseAutomation($, handoffNotice())
+}
+
+/**
+ * After each tracker read (the `tool.call` refresh in the session, and the read at session start
+ * for a merge made while away): offers a retro once the active Feature's PR has merged.
+ */
+export async function noteMergedPr($: EngineInterface) {
+  const { config } = await repoFacts($)
+  if (!config.automation.retroOnPr) return
+  const [key, record, tracker] = await Promise.all([activeKey($), activeRecord($), trackerOf($)])
+  if (key === null || record === null || !tracker?.rich) return
+  if (isRetroDue(record, tracker.pr)) await raiseAutomation($, retroNotice(key))
+}
+
+/** The user ran or dismissed an automation notice; an answer that outlives the session is stored. */
+export async function answerAutomation($: EngineInterface, noticeId: string) {
+  const notice = (await heldNotices($)).find(n => n.id === noticeId)
+  if (notice?.kind !== 'automation') return
+  const key = retroFeatureOf(notice.scope)
+  if (key !== null) await recordChange($, key, { kind: 'retro-offered' })
 }
 
 /** At session start: offers the architecture check when its last run is over 7 days old. */
