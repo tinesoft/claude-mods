@@ -52,7 +52,18 @@ import {
   RAIL_DIVIDER,
   TOKENS,
 } from './theme'
-import { bareLook, Chip, clip, inkOf, isRich, pillLook, roleInk, stepLook, type Ui } from './ui'
+import {
+  bareLook,
+  Chip,
+  clip,
+  inkOf,
+  isRich,
+  pillLook,
+  roleInk,
+  stepLook,
+  withTint,
+  type Ui,
+} from './ui'
 
 const glyphOf = (view: PhaseView, frame: number, ascii: boolean) => {
   const look = PHASE_LOOKS[view.state.kind]
@@ -296,7 +307,8 @@ const Title = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
 
 const FeaturePicker = ({ args }: { args: BandArgs }) => {
   const { ui, tone, features, on } = args
-  const { Box } = ui
+  const { Box, Button } = ui
+  const rich = isRich(ui) && tone !== undefined
   return (
     <Box
       key="feature-picker"
@@ -305,21 +317,43 @@ const FeaturePicker = ({ args }: { args: BandArgs }) => {
       columnGap={SPACE.pickerGap}
       marginBottom={SPACE.pickerBelow}
     >
-      {features.map(feature => (
-        <Chip
-          key={`chip-feature-${feature.key}`}
-          ui={ui}
-          tone={tone}
-          id={`feature-${feature.key}`}
-          // The feature in focus is the title's pill, pressed; the others stay bare until hovered.
-          look={feature.isActive ? pillLook(tone) : bareLook(tone)}
-          ink={inkOf(tone, feature.isActive ? 'ink' : 'ink2')}
-          label={clip(feature.title, TITLE_MAX, args.ascii)}
-          bold={feature.isActive}
-          pressed={feature.isActive}
-          onPress={() => on.switchFeature(feature.key)}
-        />
-      ))}
+      {features.map(feature =>
+        rich ? (
+          // Desktop's native button, as the cards' Close. Desktop drops a Button's bold and
+          // colour, so the feature in focus sits on a light fill; the others dim until hovered.
+          <Box
+            key={`box-feature-${feature.key}`}
+            flexDirection="row"
+            alignItems="center"
+            {...(feature.isActive && {
+              borderStyle: 'round' as const,
+              borderColor: TOKENS[tone].fill,
+              ...withTint(TOKENS[tone].fill),
+            })}
+          >
+            <Button
+              key={`feature-${feature.key}`}
+              plain
+              label={clip(feature.title, TITLE_MAX, args.ascii)}
+              {...(!feature.isActive && { dimColor: true })}
+              onPress={() => on.switchFeature(feature.key)}
+            />
+          </Box>
+        ) : (
+          <Chip
+            key={`chip-feature-${feature.key}`}
+            ui={ui}
+            tone={tone}
+            id={`feature-${feature.key}`}
+            look={undefined}
+            ink={inkOf(tone, feature.isActive ? 'ink' : 'ink2')}
+            label={clip(feature.title, TITLE_MAX, args.ascii)}
+            bold={feature.isActive}
+            pressed={feature.isActive}
+            onPress={() => on.switchFeature(feature.key)}
+          />
+        ),
+      )}
     </Box>
   )
 }
