@@ -164,6 +164,7 @@ export const Chip = ({
   pressed = false,
   pressedStyle = 'underline',
   inside = false,
+  dim = false,
   hotkey,
   onPress,
   children,
@@ -195,6 +196,8 @@ export const Chip = ({
   pressed?: boolean
   pressedStyle?: 'underline' | 'bold'
   inside?: boolean
+  /** The Button's label dim at rest, full strength under the pointer: Desktop keeps it, unlike colour. */
+  dim?: boolean
   hotkey?: string
   onPress?: () => void
   children?: ChipChild | ChipChild[]
@@ -218,7 +221,13 @@ export const Chip = ({
     onPress === undefined ? (
       inner
     ) : (
-      <Button key={id} plain {...(hotkey !== undefined && { hotkey })} onPress={onPress}>
+      <Button
+        key={id}
+        plain
+        {...(hotkey !== undefined && { hotkey })}
+        {...(dim && { dimColor: true })}
+        onPress={onPress}
+      >
         {inner}
       </Button>
     )
@@ -236,7 +245,13 @@ export const Chip = ({
     if (inside && onPress !== undefined)
       return (
         <Box {...frame}>
-          <Button key={id} plain {...(hotkey !== undefined && { hotkey })} onPress={onPress}>
+          <Button
+            key={id}
+            plain
+            {...(hotkey !== undefined && { hotkey })}
+            {...(dim && { dimColor: true })}
+            onPress={onPress}
+          >
             {mark}
             {text}
             {children}
