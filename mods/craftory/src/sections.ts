@@ -535,7 +535,6 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
     'At 80% context, condense the session so a fresh one can pick up the ticket.',
     c => au(c).handoffAt80,
     on => ({ automation: { handoffAt80: on } }),
-    { inactive: NOT_ACTIVE },
   ),
   toggle(
     'auto-weekly-architecture',

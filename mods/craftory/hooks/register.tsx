@@ -5,6 +5,7 @@
  */
 import type { EngineInterface, Register, RenderSurface } from 'claude-code'
 import { firstRunText } from '../src/agents-md'
+import { whileIdle } from '../src/automations'
 import {
   KEEP_REASONS,
   runningAgents,
@@ -73,6 +74,7 @@ import {
   startContext,
   switchFeature,
 } from './shell/flow'
+import { noteMainStep, rearmAutomations } from './shell/automations'
 import { gitOf } from './shell/git'
 import { forgetSeat, markStopDelivered, pendingSeat, runOf } from './shell/ledger'
 import { dismissedOf, dismissNotice, heldNotices } from './shell/notices'
@@ -199,6 +201,10 @@ async function dispatch($: EngineInterface, action: Action) {
     }
     case 'dismiss':
       return dropNotice($, action.noticeId)
+    case 'automation-run': {
+      await dropNotice($, action.noticeId)
+      return requestRun($, action.skill, action.args)
+    }
     case 'wayfinder': {
       await dropNotice($, action.noticeId)
       // Attach joins the map: the Feature keeps its ref, so the rail shows it from now on
@@ -292,7 +298,7 @@ export const register: Register = (on, options) => {
     if (!(await isSupported($))) {
       $.ui.toast(unsupportedText)
     }
-    await Promise.all([loadRepo($), loadFeatures($), detectPlugin($)])
+    await Promise.all([loadRepo($), loadFeatures($), detectPlugin($), rearmAutomations($)])
     await stopStaleAgents($)
     await rememberGlossaryAtStart($)
     await settle($)
@@ -405,9 +411,13 @@ export const register: Register = (on, options) => {
   // once; its Agent call then returns that text. This is the hard stop at the budget.
   on('turn.step', async function* ($, e, next) {
     const agentId = e.agentId as AgentId | undefined
+    if (agentId === undefined) {
+      const result = yield* next(e)
+      await noteMainStep($, result.usage)
+      return result
+    }
     const run = await runOf($, agentId)
-    if (agentId === undefined || run === undefined || run.status !== 'running')
-      return yield* next(e)
+    if (run === undefined || run.status !== 'running') return yield* next(e)
     if (run.stop !== null) {
       await markStopDelivered($, agentId)
       yield { kind: 'text', index: 0, text: stoppedAnswer(run) }
@@ -459,7 +469,7 @@ export const register: Register = (on, options) => {
     const events = derived.some(n => n.replacesRail)
       ? []
       : eventNotices(
-          await heldNotices($),
+          whileIdle(await heldNotices($), e.props.isWorking),
           await wayfinderOfferOf($, config.entry.wayfinder.suggest),
         )
     if (flow === null && derived.length === 0 && events.length === 0) return below

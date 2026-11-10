@@ -45,6 +45,7 @@ export const SKILLS = {
   wayfinder: skill('wayfinder'),
   setupMattPocockSkills: skill('setup-matt-pocock-skills'),
   waitWhat: skill('wait-what'),
+  handoff: skill('handoff'),
 } as const
 
 export const PHASES = {

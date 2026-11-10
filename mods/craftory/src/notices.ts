@@ -300,6 +300,31 @@ export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): Notice
           },
         ],
       }
+    case 'automation':
+      return {
+        id: notice.id,
+        role: 'perm',
+        text: notice.text,
+        replacesRail: false,
+        actions: [
+          ...(notice.run
+            ? [
+                {
+                  id: `run-${notice.id}`,
+                  label: notice.run.label,
+                  action: {
+                    kind: 'automation-run',
+                    noticeId: notice.id,
+                    skill: notice.run.skill,
+                    args: notice.run.args,
+                  },
+                  primary: true,
+                } satisfies NoticeButton,
+              ]
+            : []),
+          dismiss(notice.id),
+        ],
+      }
     default: {
       const _exhaustive: never = notice
       return _exhaustive

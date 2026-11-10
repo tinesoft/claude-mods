@@ -4,14 +4,14 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Off by default; with the switch off, no notice at any context level
-- [ ] Notice appears at 80% of the main session's context, computed from token counts already seen per step
-- [ ] Never shown while a turn runs; shown once the turn is idle
-- [ ] **Write handoff** submits `/handoff`; nothing is submitted without the click
-- [ ] Once per session; a dismiss silences it for the session; a new session re-arms it
-- [ ] Subagents never see it; the per-agent token budget is unaffected
-- [ ] Settings exposes `handoffAt80` as active
-- [ ] Fake-world tests assert the notice, the submitted command, once-only firing, dismiss, switch off and the subagent case
-- [ ] Latency test covers the new `turn.step` work
+- [x] Off by default; with the switch off, no notice at any context level
+- [x] Notice appears at 80% of the main session's context, computed from token counts already seen per step
+- [x] Never shown while a turn runs; shown once the turn is idle
+- [x] **Write handoff** submits `/handoff`; nothing is submitted without the click
+- [x] Once per session; a dismiss silences it for the session; a new session re-arms it
+- [x] Subagents never see it; the per-agent token budget is unaffected
+- [x] Settings exposes `handoffAt80` as active
+- [x] Fake-world tests assert the notice, the submitted command, once-only firing, dismiss, switch off and the subagent case
+- [x] Latency test covers the new `turn.step` work

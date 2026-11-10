@@ -402,6 +402,21 @@ export type EventNotice =
   | { kind: 'spec-published'; id: string; spec: IssueRef; stories: number | null }
   | { kind: 'retro-ready'; id: string; suggestions: number | null }
   | { kind: 'suggest-wayfinder'; id: string }
+  | AutomationNotice
+
+/**
+ * An opt-in automation's band notice. It shows only while no turn runs, offers at most one
+ * action (`run`, a skill submitted on the click; none for a nudge), and fires once per `scope`.
+ * `scope` is the key Craftory records as fired: `session:<what>` re-arms in a new session,
+ * other scopes (`feature:<key>:<what>`, `repo:<what>`) are kept by the automation that raises them.
+ */
+export type AutomationNotice = {
+  kind: 'automation'
+  id: string
+  scope: string
+  text: string
+  run?: { label: string; skill: SkillName; args: string }
+}
 
 export type GateSignalBasis = { id: string; phase: PhaseId; by: PhaseId; reason: string }
 
@@ -463,6 +478,8 @@ declare module 'claude-code' {
       passes: GatePass[]
       notices: EventNotice[]
       dismissed: NoticeKey[]
+      /** Automation scopes that already raised their notice (AutomationNotice `scope`). */
+      automationsFired: string[]
       lastReplyTerms: string[]
       glossaryAtStart: string[] | null
 

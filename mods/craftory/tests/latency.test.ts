@@ -69,3 +69,31 @@ test('the main turn ending does not hold turn.complete for the tracker read', as
   expect(finished).toBe(true)
   await w.clock.advance(SLOW_MS * 2)
 })
+
+test('a main step past 80% with the handoff on does not wait on the git or tracker reads', async ($, on) => {
+  let isStalled = false
+  const w = featureWorld(on, {
+    shell: fakeGit().shell,
+    stall: { when: argv => isStalled && (gitList(argv) || argv[0] === 'gh'), ms: SLOW_MS },
+    window: 200_000,
+    usage: () => ({
+      input_tokens: 1_000,
+      output_tokens: 100,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 170_000,
+    }),
+    files: { '.craftory/config.json': JSON.stringify({ automation: { handoffAt80: true } }) },
+  })
+  await startSession($)
+  isStalled = true
+  let finished = false
+  void (async () => {
+    const stream = $.turn.step({ turnId: 't', index: 0, model: 'opus', messageCount: 1 } as never)
+    const steps = (stream as AsyncIterable<unknown>)[Symbol.asyncIterator]()
+    while (!(await steps.next()).done);
+    finished = true
+  })()
+  await w.clock.settle()
+  expect(finished).toBe(true)
+  await w.clock.advance(SLOW_MS * 2)
+})
