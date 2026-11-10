@@ -258,6 +258,8 @@ export const SPACE = {
   agentLineGap: 'xs',
   buttonsGap: 'sm',
   pickerGap: 'sm',
+  /** Between the feature picker and the rail's head row. */
+  pickerBelow: 'md',
   paneLeft: 'md',
   paneRight: 'sm',
   paneGap: 'md',

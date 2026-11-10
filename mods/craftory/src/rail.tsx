@@ -296,19 +296,29 @@ const Title = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
 
 const FeaturePicker = ({ args }: { args: BandArgs }) => {
   const { ui, tone, features, on } = args
-  const { Box, Button, Text } = ui
+  const { Box } = ui
   return (
-    <Box key="feature-picker" flexDirection="row" columnGap={SPACE.pickerGap}>
+    <Box
+      key="feature-picker"
+      flexDirection="row"
+      alignItems="center"
+      columnGap={SPACE.pickerGap}
+      marginBottom={SPACE.pickerBelow}
+    >
       {features.map(feature => (
-        <Button key={`feature-${feature.key}`} plain onPress={() => on.switchFeature(feature.key)}>
-          <Text
-            bold={feature.isActive}
-            underline={feature.isActive}
-            {...(!isRich(ui) && inkOf(tone, 'ink2'))}
-          >
-            {clip(feature.title, TITLE_MAX, args.ascii)}
-          </Text>
-        </Button>
+        <Chip
+          key={`chip-feature-${feature.key}`}
+          ui={ui}
+          tone={tone}
+          id={`feature-${feature.key}`}
+          // The feature in focus is the title's pill, pressed; the others stay bare until hovered.
+          look={feature.isActive ? pillLook(tone) : bareLook(tone)}
+          ink={inkOf(tone, feature.isActive ? 'ink' : 'ink2')}
+          label={clip(feature.title, TITLE_MAX, args.ascii)}
+          bold={feature.isActive}
+          pressed={feature.isActive}
+          onPress={() => on.switchFeature(feature.key)}
+        />
       ))}
     </Box>
   )
