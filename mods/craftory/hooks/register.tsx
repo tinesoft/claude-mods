@@ -14,7 +14,7 @@ import {
   stoppedStep,
   withoutIsolation,
 } from '../src/build'
-import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
+import { meetsFloor } from '../src/engine'
 import { waitingForTriage } from '../src/evidence'
 import type { RunRequest } from '../src/gates'
 import { removalTargets, worktreeRemoveArgv } from '../src/git'
@@ -27,7 +27,7 @@ import { bareIsOurs, INSTALL_ARGV, pluginLine, UPDATE_ARGV } from '../src/plugin
 import { featureChoices } from '../src/features'
 import { type BandActions, renderBand, spinFrameOf } from '../src/rail'
 import { linkTerms, Reply } from '../src/reply'
-import { markdownSummary } from '../src/summary'
+import { markdownSummary, unsupportedText } from '../src/summary'
 import { argFor } from '../src/tracker/refs'
 import type { AgentId } from '../types'
 import {
@@ -290,7 +290,7 @@ export const register: Register = (on, options) => {
     await loadPrefs($)
     watchAppearance($)
     if (!(await isSupported($))) {
-      $.ui.toast(`Craftory needs Claude Code ${ENGINE_FLOOR} or later. Run claude update.`)
+      $.ui.toast(unsupportedText)
     }
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($)])
     await stopStaleAgents($)
@@ -301,6 +301,7 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: COMMAND }, async $ => {
+    if (!(await isSupported($))) return { text: unsupportedText }
     if (!(await drawsAnything($))) {
       return {
         text: markdownSummary(await currentFlow($), await pluginOf($)),

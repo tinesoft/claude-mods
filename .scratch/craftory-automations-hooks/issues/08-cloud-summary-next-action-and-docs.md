@@ -4,8 +4,8 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The summary can name the next action
-- [ ] Tests cover the three branches: a Feature in flight, "No feature in flight", an unsupported Claude Code version
-- [ ] DESIGN.md and the README match the code's chat and `claude -p` replies
+- [x] The summary can name the next action
+- [x] Tests cover the three branches: a Feature in flight, "No feature in flight", an unsupported Claude Code version
+- [x] DESIGN.md and the README match the code's chat and `claude -p` replies

@@ -66,8 +66,10 @@ The first time Craftory runs in a repo without `docs/agents/`, the band offers *
 | Claude Desktop app, Code tab          | The same with `Svg` icons, exact colours, hover and clicks, and glossary links and hover cards     |
 | Mobile                                | The pane, whose Flow tab starts with the rail, and glossary links. Settings are read-only. No band |
 | VS Code                               | Nothing. Claude Code 2.1.302 attaches no surface for a mod there                                   |
-| claude.ai/code cloud sessions         | Text only: `/craftory` replies with a summary of the active feature                                |
-| claude.ai chat, `claude -p`           | Nothing is drawn. `/craftory` replies in text where it is available                                |
+| claude.ai/code cloud, `claude -p`     | Text only: `/craftory` replies with the active feature's phases and the next command to run        |
+| claude.ai chat                        | Nothing. Mods do not run there                                                                     |
+
+With no feature in flight the text reply says so and points at `/grill-with-docs`. Without mattpocock-skills it names the version to install, and on a Claude Code older than 2.1.299 it asks you to run `claude update`.
 
 ---
 

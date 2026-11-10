@@ -32,8 +32,20 @@ and interaction logic, which is the most useful part to read.
 | Terminal | Rail in the band (glyphs, one row, wraps if narrow), detail card above it, the pane, the status line |
 | Desktop Code tab | Same, with `Svg` icons, exact colours, hover, clicks; glossary terms underlined with a hover card |
 | VS Code, mobile | Pane and status line. The Flow tab starts with the rail. Glossary hover as on Desktop |
-| claude.ai/code cloud | `/craftory` replies with a text summary of the active feature, at most |
-| claude.ai chat, `claude -p` | Nothing |
+| claude.ai/code cloud, `claude -p` | No band, pane or status line. `/craftory` replies in text (below) |
+| claude.ai chat | Nothing: mods do not run there |
+
+### Text reply
+
+Where no surface is attached, `/craftory` answers in Markdown instead of opening the pane, one of:
+
+- **A feature in flight**: `## <feature title>`, then one numbered line per phase,
+  `4. **Build** · Up next`, with the phase's meta when it has one (`2. **Spec** · Done · csv`). When the
+  phase up next has a command, a last line names it: ``Next: **Build**, run `/implement-spec .scratch/csv/spec.md`.``
+- **No feature in flight**: "No feature in flight. Start one with /grill-with-docs."
+- **Plugin missing**: "Craftory needs mattpocock-skills 1.3.x."
+- **Unsupported Claude Code** (older than the floor, 2.1.299): "Craftory needs Claude Code 2.1.299 or later.
+  Run claude update." This reply wins on every surface, since nothing can be drawn there.
 
 ## Phases
 
