@@ -370,7 +370,8 @@ export const register: Register = (on, options) => {
     if (await touchesTracker($, tool)) scheduleRefresh($)
     if (e.tool === 'Bash' && /\bgit\b/.test(tool.command ?? '')) scheduleGit($)
     const wentThrough = result.deny === undefined && result.isError !== true
-    if (e.tool === 'Write' && e.agentId === undefined && wentThrough && tool.path !== undefined)
+    const writes = e.tool === 'Write' || e.tool === 'Edit'
+    if (writes && e.agentId === undefined && wentThrough && tool.path !== undefined)
       await noteHandoffWrite($, tool.path)
     return result
   })

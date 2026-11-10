@@ -25,12 +25,13 @@ import {
 } from '../../src/automations'
 import { isoOf } from '../../src/build'
 import { markOf } from '../../src/features'
+import { bareIsOurs } from '../../src/plugin'
 import { STATE_FILE } from '../../src/files'
 import type { AutomationNotice, FeatureKey, PhaseId } from '../../types'
 import { activeKey, activeRecord, featuresOf, recordChange } from './features'
 import { currentFlow } from './flow'
 import { addNotice, heldNotices, removeNotices } from './notices'
-import { readText, repoFacts, repoSnapshot, writableContext, writeRepoFile } from './repo'
+import { pluginOf, readText, repoFacts, repoSnapshot, writableContext, writeRepoFile } from './repo'
 import { trackerKindOf, trackerOf } from './tracker'
 
 const firedState = atom({ plugin: 'craftory', key: 'automationsFired' } as const, [])
@@ -111,7 +112,8 @@ export async function offerArchitecture($: EngineInterface) {
 
 /** The skill's prompt is loading: its done report will be this turn's answer. */
 export async function noteSkillStarted($: EngineInterface, skill: string) {
-  if (isArchitectureSkill(skill)) await update($, architectureRunState, () => true)
+  if (isArchitectureSkill(skill, bareIsOurs(await pluginOf($))))
+    await update($, architectureRunState, () => true)
 }
 
 /**
@@ -129,12 +131,12 @@ export async function noteMainTurnEnd($: EngineInterface, isAborted: boolean) {
 
 /** The handoff skill started: watch what it writes, for the active Feature. */
 export async function noteHandoffStart($: EngineInterface, skill: string) {
-  if (!isHandoffSkill(skill)) return
+  if (!isHandoffSkill(skill, bareIsOurs(await pluginOf($)))) return
   const feature = await activeKey($)
   await update($, handoffRunState, () => ({ feature, path: null }))
 }
 
-/** A main-session write that went through, kept when a handoff run is in flight. */
+/** A main-session Write or Edit that went through, kept when a handoff run is in flight. */
 export async function noteHandoffWrite($: EngineInterface, path: string) {
   if (!isHandoffDocument(path)) return
   await update($, handoffRunState, run => run && { ...run, path })

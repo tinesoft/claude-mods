@@ -192,6 +192,21 @@ export function recognise(
 
 export const namespaced = (skill: SkillName) => `${PLUGIN}:${skill}`
 
+/**
+ * Whether a typed or prompted `name` is Matt's `skill`, by the rule `recognise` follows: the
+ * namespaced form always, the bare form only when `bare` says Craftory owns it.
+ */
+export function isMattSkill(
+  name: string,
+  skill: SkillName,
+  bare?: (skill: string) => boolean,
+): boolean {
+  const trimmed = name.replace(/^\//, '')
+  const at = trimmed.indexOf(':')
+  if (trimmed.slice(at + 1) !== skill) return false
+  return at === -1 ? bare?.(skill) === true : trimmed.slice(0, at) === PLUGIN
+}
+
 export function predecessor(phase: PhaseId, isOn: (p: PhaseId) => boolean): PhaseId | undefined {
   return PHASE_ORDER.slice(0, PHASE_ORDER.indexOf(phase)).reverse().find(isOn)
 }

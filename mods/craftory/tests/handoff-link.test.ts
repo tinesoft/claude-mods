@@ -84,3 +84,38 @@ test('a write outside a handoff run is never linked', async ($, on) => {
   await turnComplete($)
   expect(await cardLinks($)).not.toContain(DOC)
 })
+
+const edit = ($: Engine, path: string) =>
+  $.tool.call({
+    tool: 'Edit',
+    tool_use_id: `e-${path}`,
+    file_path: path,
+    old_string: 'a',
+    new_string: 'b',
+  } as never)
+
+test('a handoff run that ends on a non-Markdown write links its Markdown document', async ($, on) => {
+  await pressedHandoff(on, $)
+  await write($, DOC)
+  await write($, 'src/app.ts')
+  await turnComplete($)
+  const links = await cardLinks($)
+  expect(links).toContain(DOC)
+  expect(links).not.toContain('src/app.ts')
+})
+
+test('a handoff document written with Edit is linked', async ($, on) => {
+  await pressedHandoff(on, $)
+  await edit($, DOC)
+  await turnComplete($)
+  expect(await cardLinks($)).toContain(DOC)
+})
+
+test('the bare /handoff skill is tracked too when Matt owns the name', async ($, on) => {
+  featureWorld(on, { window: 200_000, usage: () => filled(170_000), files: ON })
+  await startSession($)
+  await $.skill.prompt({ skill: 'handoff', text: '', frontmatter: {}, source: 'plugin' } as never)
+  await write($, DOC)
+  await turnComplete($)
+  expect(await cardLinks($)).toContain(DOC)
+})

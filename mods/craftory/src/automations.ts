@@ -16,7 +16,7 @@ import type {
   PullRequest,
   TrackerKind,
 } from '../types'
-import { namespaced, PHASES, SKILLS } from './phases'
+import { isMattSkill, PHASES, SKILLS } from './phases'
 
 /** A scope fired with this prefix re-arms when a new session starts. */
 export const SESSION_SCOPE = 'session:'
@@ -131,8 +131,8 @@ export const isMidBuild = (record: Pick<FeatureRecord, 'marks'>) => {
   )
 }
 
-export const isArchitectureSkill = (skill: string) =>
-  skill.replace(/^\//, '').replace(/^[^:]*:/, '') === SKILLS.improveArchitecture
+export const isArchitectureSkill = (name: string, bare?: (skill: string) => boolean) =>
+  isMattSkill(name, SKILLS.improveArchitecture, bare)
 
 export const architectureNotice = (): AutomationNotice => ({
   kind: 'automation',
@@ -143,11 +143,12 @@ export const architectureNotice = (): AutomationNotice => ({
 })
 
 /** The handoff skill, by the name a skill prompt carries. */
-export const isHandoffSkill = (name: string) =>
-  name.replace(/^\//, '') === namespaced(SKILLS.handoff)
+export const isHandoffSkill = (name: string, bare?: (skill: string) => boolean) =>
+  isMattSkill(name, SKILLS.handoff, bare)
 
-/** A file the handoff run wrote that can be its document: anything but Craftory's own state. */
-export const isHandoffDocument = (path: string) => !/(^|\/)\.craftory\//.test(path)
+/** A file the handoff run wrote that can be its document: Markdown outside Craftory's own state. */
+export const isHandoffDocument = (path: string) =>
+  /\.(md|markdown)$/i.test(path) && !/(^|\/)\.craftory\//.test(path)
 
 /** What a finished handoff run links: its last document, unless the run was cancelled. */
 export const handoffLink = (run: { path: string | null }, isAborted: boolean) =>
