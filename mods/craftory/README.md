@@ -116,6 +116,11 @@ A gate is soft. When you start a phase whose gated predecessor is not done, Craf
 
 Craftory asks in the band, so it gates a typed command only where a band is drawn: the terminal and Claude Desktop. On mobile and in VS Code a typed command always runs. On mobile, a gated button in the pane shows the same question, with **Run anyway** and **Diagnose**, at the top of the Flow tab. Align gates the next phase only until it has run. A grill ends when you move on, so typing `/to-spec` after a grill that ran is not gated, and Spec stays gated if no grill ran.
 
+Two deny rules, off by default, turn a soft check into a refusal. Each denial names its rule and the switch that turns it off (Settings › Automation, or `"deny"` in `.craftory/config.json`).
+
+- `deny.skipGate` refuses a gated phase's skill until the phase before it is done: Claude's `Skill` call for it, and a slash command you type for it, on every surface. A press in the rail or the pane still asks, and its **Run anyway** still runs.
+- `deny.editOnIntegrationBranch` refuses `Edit` and `Write` in the main checkout while it is on the integration branch (`worktrees.integrationBranch`, `feat/{spec-slug}` by default). Ticket worktrees and files outside the repo are left alone.
+
 ### Build
 
 `/implement-spec` starts one implementer per ticket. Craftory steers each one:
@@ -217,11 +222,11 @@ It starts no other program. The `setup` command is the one in `.craftory/config.
 
 **What its hooks decide**
 
-- `prompt.submit` drops a gated command, where a band can show **Run anyway**. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder. It answers nothing else.
+- `prompt.submit` drops a gated command, where a band can show **Run anyway**. With `deny.skipGate` on, it drops a typed gated command on every surface, with the denial. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder. It answers nothing else.
 - `tool.call` on `Agent` gives a Build implementer its name and drops `isolation`, or refuses it when the queue is full, the ticket is blocked, or the ticket is for a human. Other Agent calls pass through.
 - `agent.spawn` points a Build implementer at its worktree with `cwd`.
 - `turn.step` ends an agent's step only after that agent passed its token budget or stopped on a merge conflict.
-- `tool.call` on `Skill` asks before a gated `code-review`. `tool.call` on `Bash` refuses `git worktree remove` and `rm` of a kept worktree, best-effort.
+- `tool.call` on `Skill` asks before a gated `code-review`, and with `deny.skipGate` on refuses any gated phase's skill. `tool.call` on `Edit` and `Write` refuses an edit in the main checkout on the integration branch when `deny.editOnIntegrationBranch` is on. `tool.call` on `Bash` refuses `git worktree remove` and `rm` of a kept worktree, best-effort.
 - `skill.prompt`, `turn.complete`, the other `tool.call`s and `ui.render` pass their result through unchanged. On Desktop and mobile, `ui.render` on `AssistantMessage` adds glossary links to the drawing only. The stored reply never changes.
 - `/craftory` is the only command the mod registers.
 

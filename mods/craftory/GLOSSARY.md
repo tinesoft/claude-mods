@@ -29,7 +29,7 @@ A phase whose evidence exists, such as a Spec on the tracker or every Ticket mer
 A phase whose skill ran, whether or not its evidence exists yet. Align is cleared by Ran, because a grill ends when you move on.
 
 **Gate**:
-A soft check before a phase starts that asks first when the preceding gated phase has not cleared. Done clears it, except for Align, which Ran clears. Nothing is refused.
+A soft check before a phase starts that asks first when the preceding gated phase has not cleared. Done clears it, except for Align, which Ran clears. Nothing is refused unless the opt-in `deny.skipGate` rule is on, which refuses the gated phase's skill, called by Claude or typed, instead of asking.
 _Avoid_: Block, guard
 
 ### Work items

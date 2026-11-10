@@ -573,7 +573,7 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
   toggle(
     'deny-skip-gate',
     'Deny a gated phase until the one before it is done',
-    'Refuses the phase’s skill when an agent calls it early, instead of asking. The denial names this switch.',
+    'Refuses the phase’s skill when Claude calls it or you type its command early, instead of asking. Rail and pane presses still ask. The denial names this switch.',
     c => c.deny.skipGate,
     on => ({ deny: { skipGate: on } }),
   ),

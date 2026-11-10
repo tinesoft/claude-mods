@@ -2,12 +2,13 @@ import { atom, type EngineInterface, read, type Timer, update } from 'claude-cod
 import { integrationContext, isoOf } from '../../src/build'
 import { integrationBranchFor } from '../../src/config'
 import { driftDiffArgv, findDrift, rankedText, retroSuggestions } from '../../src/drift'
+import { skipGateDenial } from '../../src/deny'
 import { deriveFlow, type Flow } from '../../src/evidence'
 import { enteredRecord, featureOf, specKey } from '../../src/features'
 import { dropText, type RunRequest } from '../../src/gates'
 import { termKey } from '../../src/glossary'
 import type { InboxAction } from '../../src/pane-view'
-import { recognise } from '../../src/phases'
+import { namespaced, recognise } from '../../src/phases'
 import { bareIsOurs } from '../../src/plugin'
 import { TOAST_MS, toastText } from '../../src/signals'
 import { statusLine } from '../../src/summary'
@@ -152,6 +153,10 @@ export async function gatePrompt(
   const typed = typedCommand(e)
   const req = typed && requestOf(typed.name, typed.args, bareIsOurs(await pluginOf($)))
   if (req) {
+    if (req.phase !== null && (await repoFacts($)).config.deny.skipGate) {
+      const denial = skipGateDenial(namespaced(req.skill), req.phase, await currentFlow($))
+      if (denial !== null) return denial
+    }
     if (!canAsk) return undefined
     const verdict = await holdForGate($, req, await currentFlow($))
     if (verdict) return dropText(verdict)

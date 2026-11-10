@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { featureWorld, skillPrompt, startSession, turnComplete } from './harness'
+import { featureWorld, skillPrompt, startSession, submit, turnComplete } from './harness'
 
 const DRAFT = {
   d1: {
@@ -52,6 +52,17 @@ test('skipGate lets the phase skill through once its predecessor is done', async
   await skillPrompt($, 'to-spec')
   await turnComplete($)
   expect(await skill($, 'mattpocock-skills:to-tickets')).toEqual({ result: 'ran' })
+})
+
+test('skipGate refuses a typed slash command for a gated phase with the same denial', async ($, on) => {
+  const w = gatedWorld(on, { skipGate: true })
+  await startSession($)
+  expect(await submit($, '/mattpocock-skills:to-tickets csv')).toEqual({ drop: SKIP_GATE })
+  expect((await submit($, '/to-tickets csv')).drop).toBe(SKIP_GATE)
+  expect(w.submitted).toEqual([])
+  expect(await submit($, '/mattpocock-skills:to-spec')).toEqual({
+    text: '/mattpocock-skills:to-spec',
+  })
 })
 
 test('skipGate leaves skills that are not a gated phase alone', async ($, on) => {

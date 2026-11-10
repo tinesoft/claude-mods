@@ -64,7 +64,9 @@ model-invoked skills the agent reaches for during the phase; they are shown, nev
 
 A gate is **soft**: when the next phase starts while this one is not done, Craftory asks
 "Review is gated: #44 has 2 failing tests. Run anyway?" with **Run anyway** and **Diagnose**. It never
-refuses on its own.
+refuses on its own. The opt-in `deny.skipGate` rule makes it refuse instead: Claude's `Skill` call for a
+gated phase and a typed slash command for one are denied with a reason that names the rule and its
+switch. A press in the rail or the pane still asks.
 
 ### Outside the seven phases
 
