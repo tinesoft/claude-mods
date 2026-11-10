@@ -4,7 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** resolved
 
-- [ ] Choice recorded in this file
-- [ ] Code default matches the choice, or a follow-up ticket is filed to change it
+- [x] Choice recorded in this file
+- [x] Code default matches the choice, or a follow-up ticket is filed to change it
+
+## Answer
+
+`.scratch/`, the same default as mattpocock-skills (`/setup-matt-pocock-skills` puts local issues under `.scratch/<feature>/`). Craftory's Local tracker, the setup template and the README already use `.scratch/`, so the code needs no change. One leftover: the folder hint in Settings suggests `docs/issues/`. Ticket 10 changes it to `.scratch/`.
