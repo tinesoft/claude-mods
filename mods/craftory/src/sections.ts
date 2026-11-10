@@ -580,7 +580,7 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
   toggle(
     'deny-edit-on-integration',
     'Deny edits in your checkout on an integration branch',
-    'Refuses Edit and Write in the main checkout while it is on feat/*, so work stays in worktrees.',
+    'Refuses Edit and Write in the main checkout while it is on the worktrees.integrationBranch branch, so work stays in worktrees.',
     c => c.deny.editOnIntegrationBranch,
     on => ({ deny: { editOnIntegrationBranch: on } }),
   ),
