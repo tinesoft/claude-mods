@@ -567,6 +567,20 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
     on => ({ automation: { weeklyArchitecture: on } }),
     { inactive: NOT_ACTIVE },
   ),
+  toggle(
+    'deny-skip-gate',
+    'Deny a gated phase until the one before it is done',
+    'Refuses the phase’s skill when an agent calls it early, instead of asking. The denial names this switch.',
+    c => c.deny.skipGate,
+    on => ({ deny: { skipGate: on } }),
+  ),
+  toggle(
+    'deny-edit-on-integration',
+    'Deny edits in your checkout on an integration branch',
+    'Refuses Edit and Write in the main checkout while it is on feat/*, so work stays in worktrees.',
+    c => c.deny.editOnIntegrationBranch,
+    on => ({ deny: { editOnIntegrationBranch: on } }),
+  ),
 ]
 
 const pref = (patch: PrefOverrides): SettingsChange => ({ prefs: patch })

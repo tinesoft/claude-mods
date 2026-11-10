@@ -55,6 +55,14 @@ export type AutomationConfig = {
   weeklyArchitecture: boolean
 }
 
+/** Opt-in guardrails that deny a tool call. Both default off. */
+export type DenyConfig = {
+  /** Deny a gated phase's skill until the phase before it is done. */
+  skipGate: boolean
+  /** Deny Edit and Write in the main checkout while it is on an integration branch. */
+  editOnIntegrationBranch: boolean
+}
+
 /** Craftory-only tracker extras. The tracker *kind* lives in docs/agents/issue-tracker.md. */
 export type TrackerExtras = {
   github: { specLabel: string; ticketLabel: string }
@@ -72,6 +80,7 @@ export type CraftoryConfig = {
   docs: { research: string }
   worktrees: WorktreeConfig
   automation: AutomationConfig
+  deny: DenyConfig
 }
 
 export type ConfigPatch = {

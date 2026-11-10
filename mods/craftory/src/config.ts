@@ -56,6 +56,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     handoffAt80: false,
     weeklyArchitecture: false,
   },
+  deny: { skipGate: false, editOnIntegrationBranch: false },
 }
 
 type Json = Record<string, unknown>

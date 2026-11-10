@@ -179,6 +179,15 @@ test('the wayfinder suggestion defaults to long grills after 12 questions and ca
   expect(bad.problem).toContain('entry.wayfinder.suggest')
 })
 
+test('the deny rules are off by default and a bad value falls back with a note', () => {
+  expect(okValue('{}').value.deny).toEqual({ skipGate: false, editOnIntegrationBranch: false })
+  const set = okValue('{"deny":{"skipGate":true,"editOnIntegrationBranch":true}}')
+  expect(set.value.deny).toEqual({ skipGate: true, editOnIntegrationBranch: true })
+  const bad = okValue('{"deny":{"skipGate":"yes"}}')
+  expect(bad.value.deny.skipGate).toBe(false)
+  expect(bad.problem).toContain('deny.skipGate')
+})
+
 test('worktrees.test is unset by default, and its timeout defaults to 600 s within 10 to 600', () => {
   expect(DEFAULT_CONFIG.worktrees.test).toBe('')
   expect(DEFAULT_CONFIG.worktrees.testTimeoutSec).toBe(600)

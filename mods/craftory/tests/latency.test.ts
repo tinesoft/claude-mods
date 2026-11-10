@@ -70,6 +70,30 @@ test('the main turn ending does not hold turn.complete for the tracker read', as
   await w.clock.advance(SLOW_MS * 2)
 })
 
+test('with the deny rules on, Edit, Write and Skill calls do not wait on a slow git read', async ($, on) => {
+  const w = featureWorld(on, {
+    shell: fakeGit().shell,
+    stall: { when: gitList, ms: SLOW_MS },
+    files: {
+      '.craftory/config.json': JSON.stringify({
+        deny: { skipGate: true, editOnIntegrationBranch: true },
+      }),
+    },
+  })
+  void $.session.start({ cwd: '/repo', surface: 'terminal' } as never)
+  await w.clock.settle()
+  let answered = 0
+  for (const call of [
+    { tool: 'Edit', tool_use_id: 'e1', file_path: '/repo/src/app.ts' },
+    { tool: 'Write', tool_use_id: 'w1', file_path: '/repo/README.md' },
+    { tool: 'Skill', tool_use_id: 's1', skill: 'mattpocock-skills:to-tickets' },
+  ])
+    void $.tool.call(call as never).then(() => answered++)
+  await w.clock.settle()
+  expect(answered).toBe(3)
+  await w.clock.advance(SLOW_MS * 2)
+})
+
 test('an implementer that finishes does not hold its turn.complete for worktrees.test', async ($, on) => {
   const TEST_MS = 30_000
   const isTest = (argv: readonly string[]) => argv[0] === 'pnpm' && argv[1] === 'test'

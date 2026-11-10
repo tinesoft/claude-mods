@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `deny.skipGate` and `deny.editOnIntegrationBranch` parse in config, off by default, and appear in Settings
-- [ ] With switches off, no tool is ever denied by these rules
-- [ ] `skipGate` denies a gated phase's skill while its predecessor is not done, and allows it once done
-- [ ] `editOnIntegrationBranch` denies Edit and Write in the main checkout on `feat/*`; worktrees and other branches are unaffected
-- [ ] Each denial message names the rule and its switch
-- [ ] Fake-world tests assert each block message and the allowed cases; latency test covers the hooks
+- [x] `deny.skipGate` and `deny.editOnIntegrationBranch` parse in config, off by default, and appear in Settings
+- [x] With switches off, no tool is ever denied by these rules
+- [x] `skipGate` denies a gated phase's skill while its predecessor is not done, and allows it once done
+- [x] `editOnIntegrationBranch` denies Edit and Write in the main checkout on `feat/*`; worktrees and other branches are unaffected
+- [x] Each denial message names the rule and its switch
+- [x] Fake-world tests assert each block message and the allowed cases; latency test covers the hooks

@@ -171,6 +171,23 @@ test('rows whose behaviour is not built yet say so', async ($, on) => {
   expect(words.filter(w => w.startsWith('Not active yet'))).toHaveLength(2)
 })
 
+test('the deny rules appear under Automation, off, and turning one on writes deny in config.json', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'automation')
+  const words = await allText(pane)
+  expect(words).toContain('Deny a gated phase until the one before it is done')
+  expect(words).toContain('Deny edits in your checkout on an integration branch')
+  await pane.press({ key: 'set-deny-skip-gate' })
+  expect(JSON.parse(w.files.get('.craftory/config.json')!).deny).toEqual({
+    skipGate: true,
+    editOnIntegrationBranch: false,
+  })
+  await pane.press({ key: 'set-deny-edit-on-integration' })
+  expect(JSON.parse(w.files.get('.craftory/config.json')!).deny).toEqual({
+    skipGate: true,
+    editOnIntegrationBranch: true,
+  })
+})
+
 test('Reset to defaults asks, then restores config.json and clears personal prefs', async ($, on) => {
   const { w, pane } = await settings(
     on,

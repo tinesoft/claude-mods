@@ -15,6 +15,7 @@ import {
   stoppedStep,
   withoutIsolation,
 } from '../src/build'
+import { editDenial, skipGateDenial } from '../src/deny'
 import { meetsFloor } from '../src/engine'
 import { waitingForTriage } from '../src/evidence'
 import type { RunRequest } from '../src/gates'
@@ -430,7 +431,12 @@ export const register: Register = (on, options) => {
 
   on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
     const found = recognise(e.skill, { bare: bareIsOurs(await pluginOf($)) })
-    if (found?.kind !== 'phase' || found.phase !== 'review') return next(e)
+    if (found?.kind !== 'phase') return next(e)
+    if ((await repoFacts($)).config.deny.skipGate) {
+      const denial = skipGateDenial(namespaced(found.skill), found.phase, await currentFlow($))
+      if (denial !== null) return { deny: denial }
+    }
+    if (found.phase !== 'review') return next(e)
     const req: RunRequest = { skill: found.skill, args: e.args ?? '', phase: 'review' }
     const verdict = await gateVerdict($, req)
     if (verdict.kind === 'go') return next(e)
@@ -438,6 +444,16 @@ export const register: Register = (on, options) => {
       .ask(verdict.text, [RUN_ANYWAY, DIAGNOSE_FIRST])
       .catch(() => RUN_ANYWAY)
     return answer === DIAGNOSE_FIRST ? { deny: DIAGNOSE_REASON } : next(e)
+  })
+
+  on('tool.call', { tool: 'Edit' }, async ($, e, next) => {
+    const denial = await integrationEditDenial($, e.tool, e.file_path)
+    return denial === null ? next(e) : { deny: denial }
+  })
+
+  on('tool.call', { tool: 'Write' }, async ($, e, next) => {
+    const denial = await integrationEditDenial($, e.tool, e.file_path)
+    return denial === null ? next(e) : { deny: denial }
   })
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
@@ -592,5 +608,24 @@ export const register: Register = (on, options) => {
         close: () => void closePane($),
       },
     })
+  })
+}
+
+/** The cached git snapshot only: an edit never waits on git, and without one it is let through. */
+async function integrationEditDenial($: EngineInterface, tool: string, path: string) {
+  const { config } = await repoFacts($)
+  if (!config.deny.editOnIntegrationBranch) return null
+  const git = await gitOf($)
+  if (git === null) return null
+  return editDenial({
+    tool,
+    path,
+    cwd: await $.session.cwd(),
+    checkout: {
+      root: git.root,
+      branch: git.branch,
+      others: git.worktrees.map(w => w.path).filter(p => p !== git.root),
+    },
+    integrationBranch: config.worktrees.integrationBranch,
   })
 }
