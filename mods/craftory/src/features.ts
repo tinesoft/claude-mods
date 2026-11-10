@@ -403,8 +403,11 @@ function changeMarks(marks: Marks, change: FeatureChange): Marks {
   }
 }
 
-/** A map link is set once and then kept: the mod never rewrites one, stale or not. */
-function wayChange<T extends SharedFields>(held: T, change: FeatureChange): T {
+/**
+ * Applies a change to the fields a draft and a record share. A map link is set once and then
+ * kept: the mod never rewrites one, stale or not.
+ */
+function sharedChange<T extends SharedFields>(held: T, change: FeatureChange): T {
   if (change.kind === 'dismiss-wayfinder') return { ...held, wayfinderSuggestDismissed: true }
   if (change.kind === 'link-map') return { ...held, map: held.map ?? change.map }
   if (change.kind === 'handoff') return { ...held, handoff: change.path }
@@ -451,7 +454,7 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
     case 'dismiss-wayfinder':
     case 'link-map':
     case 'handoff':
-      return wayChange(record, change)
+      return sharedChange(record, change)
     default: {
       const _exhaustive: never = change
       return _exhaustive
@@ -465,7 +468,7 @@ export function applyDraftChange(draft: DraftFeature, change: FeatureChange): Dr
     change.kind === 'link-map' ||
     change.kind === 'handoff'
   )
-    return wayChange(draft, change)
+    return sharedChange(draft, change)
   return { ...draft, marks: changeMarks(draft.marks, change) }
 }
 

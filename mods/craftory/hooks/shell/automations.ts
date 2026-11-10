@@ -39,6 +39,9 @@ const handoffRunState = atom({ plugin: 'craftory', key: 'handoffRun' } as const,
 /** The architecture check has started in the main session and has not reported yet. */
 const architectureRunState = atom({ plugin: 'craftory', key: 'architectureRun' } as const, false)
 
+/** The phase a main turn ended in, waiting for the refresh after the turn to read its evidence. */
+const endedState = atom({ plugin: 'craftory', key: 'nudgeEnded' } as const, null)
+
 async function hasFired($: EngineInterface, scope: string) {
   return !isArmed(await read($, firedState), scope)
 }
@@ -146,9 +149,6 @@ export async function finishHandoff($: EngineInterface, isAborted: boolean) {
   if (path !== null && run.feature !== null)
     await recordChange($, run.feature, { kind: 'handoff', path })
 }
-
-/** The phase a main turn ended in, waiting for the refresh after the turn to read its evidence. */
-const endedState = atom({ plugin: 'craftory', key: 'nudgeEnded' } as const, null)
 
 /** A main turn ended while `ended` was Running: the next refresh checks its Done-when. */
 export async function noteTurnEnded(
