@@ -594,6 +594,10 @@ export function featureOf(
 export const markOf = (feature: Feature, phase: PhaseId): PhaseMark =>
   (feature.kind === 'draft' ? feature.draft.marks : feature.record.marks)[phase] ?? {}
 
+/** The handoff document linked from the feature's card, or null when none was written. */
+export const handoffOf = (feature: Feature): string | null =>
+  (feature.kind === 'draft' ? feature.draft.handoff : feature.record.handoff) ?? null
+
 export function parseDrafts(stored: unknown): Record<string, DraftFeature> {
   if (!isRecord(stored)) return {}
   return Object.fromEntries(

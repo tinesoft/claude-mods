@@ -24,6 +24,7 @@ import {
   withArchitectureRun,
 } from '../../src/automations'
 import { isoOf } from '../../src/build'
+import { markOf } from '../../src/features'
 import { STATE_FILE } from '../../src/files'
 import type { AutomationNotice, FeatureKey, PhaseId } from '../../types'
 import { activeKey, activeRecord, featuresOf, recordChange } from './features'
@@ -181,8 +182,7 @@ export async function nudgeUnmetDone($: EngineInterface) {
     return
   const view = flow.phases.find(p => p.phase === ended.phase)
   if (view === undefined || view.state.kind === 'done' || view.state.kind === 'skipped') return
-  const marks = flow.feature.kind === 'draft' ? flow.feature.draft.marks : flow.feature.record.marks
-  if (marks[ended.phase]?.nudgedAt !== undefined) return
+  if (markOf(flow.feature, ended.phase).nudgedAt !== undefined) return
   await recordChange($, ended.feature, {
     kind: 'nudged',
     phase: ended.phase,

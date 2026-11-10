@@ -467,15 +467,8 @@ export const register: Register = (on, options) => {
     return answer === DIAGNOSE_FIRST ? { deny: DIAGNOSE_REASON } : next(e)
   })
 
-  on('tool.call', { tool: 'Edit' }, async ($, e, next) => {
-    const denial = await integrationEditDenial($, e.tool, e.file_path)
-    return denial === null ? next(e) : { deny: denial }
-  })
-
-  on('tool.call', { tool: 'Write' }, async ($, e, next) => {
-    const denial = await integrationEditDenial($, e.tool, e.file_path)
-    return denial === null ? next(e) : { deny: denial }
-  })
+  on('tool.call', { tool: 'Edit' }, denyIntegrationEdit)
+  on('tool.call', { tool: 'Write' }, denyIntegrationEdit)
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const targets = removalTargets(e.command)
@@ -630,6 +623,16 @@ export const register: Register = (on, options) => {
       },
     })
   })
+}
+
+/** The one hook for Edit and Write: refused under deny.editOnIntegrationBranch, else passed on. */
+async function denyIntegrationEdit<E extends { tool: string; file_path: string }, R>(
+  $: EngineInterface,
+  e: E,
+  next: (e: E) => Promise<R>,
+): Promise<R | { deny: string }> {
+  const denial = await integrationEditDenial($, e.tool, e.file_path)
+  return denial === null ? next(e) : { deny: denial }
 }
 
 /** The cached git snapshot only: an edit never waits on git, and without one it is let through. */

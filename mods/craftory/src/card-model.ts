@@ -3,6 +3,7 @@ import type { CraftoryConfig, PhaseId, SkillName } from '../types'
 import type { Action } from './action'
 import { budgetK, type AgentsView } from './build'
 import type { Flow, PhaseView } from './evidence'
+import { handoffOf } from './features'
 import { PHASE_ORDER, PHASES, type PhaseSpec } from './phases'
 import { across, type Role, SPACE, PHASE_LOOKS } from './theme'
 import { clip } from './ui'
@@ -251,8 +252,6 @@ export function phaseCard(
     gate,
     ...phaseButtons(view, flow),
     agents: view.phase === 'build' ? agents : null,
-    handoff:
-      (flow.feature.kind === 'draft' ? flow.feature.draft.handoff : flow.feature.record.handoff) ??
-      null,
+    handoff: handoffOf(flow.feature),
   }
 }
