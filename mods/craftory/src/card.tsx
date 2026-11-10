@@ -108,7 +108,7 @@ export const DetailCard = ({
   on: CardActions
   ascii?: boolean
 }) => {
-  const { Box, Button, Text } = ui
+  const { Box, Button, Link, Text } = ui
   const space = CARD_SPACE
   const rich = isRich(ui) && tone !== undefined
   const surface = rich ? TOKENS[tone].surface : undefined
@@ -161,6 +161,11 @@ export const DetailCard = ({
         {card.helpers.length > 0 && (
           <CardRow ui={ui} tone={tone} label="Helpers">
             <HelpersLine ui={ui} tone={tone} helpers={card.helpers} />
+          </CardRow>
+        )}
+        {card.handoff !== null && (
+          <CardRow ui={ui} tone={tone} label="Handoff">
+            <Link key="handoff-link" href={card.handoff} label={card.handoff} />
           </CardRow>
         )}
       </Box>

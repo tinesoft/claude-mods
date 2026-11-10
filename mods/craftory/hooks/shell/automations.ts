@@ -2,17 +2,22 @@ import { atom, type EngineInterface, read, update } from 'claude-code'
 import {
   contextTokens,
   HANDOFF_SCOPE,
+  handoffLink,
   handoffNotice,
   isArmed,
+  isHandoffDocument,
+  isHandoffSkill,
   isHandoffDue,
   rearmSession,
   SESSION_SCOPE,
 } from '../../src/automations'
 import type { AutomationNotice } from '../../types'
+import { activeKey, recordChange } from './features'
 import { addNotice, removeNotices } from './notices'
 import { repoFacts } from './repo'
 
 const firedState = atom({ plugin: 'craftory', key: 'automationsFired' } as const, [])
+const handoffRunState = atom({ plugin: 'craftory', key: 'handoffRun' } as const, null)
 
 async function hasFired($: EngineInterface, scope: string) {
   return !isArmed(await read($, firedState), scope)
@@ -50,4 +55,27 @@ export async function noteMainStep(
     .then(u => u.context.window)
     .catch(() => 0)
   if (isHandoffDue(contextTokens(usage), window)) await raiseAutomation($, handoffNotice())
+}
+
+/** The handoff skill started: watch what it writes, for the active Feature. */
+export async function noteHandoffStart($: EngineInterface, skill: string) {
+  if (!isHandoffSkill(skill)) return
+  const feature = await activeKey($)
+  await update($, handoffRunState, () => ({ feature, path: null }))
+}
+
+/** A main-session write that went through, kept when a handoff run is in flight. */
+export async function noteHandoffWrite($: EngineInterface, path: string) {
+  if (!isHandoffDocument(path)) return
+  await update($, handoffRunState, run => run && { ...run, path })
+}
+
+/** The main turn ended: a handoff run that wrote its document links it from the Feature card. */
+export async function finishHandoff($: EngineInterface, isAborted: boolean) {
+  const run = await read($, handoffRunState)
+  if (run === null) return
+  await update($, handoffRunState, () => null)
+  const path = handoffLink(run, isAborted)
+  if (path !== null && run.feature !== null)
+    await recordChange($, run.feature, { kind: 'handoff', path })
 }

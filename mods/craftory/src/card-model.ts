@@ -149,6 +149,8 @@ export type CardView = {
   primary: { label: string; action: Action } | null
   secondary: { id: string; label: string; action: Action }[]
   agents: AgentsView | null
+  /** The Feature's latest handoff document, linked from every phase card; null without one. */
+  handoff: string | null
 }
 
 const TRIAGE_WHY =
@@ -169,6 +171,7 @@ export function triageCard(waiting: number): CardView {
     primary: { label: '/triage', action: { kind: 'run-phase', phase: 'triage' } },
     secondary: [],
     agents: null,
+    handoff: null,
   }
 }
 
@@ -248,5 +251,8 @@ export function phaseCard(
     gate,
     ...phaseButtons(view, flow),
     agents: view.phase === 'build' ? agents : null,
+    handoff:
+      (flow.feature.kind === 'draft' ? flow.feature.draft.handoff : flow.feature.record.handoff) ??
+      null,
   }
 }

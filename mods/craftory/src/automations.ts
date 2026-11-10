@@ -8,7 +8,7 @@
  * - once per scope ({@link isArmed}): a press or a dismiss both leave the scope fired.
  */
 import type { AutomationNotice, EventNotice } from '../types'
-import { SKILLS } from './phases'
+import { namespaced, SKILLS } from './phases'
 
 /** A scope fired with this prefix re-arms when a new session starts. */
 export const SESSION_SCOPE = 'session:'
@@ -45,3 +45,14 @@ export const handoffNotice = (): AutomationNotice => ({
   text: 'Context is 80% full · write a handoff so a fresh session can pick up',
   run: { label: 'Write handoff', skill: SKILLS.handoff, args: '' },
 })
+
+/** The handoff skill, by the name a skill prompt carries. */
+export const isHandoffSkill = (name: string) =>
+  name.replace(/^\//, '') === namespaced(SKILLS.handoff)
+
+/** A file the handoff run wrote that can be its document: anything but Craftory's own state. */
+export const isHandoffDocument = (path: string) => !/(^|\/)\.craftory\//.test(path)
+
+/** What a finished handoff run links: its last document, unless the run was cancelled. */
+export const handoffLink = (run: { path: string | null }, isAborted: boolean) =>
+  isAborted ? null : run.path

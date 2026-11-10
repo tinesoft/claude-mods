@@ -54,22 +54,28 @@ const isStamp = (v: unknown): v is IsoTime => typeof v === 'string' && !Number.i
 
 const stampOf = (v: unknown) => (isStamp(v) ? v : undefined)
 
-/** The wayfinder facts a record and a draft both hold, set only when there is something to say. */
-type WayFields = Pick<FeatureRecord, 'map' | 'wayfinderSuggestDismissed'>
+/**
+ * What a record and a draft both hold besides their marks: the wayfinder facts and the latest
+ * handoff, each set only when there is something to say.
+ */
+type SharedFields = Pick<FeatureRecord, 'map' | 'wayfinderSuggestDismissed' | 'handoff'>
 
-const wayFields = (from: {
+const sharedFields = (from: {
   map?: IssueRef | undefined
   wayfinderSuggestDismissed?: boolean | undefined
-}): WayFields => ({
+  handoff?: string | undefined
+}): SharedFields => ({
   ...(from.map && { map: from.map }),
   ...(from.wayfinderSuggestDismissed && { wayfinderSuggestDismissed: true as const }),
+  ...(from.handoff && { handoff: from.handoff }),
 })
 
-/** The wayfinder fields as a stored object spells them, bad values dropped. */
-const parseWayFields = (json: Json): WayFields =>
-  wayFields({
+/** The shared fields as a stored object spells them, bad values dropped. */
+const parseSharedFields = (json: Json): SharedFields =>
+  sharedFields({
     map: parseRef(text(json.map) ?? ''),
     wayfinderSuggestDismissed: json.wayfinderSuggestDismissed === true,
+    handoff: text(json.handoff),
   })
 
 export function isSkipped(record: Pick<FeatureRecord, 'skips'>, phase: PhaseId): boolean {
@@ -214,7 +220,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     skips: parseSkips(json.skips, json.skipped),
     integrationBranch: branch,
     pr: parseIssueRef(text(json.pr) ?? '') ?? null,
-    ...parseWayFields(json),
+    ...parseSharedFields(json),
     marks: parseMarks(json.marks),
     agents,
   }
@@ -273,7 +279,7 @@ export function serialiseFeature(record: FeatureRecord): string {
       skips: serialiseSkips(record.skips),
       integrationBranch: record.integrationBranch,
       pr: record.pr,
-      ...wayFields(record),
+      ...sharedFields(record),
       marks,
       agents,
     },
@@ -339,9 +345,10 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
     skips: mergeSkips(disk.skips, mine.skips),
     integrationBranch: max(disk.integrationBranch, mine.integrationBranch) ?? '',
     pr: maxRef(disk.pr, mine.pr),
-    ...wayFields({
+    ...sharedFields({
       map: mine.map ?? disk.map,
       wayfinderSuggestDismissed: mine.wayfinderSuggestDismissed ?? disk.wayfinderSuggestDismissed,
+      handoff: mine.handoff ?? disk.handoff,
     }),
     marks,
     agents,
@@ -358,6 +365,8 @@ export type FeatureChange =
   | { kind: 'pr'; pr: IssueRef }
   | { kind: 'dismiss-wayfinder' }
   | { kind: 'link-map'; map: IssueRef }
+  /** The latest handoff document wins: the card links the one written last. */
+  | { kind: 'handoff'; path: string }
 
 type Marks = Partial<Record<PhaseId, PhaseMark>>
 
@@ -383,10 +392,11 @@ function changeMarks(marks: Marks, change: FeatureChange): Marks {
   }
 }
 
-/** A link is set once and then kept: the mod never rewrites one, stale or not. */
-function wayChange<T extends WayFields>(held: T, change: FeatureChange): T {
+/** A map link is set once and then kept: the mod never rewrites one, stale or not. */
+function wayChange<T extends SharedFields>(held: T, change: FeatureChange): T {
   if (change.kind === 'dismiss-wayfinder') return { ...held, wayfinderSuggestDismissed: true }
   if (change.kind === 'link-map') return { ...held, map: held.map ?? change.map }
+  if (change.kind === 'handoff') return { ...held, handoff: change.path }
   return held
 }
 
@@ -426,6 +436,7 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
       return { ...record, pr: change.pr }
     case 'dismiss-wayfinder':
     case 'link-map':
+    case 'handoff':
       return wayChange(record, change)
     default: {
       const _exhaustive: never = change
@@ -435,7 +446,11 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
 }
 
 export function applyDraftChange(draft: DraftFeature, change: FeatureChange): DraftFeature {
-  if (change.kind === 'dismiss-wayfinder' || change.kind === 'link-map')
+  if (
+    change.kind === 'dismiss-wayfinder' ||
+    change.kind === 'link-map' ||
+    change.kind === 'handoff'
+  )
     return wayChange(draft, change)
   return { ...draft, marks: changeMarks(draft.marks, change) }
 }
@@ -489,7 +504,7 @@ export function promote(
     skips: {},
     integrationBranch,
     pr: null,
-    ...wayFields(draft),
+    ...sharedFields(draft),
     marks: draft.marks,
     agents: {},
   }
@@ -577,7 +592,7 @@ export function parseDrafts(stored: unknown): Record<string, DraftFeature> {
         enteredFrom: parseRef(text(value.enteredFrom) ?? '') ?? null,
         marks: parseMarks(value.marks),
         startedAt: text(value.startedAt)!,
-        ...parseWayFields(value),
+        ...parseSharedFields(value),
       }
       return [[id, draft]]
     }),

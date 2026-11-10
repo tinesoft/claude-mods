@@ -4,9 +4,9 @@
 
 **Blocked by:** 01 (Automation notice pattern, proven with Handoff at 80%)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A handoff written through the notice is linked from the Feature card
-- [ ] No link appears when no handoff was written, or when the run was cancelled
-- [ ] Craftory writes no file of its own to make the link
-- [ ] Fake-world test asserts the card link after a handoff completes
+- [x] A handoff written through the notice is linked from the Feature card
+- [x] No link appears when no handoff was written, or when the run was cancelled
+- [x] Craftory writes no file of its own to make the link
+- [x] Fake-world test asserts the card link after a handoff completes

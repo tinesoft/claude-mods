@@ -308,6 +308,8 @@ export type FeatureRecord = {
   map?: IssueRef
   /** The user dismissed the Chart-a-map suggestion for this Feature. */
   wayfinderSuggestDismissed?: true
+  /** The latest handoff document the handoff skill wrote, as the skill named it. */
+  handoff?: string
   marks: Partial<Record<PhaseId, PhaseMark>>
   /** Keyed by ticket ref string. The latest attempt per ticket wins. */
   agents: Record<string, AgentRecord>
@@ -323,6 +325,7 @@ export type DraftFeature = {
   /** The wayfinder map this draft belongs to; it carries over to the Feature the draft becomes. */
   map?: IssueRef
   wayfinderSuggestDismissed?: true
+  handoff?: string
 }
 
 export type FeatureKey = `spec:${string}` | `draft:${string}`
@@ -504,6 +507,8 @@ declare module 'claude-code' {
       dismissed: NoticeKey[]
       /** Automation scopes that already raised their notice (AutomationNotice `scope`). */
       automationsFired: string[]
+      /** A handoff skill run in flight: the Feature it belongs to and the last file it wrote. */
+      handoffRun: { feature: FeatureKey | null; path: string | null } | null
       lastReplyTerms: string[]
       glossaryAtStart: string[] | null
 

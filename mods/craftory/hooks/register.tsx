@@ -75,7 +75,13 @@ import {
   startContext,
   switchFeature,
 } from './shell/flow'
-import { noteMainStep, rearmAutomations } from './shell/automations'
+import {
+  finishHandoff,
+  noteHandoffStart,
+  noteHandoffWrite,
+  noteMainStep,
+  rearmAutomations,
+} from './shell/automations'
 import { gitOf } from './shell/git'
 import { forgetSeat, markStopDelivered, pendingSeat, runOf } from './shell/ledger'
 import { dismissedOf, dismissNotice, heldNotices } from './shell/notices'
@@ -320,6 +326,7 @@ export const register: Register = (on, options) => {
 
   on('skill.prompt', async ($, e, next) => {
     await skillStarted($, e.skill)
+    await noteHandoffStart($, e.skill)
     return next(e)
   })
 
@@ -338,6 +345,7 @@ export const register: Register = (on, options) => {
     }
     await noteReplyTerms($, e.answer)
     await finishTurn($, e)
+    await finishHandoff($, e.isAborted === true)
     scheduleRefresh($)
     return result
   })
@@ -351,6 +359,9 @@ export const register: Register = (on, options) => {
     }
     if (await touchesTracker($, tool)) scheduleRefresh($)
     if (e.tool === 'Bash' && /\bgit\b/.test(tool.command ?? '')) scheduleGit($)
+    const wentThrough = result.deny === undefined && result.isError !== true
+    if (e.tool === 'Write' && e.agentId === undefined && wentThrough && tool.path !== undefined)
+      await noteHandoffWrite($, tool.path)
     return result
   })
 
