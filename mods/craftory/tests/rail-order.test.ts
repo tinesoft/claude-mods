@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { BAND_SURFACES, featureWorld, mountBand, startSession } from './harness'
-import { CLEAR, TOKENS, TRIPLES } from '../src/theme'
+import { TOKENS, TRIPLES } from '../src/theme'
 import { scenarioFiles } from './wayfinder'
 
 type Node = { type: string; props: Record<string, unknown>; children?: unknown[] }
@@ -86,7 +86,9 @@ for (const tone of TONES) {
     const t = TOKENS[tone]
     const rest = (await band.find({ key: 'box-phase-spec' })) as Node
     expect(rest.props.backgroundColor).toBeUndefined()
-    expect(rest.props.borderColor).toBe(CLEAR)
+    // Desktop paints a transparent border black, so a step at rest draws none.
+    expect(rest.props.borderStyle).toBeUndefined()
+    expect(rest.props.borderColor).toBeUndefined()
     const open = (await band.find({ key: 'box-phase-build' })) as Node
     expect(open.props).toMatchObject({ backgroundColor: t.fill, borderColor: t.lineStrong })
   })

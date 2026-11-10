@@ -223,6 +223,16 @@ for (const state of STATES) {
   }
 }
 
+for (const state of STATES) {
+  test(`desktop, ${state.name}: every Svg names itself, since Desktop hides one with an empty alt`, async ($, on) => {
+    const drawn = await trees(await state.draw(on, $, 'desktop', { surfaces: ['desktop'] }))
+    const svgs = drawn.flatMap(nodes).filter(n => n.type === 'Svg')
+    expect(svgs.filter(n => typeof n.props?.alt !== 'string' || n.props.alt.trim() === '')).toEqual(
+      [],
+    )
+  })
+}
+
 /** Every string a tree shows: Text children and Button and Link labels. */
 const shown = (tree: unknown) =>
   nodes(tree).flatMap(n => [

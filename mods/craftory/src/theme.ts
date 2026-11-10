@@ -234,6 +234,8 @@ export const SPACE = {
   noticeAbove: 'xs',
   buttonPadX: 'sm',
   railGap: 'xs',
+  /** Before a phase connector that follows a meta pill, on rich surfaces, which draw the steps row without a gap. */
+  connectorSide: 'xs',
   /** Between the rail's head row and its phases row: no row on the terminal. */
   railRowGap: 'sm',
   railPadX: 'sm',

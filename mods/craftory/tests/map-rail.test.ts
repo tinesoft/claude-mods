@@ -34,8 +34,9 @@ for (const surface of BAND_SURFACES) {
     await startSession($, surface)
     const band = await mountBand($, surface, 200)
     // 2 decided + 4 open (2 takeable, 1 claimed, 1 blocked) = 6 tickets
+    // the terminal sets the counts apart with a dot; Desktop, as the board, by their mono face
     expect((await band.find({ key: 'box-map-chip' }))!.text).toMatch(
-      /Billing v2 ?· 2 decided · 4 open$/,
+      surface === 'terminal' ? /Billing v2 · 2 decided · 4 open$/ : /Billing v22 decided · 4 open$/,
     )
     expect((await band.find({ key: 'map-chip' }))!.text).toBe('Billing v2')
     expect(await band.find({ key: 'rail' })).toBeDefined()

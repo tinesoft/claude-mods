@@ -56,7 +56,7 @@ test('terminal at 60 columns falls back to the summary', async ($, on) => {
   expect(await band.find({ key: 'summary' })).toBeDefined()
 })
 
-test('desktop at 85 body columns keeps the row with a map and wraps it', async ($, on) => {
+test('desktop at 85 body columns keeps the row with a map, its steps on one line', async ($, on) => {
   featureWorld(on, { surfaces: ['desktop'], theme: 'dark', ...mixed() })
   await startSession($, 'desktop')
   const band = await mountBand($, 'desktop', 85, 12)
@@ -64,7 +64,8 @@ test('desktop at 85 body columns keeps the row with a map and wraps it', async (
   expect(rail).toBeDefined()
   expect(await band.find({ key: 'summary' })).toBeUndefined()
   expect(await band.find({ key: 'phase-retro' })).toBeDefined()
-  expect((await band.find({ key: 'phases-steps' }))!.props.flexWrap).toBe('wrap')
+  // the seven steps stay on one line; only the head row may wrap
+  expect((await band.find({ key: 'phases-steps' }))!.props.flexWrap).toBe('nowrap')
   expect(rail.props.borderStyle).toBeUndefined()
   expect(rail.props.backgroundColor).toBeUndefined()
 })

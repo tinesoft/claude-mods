@@ -301,7 +301,7 @@ export const HookNote = ({
       })}
     >
       {rich && lock ? (
-        <Icon ui={ui} svg={lockSvg(hexOr(TRIPLES.hook[tone].fg))} alt="" />
+        <Icon ui={ui} svg={lockSvg(hexOr(TRIPLES.hook[tone].fg))} alt="Gate" />
       ) : (
         <Text {...roleInk('hook', tone)}>{'!'}</Text>
       )}

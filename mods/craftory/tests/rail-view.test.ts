@@ -175,7 +175,7 @@ test('the Triage button leads with a tray: a glyph on the terminal, the inbox ic
   expect(textOf(desk)).toBe('Triage')
 })
 
-test("desktop steps take the board's size: a footnote label and a short meta", () => {
+test("desktop steps take the board's size: a body label and a short meta", () => {
   const flow = withState(baseFlow(), 'build', {
     kind: 'running',
     progress: 'csv-export-button-ticket',
@@ -184,10 +184,16 @@ test("desktop steps take the board's size: a footnote label and a short meta", (
     args({ ui: fakeUi(true), surface: 'desktop', tone: 'light', flow, columns: 200 }),
   )
   const label = findAll(byKey(out, 'phase-build')!, n => n.type === 'Text')[0]!
-  expect(label.props.size).toBe('footnote')
+  expect(label.props.size).toBeUndefined()
   // Desktop's native button pads the label itself; the step adds only a sliver.
-  expect(byKey(out, 'box-phase-build')!.props).toMatchObject({ paddingX: 'xs', columnGap: 0 })
-  expect(textOf(byKey(out, 'box-phase-build')!)).toContain(' csv-expor… ')
+  // The native button's own padding ends a step at rest, so a connector has as little space before it as after.
+  expect(byKey(out, 'box-phase-build')!.props).toMatchObject({
+    paddingX: 'xs',
+    paddingRight: 0,
+    columnGap: 0,
+  })
+  expect(byKey(out, 'connector-spec')!.props).toMatchObject({ paddingRight: 0 })
+  expect(textOf(byKey(out, 'box-phase-build')!)).toContain(' csv-exp… ')
   const terminal = renderBand(args({ flow }))
   expect(textOf(byKey(terminal, 'box-phase-build')!)).toContain('csv-export-button-ticket')
 })

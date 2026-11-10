@@ -18,6 +18,7 @@ import type { Flow, PhaseView } from './evidence'
 import {
   BAR_SIZE,
   barSvg,
+  DIVIDER_SIZE,
   DOT_PX,
   dotOf,
   hexOr,
@@ -106,18 +107,33 @@ const Connector = ({
   tone,
   ascii,
   before,
+  afterMeta,
 }: {
   ui: Ui
   tone: Tone | undefined
   ascii: boolean
   before: PhaseView
+  /** The step before ends in its meta pill, not in the native button's own padding. */
+  afterMeta: boolean
 }) => {
   const { Box, Svg, Text } = ui
   const color = connectorColor(before.state.kind === 'done', tone)
   if (Svg !== undefined && color !== undefined) {
+    // The steps row has no gap on rich surfaces. A step ends in the native button's padding, or in
+    // its meta pill, which takes the connector's own sliver; the next step's left padding follows.
     return (
-      <Box key={`connector-${before.phase}`} flexDirection="row" alignItems="center">
-        <Svg source={barSvg(BAR_SIZE.width, BAR_SIZE.height, hexOr(color))} alt="" {...BAR_SIZE} />
+      <Box
+        key={`connector-${before.phase}`}
+        flexDirection="row"
+        alignItems="center"
+        paddingLeft={afterMeta ? SPACE.connectorSide : 0}
+        paddingRight={0}
+      >
+        <Svg
+          source={barSvg(BAR_SIZE.width, BAR_SIZE.height, hexOr(color))}
+          alt="Connector"
+          {...BAR_SIZE}
+        />
       </Box>
     )
   }
@@ -141,7 +157,7 @@ type PhaseArgs = Pick<RailArgs, 'ui' | 'tone' | 'ascii' | 'spinFrame' | 'flow' |
 }
 
 /** The longest meta a Desktop step shows, so a long spec slug keeps its step as short as the board's `#42`. */
-const STEP_META_MAX = 10
+const STEP_META_MAX = 8
 
 const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
   const { ui, tone, ascii, spinFrame, flow, open, on } = args
@@ -173,8 +189,6 @@ const PhaseButton = ({ args, view }: { args: PhaseArgs; view: PhaseView }) => {
       glyph={glyphOf(view, spinFrame, ascii)}
       glyphBold={look.bold}
       label={PHASES[view.phase].label}
-      // The board's 13px step label, a size under the body text.
-      {...(rich && { size: 'footnote' as const })}
       bold={look.bold}
       strike={look.strike}
       pressed={open === view.phase}
@@ -311,6 +325,7 @@ export const PhaseStrip = ({
   args,
   id,
   wrap = false,
+  wrapSteps = wrap,
   lead,
   title,
   trailing,
@@ -318,6 +333,8 @@ export const PhaseStrip = ({
   args: StripArgs
   id: string
   wrap?: boolean
+  /** The phases row may wrap too; the band keeps its seven steps on one line, a phone cannot. */
+  wrapSteps?: boolean
   /** Drawn between the Triage button and the title, such as the map chip. */
   lead?: RenderElement | false
   /** Drawn last on the head row, such as the feature title. */
@@ -326,12 +343,22 @@ export const PhaseStrip = ({
   trailing?: RenderElement
 }) => {
   const { ui, tone, ascii, flow } = args
-  const { Box, Text } = ui
-  const divider = (key: string) => (
-    <Text key={key} {...(tone === undefined ? { dimColor: true } : { color: TOKENS[tone].line })}>
-      {ascii ? RAIL_DIVIDER.ascii : RAIL_DIVIDER.glyph}
-    </Text>
-  )
+  const { Box, Svg, Text } = ui
+  const rich = isRich(ui) && tone !== undefined && Svg !== undefined
+  const divider = (key: string) =>
+    rich ? (
+      <Box key={key} flexDirection="row" alignItems="center" paddingX={SPACE.railGap}>
+        <Svg
+          source={barSvg(DIVIDER_SIZE.width, DIVIDER_SIZE.height, hexOr(TOKENS[tone].line))}
+          alt="Divider"
+          {...DIVIDER_SIZE}
+        />
+      </Box>
+    ) : (
+      <Text key={key} {...(tone === undefined ? { dimColor: true } : { color: TOKENS[tone].line })}>
+        {ascii ? RAIL_DIVIDER.ascii : RAIL_DIVIDER.glyph}
+      </Text>
+    )
   const wraps = wrap && { flexWrap: 'wrap' as const }
   return (
     <Box key={id} flexDirection="column" rowGap={SPACE.railRowGap}>
@@ -355,13 +382,19 @@ export const PhaseStrip = ({
         key={`${id}-steps`}
         flexDirection="row"
         alignItems="center"
-        columnGap={SPACE.railGap}
-        {...wraps}
+        columnGap={rich ? 0 : SPACE.railGap}
+        flexWrap={wrapSteps ? 'wrap' : 'nowrap'}
       >
         {flow.phases.map((view, index) => (
           <Box key={`group-${view.phase}`} flexDirection="row" alignItems="center">
             {index > 0 && (
-              <Connector ui={ui} tone={tone} ascii={ascii} before={flow.phases[index - 1]!} />
+              <Connector
+                ui={ui}
+                tone={tone}
+                ascii={ascii}
+                before={flow.phases[index - 1]!}
+                afterMeta={phaseMeta(flow.phases[index - 1]!, flow) !== null}
+              />
             )}
             <PhaseButton args={args} view={view} />
           </Box>
@@ -405,6 +438,7 @@ const Rail = ({ args, fit }: { args: RailArgs; fit: RailFit }) => {
         title={<Title args={args} flow={flow} />}
         trailing={<Gear args={args} />}
         wrap={fit.wrap}
+        wrapSteps={false}
       />
     </Box>
   )

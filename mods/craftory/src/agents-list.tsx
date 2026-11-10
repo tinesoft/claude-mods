@@ -127,7 +127,7 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
           flexWrap="wrap"
           alignItems="center"
         >
-          {rich && <Icon ui={ui} svg={branchSvg(hexOr(t?.ink2))} alt="" px={12} />}
+          {rich && <Icon ui={ui} svg={branchSvg(hexOr(t?.ink2))} alt="Branch" px={12} />}
           {row.worktree !== null && (
             <Text mono={rich} {...inkOf(tone, 'ink2')}>
               {row.worktree}

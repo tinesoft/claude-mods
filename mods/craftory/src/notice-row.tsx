@@ -47,7 +47,12 @@ export const NoticeRow = ({ ui, tone, notice, on }: NoticeArgs) => {
   const { Box, Text, Svg } = ui
   const colours = paint(notice.role, tone)
   const lead = Svg ? (
-    <Svg source={noticeSvg(noticeIcon(notice), hexOr(colours.fg))} alt="" width={14} height={14} />
+    <Svg
+      source={noticeSvg(noticeIcon(notice), hexOr(colours.fg))}
+      alt={notice.role}
+      width={14}
+      height={14}
+    />
   ) : (
     <Text color={colours.fg}>{NOTICE_GLYPH[notice.role]}</Text>
   )

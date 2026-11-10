@@ -345,7 +345,7 @@ const FlowMark = ({
           <Box key={`flow-join-${row.phase}`} flexGrow={1} alignItems="center">
             <Svg
               source={barSvg(VBAR_SIZE.width, VBAR_SIZE.height, hexOr(join))}
-              alt=""
+              alt="Connector"
               {...VBAR_SIZE}
             />
           </Box>

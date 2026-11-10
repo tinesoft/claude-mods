@@ -36,7 +36,7 @@ const HelperChip = ({ ui, tone, text }: { ui: Ui; tone: Tone; text: string }) =>
       borderColor={skill.bd}
       backgroundColor={skill.bg}
     >
-      <Icon ui={ui} svg={helperSvg(hexOr(skill.fg))} alt="" px={11} />
+      <Icon ui={ui} svg={helperSvg(hexOr(skill.fg))} alt="Skill" px={11} />
       <Text mono size="footnote" color={skill.fg}>
         {text}
       </Text>

@@ -74,7 +74,8 @@ export const MapChip = ({
   const { Text } = ui
   const rich = isRich(ui) && tone !== undefined
   const agent = paint('agent', tone)
-  const counts = compact ? mapChipCompact(view, ascii) : `· ${mapChipCounts(view)}`
+  // The board sets the counts apart by their mono face alone; the terminal keeps the dot.
+  const counts = compact ? mapChipCompact(view, ascii) : `${rich ? '' : '· '}${mapChipCounts(view)}`
   return (
     <Chip
       ui={ui}
@@ -217,7 +218,7 @@ export const FrontierCard = ({
         {rows.flatMap((row, i) =>
           i === 0 || Svg === undefined
             ? [row]
-            : [<Svg key={`rule-${i}`} source={ruleSvg(t.lineSoft)} alt="" height={1} />, row],
+            : [<Svg key={`rule-${i}`} source={ruleSvg(t.lineSoft)} alt="Rule" height={1} />, row],
         )}
       </Box>
     ) : (

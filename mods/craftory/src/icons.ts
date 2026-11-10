@@ -73,6 +73,9 @@ export const BAR_SIZE = { width: 10, height: 2 } as const
 /** The thin vertical bar joining two phases of the Flow timeline on rich surfaces. */
 export const VBAR_SIZE = { width: 2, height: 16 } as const
 
+/** The rail's head-row divider on rich surfaces: the board's 1px by 24px line. */
+export const DIVIDER_SIZE = { width: 1, height: 24 } as const
+
 /** A rounded bar `w`×`h`: the line joining two phases, across the rail or down the Flow timeline. */
 export const barSvg = (w: number, h: number, color: string) =>
   `<svg ${XMLNS} viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" rx="1" fill="${color}"/></svg>`

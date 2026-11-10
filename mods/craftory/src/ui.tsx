@@ -64,8 +64,16 @@ export type ChipLook = {
   pressedFill?: Color
   hover?: Color
   padX?: Space
+  /** The right padding at rest, where it differs from `padX`; a pressed chip's border keeps `padX`. */
+  padRight?: Space
   gap?: Space
 }
+
+/**
+ * Desktop's native button already pads its label, so a rail chip adds only a sliver around it and
+ * no gap of its own: the board's `padding: 0 8px; gap: 6px`. Every chip of the rail shares it.
+ */
+const TIGHT = { padX: 'xs', gap: 0 } as const satisfies Pick<ChipLook, 'padX' | 'gap'>
 
 /** A role-tinted chip, such as the map chip: the role's fill and border, `pressedBorder` when open. */
 export const roleLook = (
@@ -81,12 +89,14 @@ export const roleLook = (
     fill: rest,
     pressedBorder: pressedBorder(colours),
     hover: mix(rest, colours.fg, HOVER_MIX),
+    ...TIGHT,
   }
 }
 
-const STEP_PAD_X = 'xs'
-
-/** A phase step: clear at rest, fill and a strong border when open, a hover toward `accent`. */
+/**
+ * A phase step: no border at rest (Desktop paints a `transparent` border black, so a clear one draws
+ * none), fill and a strong border when open, a hover toward `accent`.
+ */
 export const stepLook = (tone: Tone | undefined, accent: Color): ChipLook | undefined => {
   if (tone === undefined) return undefined
   const t = TOKENS[tone]
@@ -95,10 +105,10 @@ export const stepLook = (tone: Tone | undefined, accent: Color): ChipLook | unde
     pressedBorder: t.lineStrong,
     pressedFill: t.fill,
     hover: mix(t.fill, accent, HOVER_MIX),
-    // Desktop's native button already pads its label, so the step adds only a sliver around it
-    // and no gap of its own: the board's `padding: 0 8px 0 5px; gap: 6px`.
-    padX: STEP_PAD_X,
-    gap: 0,
+    ...TIGHT,
+    // The native button's own padding ends the step, so the space before a connector is no more
+    // than the space after it.
+    padRight: 0,
   }
 }
 
@@ -111,6 +121,7 @@ export const pillLook = (tone: Tone | undefined): ChipLook | undefined => {
     fill: t.fill,
     pressedBorder: t.lineStrong,
     hover: mix(t.fill, t.ink, HOVER_MIX),
+    ...TIGHT,
   }
 }
 
@@ -143,7 +154,7 @@ export const Chip = ({
   ink,
   icon,
   iconPx,
-  iconAlt = '',
+  iconAlt,
   glyph,
   glyphBold = false,
   label,
@@ -169,7 +180,7 @@ export const Chip = ({
   layout?: { padX?: Space; gap?: Space }
   /** The label's colour on the terminal, and on rich surfaces when the chip is not pressable. */
   ink?: { color?: Color; dimColor?: boolean }
-  /** Svg source, drawn on rich surfaces in place of `glyph`. */
+  /** Svg source, drawn on rich surfaces in place of `glyph`. Desktop hides an Svg with an empty alt. */
   icon?: string
   iconPx?: number
   iconAlt?: string
@@ -250,16 +261,23 @@ export const Chip = ({
       alignItems="center"
       columnGap={drawn.gap ?? SPACE.phaseGap}
       paddingX={drawn.padX ?? SPACE.phasePadX}
-      {...(borderColor !== undefined && {
-        borderStyle: drawn.dashed ? ('dashed' as const) : ('round' as const),
-        borderColor,
-      })}
+      {...(drawn.padRight !== undefined && !pressed && { paddingRight: drawn.padRight })}
+      {...(borderColor !== undefined &&
+        borderColor !== CLEAR && {
+          borderStyle: drawn.dashed ? ('dashed' as const) : ('round' as const),
+          borderColor,
+        })}
       {...withTint(fill)}
       {...(onPress !== undefined &&
         drawn.hover !== undefined && { hover: { backgroundColor: drawn.hover } })}
     >
       {icon !== undefined && (
-        <Icon ui={ui} svg={icon} alt={iconAlt} {...(iconPx !== undefined && { px: iconPx })} />
+        <Icon
+          ui={ui}
+          svg={icon}
+          alt={iconAlt ?? label}
+          {...(iconPx !== undefined && { px: iconPx })}
+        />
       )}
       {press(text)}
       {children}
