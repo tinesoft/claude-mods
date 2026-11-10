@@ -122,3 +122,21 @@ test('a dismiss silences it for the session', async ($, on) => {
   expect(w.commandsRun).toEqual([])
   expect(w.writes.filter(x => x.path === STATE)).toEqual([])
 })
+
+test("a subagent's run of the skill does not count as the check", async ($, on) => {
+  // the Skill tool expands the skill's prompt while it runs, inside the subagent's call
+  on('tool.call', { tool: 'Skill' }, async () => {
+    await skillPrompt($, 'improve-codebase-architecture')
+    return { result: 'ran' }
+  })
+  const old = ranDaysAgo(9)
+  const w = await session(on, $, { [STATE]: old })
+  await $.tool.call({
+    tool: 'Skill',
+    tool_use_id: 'sk1',
+    skill: 'mattpocock-skills:improve-codebase-architecture',
+    agentId: 'a1',
+  } as never)
+  await turnComplete($)
+  expect(w.files.get(STATE)).toBe(old)
+})

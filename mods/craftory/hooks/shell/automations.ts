@@ -117,6 +117,24 @@ export async function noteSkillStarted($: EngineInterface, skill: string) {
 }
 
 /**
+ * A subagent's Skill call: the prompt it expands inside `call` is the subagent's, so a run of the
+ * architecture skill there leaves the main session's run flag as it was.
+ */
+export async function subagentSkillCall<R>(
+  $: EngineInterface,
+  skill: string,
+  call: () => Promise<R>,
+) {
+  if (!isArchitectureSkill(skill, bareIsOurs(await pluginOf($)))) return call()
+  const before = await read($, architectureRunState)
+  try {
+    return await call()
+  } finally {
+    await update($, architectureRunState, () => before)
+  }
+}
+
+/**
  * A main turn ended. The architecture check's done report records `architectureLastRun`; a
  * cancelled run leaves it as it was.
  */

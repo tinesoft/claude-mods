@@ -86,6 +86,7 @@ import {
   offerArchitecture,
   noteTurnEnded,
   rearmAutomations,
+  subagentSkillCall,
 } from './shell/automations'
 import { gitOf } from './shell/git'
 import { forgetSeat, markStopDelivered, pendingSeat, runOf } from './shell/ledger'
@@ -450,6 +451,11 @@ export const register: Register = (on, options) => {
     await countStep($, agentId, result)
     return result
   })
+
+  // A subagent's run of a skill never counts as the main session's architecture check.
+  on('tool.call', { tool: 'Skill' }, async ($, e, next) =>
+    e.agentId === undefined ? next(e) : subagentSkillCall($, e.skill, () => next(e)),
+  )
 
   on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
     const found = recognise(e.skill, { bare: bareIsOurs(await pluginOf($)) })
