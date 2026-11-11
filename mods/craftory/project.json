@@ -36,11 +36,11 @@
     },
     "test": {
       "metadata": {
-        "description": "Run the mod's tests with `claude plugin test`."
+        "description": "Run the mod's tests with `claude plugin test` on the Claude Code version CI pins."
       },
       "executor": "nx:run-commands",
       "options": {
-        "command": "node ../../tools/check-claude-version.mjs && claude plugin test .",
+        "command": "node ../../tools/claude-pinned.mjs plugin test .",
         "cwd": "{projectRoot}"
       }
     },

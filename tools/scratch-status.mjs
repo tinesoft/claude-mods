@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 // What is left in `.scratch/`: for each feature and wayfinder map, the files not yet finished, with
 // their raw `Status:` value. `--all` lists finished files too.
-import { readScratch } from './scratch-read.mjs'
-
-const FINISHED = new Set(['resolved', 'closed', 'done', 'wontfix'])
+import { isFinished, readScratch } from './scratch-read.mjs'
 const all = process.argv.includes('--all')
 const { snapshot, statusOf } = await readScratch()
 
 const groups = new Map()
 const add = (group, location, title) => {
   const status = statusOf(location)[0] ?? '(none)'
-  if (!all && FINISHED.has(status)) return
+  if (!all && isFinished(status)) return
   if (!groups.has(group)) groups.set(group, [])
   groups.get(group).push({ status, location, title })
 }

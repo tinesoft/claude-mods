@@ -24,12 +24,12 @@ One Nx workspace and one plugin marketplace (`tinesoft-mods`). Each mod lives in
 Run before pushing:
 
 ```sh
-pnpm nx affected -t lint typecheck validate test
+pnpm nx affected -t lint typecheck validate test --output-style=static
 node tools/sync-plugin-version.mjs --check
 node tools/check-scratch.mjs
 ```
 
-Run tests on the pinned Claude Code (`CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml`). A local `claude` auto-updates and can disagree with CI; the `test` targets print a warning when it does (`tools/check-claude-version.mjs`).
+The `test` targets run the Claude Code version CI pins (`CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml`) through `tools/claude-pinned.mjs`, whatever the local `claude` is.
 
 CI runs the same, plus `claude plugin validate . --strict` at the root, pinned to Claude Code 2.1.302.
 

@@ -24,20 +24,23 @@ registerHooks({
 })
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const src = file => pathToFileURL(path.join(ROOT, 'mods/craftory/src/tracker', file)).href
+const src = file => pathToFileURL(path.join(ROOT, 'mods/craftory/src', file)).href
 
-const { spec } = await import(src('local.ts'))
-const { readTracker } = await import(src('index.ts'))
-const { upstreamLine } = await import(src('refs.ts'))
+const { spec } = await import(src('tracker/local.ts'))
+const { readTracker } = await import(src('tracker/index.ts'))
+const refs = await import(src('tracker/refs.ts'))
+const { DEFAULT_LABELS } = await import(src('agents-md.ts'))
 
-/** The triage roles, under their own names, as `docs/agents/triage-labels.md` maps them. */
-export const ROLES = ['needs-triage', 'needs-info', 'ready-for-agent', 'ready-for-human', 'wontfix']
-const LABELS = Object.fromEntries(ROLES.map(r => [r, r]))
+/** The status vocabulary, from the mod: one list for the readers and the tools. */
+export const ROLES = Object.keys(DEFAULT_LABELS)
+export const { FINISHED_STATUSES, WORKING_STATUSES } = refs
+/** Finished for good: a finished status, or the `wontfix` role, which closes an issue. */
+export const isFinished = status => refs.isFinishedStatus(status) || status === 'wontfix'
 
 /** Every `Status:` line in a file's head, plain or bold, as the mod's readers match one. */
 export function statusLines(text) {
   const head = text.split('\n').slice(0, 60).join('\n')
-  return [...head.matchAll(new RegExp(upstreamLine('Status').source, 'gim'))].map(m =>
+  return [...head.matchAll(new RegExp(refs.upstreamLine('Status').source, 'gim'))].map(m =>
     m[1].toLowerCase(),
   )
 }
@@ -62,7 +65,7 @@ function execute(reads) {
 
 /** The Local tracker snapshot, plus the raw `Status:` lines of every file it read. */
 export async function readScratch() {
-  const ctx = { labels: LABELS, now: Date.now(), config: {} }
+  const ctx = { labels: DEFAULT_LABELS, now: Date.now(), config: {} }
   const snapshot = await readTracker(spec, ctx, async reads => execute(reads))
   const statusOf = location => statusLines(readFileSync(path.join(ROOT, location), 'utf8'))
   return { snapshot, statusOf, root: ROOT }
