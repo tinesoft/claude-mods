@@ -128,7 +128,7 @@
     "chip_theme": {
       "type": "string",
       "title": "Chip theme",
-      "description": "Light or dark chip colours; auto follows the Claude Code theme, then the terminal, then the system",
+      "description": "Light or dark chip colours in the terminal; auto follows the Claude Code theme, then the terminal, then the system. Desktop, VS Code and mobile follow the system appearance",
       "options": ["auto", "light", "dark"],
       "default": "auto"
     },

@@ -367,16 +367,17 @@ export type ToneInput = {
 /**
  * The tone chips are drawn in, or undefined for the untinted look. Claude Code's own
  * `auto` theme answers an OSC 11 query mods cannot see, so the terminal falls back to
- * `COLORFGBG`, then the OS appearance. Other surfaces follow the OS or app first.
+ * `COLORFGBG`, then the OS appearance. Other surfaces follow the OS or app first, whatever
+ * `chipTheme`: they draw their band in their own theme, so a pinned tone would clash with it.
  */
 export const resolveTone = (input: ToneInput): Tone | undefined => {
   const { chipStyle, chipTheme, claudeTheme, surface, colorFgBg, system } = input
   if (chipStyle === 'text') return undefined
-  if (chipTheme !== 'auto') return chipTheme
   const match = typeof claudeTheme === 'string' ? CLAUDE_THEME.exec(claudeTheme) : null
   const isAnsi = match?.[2] === '-ansi'
   const claude = match && !isAnsi ? (match[1] as Tone) : undefined
   if (surface !== 'terminal') return system ?? claude ?? 'light'
+  if (chipTheme !== 'auto') return chipTheme
   return isAnsi ? undefined : (claude ?? colorFgBg ?? system ?? 'dark')
 }
 

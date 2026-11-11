@@ -34,6 +34,12 @@ const TABLE: [string, Partial<ToneInput>, 'light' | 'dark' | undefined][] = [
     { surface: 'desktop', claudeTheme: 'dark', system: 'light' },
     'light',
   ],
+  [
+    'desktop ignores a pinned chip_theme and follows the system',
+    { surface: 'desktop', chipTheme: 'dark', system: 'light' },
+    'light',
+  ],
+  ['mobile ignores a pinned chip_theme', { surface: 'mobile', chipTheme: 'dark' }, 'light'],
   ['vscode then the Claude theme', { surface: 'vscode', claudeTheme: 'dark' }, 'dark'],
   ['mobile ignores COLORFGBG', { surface: 'mobile', colorFgBg: 'dark' }, 'light'],
   [

@@ -68,13 +68,14 @@ for (const surface of SURFACES) {
           'SHOWN BY DEFAULT',
           'OPTIONAL',
           'Off by default · 0 of 8 on',
-          'Chip theme',
           'Chip style',
           'Digit hotkeys on chips',
           'Toast when blocked or denied',
           'Text summary after each answer',
         ]),
       )
+      // Only the terminal pins the theme: other surfaces draw their band in their own.
+      expect(shown.includes('Chip theme')).toBe(surface === 'terminal')
       const desc = (await pane.findAll({ type: 'Text' })).find(x =>
         x.text.startsWith('Choose what'),
       )

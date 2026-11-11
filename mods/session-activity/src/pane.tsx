@@ -698,15 +698,17 @@ const SettingsTab = (args: PaneArgs) => {
           {optional.map(toggleRow)}
         </Box>
       </Box>
-      <Segments
-        ui={ui}
-        tone={tone}
-        title="Chip theme"
-        note="Auto follows the Claude Code theme, then the terminal, then the system."
-        current={settings.chipTheme}
-        choices={themes}
-        onPick={chipTheme => on.set({ chipTheme })}
-      />
+      {surface === 'terminal' && (
+        <Segments
+          ui={ui}
+          tone={tone}
+          title="Chip theme"
+          note="Auto follows the Claude Code theme, then the terminal, then the system."
+          current={settings.chipTheme}
+          choices={themes}
+          onPick={chipTheme => on.set({ chipTheme })}
+        />
+      )}
       <Segments
         ui={ui}
         tone={tone}

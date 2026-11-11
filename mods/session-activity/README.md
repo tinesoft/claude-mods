@@ -109,7 +109,7 @@ A chip that was just activated is bold with a `●` for four seconds. A running 
 
 Blocked, denied and errored chips sit first in the row and stay visible even when their type is hidden or muted. Each status is also a text badge, so the colour is never the only signal.
 
-Chips are tinted with the design's light or dark colours. With `chip_theme` on `auto`, the terminal follows a `light` or `dark` Claude Code theme (daltonized included). Under the `auto` theme, which asks the terminal for its colours in a way a mod cannot see, it reads `COLORFGBG`, then the system appearance, then settles on dark. Desktop, VS Code and mobile follow the system appearance, then the Claude Code theme, then light. The ANSI themes keep coloured text. Set `chip_theme` to `light` or `dark` to pin the colours, or `chip_style` to `text` to always use coloured text.
+Chips are tinted with the design's light or dark colours. With `chip_theme` on `auto`, the terminal follows a `light` or `dark` Claude Code theme (daltonized included). Under the `auto` theme, which asks the terminal for its colours in a way a mod cannot see, it reads `COLORFGBG`, then the system appearance, then settles on dark. Desktop, VS Code and mobile follow the system appearance, then the Claude Code theme, then light. The ANSI themes keep coloured text. Set `chip_theme` to `light` or `dark` to pin the colours in the terminal (Desktop, VS Code and mobile always follow the system appearance, since they draw the band in their own theme, so Settings shows the row in the terminal only), or `chip_style` to `text` to always use coloured text.
 
 ### Key bindings
 
@@ -141,18 +141,18 @@ Open it with `/session-activity`, `+N more`, or a chip when the band is too shor
 
 The plugin options (`/config`, or `pluginConfigs` in settings) are the defaults. Changes made in the pane override them, persist across sessions, and are reloaded when a session starts, including after `/clear`.
 
-| Option           | Default               | Effect                                                                                                                                     |
-| ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `enabled`        | `true`                | Show chips above the prompt                                                                                                                |
-| `layout`         | `row`                 | `row` of chips, or one `summary` chip such as `▤2 ◉2 ⇌2 · ● 1 blocked`                                                                     |
-| `max_chips`      | `6`                   | Chips shown before `+N more` (1 to 20)                                                                                                     |
-| `hook_events`    | `true`                | Watch hook, rule and compaction events. Turn it off if your organization's security guard skips them (see Limits); Hooks and Rules need it |
-| `show_<type>`    | core on, optional off | Show that type: skills, agents, mcp, permissions, hooks, rules, commands, memory, plugins, context, checkpoints, model, background         |
-| `chip_theme`     | `auto`                | `light` or `dark` chip colours, or `auto` to follow the Claude Code theme, then the terminal, then the system                              |
-| `chip_style`     | `tinted`              | `tinted` chips, or `text` for coloured text only                                                                                           |
-| `chip_hotkeys`   | `false`               | Digit hotkeys on chips                                                                                                                     |
-| `toast_on_block` | `true`                | Toast when an action is blocked or denied                                                                                                  |
-| `text_summary`   | `false`               | Where nothing can be drawn, add a one-line `Activity: ▤ docx · ◉ code-reviewer · ↯ block-secrets BLOCKED` beneath each answer              |
+| Option           | Default               | Effect                                                                                                                                                          |
+| ---------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`        | `true`                | Show chips above the prompt                                                                                                                                     |
+| `layout`         | `row`                 | `row` of chips, or one `summary` chip such as `▤2 ◉2 ⇌2 · ● 1 blocked`                                                                                          |
+| `max_chips`      | `6`                   | Chips shown before `+N more` (1 to 20)                                                                                                                          |
+| `hook_events`    | `true`                | Watch hook, rule and compaction events. Turn it off if your organization's security guard skips them (see Limits); Hooks and Rules need it                      |
+| `show_<type>`    | core on, optional off | Show that type: skills, agents, mcp, permissions, hooks, rules, commands, memory, plugins, context, checkpoints, model, background                              |
+| `chip_theme`     | `auto`                | `light` or `dark` chip colours in the terminal, or `auto` to follow the Claude Code theme, then the terminal, then the system. Other surfaces follow the system |
+| `chip_style`     | `tinted`              | `tinted` chips, or `text` for coloured text only                                                                                                                |
+| `chip_hotkeys`   | `false`               | Digit hotkeys on chips                                                                                                                                          |
+| `toast_on_block` | `true`                | Toast when an action is blocked or denied                                                                                                                       |
+| `text_summary`   | `false`               | Where nothing can be drawn, add a one-line `Activity: ▤ docx · ◉ code-reviewer · ↯ block-secrets BLOCKED` beneath each answer                                   |
 
 Chips belong to one conversation. `/clear` and `/resume` empty them; muting lasts until then too.
 
