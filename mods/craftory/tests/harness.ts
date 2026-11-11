@@ -33,7 +33,7 @@ export type WorldOptions = {
   shell?: (
     argv: readonly string[],
     cwd: string | undefined,
-  ) => { exitCode: number; stdout?: string; stderr?: string } | undefined
+  ) => { exitCode: number; stdout?: string; stderr?: string } | { deny: string } | undefined
   ask?: (question: string) => string | undefined
   spawn?: (e: { tool_use_id: string; cwd?: string }) => { agentId: string } | { deny: string }
   usage?: (e: { agentId?: string; index: number }) => {
@@ -47,7 +47,7 @@ export type WorldOptions = {
   window?: number
   racy?: { path: string; onRead: number; text: string }
   /** Commands that answer only after this many milliseconds on the mock clock. */
-  stall?: { when: (argv: readonly string[]) => boolean; ms: number }
+  stall?: { when: (argv: readonly string[]) => boolean; ms: number | (() => number) }
 }
 
 let clockInUse: ReturnType<typeof mock.clock> | undefined
@@ -220,13 +220,17 @@ export const world = (on: On, options: WorldOptions = {}) => {
     ran.push([...e.argv])
     ranIn.push({ argv: [...e.argv], cwd: e.init?.cwd })
     if (options.stall?.when(e.argv)) {
-      // As the engine does: a child still running at its timeout is killed and the call rejects
+      // As the engine does: a child still running at its timeout is killed and the call rejects,
+      // saying so (`<plugin>: $.process.run(<argv0>) aborted: still running after <ms>ms`)
       const limit = e.init?.timeoutMs ?? 30_000
-      if (options.stall.ms > limit) {
+      const ms = typeof options.stall.ms === 'number' ? options.stall.ms : options.stall.ms()
+      if (ms > limit) {
         await clock.sleep(limit)
-        return { deny: `${e.argv[0]}: timed out after ${limit} ms` }
+        return {
+          deny: `craftory: $.process.run(${e.argv[0]}) aborted: still running after ${limit}ms`,
+        }
       }
-      await clock.sleep(options.stall.ms)
+      await clock.sleep(ms)
     }
     const done = (exitCode: number, stdout = '', stderr = '') => ({
       value: { exitCode, stdout, stderr, isStdoutTruncated: false, isStderrTruncated: false },
@@ -245,6 +249,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
       return done(outcome.exitCode, '', outcome.stderr)
     }
     const shelled = a === 'claude' || a === 'gh' ? undefined : options.shell?.(e.argv, e.init?.cwd)
+    if (shelled && 'deny' in shelled) return shelled
     if (shelled) return done(shelled.exitCode, shelled.stdout ?? '', shelled.stderr ?? '')
     if (a === 'gh') {
       const answer = options.gh?.(e.argv)

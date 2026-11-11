@@ -474,6 +474,13 @@ export function outputTail(stdout: string, stderr: string): string {
   return tail.length > TAIL_CHARS ? `…${tail.slice(-(TAIL_CHARS - 1))}` : tail
 }
 
+/**
+ * Whether `$.process.run` rejected because the child outran its `timeoutMs`: the engine kills it
+ * and says it was still running (`… aborted: still running after 30000ms`). Any other rejection,
+ * a command that could not start among them, is not a timeout however long it took.
+ */
+export const isRunTimeout = (message: string) => /\bstill running after \d+ ?ms\b/.test(message)
+
 /** What one run of `worktrees.test` says about the ticket. */
 export function testRunOf(
   outcome:

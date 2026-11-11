@@ -6,6 +6,7 @@ import {
   type FinishReason,
   freshTokens,
   isoOf,
+  isRunTimeout,
   pauseText,
   recordOf,
   type SpawnDecision,
@@ -136,18 +137,15 @@ async function testTicket($: EngineInterface, run: AgentRun) {
   const argv = splitArgv(worktrees.test)
   if (argv === null) return
   const timeoutMs = worktrees.testTimeoutSec * 1000
-  const started = await $.clock.now()
   const outcome = await $.process
     .run(argv, { cwd: await repoPath($, run.worktree), timeoutMs })
     .then(r => ({ kind: 'exited' as const, ...r }))
-    .catch(async (error: unknown) =>
-      (await $.clock.now()) - started >= timeoutMs
+    .catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error)
+      return isRunTimeout(message)
         ? { kind: 'timed-out' as const }
-        : {
-            kind: 'not-run' as const,
-            message: error instanceof Error ? error.message : String(error),
-          },
-    )
+        : { kind: 'not-run' as const, message }
+    })
   const test = testRunOf(outcome, await $.clock.now())
   const record = (await featureOfTicket($, run.ticket)) ?? (await activeRecord($))
   if (record === null) return

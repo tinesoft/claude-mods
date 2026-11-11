@@ -14,6 +14,7 @@ import {
   elapsedText,
   finishRun,
   freshTokens,
+  isRunTimeout,
   moveNotices,
   queueReason,
   raiseRunBudget,
@@ -517,4 +518,14 @@ test('a numbered ref is not mistaken for a longer one', () => {
   const tickets = [row(4, 'Short'), row(44, 'Long')]
   expect(ticketOf(mention('Implement #44'), tickets)?.issue.ref).toBe('#44')
   expect(ticketOf(mention('Implement #4'), tickets)?.issue.ref).toBe('#4')
+})
+
+test('a run is timed out only when the engine says the child was still running at its timeout', () => {
+  expect(isRunTimeout('craftory: $.process.run(pnpm) aborted: still running after 600000ms')).toBe(
+    true,
+  )
+  expect(isRunTimeout('craftory: $.process.run(pnpm) aborted')).toBe(false)
+  expect(isRunTimeout('craftory: $.process.run(pnpm) failed to start: ENOENT: not found')).toBe(
+    false,
+  )
 })

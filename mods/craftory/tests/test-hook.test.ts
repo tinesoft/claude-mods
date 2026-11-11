@@ -5,7 +5,10 @@ import { mountBand, texts, turnComplete, type WorldOptions } from './harness'
 
 const HOUR = 3_600_000
 
-type Outcome = { exitCode: number; stdout?: string; stderr?: string } | 'hang'
+type Outcome =
+  | { exitCode: number; stdout?: string; stderr?: string }
+  | { deny: string; afterMs: number }
+  | 'hang'
 
 /** A repo whose `pnpm test` answers with `outcomes` in turn, the last one repeating. */
 const testing = async (
@@ -29,11 +32,18 @@ const testing = async (
       return outcome === 'hang' ? { exitCode: 0 } : outcome
     },
     // the harness asks this once per command, before it answers
-    stall: { when: argv => isTest(argv) && ++started > 0 && current() === 'hang', ms: HOUR },
+    stall: {
+      when: argv => isTest(argv) && ++started > 0 && stallOf(current()) > 0,
+      ms: () => stallOf(current()),
+    },
     ...extra,
   })
   return { ...built, runs }
 }
+
+/** How long a command waits before it answers: a hang outlasts any timeout. */
+const stallOf = (outcome: Outcome) =>
+  outcome === 'hang' ? HOUR : 'afterMs' in outcome ? outcome.afterMs : 0
 
 const openCard = async ($: Engine) => {
   const band = await mountBand($, 'terminal', 200, 60)
@@ -72,6 +82,18 @@ test('a test run past worktrees.testTimeoutSec marks the ticket Failed, timed ou
   const words = await texts(await openCard($))
   expect(words).toContain('[Failed]')
   expect(words.join(' ')).toContain('timed out')
+})
+
+test('a test command that fails to start only as the timeout is reached is Failed, could not run', async ($, on) => {
+  const { w } = await testing(on, $, [{ deny: 'pnpm: failed to start: ENOENT', afterMs: 30_000 }], {
+    worktrees: { test: 'pnpm test', testTimeoutSec: 30 },
+  })
+  await start($, 43, 'Export button')
+  await turnComplete($, { agentId: 'agent-tu43' })
+  await w.clock.advance(30_000)
+  const words = (await texts(await openCard($))).join(' ')
+  expect(words).toContain('could not run')
+  expect(words).not.toContain('timed out')
 })
 
 test('the next turn of the implementer re-runs the tests, and a pass clears Failed', async ($, on) => {
