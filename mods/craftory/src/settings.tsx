@@ -23,6 +23,8 @@ export type GlossaryEdit = {
 export type SettingsActions = {
   section: (id: SettingsSection) => void
   set: (row: SettingsRow, value: string | boolean) => void
+  /** A number typed in a choice row's own-value field. */
+  setCustom: (row: SettingsRow & { control: 'choice' }, text: string) => void
   saveSetup: () => void
   reset: () => void
   rerunSetup: () => void
@@ -75,7 +77,7 @@ const RowView = ({
 }: Pick<SettingsArgs, 'ui' | 'tone' | 'ascii' | 'facts' | 'readOnly' | 'on'> & {
   row: SettingsRow
 }) => {
-  const { Box, Text } = ui
+  const { Box, Text, Input } = ui
   switch (row.control) {
     case 'switch':
       return (
@@ -106,6 +108,15 @@ const RowView = ({
             current={row.read(facts)}
             onPick={readOnly ? undefined : value => on.set(row, value)}
           />
+          {row.custom !== undefined && Input !== undefined && !readOnly && (
+            <Input
+              key={`set-${row.id}-custom`}
+              value=""
+              placeholder={row.custom.placeholder}
+              submitLabel="set"
+              onSubmit={text => on.setCustom(row, text)}
+            />
+          )}
           {row.hint !== undefined && (
             <Text wrap="wrap" {...inkOf(tone, 'text2')}>
               {row.hint}

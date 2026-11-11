@@ -178,6 +178,8 @@ The Settings tab writes each value where it belongs and saves as you go. The fir
 | Automation    | Suggest the next phase, live agents, underline glossary terms, the four automations, and the two deny rules                                        | `.craftory/config.json`                                                 |
 | Personal      | The options below                                                                                                                                  | `$.store`, on your machine                                              |
 
+The parallel limit, token budget and test timeout each have a field under their choices for a value of your own, such as `12`, `250k` or `90 s`. It is checked against the bounds the file is clamped to.
+
 These `.craftory/config.json` keys sit behind the Worktrees and Automation rows. Each is also editable in the file.
 
 | Key                             | Default | Effect                                                                                   |

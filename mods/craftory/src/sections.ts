@@ -14,6 +14,7 @@ import type {
 } from '../types'
 import { DEFAULT_LABELS } from './agents-md'
 import { budgetK } from './build'
+import { RANGES } from './config'
 import { AGENT_DOCS, CONFIG_FILE, normalise, withSlash } from './files'
 import { PHASE_ORDER, PHASES } from './phases'
 import { otherNote } from './tracker/links'
@@ -57,6 +58,8 @@ export type SettingsRow = RowBase &
         options: (facts: SettingsFacts) => readonly Choice[]
         read: (facts: SettingsFacts) => string
         write: (value: string) => SettingsChange
+        /** A field under the choices for a number of the person's own. */
+        custom?: CustomNumber
       }
     | {
         control: 'text'
@@ -68,6 +71,14 @@ export type SettingsRow = RowBase &
         check?: (text: string) => string | null
       }
   )
+
+/** An own-value field: what it reads typed text as, and the bounds config.json clamps it to. */
+export type CustomNumber = {
+  placeholder: string
+  parse: (text: string) => number | null
+  range: readonly [min: number, max: number]
+  show: (n: number) => string
+}
 
 export type SectionDef = {
   id: SettingsSection
@@ -124,6 +135,36 @@ const listOf = (text: string) =>
 
 const numbers = (steps: readonly number[], show: (n: number) => string, current: number) =>
   [...new Set([...steps, current])].sort((a, b) => a - b).map((n): Choice => [String(n), show(n)])
+
+/** Reads `text` as a number, scaled by the unit after it; null when it is not one, or the unit is unknown. */
+const withUnit =
+  (units: Record<string, number>, integer = true) =>
+  (text: string): number | null => {
+    const match = /^(\d+(?:\.\d+)?)\s*([a-z]*)$/i.exec(text.trim())
+    if (match === null) return null
+    const scale = units[match[2]!.toLowerCase()]
+    if (scale === undefined) return null
+    const n = Number(match[1]) * scale
+    return integer && !Number.isInteger(n) ? null : Math.round(n)
+  }
+
+const rangeOf = (path: string) => RANGES[path]!
+
+const showSeconds = (n: number) => (n % 60 === 0 ? `${n / 60} min` : `${n} s`)
+
+/** The number typed in a choice row's own-value field, or why it is not one. */
+export function checkCustom(
+  row: SettingsRow & { control: 'choice' },
+  text: string,
+): { value: string } | { problem: string } {
+  const custom = row.custom
+  if (custom === undefined) return { problem: `${row.label} takes one of its choices` }
+  const [min, max] = custom.range
+  const n = custom.parse(text)
+  if (n === null || n < min || n > max)
+    return { problem: `${row.label}: use ${custom.show(min)} to ${custom.show(max)}` }
+  return { value: String(n) }
+}
 
 const TRACKER_KINDS: readonly Choice[] = [
   ['local', 'Local Markdown'],
@@ -431,10 +472,16 @@ const WORKTREE_ROWS: readonly SettingsRow[] = [
     control: 'choice',
     options: f =>
       numbers(
-        [1, 2, 3, 4, 6],
+        [1, 2, 3, 4, 6, 8, 10],
         n => (n === 1 ? '1 (one at a time)' : String(n)),
         wt(f.config).maxParallel,
       ),
+    custom: {
+      placeholder: 'Other, such as 12',
+      parse: withUnit({ '': 1 }),
+      range: rangeOf('worktrees.maxParallel'),
+      show: String,
+    },
     read: f => String(wt(f.config).maxParallel),
     write: value => ({ config: { worktrees: { maxParallel: Number(value) } } }),
   },
@@ -444,7 +491,18 @@ const WORKTREE_ROWS: readonly SettingsRow[] = [
     hint: 'Amber at 80%. At 100% the agent stops and reports; its worktree is kept.',
     file: 'config',
     control: 'choice',
-    options: f => numbers([40_000, 80_000, 120_000, 200_000], budgetK, wt(f.config).tokenBudget),
+    options: f =>
+      numbers(
+        [40_000, 80_000, 120_000, 200_000, 300_000, 500_000],
+        budgetK,
+        wt(f.config).tokenBudget,
+      ),
+    custom: {
+      placeholder: 'Other, such as 250k',
+      parse: withUnit({ '': 1, k: 1000, m: 1_000_000 }, false),
+      range: rangeOf('worktrees.tokenBudget'),
+      show: budgetK,
+    },
     read: f => String(wt(f.config).tokenBudget),
     write: value => ({ config: { worktrees: { tokenBudget: Number(value) } } }),
   },
@@ -480,12 +538,13 @@ const WORKTREE_ROWS: readonly SettingsRow[] = [
     hint: 'A run still going then is stopped and the ticket is Failed, timed out.',
     file: 'config',
     control: 'choice',
-    options: f =>
-      numbers(
-        [60, 300, 600],
-        n => (n % 60 === 0 ? `${n / 60} min` : `${n} s`),
-        wt(f.config).testTimeoutSec,
-      ),
+    options: f => numbers([30, 60, 120, 300, 600], showSeconds, wt(f.config).testTimeoutSec),
+    custom: {
+      placeholder: 'Other, such as 90 s or 4 min',
+      parse: withUnit({ '': 1, s: 1, sec: 1, m: 60, min: 60 }, false),
+      range: rangeOf('worktrees.testTimeoutSec'),
+      show: showSeconds,
+    },
     read: f => String(wt(f.config).testTimeoutSec),
     write: value => ({ config: { worktrees: { testTimeoutSec: Number(value) } } }),
   },
@@ -635,6 +694,15 @@ const PERSONAL_ROWS: readonly SettingsRow[] = [
     read: f => f.prefs.ascii,
     write: on => pref({ ascii: on }),
   },
+  {
+    id: 'pref-ask-context',
+    label: 'Ask what to add before a button runs a command',
+    hint: 'Off: the command runs right away with what Craftory already passes it.',
+    file: 'prefs',
+    control: 'switch',
+    read: f => f.prefs.askContext,
+    write: on => pref({ askContext: on }),
+  },
 ]
 
 export const SECTIONS: readonly SectionDef[] = [
@@ -691,15 +759,6 @@ export const SECTIONS: readonly SectionDef[] = [
     title: 'Personal',
     blurb: () => 'Yours alone: saved on this machine, never in the repo.',
     rows: PERSONAL_ROWS,
-  },
-  {
-    id: 'pref-ask-context',
-    label: 'Ask what to add before a button runs a command',
-    hint: 'Off: the command runs right away with what Craftory already passes it.',
-    file: 'prefs',
-    control: 'switch',
-    read: f => f.prefs.askContext,
-    write: on => pref({ askContext: on }),
   },
 ]
 

@@ -22,6 +22,7 @@ import {
 import { namespaced, SKILLS } from '../../src/phases'
 import { hasSkill } from '../../src/plugin'
 import {
+  checkCustom,
   checkText,
   type SettingsChange,
   type SettingsFacts,
@@ -230,6 +231,16 @@ async function applySetting($: EngineInterface, row: SettingsRow, value: string 
         ? row.write(value)
         : undefined
   if (change !== undefined) await commitChange($, change)
+}
+
+async function applyCustom(
+  $: EngineInterface,
+  row: SettingsRow & { control: 'choice' },
+  text: string,
+) {
+  const checked = checkCustom(row, text)
+  if ('problem' in checked) return say($, checked.problem)
+  await commitChange($, row.write(checked.value))
 }
 
 async function saveSetup($: EngineInterface) {
@@ -444,6 +455,7 @@ export async function settingsArgs(
         void update($, settingsSectionState, () => id).then(() => $.ui.invalidate('ui.render'))
       },
       set: (row, value) => void applySetting($, row, value),
+      setCustom: (row, text) => void applyCustom($, row, text),
       saveSetup: () => void saveSetup($),
       reset: () => void resetSettings($),
       rerunSetup: () => void rerunSetup($),

@@ -3,7 +3,14 @@ import type { Engine } from 'claude-code/testing'
 import { DEFAULT_LABELS } from '../src/agents-md'
 import { DEFAULT_CONFIG } from '../src/config'
 import { TOKENS } from '../src/theme'
-import { ALL_ROWS, pathOf, SECTIONS, type SettingsFacts, type SettingsRow } from '../src/sections'
+import {
+  ALL_ROWS,
+  checkCustom,
+  pathOf,
+  SECTIONS,
+  type SettingsFacts,
+  type SettingsRow,
+} from '../src/sections'
 import { UPSTREAM_FIXTURES as up } from './upstream-fixtures'
 import {
   allText,
@@ -315,4 +322,48 @@ test('Worktrees shows the test command, unset, and its 600 s timeout', async ($,
   await pane.press({ key: 'set-wt-test-timeout-300' })
   const config = JSON.parse(w.files.get('.craftory/config.json')!)
   expect(config.worktrees).toMatchObject({ test: 'pnpm test', testTimeoutSec: 300 })
+})
+
+const choiceRow = (id: string) => {
+  const row = ALL_ROWS.find(r => r.id === id)!
+  if (row.control !== 'choice') throw new Error(`${id} is not a choice row`)
+  return row
+}
+
+test('the own-value fields read their units and keep to the config bounds', () => {
+  const parallel = choiceRow('wt-max-parallel')
+  const budget = choiceRow('wt-token-budget')
+  const timeout = choiceRow('wt-test-timeout')
+  expect(checkCustom(parallel, '12')).toEqual({ value: '12' })
+  expect(checkCustom(parallel, '2.5')).toEqual({
+    problem: 'Parallel worktrees, at most: use 1 to 16',
+  })
+  expect(checkCustom(parallel, '17')).toEqual({
+    problem: 'Parallel worktrees, at most: use 1 to 16',
+  })
+  expect(checkCustom(budget, '250k')).toEqual({ value: '250000' })
+  expect(checkCustom(budget, '1M')).toEqual({ value: '1000000' })
+  expect(checkCustom(budget, '150000')).toEqual({ value: '150000' })
+  expect(checkCustom(budget, '5k')).toEqual({ problem: 'Token budget per agent: use 10k to 1000k' })
+  expect(checkCustom(timeout, '90 s')).toEqual({ value: '90' })
+  expect(checkCustom(timeout, '4 min')).toEqual({ value: '240' })
+  expect(checkCustom(timeout, '45')).toEqual({ value: '45' })
+  expect(checkCustom(timeout, '15 min')).toEqual({ problem: 'Test timeout: use 10 s to 10 min' })
+  expect(checkCustom(timeout, 'soon')).toEqual({ problem: 'Test timeout: use 10 s to 10 min' })
+})
+
+test('Worktrees › a parallel limit of your own is saved and shown among the choices', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'worktrees')
+  await pane.input({ key: 'set-wt-max-parallel-custom', text: '12' })
+  expect(JSON.parse(w.files.get('.craftory/config.json')!).worktrees.maxParallel).toBe(12)
+  await pane.redraw()
+  await pane.press({ key: 'set-wt-max-parallel-12' })
+})
+
+test('Worktrees › an own value out of bounds is refused with the bounds', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'worktrees')
+  await pane.input({ key: 'set-wt-token-budget-custom', text: '2M' })
+  expect(w.files.get('.craftory/config.json')).toBeUndefined()
+  await pane.redraw()
+  expect(await allText(pane)).toContain('Token budget per agent: use 10k to 1000k')
 })

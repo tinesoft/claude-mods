@@ -67,9 +67,10 @@ const ENUMS: Record<string, readonly string[]> = {
   'entry.triage.enterAt': ['align', 'bugs-build-else-align', 'tickets'],
   'entry.wayfinder.suggest': ['long-grill', 'off'],
 }
-const RANGES: Record<string, readonly [number, number]> = {
+/** The bounds a number in config.json is clamped to; the Settings tab's own-value fields use them too. */
+export const RANGES: Record<string, readonly [number, number]> = {
   'entry.wayfinder.afterQuestions': [1, 50],
-  'worktrees.maxParallel': [1, 6],
+  'worktrees.maxParallel': [1, 16],
   'worktrees.tokenBudget': [10_000, 1_000_000],
   // the engine kills a child at ten minutes at most
   'worktrees.testTimeoutSec': [10, 600],
