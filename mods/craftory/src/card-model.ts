@@ -126,15 +126,21 @@ export function fitRail(args: {
   return { mode: 'chip', titleMax: 0, compactMap: false, wrap: false }
 }
 
+export type CardDensity = 'roomy' | 'compact'
+
 /**
- * Every card's spacing, on every surface, however tall the card is: a card taller than the band
- * scrolls there, so a tall card (Build with its agents) never trades padding for height.
+ * A card's spacing. Roomy everywhere, except over a rail that wraps (Desktop), where the card goes
+ * compact so it and the rail fit the band together. A card still taller than the band scrolls.
+ * The terminal never goes compact: there `xs` is no row, and the card would lose its blank lines.
  */
-export const CARD_SPACE = { padX: 'lg', padY: 'lg', gap: 'md' } as const satisfies {
-  padX: Space
-  padY: Space
-  gap: Space
-}
+export const CARD_SPACE = {
+  roomy: { padX: 'lg', padY: 'lg', gap: 'md' },
+  compact: { padX: 'lg', padY: 'xs', gap: 'xs' },
+} as const satisfies Record<CardDensity, { padX: Space; padY: Space; gap: Space }>
+
+/** Compact only over a wrapping rail on a rich surface. */
+export const cardDensity = (fit: RailFit, rich: boolean): CardDensity =>
+  rich && fit.mode === 'row' && fit.wrap ? 'compact' : 'roomy'
 
 export type CardView = {
   kicker: string

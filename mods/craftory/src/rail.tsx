@@ -2,6 +2,7 @@ import type { RenderElement, RenderSurface } from 'claude-code'
 import type { CraftoryConfig, FeatureKey, IssueRef, PhaseId, RailLayout, Tone } from '../types'
 import type { AgentsView } from './build'
 import {
+  cardDensity,
   summaryParts,
   fitRail,
   focusPhase,
@@ -585,7 +586,14 @@ export function renderBand(args: BandArgs) {
       {args.isPickingFeature && args.features.length > 1 && <FeaturePicker args={args} />}
       {open !== null && !asChip && (
         <Box key="card-slot" flexDirection="column" marginBottom={SPACE.cardAbove}>
-          <DetailCard ui={ui} tone={tone} ascii={args.ascii} card={cardOf(open)} on={on} />
+          <DetailCard
+            ui={ui}
+            tone={tone}
+            ascii={args.ascii}
+            card={cardOf(open)}
+            density={cardDensity(rail, isRich(ui))}
+            on={on}
+          />
         </Box>
       )}
       {mapCard && args.map !== null && (

@@ -1,7 +1,7 @@
 import type { RenderElement } from 'claude-code'
 import type { Tone } from '../types'
 import { helperSvg, hexOr } from './icons'
-import { CARD_SPACE, type CardView } from './card-model'
+import { CARD_SPACE, type CardDensity, type CardView } from './card-model'
 import type { Acts } from './action'
 import { AgentsList } from './agents-list'
 import { CLOSE, paint, SPACE, TOKENS, TRIPLES } from './theme'
@@ -101,15 +101,17 @@ export const DetailCard = ({
   card,
   on,
   ascii = false,
+  density = 'roomy',
 }: {
   ui: Ui
   tone: Tone | undefined
   card: CardView
   on: CardActions
   ascii?: boolean
+  density?: CardDensity
 }) => {
   const { Box, Button, Link, Text } = ui
-  const space = CARD_SPACE
+  const space = CARD_SPACE[density]
   const rich = isRich(ui) && tone !== undefined
   const surface = rich ? TOKENS[tone].surface : undefined
   const colours = paint(card.role, tone)

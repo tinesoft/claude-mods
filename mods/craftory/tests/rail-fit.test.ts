@@ -93,14 +93,20 @@ for (const surface of ['terminal', 'desktop'] as const) {
   })
 }
 
-for (const surface of ['terminal', 'desktop'] as const) {
-  for (const phase of ['spec', 'review', 'build'] as const) {
-    test(`${surface}: the ${phase} card keeps the roomy spacing in a short band`, async ($, on) => {
-      featureWorld(on, { surfaces: [surface], theme: 'light', ...mixed() })
-      await startSession($, surface)
-      await (await mountBand($, surface, 120, 12)).press({ key: `phase-${phase}` })
-      const card = (await (await mountBand($, surface, 120, 12)).find({ key: 'card' }))!
-      expect(card.props).toMatchObject({ paddingX: 'lg', paddingY: 'lg', rowGap: 'md' })
-    })
-  }
+for (const phase of ['spec', 'review', 'build'] as const) {
+  test(`terminal: the ${phase} card keeps the roomy spacing in a short band`, async ($, on) => {
+    featureWorld(on, { surfaces: ['terminal'], theme: 'light', ...mixed() })
+    await startSession($, 'terminal')
+    await (await mountBand($, 'terminal', 120, 12)).press({ key: `phase-${phase}` })
+    const card = (await (await mountBand($, 'terminal', 120, 12)).find({ key: 'card' }))!
+    expect(card.props).toMatchObject({ paddingX: 'lg', paddingY: 'lg', rowGap: 'md' })
+  })
+
+  test(`desktop: the ${phase} card goes compact over the wrapping rail`, async ($, on) => {
+    featureWorld(on, { surfaces: ['desktop'], theme: 'light', ...mixed() })
+    await startSession($, 'desktop')
+    await (await mountBand($, 'desktop', 120, 12)).press({ key: `phase-${phase}` })
+    const card = (await (await mountBand($, 'desktop', 120, 12)).find({ key: 'card' }))!
+    expect(card.props).toMatchObject({ paddingX: 'lg', paddingY: 'xs', rowGap: 'xs' })
+  })
 }
