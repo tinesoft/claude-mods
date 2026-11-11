@@ -52,6 +52,11 @@ test('the toast and retro texts', () => {
   expect(retroText(null)).toBe('Retro ready')
   expect(retroSuggestions('Ranked:\n1. Do a\n2) Do b\n3. Do c\nthanks')).toBe(3)
   expect(retroSuggestions('nothing ranked')).toBeNull()
+  expect(retroSuggestions('')).toBeNull()
+  expect(retroSuggestions('No candidates for improvement this time.')).toBe(0)
+  expect(retroSuggestions('Nothing to improve: the session ran clean.')).toBe(0)
+  expect(retroSuggestions('No suggestions.')).toBe(0)
+  expect(retroText(0)).toBe('Retro ready · 0 ranked suggestions')
 })
 
 const GLOSSARY = '## Language\n\n**Ledger line**:\nA row.\n_Avoid_: line item\n'

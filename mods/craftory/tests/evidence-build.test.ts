@@ -269,12 +269,28 @@ test('Retro is done when retro ended after Ship with ranked suggestions', () => 
   expect(retroOf({ ranAt: AT(50), endedAt: AT(55) }, pr()).blockers).toEqual(['Ship is not done'])
   expect(retroOf({}, ready).blockers).toEqual(['not run yet'])
   expect(retroOf({ ranAt: AT(50) }, ready).blockers).toEqual(['the retro has not finished'])
-  expect(retroOf({ ranAt: AT(50), endedAt: AT(55) }, ready).blockers).toEqual([
+  expect(retroOf({ ranAt: AT(50), endedAt: AT(55), unparsedAt: AT(55) }, ready).blockers).toEqual([
     'the retro produced no ranked suggestions',
   ])
+  const none = retroOf(
+    { ranAt: AT(50), endedAt: AT(55), artifacts: ['0 ranked suggestions'] },
+    ready,
+  )
+  expect(none.state).toEqual({ kind: 'done', artifact: '0 ranked suggestions' })
   const done = retroOf(
     { ranAt: AT(50), endedAt: AT(55), artifacts: ['3 ranked suggestions'] },
     ready,
   )
   expect(done.state).toEqual({ kind: 'done', artifact: '3 ranked suggestions' })
+})
+
+test('a retro that finished before its suggestions were read stays done', () => {
+  const legacy = view(
+    flowOf({
+      feature: feature({ ...EARLIER, retro: { ranAt: AT(50), endedAt: AT(55) } }),
+      tracker: tracker(BUILT, pr({ isDraft: false })),
+    }),
+    'retro',
+  )
+  expect(legacy.state).toEqual({ kind: 'done', artifact: null })
 })

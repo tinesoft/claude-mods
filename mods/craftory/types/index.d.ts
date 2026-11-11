@@ -255,6 +255,11 @@ export type PhaseMark = {
   endedAt?: IsoTime
   markedDoneAt?: IsoTime
   artifacts?: string[]
+  /**
+   * The phase ended with an answer Craftory could not read its evidence from (a retro with no
+   * ranked suggestions to count). A mark ended before this was kept has neither it nor artifacts.
+   */
+  unparsedAt?: IsoTime
   /** The unmet Done-when nudge was raised for this phase; it is not raised again for this Feature. */
   nudgedAt?: IsoTime
 }

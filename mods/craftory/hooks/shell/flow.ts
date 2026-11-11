@@ -318,17 +318,19 @@ export async function finishTurn(
     return ended
   }
   await update($, runningState, () => null)
-  const suggestions = running.phase === 'retro' && !e.isAborted ? retroSuggestions(e.answer) : null
+  const isRetro = running.phase === 'retro'
+  const suggestions = isRetro && !e.isAborted ? retroSuggestions(e.answer) : null
   if (running.feature !== null && running.phase !== null) {
     await recordChange($, running.feature, {
       kind: 'ended',
       phase: running.phase,
       at: isoOf(await $.clock.now()),
-      // The ranked suggestions are the Retro phase's evidence
+      // The ranked suggestions are the Retro phase's evidence; a retro cancelled or without them is unmet
       ...(suggestions !== null && { artifacts: [rankedText(suggestions)] }),
+      ...(isRetro && suggestions === null && { isUnparsed: true }),
     })
   }
-  if (running.phase === 'retro' && !e.isAborted) {
+  if (isRetro && !e.isAborted) {
     await addNotice($, {
       kind: 'retro-ready',
       id: `retro-${await $.clock.now()}`,

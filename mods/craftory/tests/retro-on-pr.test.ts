@@ -159,3 +159,33 @@ test('the Retro phase completes from the ranked suggestions /retro produced', as
   const record = stored(w)
   expect(record.marks.retro.artifacts).toEqual(['3 ranked suggestions'])
 })
+
+test('a retro that says it found nothing to improve completes the phase with 0 ranked suggestions', async ($, on) => {
+  const w = github(on, { state: 'MERGED' })
+  await startSession($)
+  await skillPrompt($, 'retro')
+  await turnComplete($, { answer: 'No candidates for improvement: the session ran clean.' })
+  const record = stored(w)
+  expect(record.marks.retro.artifacts).toEqual(['0 ranked suggestions'])
+  expect(record.marks.retro.unparsedAt).toBeUndefined()
+})
+
+test('a retro whose answer has no ranked suggestions to read leaves the phase unmet', async ($, on) => {
+  const w = github(on, { state: 'MERGED' })
+  await startSession($)
+  await skillPrompt($, 'retro')
+  await turnComplete($, { answer: 'I looked at the session and have some thoughts.' })
+  const record = stored(w)
+  expect(record.marks.retro.artifacts).toBeUndefined()
+  expect(record.marks.retro.unparsedAt).toBe(record.marks.retro.endedAt)
+})
+
+test('a cancelled retro leaves the phase unmet', async ($, on) => {
+  const w = github(on, { state: 'MERGED' })
+  await startSession($)
+  await skillPrompt($, 'retro')
+  await turnComplete($, { answer: '1. Half a suggestion', reason: 'aborted', isAborted: true })
+  const record = stored(w)
+  expect(record.marks.retro.artifacts).toBeUndefined()
+  expect(record.marks.retro.unparsedAt).toBe(record.marks.retro.endedAt)
+})

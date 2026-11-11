@@ -47,9 +47,18 @@ export function findDrift(
 export const driftText = (f: Pick<DriftFinding, 'avoided' | 'count'>) =>
   `Glossary drift · the diff says "${f.avoided}" ${f.count} ${f.count === 1 ? 'time' : 'times'}`
 
+/** An answer that says outright the retro found nothing to suggest. */
+const NOTHING_RANKED =
+  /\b(?:no (?:candidates|suggestions|improvements|findings)|nothing to (?:improve|suggest))\b/i
+
+/**
+ * How many ranked suggestions a /retro answer makes: its numbered lines, or 0 when it says it
+ * found nothing. Null when the answer gives neither, so there is nothing to read.
+ */
 export function retroSuggestions(answer: string): number | null {
   const n = answer.match(/^\s*\d+[.)]\s+\S/gm)?.length ?? 0
-  return n > 0 ? n : null
+  if (n > 0) return n
+  return NOTHING_RANKED.test(answer) ? 0 : null
 }
 
 export const rankedText = (suggestions: number) =>
