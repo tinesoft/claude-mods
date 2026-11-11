@@ -12,14 +12,14 @@
 
 ## Versions
 
-"Pinned" can't hold on every surface. CI pins 2.1.302, the Desktop app bundles its own build (it runs 2.1.321 as of 2026-11-11), and the terminal `claude` is the Homebrew cask, still 2.1.311. Write down the version each surface actually ran. Treat a failure on a newer build as a finding, not a blocker, and file it.
+"Pinned" can't hold on every surface. CI pins 2.1.302, the Desktop app bundles its own build (it runs 2.1.321 as of 2026-11-11), and the terminal `claude` is the native install, 2.1.322 (it replaced the Homebrew cask, which stopped at 2.1.311). Write down the version each surface actually ran. Treat a failure on a newer build as a finding, not a blocker, and file it.
 
-| Surface  | Version | Light | Dark | Notes                                                                      |
-| -------- | ------- | ----- | ---- | -------------------------------------------------------------------------- |
-| Terminal | 2.1.311 | –     | ✓    | Agent pass: static render only (the agent can't press anything in the TUI) |
-| Desktop  |         |       |      |                                                                            |
-| VS Code  |         |       |      |                                                                            |
-| Mobile   |         |       |      |                                                                            |
+| Surface  | Version | Light | Dark | Notes                                                                    |
+| -------- | ------- | ----- | ---- | ------------------------------------------------------------------------ |
+| Terminal | 2.1.322 | ✓     | ✓    | All checks passed (user, 2026-11-11). Agent first-render pass on 2.1.311 |
+| Desktop  | 2.1.321 | ✓     | ✓    | All checks passed (user, 2026-11-11), after the compact-card fix         |
+| VS Code  |         |       |      |                                                                          |
+| Mobile   |         |       |      |                                                                          |
 
 ## Checklist (per surface, per theme)
 
@@ -68,4 +68,9 @@ Terminal, 2.1.311, 120 columns, first render in this repo:
 - OK: the rail order (tray, map chip, title, phases, gear); the map chip reads `name · n decided · n open` without route status; the rail wraps onto a second line and doesn't drop to the summary; glyphs line up.
 - Settled: the tray stays `Triage` (with a count when items wait); DESIGN.md's Rail section now says so.
 - Settled: the `⚠` before the status line is drawn by the terminal only, and Desktop doesn't show it. Nothing for Craftory to do.
-- Still to do by hand on the terminal: press a phase (card, `×`), the frontier card, `/craftory` pane tabs 1–5, the `$.ui.ask` prompts, `TaskStop`, light theme.
+- Fixed (`dd968b9`): the terminal card close read `x: ×`, and now reads `x: Close`.
+- Terminal, 2.1.322, light and dark: every check passed.
+
+Desktop, 2.1.321:
+
+- Fixed: with a card open, the card and the wrapped rail didn't fit, so the band scrolled. `e4114ed` had removed compact spacing everywhere to fix the terminal Build card's missing blank lines. Compact is now back on Desktop only, whenever the rail wraps (story 25), and the terminal stays roomy. You checked it live and decided to keep it. A Build card with a long agents list can still scroll.
