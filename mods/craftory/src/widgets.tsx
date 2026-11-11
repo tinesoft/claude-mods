@@ -114,6 +114,8 @@ export const Segments = ({
           <Box
             key={`${prefix}-${id}-${value}-box`}
             paddingX={SPACE.tabPad}
+            paddingY={0}
+            marginY={0}
             {...(rich &&
               t &&
               isOn && {
