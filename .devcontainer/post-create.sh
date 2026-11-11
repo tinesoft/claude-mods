@@ -61,6 +61,10 @@ run_command "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/
 run_command "RTK_TELEMETRY_DISABLED=1 rtk init -g --auto-patch" #init for Claude Code
 echo "✅ Done"
 
+echo -e "\n🦊 Installing GitLab CLI (glab)..."
+run_command "GLAB_URL=\$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://gitlab.com/gitlab-org/cli/-/releases/permalink/latest) && GLAB_VERSION=\${GLAB_URL##*/v} && curl -fsSL -o /tmp/glab.deb \"https://gitlab.com/gitlab-org/cli/-/releases/v\${GLAB_VERSION}/downloads/glab_\${GLAB_VERSION}_linux_\$(dpkg --print-architecture).deb\" && sudo apt-get install -y /tmp/glab.deb && rm -f /tmp/glab.deb"
+echo "✅ Done"
+
 # Cleaning up apt cache to reduce image size
 
 echo -e "\n🧹 Cleaning cache..."
