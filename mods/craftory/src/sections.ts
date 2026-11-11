@@ -692,6 +692,15 @@ export const SECTIONS: readonly SectionDef[] = [
     blurb: () => 'Yours alone: saved on this machine, never in the repo.',
     rows: PERSONAL_ROWS,
   },
+  {
+    id: 'pref-ask-context',
+    label: 'Ask what to add before a button runs a command',
+    hint: 'Off: the command runs right away with what Craftory already passes it.',
+    file: 'prefs',
+    control: 'switch',
+    read: f => f.prefs.askContext,
+    write: on => pref({ askContext: on }),
+  },
 ]
 
 export const ALL_ROWS: readonly SettingsRow[] = SECTIONS.flatMap(s => s.rows)

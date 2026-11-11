@@ -211,3 +211,21 @@ test('a button that runs a skill asks what to add, and passes the answer along',
   await (await mountBand($)).press({ key: 'notice-run' })
   expect(w.commandsRun.at(-1)).toMatchObject({ args: 'an invoice CSV export' })
 })
+
+test('with the question turned off, a button runs its skill without asking', async ($, on) => {
+  const asked: string[] = []
+  const w = world(on, {
+    commands: mattCommands(...MATT_SKILLS),
+    plugins: IN_RANGE,
+    files: { ...SETUP_FILES },
+    store: { prefs: { askContext: false } },
+    ask: q => {
+      asked.push(q)
+      return q.startsWith('Anything to add for') ? 'an invoice CSV export' : undefined
+    },
+  })
+  await startSession($)
+  await (await mountBand($)).press({ key: 'notice-run' })
+  expect(asked.filter(q => q.startsWith('Anything to add for'))).toEqual([])
+  expect(w.commandsRun.at(-1)?.args).not.toContain('an invoice CSV export')
+})

@@ -94,7 +94,14 @@ export type RailLayout = 'row' | 'summary'
 export type ThemeChoice = 'auto' | 'light' | 'dark'
 export type Tone = 'light' | 'dark'
 
-export type Prefs = { rail: boolean; railLayout: RailLayout; theme: ThemeChoice; ascii: boolean }
+export type Prefs = {
+  rail: boolean
+  railLayout: RailLayout
+  theme: ThemeChoice
+  ascii: boolean
+  /** Ask "Anything to add for /<command>?" before a button runs a skill. */
+  askContext: boolean
+}
 export type PrefOverrides = Partial<Prefs>
 
 export type TrackerKind = 'local' | 'github' | 'gitlab' | 'other'

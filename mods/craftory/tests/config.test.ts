@@ -91,6 +91,7 @@ test('personal prefs: store overrides userConfig, junk in the store is dropped',
     railLayout: 'summary',
     theme: 'dark',
     ascii: false,
+    askContext: true,
   })
   expect(resolvePrefs({ ascii_glyphs: true }, null).ascii).toBe(true)
   expect(resolvePrefs({ ascii_glyphs: true }, { ascii: false }).ascii).toBe(false)
@@ -99,11 +100,19 @@ test('personal prefs: store overrides userConfig, junk in the store is dropped',
     railLayout: 'row',
     theme: 'light',
     ascii: false,
+    askContext: true,
   })
   expect(parsePrefOverrides({ rail: 'yes', theme: 'neon', railLayout: 'row' })).toEqual({
     railLayout: 'row',
   })
   expect(parsePrefOverrides(7)).toEqual({})
+})
+
+test('personal prefs: the "anything to add" question is on unless turned off', () => {
+  expect(resolvePrefs({}, null).askContext).toBe(true)
+  expect(resolvePrefs({}, { askContext: false }).askContext).toBe(false)
+  expect(parsePrefOverrides({ askContext: false })).toEqual({ askContext: false })
+  expect(parsePrefOverrides({ askContext: 'no' })).toEqual({})
 })
 
 test('branch names come from the templates', () => {

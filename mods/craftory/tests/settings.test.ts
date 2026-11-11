@@ -74,7 +74,7 @@ const FACTS: SettingsFacts = {
     docs: { glossary: 'GLOSSARY.md', adr: 'docs/adr/' },
     steering: 'CLAUDE.md',
   },
-  prefs: { rail: true, railLayout: 'row', theme: 'auto', ascii: false },
+  prefs: { rail: true, railLayout: 'row', theme: 'auto', ascii: false, askContext: true },
 }
 
 for (const row of ALL_ROWS) {

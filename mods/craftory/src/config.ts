@@ -180,17 +180,19 @@ export function resolvePrefs(
     railLayout: overrides?.railLayout ?? (options.rail_layout === 'summary' ? 'summary' : 'row'),
     theme: overrides?.theme ?? theme,
     ascii: overrides?.ascii ?? options.ascii_glyphs === true,
+    askContext: overrides?.askContext ?? true,
   }
 }
 
 export function parsePrefOverrides(stored: unknown): PrefOverrides {
   if (!isRecord(stored)) return {}
-  const { rail, railLayout, theme, ascii } = stored
+  const { rail, railLayout, theme, ascii, askContext } = stored
   return {
     ...(typeof rail === 'boolean' && { rail }),
     ...(railLayout === 'row' || railLayout === 'summary' ? { railLayout } : {}),
     ...(theme === 'auto' || theme === 'light' || theme === 'dark' ? { theme } : {}),
     ...(typeof ascii === 'boolean' && { ascii }),
+    ...(typeof askContext === 'boolean' && { askContext }),
   }
 }
 

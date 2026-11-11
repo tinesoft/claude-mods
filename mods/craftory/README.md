@@ -204,6 +204,8 @@ The personal options are plugin options (`/config`, or `pluginConfigs` in settin
 | `theme`        | `auto`  | `light` or `dark` colours in the terminal, or `auto` to follow the Claude Code theme, then the terminal, then the system. Desktop and mobile always follow the system appearance |
 | `ascii_glyphs` | `false` | Draw the rail with plain characters for terminals that draw symbols two cells wide                                                                                               |
 
+The Personal tab also has **Ask what to add before a button runs a command**, on by default. It is set in the pane only. Turn it off and a button that runs a skill skips the "Anything to add for /<command>?" question.
+
 ---
 
 ## 🔒 Data, programs and permissions

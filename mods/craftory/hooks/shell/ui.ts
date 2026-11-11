@@ -307,9 +307,10 @@ const NOTHING_MORE = 'Nothing to add'
 
 /**
  * Asks whether to add to what a button is about to run. The args stand when there is nothing to
- * add or no one to ask.
+ * add, no one to ask, or the person turned the question off in Settings.
  */
 export async function withContext($: EngineInterface, question: string, args: string) {
+  if ((await read($, prefsState))?.askContext === false) return args
   const answer = await $.ui.ask(question, [NOTHING_MORE]).catch(() => null)
   if (answer === null || answer === NOTHING_MORE || answer.trim() === '') return args
   return args === '' ? answer : `${args} ${answer}`
