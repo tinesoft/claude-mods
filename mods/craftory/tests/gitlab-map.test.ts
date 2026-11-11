@@ -123,3 +123,17 @@ test('a plan without blocking links (HTTP 403) falls back to the Blocked by line
   if (!snapshot.rich) throw new Error('expected a rich tracker')
   expect(mapView(snapshot.maps![0]!).takeable.length).toBeGreaterThan(0)
 })
+
+test('captured: real glab output from the sandbox project reads into the same model', async () => {
+  const [map, ...others] = await mapsOf('captured')
+  expect(others).toEqual([])
+  expect(map).toMatchObject({ ref: '#1', source: 'gitlab', title: 'Billing v2', hasFog: true })
+  // the free tier has no native links, so every edge comes from a Blocked by: line
+  expect(await rows('captured')).toEqual([
+    ['#2', 'resolved', null, []],
+    ['#3', 'claimed', 'tinesoft', []],
+    ['#4', 'open', null, ['#2']],
+    ['#5', 'open', null, ['#3']],
+    ['#6', 'open', null, ['#5']],
+  ])
+})
