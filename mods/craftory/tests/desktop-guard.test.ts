@@ -276,3 +276,46 @@ for (const state of STATES) {
     })
   }
 }
+
+const luminance = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map(i => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+}
+
+/**
+ * Every Button whose nearest filled ancestor is the wrong way round for the theme, as
+ * `button-key on #fill`. Desktop draws a Button's label in its own colour, light in dark mode and
+ * dark in light mode, so a light fill behind one in dark mode hides the label (and the reverse).
+ */
+const buttonsOnClashingFill = (tree: unknown, tone: 'light' | 'dark') => {
+  const out: string[] = []
+  const walk = (node: unknown, fill: string | undefined) => {
+    if (node === null || typeof node !== 'object') return
+    const n = node as Node
+    if (n.type === 'Button') {
+      if (fill !== undefined && fill !== CLEAR && /^#[0-9A-Fa-f]{6}$/.test(fill)) {
+        const light = luminance(fill) > 0.4
+        if (light === (tone === 'dark')) out.push(`${String(n.props?.key)} on ${fill}`)
+      }
+      return
+    }
+    const own = n.props?.backgroundColor
+    for (const child of n.children ?? []) walk(child, typeof own === 'string' ? own : fill)
+  }
+  walk(tree, undefined)
+  return out
+}
+
+for (const state of STATES) {
+  for (const tone of ['light', 'dark'] as const) {
+    test(`desktop ${tone}, ${state.name}: no Button sits on a fill its label cannot be read on`, async ($, on) => {
+      const drawn = await trees(
+        await state.draw(on, $, 'desktop', { surfaces: ['desktop'], theme: tone }),
+      )
+      expect(drawn.flatMap(tree => buttonsOnClashingFill(tree, tone))).toEqual([])
+    })
+  }
+}
