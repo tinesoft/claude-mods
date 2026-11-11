@@ -122,3 +122,16 @@ test('a lookup the host does not support (HTTP 404) falls back to the Blocked by
   expect(view.takeable.length).toBeGreaterThan(0)
   expect(snapshot.maps![0]!.tickets.some(t => t.blockersUnknown === true)).toBe(false)
 })
+
+test('captured: real gh output from the sandbox repo reads into the same model', async () => {
+  const [map, ...others] = await mapsOf('captured')
+  expect(others).toEqual([])
+  expect(map).toMatchObject({ ref: '#1', source: 'github', title: 'Billing v2', hasFog: true })
+  expect(await rows('captured')).toEqual([
+    ['#2', 'resolved', null, []],
+    ['#3', 'claimed', 'tinesoft', []],
+    ['#4', 'open', null, ['#2']], // a closed blocker stays an edge; it is not a live gate
+    ['#5', 'open', null, ['#3']],
+    ['#6', 'open', null, ['#5']],
+  ])
+})
