@@ -76,6 +76,17 @@ export const byNumber = (a: { ref: IssueRef }, b: { ref: IssueRef }) => {
   return rankA - rankB || featureA.localeCompare(featureB, 'en', { numeric: true }) || nA - nB
 }
 
+/**
+ * The `Status:` values a Local file uses besides the triage roles: the one list both Local readers
+ * (local.ts, local-map.ts) and the `.scratch` tools (tools/check-scratch.mjs) read. `closed` is
+ * finished without being done; the others are done. wayfinder writes `resolved`.
+ */
+export const FINISHED_STATUSES = ['resolved', 'done', 'closed'] as const
+export const WORKING_STATUSES = ['claimed', 'in-progress', 'in progress'] as const
+
+export const isFinishedStatus = (status: string) =>
+  (FINISHED_STATUSES as readonly string[]).includes(status.trim().toLowerCase())
+
 /** A `Status: x` style line, plain or bold, as Matt's skills write it near the top of a file. */
 export const upstreamLine = (label: string) =>
   new RegExp(`^(?:\\*\\*)?${label}:(?:\\*\\*)?[ \\t]*(.*?)[ \\t]*$`, 'im')

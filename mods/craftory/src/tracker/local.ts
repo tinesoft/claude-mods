@@ -1,7 +1,7 @@
 import type { Issue, IssueRef, IssueStatus, TriageLabels, TriageRole } from '../../types'
 import type { ReadResult, TrackerSpec } from './index'
 import { mapOf, type MapPlan } from './local-map'
-import { blockersOf, byNumber, storiesIn, upstreamLine } from './refs'
+import { blockersOf, byNumber, isFinishedStatus, storiesIn, upstreamLine } from './refs'
 
 const ROLE_BY_NAME = (labels: TriageLabels, text: string): TriageRole | null => {
   const roles = Object.keys(labels) as TriageRole[]
@@ -14,9 +14,8 @@ function statusOf(
 ): { status: IssueStatus; role: TriageRole | null } {
   const text = raw.trim().toLowerCase()
   if (text === 'in-progress' || text === 'in progress') return { status: 'in-progress', role: null }
-  // `resolved` is how wayfinder and this repo's tickets mark one finished (local-map.ts reads it so too).
-  if (text === 'done' || text === 'resolved') return { status: 'done', role: null }
   if (text === 'closed') return { status: 'closed', role: null }
+  if (isFinishedStatus(text)) return { status: 'done', role: null }
   const role = ROLE_BY_NAME(labels, text)
   return { status: role === 'wontfix' ? 'closed' : 'open', role }
 }

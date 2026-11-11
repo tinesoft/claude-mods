@@ -1,5 +1,5 @@
 import type { IssueRef, WayMap, WayState, WayTicket } from '../../types'
-import { blockersOf, headOf, sectionOf, TICKET_TYPES, upstreamLine } from './refs'
+import { blockersOf, headOf, isFinishedStatus, sectionOf, TICKET_TYPES, upstreamLine } from './refs'
 
 /** The files of one effort folder holding a `map.md`, with or without a `spec.md`: a map if its text says so. */
 export type MapPlan = {
@@ -14,15 +14,15 @@ export type MapTexts = { map: string | null; tickets: (string | null)[] }
 const lineOf = (head: string, label: string) => upstreamLine(label).exec(head)?.[1] ?? ''
 /**
  * What a file's own `Status:` and `Assignee:` lines say, and nothing it quotes in its prose.
- * `closed` and `done` count as resolved because the Local issue reader (local.ts) takes
- * them as finished, so a map file that carries either reads the same; an `Assignee:` is the Local claim, as an issue's
+ * Any of `FINISHED_STATUSES` counts as resolved, the list the Local issue reader (local.ts) uses
+ * too, so a map file and a feature file read the same; an `Assignee:` is the Local claim, as an issue's
  * assignee is elsewhere (ticket 01's `mixed` scenario has one claimed ticket with an assignee).
  */
 function stateOf(head: string): { state: WayState; assignee: string | null } {
   const status = lineOf(head, 'Status').toLowerCase()
   const assignee = lineOf(head, 'Assignee').replace(/^@/, '')
   const who = assignee === '' || /^none$/i.test(assignee) ? null : assignee
-  if (['resolved', 'closed', 'done'].includes(status)) return { state: 'resolved', assignee: who }
+  if (isFinishedStatus(status)) return { state: 'resolved', assignee: who }
   if (status === 'claimed' || who !== null) return { state: 'claimed', assignee: who }
   return { state: 'open', assignee: null }
 }
