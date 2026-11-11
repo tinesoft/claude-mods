@@ -16,6 +16,7 @@ import type {
   PullRequest,
   TrackerKind,
 } from '../types'
+import type { Flow } from './evidence'
 import { isMattSkill, PHASES, SKILLS } from './phases'
 
 /** A scope fired with this prefix re-arms when a new session starts. */
@@ -119,17 +120,11 @@ export const isArchitectureDue = (lastRun: string | null, now: number) =>
   lastRun === null || now - Date.parse(lastRun) > ARCHITECTURE_EVERY_MS
 
 /**
- * A Feature is mid-Build from the record alone, since no agent survives a restart: Build ran,
- * nobody marked it done, and no later phase has started.
+ * A Feature is mid-Build when the rail shows its Build Running: a Build skill or agent is live.
+ * A Build that ran and was left behind is not, so it never holds the check back for good.
  */
-export const isMidBuild = (record: Pick<FeatureRecord, 'marks'>) => {
-  const { build, review, ship, retro } = record.marks
-  return (
-    build?.ranAt !== undefined &&
-    build.markedDoneAt === undefined &&
-    [review, ship, retro].every(m => m?.ranAt === undefined)
-  )
-}
+export const isMidBuild = (flow: Pick<Flow, 'phases'>) =>
+  flow.phases.find(p => p.phase === 'build')?.state.kind === 'running'
 
 export const isArchitectureSkill = (name: string, bare?: (skill: string) => boolean) =>
   isMattSkill(name, SKILLS.improveArchitecture, bare)

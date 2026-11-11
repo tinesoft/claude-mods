@@ -4,7 +4,7 @@ import { integrationBranchFor } from '../../src/config'
 import { driftDiffArgv, findDrift, rankedText, retroSuggestions } from '../../src/drift'
 import { skipGateDenial } from '../../src/deny'
 import { deriveFlow, type Flow } from '../../src/evidence'
-import { enteredRecord, featureOf, specKey } from '../../src/features'
+import { draftKey, enteredRecord, featureOf, specKey } from '../../src/features'
 import { dropText, type RunRequest } from '../../src/gates'
 import { termKey } from '../../src/glossary'
 import type { InboxAction } from '../../src/pane-view'
@@ -57,6 +57,26 @@ export async function currentFlow($: EngineInterface): Promise<Flow | null> {
   const feature = featureOf(active, features, drafts)
   if (feature === null) return null
   return deriveFlow({ feature, config, tracker, running, build })
+}
+
+/** The flow of every Feature and draft, as the rail would show each one active. */
+export async function everyFlow($: EngineInterface): Promise<Flow[]> {
+  const [{ config }, features, drafts, tracker, running, build] = await Promise.all([
+    repoFacts($),
+    featuresOf($),
+    draftsOf($),
+    trackerOf($),
+    read($, runningState),
+    ledgerOf($),
+  ])
+  const keys = [
+    ...Object.values(features).map(f => specKey(f.spec)),
+    ...Object.keys(drafts).map(draftKey),
+  ]
+  return keys.flatMap(key => {
+    const feature = featureOf(key, features, drafts)
+    return feature === null ? [] : [deriveFlow({ feature, config, tracker, running, build })]
+  })
 }
 
 /**

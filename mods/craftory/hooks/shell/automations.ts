@@ -28,8 +28,8 @@ import { markOf } from '../../src/features'
 import { bareIsOurs } from '../../src/plugin'
 import { STATE_FILE } from '../../src/files'
 import type { AutomationNotice, FeatureKey, PhaseId } from '../../types'
-import { activeKey, activeRecord, featuresOf, recordChange } from './features'
-import { currentFlow } from './flow'
+import { activeKey, activeRecord, recordChange } from './features'
+import { currentFlow, everyFlow } from './flow'
 import { addNotice, heldNotices, removeNotices } from './notices'
 import { pluginOf, readText, repoFacts, repoSnapshot, writableContext, writeRepoFile } from './repo'
 import { trackerKindOf, trackerOf } from './tracker'
@@ -105,7 +105,7 @@ export async function answerAutomation($: EngineInterface, noticeId: string) {
 export async function offerArchitecture($: EngineInterface) {
   const { config } = await repoFacts($)
   if (!config.automation.weeklyArchitecture || (await hasFired($, ARCHITECTURE_SCOPE))) return
-  if (Object.values(await featuresOf($)).some(isMidBuild)) return
+  if ((await everyFlow($)).some(isMidBuild)) return
   const last = architectureLastRunOf(await readText($, STATE_FILE))
   if (isArchitectureDue(last, await $.clock.now())) await raiseAutomation($, architectureNotice())
 }

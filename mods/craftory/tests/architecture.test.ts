@@ -12,6 +12,7 @@ import {
   turnComplete,
   type WorldOptions,
 } from './harness'
+import { building, start } from './build-harness'
 
 const ON = { '.craftory/config.json': JSON.stringify({ automation: { weeklyArchitecture: true } }) }
 const STATE = '.craftory/state.json'
@@ -58,14 +59,21 @@ test('a last run within 7 days stays silent', async ($, on) => {
   expect(await band($)).not.toContain(NOTICE)
 })
 
-test('it is skipped while a Feature is mid-Build', async ($, on) => {
+test('it is skipped while a Build agent is running', async ($, on) => {
+  await building(on, $, { now: NOW, files: ON })
+  await start($, 43, 'Export button')
+  await startSession($)
+  expect(await band($)).not.toContain(NOTICE)
+})
+
+test('an abandoned Build, run but with nothing running now, does not block it', async ($, on) => {
   const AT = '2026-11-09T10:00:00Z'
   await session(on, $, {
     '.craftory/features/csv.json': featureJson({
       marks: { align: { ranAt: AT }, spec: { ranAt: AT }, build: { ranAt: AT } },
     }),
   })
-  expect(await band($)).not.toContain(NOTICE)
+  expect(await band($)).toContain(NOTICE)
 })
 
 test('the click submits /improve-codebase-architecture asking for needs-triage findings, which reach the Inbox', async ($, on) => {
