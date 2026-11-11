@@ -44,13 +44,13 @@ const colouredInButtons = (tree: unknown) =>
     .map(n => textIn(n))
 
 for (const surface of BAND_SURFACES) {
-  test(`${surface}: the card's close is one plain glyph that answers x`, async ($, on) => {
+  test(`${surface}: the card's close is plain, answers x, and reads Close on the terminal`, async ($, on) => {
     featureWorld(on, { surfaces: [surface] })
     const band = await openPhase($, surface, 'spec')
     const close = await band.find({ key: 'close' })
     expect(close?.props).toMatchObject({ plain: true, hotkey: 'x' })
     expect(close?.props.role).toBeUndefined()
-    expect(close?.text).toBe('×')
+    expect(close?.text).toBe(surface === 'terminal' ? 'Close' : '×')
     await band.press({ key: 'close' })
     expect(await (await mountBand($, surface, 200, 60)).find({ key: 'card' })).toBeUndefined()
   })
@@ -82,7 +82,8 @@ for (const surface of BAND_SURFACES) {
         .map(w => (w === helpersLine ? 'tdd' : w))
         .filter(w => BOARD_ORDER.includes(w))
       expect(words.filter((w, i) => words.indexOf(w) === i)).toEqual(BOARD_ORDER)
-      expect(textIn(tree).indexOf('×')).toBeLessThan(textIn(tree).indexOf('Runs every'))
+      const close = surface === 'terminal' ? 'Close' : '×'
+      expect(textIn(tree).indexOf(close)).toBeLessThan(textIn(tree).indexOf('Runs every'))
       const primary = await band.find({ key: 'primary' })
       expect(primary?.props).toMatchObject({
         label: 'r: /implement-spec .scratch/csv/spec.md',
@@ -115,10 +116,16 @@ for (const surface of BAND_SURFACES) {
   }
 }
 
-test('the ascii pref draws the close as x', async ($, on) => {
+test('the ascii pref draws the Desktop close as x', async ($, on) => {
+  featureWorld(on, { surfaces: ['desktop'], store: { prefs: { ascii: true } } })
+  expect((await (await openPhase($, 'desktop', 'spec')).find({ key: 'close' }))?.text).toBe('x')
+})
+
+test('the terminal close reads Close under the ascii pref too', async ($, on) => {
   featureWorld(on, { store: { prefs: { ascii: true } } })
-  const band = await openPhase($, 'terminal', 'spec')
-  expect((await band.find({ key: 'close' }))?.text).toBe('x')
+  expect((await (await openPhase($, 'terminal', 'spec')).find({ key: 'close' }))?.text).toBe(
+    'Close',
+  )
 })
 
 const usage = (fresh: number) => ({

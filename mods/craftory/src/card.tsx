@@ -140,7 +140,7 @@ export const DetailCard = ({
           </Text>
         </Box>
         <Button key="close" plain hotkey="x" label="Close" onPress={() => on.closeCard()}>
-          {ascii ? CLOSE.ascii : CLOSE.glyph}
+          {isRich(ui) ? (ascii ? CLOSE.ascii : CLOSE.glyph) : 'Close'}
         </Button>
       </Box>
       <Text {...inkOf(tone, 'ink2')} {...withTint(surface)}>
