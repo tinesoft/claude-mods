@@ -63,13 +63,12 @@ All resolved while grilling (Oct 24–25, 2026).
 | 20 | Onboarding | A "Set up Craftory" step opens Settings pre-filled from the repo; saving writes what `/setup-matt-pocock-skills` would |
 | 21 | Automations | Run at session start (weekly check if the last run is over 7 days old). Glossary drift scans the integration diff when Review starts and before Ship |
 | 22 | Everything else | As session-activity: MIT, conventional commits, `nx release`, VS Code and mobile get pane + status line, cloud gets text at most |
+| 23 | Default entry phase for a `ready-for-agent` triage item (was O1) | "Bugs enter at Build, the rest at Align" (`entry.triage.enterAt: 'bugs-build-else-align'`): a well-specified bug skips straight to Build, a feature request still gets grilled |
+| 24 | Tested `mattpocock-skills` range (was O2) | `>=1.3.0 <1.4.0` (`TESTED_RANGE` in `phases.ts`), widened per release after the E2E suite passes |
 
 ### Still open
 
-| # | Question | Why it matters | Recommended default |
-| --- | --- | --- | --- |
-| O1 | Default entry phase for a `ready-for-agent` triage item | Grilling settled "start at Build via `/implement`"; the canvas's Entry points select defaults to "Enter at Align" and offers "Bugs enter at Build, the rest at Align" | Default "Bugs enter at Build, the rest at Align", which satisfies both: a well-specified bug skips straight to Build, a feature request still gets grilled |
-| O2 | Tested `mattpocock-skills` range | His skills change without notice; Craftory parses their outputs | `>=1.3.0 <1.4.0`, widened per release after the E2E suite passes |
+None. O1 and O2 are closed as Decisions 23 and 24.
 
 ## Dependency on mattpocock-skills
 
@@ -241,8 +240,8 @@ Each milestone ends in a PR to `develop`; M5 ends in the first release from `mai
 
 **M0 · Scaffold**
 
-- [ ] `mods/craftory` with `package.json`, `project.json`, `tsconfig.json`, `plugin.json`; listed in the marketplace and README
-- [ ] Registers `/craftory` (opens an empty pane); `lint typecheck validate test` green
+- [x] `mods/craftory` with `package.json`, `project.json`, `tsconfig.json`, `plugin.json`; listed in the marketplace and README
+- [x] Registers `/craftory` (opens an empty pane); `lint typecheck validate test` green
 
 **M1 · Spikes** (findings written back into this file)
 
@@ -285,15 +284,15 @@ Not yet observed on a live client: the band and pane on a terminal or Desktop, l
 
 **M2 · Model, config and setup**
 
-- [ ] `phases.ts`, `config.ts`, `features.ts`, `agents-md.ts`, `glossary.ts`, `tracker/local.ts` with tests
-- [ ] Plugin missing notice, install flow, version range
-- [ ] First-run setup writes `docs/agents/*.md`, the `## Agent skills` block, `.craftory/config.json`, `.gitignore` entry; output identical to `/setup-matt-pocock-skills` for the same answers
+- [x] `phases.ts`, `config.ts`, `features.ts`, `agents-md.ts`, `glossary.ts`, `tracker/local.ts` with tests
+- [x] Plugin missing notice, install flow, version range
+- [x] First-run setup writes `docs/agents/*.md`, the `## Agent skills` block, `.craftory/config.json`, `.gitignore` entry; output identical to `/setup-matt-pocock-skills` for the same answers
 
 **M3 · Rail and Align → Tickets**
 
-- [ ] Rail with every state, detail card, commands submitted namespaced
-- [ ] Evidence for Align, Spec, Tickets on Local and GitHub; feature switcher; soft gates
-- [ ] Status line, toasts
+- [x] Rail with every state, detail card, commands submitted namespaced
+- [x] Evidence for Align, Spec, Tickets on Local and GitHub; feature switcher; soft gates
+- [x] Status line, toasts
 
 **M4 · Build, Review, Ship, Retro**
 
@@ -311,8 +310,9 @@ Not yet observed on a live client: the band and pane on a terminal or Desktop, l
 
 **M6 · Optional**
 
-- [ ] Automations: handoff at 80%, retro on PR, weekly architecture check
-- [ ] Wayfinder parent rail; multi-context `GLOSSARY-MAP.md`; cloud text summary
+- [x] Automations: handoff at 80%, retro on PR, weekly architecture check
+- [x] Wayfinder parent rail; cloud text summary
+- Multi-context `GLOSSARY-MAP.md` is left out of 1.0.0 on purpose (Decision 19): the Glossary tab edits one `GLOSSARY.md`
 
 ## Risks and references
 

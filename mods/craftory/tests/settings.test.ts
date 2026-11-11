@@ -156,6 +156,16 @@ test('an empty value is refused with a reason and nothing is written', async ($,
   expect(await allText(pane)).toContain('Worktree folder needs a value')
 })
 
+test('a path outside the repo is refused with a hint at the Local tracker default, .scratch/', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'docs')
+  await pane.input({ key: 'set-docs-adr', text: '../elsewhere/' })
+  await pane.redraw()
+  expect(w.writes).toEqual([])
+  const words = await allText(pane)
+  expect(words).toContain('Use a path inside the repo, such as .scratch/')
+  expect(words).not.toContain('docs/issues/')
+})
+
 test('mobile draws every value but no control that changes one', async ($, on) => {
   const { pane } = await settings(on, $, 'local', {}, 'mobile', 'worktrees')
   expect(await allText(pane)).toContain('Settings are read-only on mobile')

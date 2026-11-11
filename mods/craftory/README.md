@@ -31,7 +31,7 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 - 🔄 **A full SDLC, not just a rail.** Seven phases cover the lifecycle from idea to retro, each started by one of Matt's skills.
 - 🧭 **An SDLC rail for the active feature.** Seven phases, each with a state glyph, a text badge and what it produced, such as `#42` or `1/5`.
 - 🔍 **A card per phase.** Press a phase to see what the phase does, the command that starts it, the skills it uses, what it wrote, and its gate.
-- 🚦 **Soft gates.** Starting a phase whose gated predecessor is not done asks first, with **Run anyway** and **Diagnose**. Nothing is refused.
+- 🚦 **Soft gates.** Starting a phase whose gated predecessor is not done asks first, with **Run anyway** and **Diagnose**. Nothing is refused unless you turn on a deny rule.
 - 🤖 **Build steering.** One git worktree and branch per implementer, at most `maxParallel` at a time, and a token budget per agent with a live Agents list.
 - 📋 **A full pane.** `/craftory` opens Flow, Tickets with a triage Inbox, Worktrees, Glossary and Settings.
 - ⚙️ **Settings that edit the repo's own files.** The tracker, triage labels, docs layout and glossary are written where Matt's skills read them, exactly as `/setup-matt-pocock-skills` writes them.
@@ -131,9 +131,19 @@ Two deny rules, off by default, turn a soft check into a refusal. Each denial na
 - Each agent has a token budget, 80k by default, counted as input, cache-creation and output tokens. The bar turns amber at 80%. At 100% Craftory stops the agent and ends its turn with a note: the agent's next step is answered without a request, and the note goes to Claude as the Agent result, saying the ticket ran out of budget, that its worktree is kept, and not to restart it. The ticket is marked over budget. An agent that finishes by itself on the step that crossed the budget is marked done. The card offers **Raise budget** and **Diagnose**.
 - When the integration branch moves, Craftory tells the running agents to merge it. It never rebases a worktree under an agent. A merge conflict stops the agent the same way, with a note about the conflict, and the band offers **Resolve**.
 - An agent recorded as running by a session that has since ended is marked stopped when the next session starts, so its worktree is kept as stopped work and not defended as a running agent.
+- With `worktrees.test` set, Craftory runs that command in the ticket's worktree after the implementer's turn ends with its answer, off the turn, once per turn end. The command is split into words (quotes group them) and run without a shell. A non-zero exit marks the ticket Failed with the tail of the output on the card. A run still going after `worktrees.testTimeoutSec` (600 by default, at most 600) is stopped and the ticket is Failed, timed out. A later turn of that implementer runs it again and clears Failed when it passes. With `worktrees.test` empty, the default, nothing runs: Craftory never guesses a command.
 - Craftory refuses a `git worktree remove` or an `rm` of a worktree it keeps (running, failed, stopped or over budget). The check reads the command's words and is best-effort. It does not follow variables, globs or a preceding `cd`.
 
 The Build card lists every agent with its ticket, status, TDD step when the agent reports one, token bar, time, worktree, branch, `+added −removed` lines and commits. **Pause all** stops new spawns and sends the running agents a message to finish their current step, commit and report. **Open panel** opens the Worktrees tab.
+
+### Automations
+
+Four opt-in automations, all off by default, each turned on in Settings › Automation. Each one shows a band notice before it does anything, only while no turn is running, with one action and **Dismiss**. A dismissed notice stays gone for its scope.
+
+- **Handoff at 80%** (`automation.handoffAt80`). When the main session's context reaches 80%, the notice offers **Write handoff**, which submits `/handoff`. Once per session, never for a subagent. The handoff document it writes is linked from the active feature's card.
+- **Retro on PR** (`automation.retroOnPr`). When the active feature's PR merges, during the session or while you were away, the notice offers `/retro`. Once per feature. Retro is done when `/retro` has produced its ranked suggestions, or reported that it has none.
+- **Weekly architecture check** (`automation.weeklyArchitecture`). At session start, when the last run is over 7 days old and no feature is mid-Build, the notice offers `/improve-codebase-architecture`. Its findings land in the Inbox as `needs-triage` items. The date of the last finished run is kept in `.craftory/state.json`, so a cancelled run does not count.
+- **Nudge on unmet Done when** (`automation.nudgeUnmetDone`). When a turn ends in a running phase whose Done when is not met, the notice names the phase and what is missing, with no action but **Dismiss**. Once per phase per feature.
 
 ### The pane
 
@@ -164,11 +174,24 @@ The Settings tab writes each value where it belongs and saves as you go. The fir
 | Docs layout   | Glossary file, ADR folder, research notes, steering file (`CLAUDE.md` by default, or `AGENTS.md`)                                                  | `docs/agents/domain.md` and the steering file's `## Agent skills` block |
 | Glossary      | Add, edit and delete terms, and import terms from `CONTEXT.md`                                                                                     | `GLOSSARY.md`                                                           |
 | Pipeline      | Each phase on or off, its command and its gate. Helper skills are shown, not edited                                                                | `.craftory/config.json`                                                 |
-| Worktrees     | Folder, integration branch, ticket branch, parallel limit, token budget, setup command, files to copy, and four switches                           | `.craftory/config.json`                                                 |
-| Automation    | Suggest the next phase, live agents, underline glossary terms, and three switches marked "Not active yet"                                          | `.craftory/config.json`                                                 |
+| Worktrees     | Folder, integration branch, ticket branch, parallel limit, token budget, setup command, files to copy, test command and timeout, and four switches | `.craftory/config.json`                                                 |
+| Automation    | Suggest the next phase, live agents, underline glossary terms, the four automations, and the two deny rules                                        | `.craftory/config.json`                                                 |
 | Personal      | The options below                                                                                                                                  | `$.store`, on your machine                                              |
 
-The Local Markdown tracker reads the layout Matt's skills write, in place: `.scratch/<feature>/spec.md` and `.scratch/<feature>/issues/NN-*.md`, with `Status:` and `Blocked by:` lines. A feature is its folder name (`csv`) and a ticket is `csv/01`; a bare number in `Blocked by:` names a ticket of the same feature and `other/02` one of another. An issue file in a folder with no `spec.md` is a standalone issue for the Inbox, and a folder with a `map.md` and no `spec.md` is a wayfinder map, not a feature. A spec counts as created when its file last changed, which is how a draft finds it. Setup writes Matt's own Local tracker doc.
+These `.craftory/config.json` keys sit behind the Worktrees and Automation rows. Each is also editable in the file.
+
+| Key                             | Default | Effect                                                                                   |
+| ------------------------------- | ------- | ---------------------------------------------------------------------------------------- |
+| `worktrees.test`                | `""`    | Test command run in a ticket's worktree after its implementer's turn. Empty runs nothing |
+| `worktrees.testTimeoutSec`      | `600`   | Seconds before a test run is stopped and the ticket is Failed, timed out (10 to 600)     |
+| `automation.handoffAt80`        | `false` | Offer `/handoff` at 80% context                                                          |
+| `automation.retroOnPr`          | `false` | Offer `/retro` when the feature's PR merges                                              |
+| `automation.weeklyArchitecture` | `false` | Offer `/improve-codebase-architecture` when the last run is over 7 days old              |
+| `automation.nudgeUnmetDone`     | `false` | Say what is missing when a turn ends in a running phase whose Done when is not met       |
+| `deny.skipGate`                 | `false` | Refuse a gated phase's skill until the phase before it is done (see Gates)               |
+| `deny.editOnIntegrationBranch`  | `false` | Refuse `Edit` and `Write` in the main checkout on the integration branch (see Gates)     |
+
+The Local Markdown tracker keeps its files under `.scratch/` by default, the same place `/setup-matt-pocock-skills` puts local issues. It reads the layout Matt's skills write, in place: `.scratch/<feature>/spec.md` and `.scratch/<feature>/issues/NN-*.md`, with `Status:` and `Blocked by:` lines. A feature is its folder name (`csv`) and a ticket is `csv/01`; a bare number in `Blocked by:` names a ticket of the same feature and `other/02` one of another. An issue file in a folder with no `spec.md` is a standalone issue for the Inbox, and a folder with a `map.md` and no `spec.md` is a wayfinder map, not a feature. A spec counts as created when its file last changed, which is how a draft finds it. Setup writes Matt's own Local tracker doc.
 
 The Map readers are tested against fixture sets of what `/wayfinder` writes, under `mods/craftory/tests/fixtures/wayfinder/<range>/<source>/<scenario>/`. The tested `mattpocock-skills` range is 1.3.x, so the sets live in `1.3/`. When the supported range moves to 1.4, add a sibling `1.4/` set and run both side by side until `1.3/` is dropped. Each fixture file's first line says whether it was captured from the real skill or hand-made.
 
@@ -204,6 +227,7 @@ Craftory writes only these files, and checks each write against this list:
 | `GLOSSARY.md` (or the glossary file set in Settings)            | `grill-with-docs`, `domain-modeling` |
 | `.gitignore` (the `.claude/worktrees/` line)                    | Your repo                            |
 | `.craftory/config.json`, `.craftory/features/<spec>.json`       | Craftory, committed                  |
+| `.craftory/state.json` (the last architecture check)            | Craftory, git-ignored, one per repo  |
 
 It never writes under `.git/`, and the glossary file must end in `.md`. It never writes issue files: Matt's skills do. It never touches content outside the sections it owns. A write to a shared file, or to `.craftory/config.json`, fails and reloads if the file changed since Craftory read it. A setting is applied to `config.json` as it is after you confirm any question, so an edit made while the question was open is kept. Personal settings and pre-spec drafts are saved with `$.store`, on your machine. Feature records are written as soon as they change. Commit them so teammates see the same rail.
 
@@ -212,13 +236,14 @@ It never writes under `.git/`, and the glossary file must end in `.md`. It never
 | When                                | Command                                                                                                                                                                                           |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Session start                       | `claude plugin list --json`, to read the `mattpocock-skills` version                                                                                                                              |
+| A Build implementer's turn ends     | Your `worktrees.test` command in the ticket's worktree, when it is set, stopped after `worktrees.testTimeoutSec`                                                                                  |
 | You press **Install** or **Update** | `claude plugin install mattpocock-skills@claude-plugins-official` (or `update`)                                                                                                                   |
 | A GitHub tracker refresh            | `gh issue list`, `gh api …/sub_issues`, `gh api …/dependencies/blocked_by`, `gh pr view <branch>`                                                                                                 |
 | A Build agent starts                | `git branch <integration> HEAD` when the integration branch is missing, `git worktree add -b <branch> <path> <base>`, `cp` for each file in `copy`, then your `setup` command once you approve it |
 | Worktrees tab, cleanup, drift scan  | `git worktree list`, `git status`, `git diff`, `git rev-list`, `git rev-parse`, `git log`, `git branch`, `git remote get-url origin`, `git worktree remove`, `git worktree prune`                 |
 | Every five seconds                  | The system appearance probe that session-activity runs (`defaults`, `gsettings` or `reg`), 1.5 s timeout                                                                                          |
 
-It starts no other program. The `setup` command is the one in `.craftory/config.json`, which your team commits, so Craftory asks before it runs a command you have not approved on this machine.
+It starts no other program. The `setup` and `test` commands are the ones in `.craftory/config.json`, which your team commits. Craftory asks before it runs a `setup` command you have not approved on this machine. The `test` command runs without asking, since you set it to be run after every implementer.
 
 **What its hooks decide**
 
@@ -246,7 +271,7 @@ It starts no other program. The `setup` command is the one in `.craftory/config.
 - Copying files into a worktree uses `cp`, which Windows lacks outside WSL.
 - Glyphs such as `▲`, `◐` and `–` are one cell wide in Claude Code's layout. A terminal that draws them two cells wide misaligns the rail. Turn on `ascii_glyphs`.
 - GitLab and Other trackers show links only, so their Spec, Tickets and Build states come from the skills that ran and from **Mark done**.
-- A multi-context `GLOSSARY-MAP.md` in the Glossary tab and the automations marked "Not active yet" are not built.
+- The Glossary tab edits one `GLOSSARY.md`. A multi-context `GLOSSARY-MAP.md` is left out of 1.0.0 on purpose: a repo with several contexts can point the glossary file at one of them.
 
 ---
 

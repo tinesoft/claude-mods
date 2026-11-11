@@ -41,7 +41,6 @@ type RowBase = {
   file: SettingsFile
   visible?: (facts: SettingsFacts) => boolean
   header?: true
-  inactive?: string
 }
 
 export type SettingsRow = RowBase &
@@ -113,7 +112,7 @@ const line = (
 })
 
 export const pathCheck = (text: string) =>
-  normalise(text) === undefined ? 'Use a path inside the repo, such as docs/issues/' : null
+  normalise(text) === undefined ? 'Use a path inside the repo, such as .scratch/' : null
 
 const listOf = (text: string) =>
   text

@@ -71,11 +71,6 @@ const RowView = ({
   row: SettingsRow
 }) => {
   const { Box, Text } = ui
-  const note = row.inactive && (
-    <Text key={`inactive-${row.id}`} wrap="wrap" color={paint('hook', tone).fg}>
-      {`Not active yet · ${row.inactive}`}
-    </Text>
-  )
   switch (row.control) {
     case 'switch':
       return (
@@ -90,7 +85,6 @@ const RowView = ({
             isOn={row.read(facts)}
             onChange={readOnly ? undefined : isOn => on.set(row, isOn)}
           />
-          {note}
         </Box>
       )
     case 'choice':
@@ -112,7 +106,6 @@ const RowView = ({
               {row.hint}
             </Text>
           )}
-          {note}
         </Box>
       )
     case 'text':
@@ -129,7 +122,6 @@ const RowView = ({
             {...(row.rows !== undefined && { rows: row.rows })}
             onSubmit={readOnly ? undefined : text => on.set(row, text)}
           />
-          {note}
         </Box>
       )
     default: {
