@@ -95,7 +95,8 @@ wide; M1 checks `▸ ⊘ ▲` and falls back to `> x !`.
 
 ## Rail
 
-Left to right: the triage button (`Inbox 3` when items wait), a divider, seven phases joined by
+Left to right: the triage button (always labelled `Triage`, with a count when items wait: `Triage 3`;
+the Tickets tab's list is the Inbox), a divider, seven phases joined by
 connectors (teal when the phase before is done, neutral otherwise), the active feature title (a
 switcher when several features are in flight), and a gear opening the Settings tab.
 
