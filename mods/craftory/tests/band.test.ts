@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { TOKENS, TRIPLES } from '../src/theme'
+import { TRIPLES } from '../src/theme'
 import { allText, BAND_SURFACES, mattCommands, mountBand, startSession, world } from './harness'
 
 const INSTALL_ARGV = ['claude', 'plugin', 'install', 'mattpocock-skills@claude-plugins-official']
@@ -44,8 +44,10 @@ for (const tone of ['light', 'dark'] as const) {
       borderColor: TRIPLES.hook[tone].bd,
     })
     expect((await band.findAll({ type: 'Svg' })).length).toBe(1)
-    const install = await band.find({ key: 'notice-install-box' })
-    expect(install?.props).toMatchObject({ backgroundColor: TOKENS[tone].inverseBg })
+    // Desktop's own primary button: a fill of ours would sit under its light label in dark mode.
+    const install = await band.find({ key: 'notice-install' })
+    expect(install?.props).toMatchObject({ variant: 'primary' })
+    expect(await band.find({ key: 'notice-install-box' })).toBeUndefined()
     const label = (await band.findAll({ type: 'Text' })).find(t =>
       t.text.includes('Craftory needs'),
     )

@@ -119,9 +119,7 @@ for (const tone of ['light', 'dark'] as const) {
     expect(
       within((await band.find({ key: 'frontier' }))!).filter(e => e.type === 'Svg').length,
     ).toBe(1)
-    expect((await band.find({ key: 'frontier-work-next-box' }))!.props.backgroundColor).toBe(
-      t.inverseBg,
-    )
+    expect((await band.find({ key: 'frontier-work-next' }))!.props.variant).toBe('primary')
   })
 }
 

@@ -189,9 +189,7 @@ for (const surface of BAND_SURFACES) {
       expect(nodes(badge).some(n => n.type === 'Button')).toBe(false)
       expect(nodes(badge).find(n => n.type === 'Text')?.props?.color).toBeDefined()
       expect(nodes(keyed(tree, 'agent-worktree-csv/01')).some(n => n.type === 'Svg')).toBe(true)
-      expect(keyed(tree, 'agents-pause-box')?.props).toMatchObject({
-        borderColor: TOKENS[tone].line,
-      })
+      expect(keyed(tree, 'agents-pause')?.props).toMatchObject({ variant: 'secondary' })
       expect(colouredInButtons(tree)).toEqual([])
     })
   }

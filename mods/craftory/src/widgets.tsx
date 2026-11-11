@@ -243,8 +243,10 @@ export const buttonFrame = (tone: Tone, primary = false) => {
 }
 
 /**
- * A bordered button on rich surfaces, `[ label ]` elsewhere; `primary` fills it with the inverse ink.
- * On rich surfaces the look is the Box's: Desktop drops any colour inside a Button.
+ * Desktop's own button on rich surfaces, `[ label ]` elsewhere; `primary` is the surface's primary
+ * button. Desktop draws its own colours for both themes and drops any colour set inside a Button,
+ * so a fill of ours would sit under Desktop's light label in dark mode. `compact` sets the label at
+ * the smallest type step, for a notice row.
  */
 export const CardButton = ({
   ui,
@@ -252,13 +254,15 @@ export const CardButton = ({
   id,
   label,
   primary = false,
+  compact = false,
   onPress,
 }: Common & {
   label: string
   primary?: boolean
+  compact?: boolean
   onPress: (surface: RenderSurface) => void
 }) => {
-  const { Box, Button, Text } = ui
+  const { Button, Text } = ui
   if (!isRich(ui) || tone === undefined) {
     return (
       <Button key={id} plain onPress={press => onPress(press.surface)}>
@@ -267,11 +271,14 @@ export const CardButton = ({
     )
   }
   return (
-    <Box key={`${id}-box`} {...buttonFrame(tone, primary)}>
-      <Button key={id} plain onPress={press => onPress(press.surface)}>
-        {label}
-      </Button>
-    </Box>
+    <Button
+      key={id}
+      label={label}
+      variant={primary ? 'primary' : 'secondary'}
+      onPress={press => onPress(press.surface)}
+    >
+      {compact ? <Text size="caption">{label}</Text> : label}
+    </Button>
   )
 }
 

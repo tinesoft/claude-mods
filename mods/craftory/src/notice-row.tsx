@@ -79,6 +79,7 @@ export const NoticeRow = ({ ui, tone, notice, on }: NoticeArgs) => {
           id={`notice-${button.id}`}
           label={button.label}
           primary={button.primary === true}
+          compact
           onPress={() => on.act(button.action)}
         />
       ))}
