@@ -50,6 +50,19 @@ test('the tone follows the pref, then the Claude Code theme, then the terminal',
   expect(resolveTone({ ...base, surface: 'desktop', claudeTheme: 'dark-ansi' })).toBe('light')
 })
 
+test('Desktop follows the system appearance whatever the pref, as its own band and buttons do', () => {
+  const desktop = {
+    theme: 'dark',
+    claudeTheme: 'auto',
+    surface: 'desktop',
+    colorFgBg: undefined,
+    system: 'light',
+  } as const
+  expect(resolveTone(desktop)).toBe('light')
+  expect(resolveTone({ ...desktop, theme: 'light', system: 'dark' })).toBe('dark')
+  expect(resolveTone({ ...desktop, surface: 'terminal' })).toBe('dark')
+})
+
 test('the OS appearance decides where the terminal and the app say nothing, as in session-activity', () => {
   const base = {
     theme: 'auto',

@@ -197,12 +197,12 @@ The Map readers are tested against fixture sets of what `/wayfinder` writes, und
 
 The personal options are plugin options (`/config`, or `pluginConfigs` in settings). Changes made in the pane override them and persist across sessions.
 
-| Option         | Default | Effect                                                                                                   |
-| -------------- | ------- | -------------------------------------------------------------------------------------------------------- |
-| `rail`         | `true`  | Show the phase rail above the prompt                                                                     |
-| `rail_layout`  | `row`   | `row` of phases, or one `summary` chip                                                                   |
-| `theme`        | `auto`  | `light` or `dark` colours, or `auto` to follow the Claude Code theme, then the terminal, then the system |
-| `ascii_glyphs` | `false` | Draw the rail with plain characters for terminals that draw symbols two cells wide                       |
+| Option         | Default | Effect                                                                                                                                                                           |
+| -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rail`         | `true`  | Show the phase rail above the prompt                                                                                                                                             |
+| `rail_layout`  | `row`   | `row` of phases, or one `summary` chip                                                                                                                                           |
+| `theme`        | `auto`  | `light` or `dark` colours in the terminal, or `auto` to follow the Claude Code theme, then the terminal, then the system. Desktop and mobile always follow the system appearance |
+| `ascii_glyphs` | `false` | Draw the rail with plain characters for terminals that draw symbols two cells wide                                                                                               |
 
 ---
 

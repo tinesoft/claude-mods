@@ -41,6 +41,8 @@ type RowBase = {
   file: SettingsFile
   visible?: (facts: SettingsFacts) => boolean
   header?: true
+  /** Hidden where it does nothing: off the terminal, where the surface draws in its own theme. */
+  terminalOnly?: true
 }
 
 export type SettingsRow = RowBase &
@@ -614,6 +616,7 @@ const PERSONAL_ROWS: readonly SettingsRow[] = [
     id: 'pref-theme',
     label: 'Theme',
     file: 'prefs',
+    terminalOnly: true,
     control: 'choice',
     options: () => [
       ['auto', 'Auto'],
@@ -716,8 +719,12 @@ export function pathOf(file: SettingsFile, setup: AgentSetup): string {
   }
 }
 
-export const visibleRows = (section: SectionDef, facts: SettingsFacts): SettingsRow[] =>
-  section.rows.filter(r => r.visible?.(facts) !== false)
+export const visibleRows = (
+  section: SectionDef,
+  facts: SettingsFacts,
+  isTerminal: boolean,
+): SettingsRow[] =>
+  section.rows.filter(r => r.visible?.(facts) !== false && (isTerminal || r.terminalOnly !== true))
 
 export function checkText(row: SettingsRow & { control: 'text' }, text: string): string | null {
   if (text.trim() === '' && row.allowEmpty !== true) return `${row.label} needs a value`

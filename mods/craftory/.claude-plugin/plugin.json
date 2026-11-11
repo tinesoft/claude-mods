@@ -29,7 +29,7 @@
     "theme": {
       "type": "string",
       "title": "Theme",
-      "description": "Light or dark colours; auto follows the Claude Code theme",
+      "description": "Light or dark colours in the terminal; auto follows the Claude Code theme. Desktop and mobile follow the system appearance",
       "options": ["auto", "light", "dark"],
       "default": "auto"
     },

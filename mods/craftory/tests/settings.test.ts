@@ -107,6 +107,15 @@ for (const row of ALL_ROWS) {
   })
 }
 
+for (const surface of ['desktop', 'mobile'] as const) {
+  test(`${surface}: Settings › Personal has no Theme row, since the ${surface} follows the system`, async ($, on) => {
+    const { pane } = await settings(on, $, 'local', {}, surface, 'personal')
+    const words = await texts(pane)
+    expect(words).toContain('Rail layout')
+    expect(words).not.toContain('Theme')
+  })
+}
+
 test('the config file keeps its unknown keys and key order when a value changes', async ($, on) => {
   const raw = '{\n  "version": 1,\n  "custom": true,\n  "worktrees": { "maxParallel": 2 }\n}\n'
   const { w, pane } = await settings(

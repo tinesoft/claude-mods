@@ -41,6 +41,8 @@ export type SettingsArgs = {
   ui: Ui
   tone: Tone | undefined
   readOnly: boolean
+  /** Drawn in the terminal, the only surface that shows `terminalOnly` rows. */
+  isTerminal: boolean
   /** ASCII marks where no Svg draws them. */
   ascii: boolean
   facts: SettingsFacts
@@ -55,7 +57,10 @@ export type SettingsArgs = {
 }
 
 /** What the Settings tab shows, read from the repo and the store; the pane adds how to draw it. */
-export type SettingsData = Omit<SettingsArgs, 'ui' | 'tone' | 'readOnly' | 'ascii' | 'pluginLine'>
+export type SettingsData = Omit<
+  SettingsArgs,
+  'ui' | 'tone' | 'readOnly' | 'isTerminal' | 'ascii' | 'pluginLine'
+>
 
 const hintOf = (row: SettingsRow) => row.hint
 
@@ -311,7 +316,7 @@ const Body = ({
       {def.custom === 'glossary' && (
         <GlossarySection ui={ui} tone={tone} readOnly={readOnly} glossary={args.glossary} on={on} />
       )}
-      {visibleRows(def, facts)
+      {visibleRows(def, facts, args.isTerminal)
         .filter(r => !header(r))
         .map(row => (
           <RowView
@@ -334,7 +339,9 @@ export const SettingsTab = (args: SettingsArgs) => {
   const { ui, tone, readOnly, facts, section, isDraft, firstRun, note, pluginLine, on } = args
   const { Box, Text } = ui
   const def = SECTIONS.find(s => s.id === section) ?? SECTIONS[0]!
-  const headerRows = SECTIONS.flatMap(s => visibleRows(s, facts)).filter(r => r.header === true)
+  const headerRows = SECTIONS.flatMap(s => visibleRows(s, facts, args.isTerminal)).filter(
+    r => r.header === true,
+  )
   return (
     <Box key="settings" flexDirection="column" rowGap={SPACE.paneGap}>
       <Text {...inkOf(tone, 'text2')}>{pluginLine}</Text>

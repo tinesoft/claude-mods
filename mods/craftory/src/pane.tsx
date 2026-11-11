@@ -883,6 +883,7 @@ export function renderPane(args: PaneArgs) {
           ui={ui}
           tone={tone}
           readOnly={args.surface === 'mobile'}
+          isTerminal={args.surface === 'terminal'}
           pluginLine={pluginLine}
           {...args.settings}
           ascii={args.ascii}

@@ -284,7 +284,9 @@ export type ToneInput = {
 /**
  * The tone to draw in, or undefined for the terminal's own colours. Claude Code's `auto` theme
  * answers an OSC 11 query mods cannot see, so the terminal falls back to `COLORFGBG`. An ANSI
- * theme keeps the terminal's palette. Other surfaces follow the OS appearance, then the Claude Code theme.
+ * theme keeps the terminal's palette. Other surfaces follow the OS appearance, then the Claude Code
+ * theme, whatever the pref: Desktop draws its band and button labels in its own theme, so a forced
+ * tone puts our fills under labels drawn for the other one.
  */
 export function resolveTone({
   theme,
@@ -293,11 +295,11 @@ export function resolveTone({
   colorFgBg,
   system,
 }: ToneInput): Tone | undefined {
-  if (theme !== 'auto') return theme
   const match = typeof claudeTheme === 'string' ? CLAUDE_THEME.exec(claudeTheme) : null
   const isAnsi = match?.[2] === '-ansi'
   const claude = match && !isAnsi ? (match[1] as Tone) : undefined
   if (surface !== 'terminal') return system ?? claude ?? 'light'
+  if (theme !== 'auto') return theme
   return isAnsi ? undefined : (claude ?? colorFgBg ?? system ?? 'dark')
 }
 
