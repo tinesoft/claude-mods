@@ -466,6 +466,8 @@ export type DriftSignalBasis = { id: string; avoided: string; term: string; coun
 export type RetroSignalBasis = { id: string; suggestions: number | null }
 
 export type SignalBasis = {
+  /** The repo the basis was read from: a move to another checkout (a worktree) starts a new one. */
+  root: string | null
   specs: { ref: IssueRef; stories: number | null }[]
   gates: GateSignalBasis[]
   budgets: BudgetSignalBasis[]

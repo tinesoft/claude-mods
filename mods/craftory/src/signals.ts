@@ -65,8 +65,9 @@ export function signalBasis(args: {
   drafts: Readonly<Record<string, DraftFeature>>
   tracker: TrackerSnapshot | null
   notices: readonly EventNotice[]
+  root: string | null
 }): SignalBasis {
-  const { features, drafts, tracker, notices } = args
+  const { features, drafts, tracker, notices, root } = args
   const issues = tracker?.rich ? tracker.issues : []
   const bound = new Set(Object.keys(features))
   const refs = [...(bound as Set<IssueRef>)]
@@ -77,6 +78,7 @@ export function signalBasis(args: {
     }
   }
   return {
+    root,
     specs: refs.map(ref => ({ ref, stories: issues.find(i => i.ref === ref)?.stories ?? null })),
     gates: notices.flatMap((n): GateSignalBasis[] =>
       n.kind === 'gate' ? [{ id: n.id, phase: n.phase, by: n.by, reason: n.reason }] : [],
@@ -97,7 +99,8 @@ export function signalBasis(args: {
 }
 
 export function diffSignals(prev: SignalBasis | null, next: SignalBasis): Signal[] {
-  if (prev === null) return []
+  // Another checkout has its own `.craftory/`: what it shows was there already, not just made.
+  if (prev === null || prev.root !== next.root) return []
   return [
     ...next.specs
       .filter(s => !prev.specs.some(p => p.ref === s.ref))

@@ -3,6 +3,7 @@ import { diffSignals, toastText } from '../src/signals'
 import type { IssueRef, SignalBasis } from '../types'
 
 const basis = (over: Partial<SignalBasis> = {}): SignalBasis => ({
+  root: '/repo',
   specs: [],
   gates: [],
   budgets: [],
@@ -21,6 +22,13 @@ const gate = {
 
 test('the first look only seeds: nothing is announced for what is already there', () => {
   expect(diffSignals(null, basis({ specs: [spec(42)], gates: [gate] }))).toEqual([])
+})
+
+test('moving to another checkout and back announces nothing it already had', () => {
+  const main = basis({ specs: [spec(42), spec(50, 6)] })
+  const worktree = basis({ root: '/repo/.claude/worktrees/t1' })
+  expect(diffSignals(main, worktree)).toEqual([])
+  expect(diffSignals(worktree, main)).toEqual([])
 })
 
 test('a new spec and a new gate are each announced once', () => {

@@ -2,6 +2,7 @@ import { atom, type EngineInterface, read, update } from 'claude-code'
 import type { Flow } from '../../src/evidence'
 import { checkRun, consumePass, issuePass, type RunRequest } from '../../src/gates'
 import { diffSignals, signalBasis } from '../../src/signals'
+import { repoRoot } from './repo'
 import type {
   DraftFeature,
   EventNotice,
@@ -65,7 +66,11 @@ export async function newSignals(
     tracker: TrackerSnapshot
   },
 ) {
-  const next = signalBasis({ ...held, notices: await read($, noticesState) })
+  const next = signalBasis({
+    ...held,
+    notices: await read($, noticesState),
+    root: await repoRoot($),
+  })
   const signals = diffSignals(await read($, signalsState), next)
   await update($, signalsState, () => next)
   return signals
