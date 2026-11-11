@@ -181,3 +181,15 @@ test('an issue file in a folder with no spec is a standalone issue, not a ticket
   })
   expect(issues.find(i => i.ref === 'csv-export/01')).toMatchObject({ kind: 'ticket' })
 })
+
+test('a resolved ticket is done, plain or bold, as a resolved map ticket is', async () => {
+  const { issues } = await read({
+    ...CSV,
+    '.scratch/csv-export/issues/01-button.md': '# 01: Export button\n\nStatus: resolved\n',
+    '.scratch/csv-export/issues/02-tax.md': '# 02: Ledger tax\n\n**Status:** resolved\n',
+  })
+  expect(issues.slice(1).map(i => [i.ref, i.status, i.role])).toEqual([
+    ['csv-export/01', 'done', null],
+    ['csv-export/02', 'done', null],
+  ])
+})

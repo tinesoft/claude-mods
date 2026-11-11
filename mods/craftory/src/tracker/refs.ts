@@ -80,13 +80,16 @@ export const byNumber = (a: { ref: IssueRef }, b: { ref: IssueRef }) => {
 export const upstreamLine = (label: string) =>
   new RegExp(`^(?:\\*\\*)?${label}:(?:\\*\\*)?[ \\t]*(.*?)[ \\t]*$`, 'im')
 
-/** `Blocked by: 01, billing/02`: a bare number is a ticket of the same feature. */
+/**
+ * `Blocked by: 01, billing/02`: a bare number is a ticket of the same feature. to-tickets writes
+ * "numbers/titles", so a bracketed title (`01 (Handoff at 80%)`) is dropped before matching.
+ */
 export const blockersOf = (value: string, feature: string): IssueRef[] =>
   /none/i.test(value)
     ? []
-    : [...value.matchAll(/([a-z0-9]+(?:-[a-z0-9]+)*\/\d+)|\b(\d+)\b/g)].flatMap(
-        m => parseRef(m[1] ?? `${feature}/${m[2]}`) ?? [],
-      )
+    : [
+        ...value.replace(/\([^)]*\)/g, ' ').matchAll(/([a-z0-9]+(?:-[a-z0-9]+)*\/\d+)|\b(\d+)\b/g),
+      ].flatMap(m => parseRef(m[1] ?? `${feature}/${m[2]}`) ?? [])
 
 /** The ticket types a wayfinder map names, in a `Type:` line or a `wayfinder:<type>` label. */
 export const TICKET_TYPES = ['research', 'prototype', 'grilling', 'task'] as const

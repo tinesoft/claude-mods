@@ -1,5 +1,13 @@
 import { expect, test } from 'claude-code/testing'
-import { argFor, byNumber, parseIssueRef, parseRef, refSlug, refsIn } from '../src/tracker/refs'
+import {
+  argFor,
+  blockersOf,
+  byNumber,
+  parseIssueRef,
+  parseRef,
+  refSlug,
+  refsIn,
+} from '../src/tracker/refs'
 import type { IssueRef } from '../types'
 
 const ref = (text: string) => text as IssueRef
@@ -63,4 +71,13 @@ test('a skill is given a numbered ref as it is, and a .scratch ref as the path o
   expect(argFor(issues, ref('#44'))).toBe('#44')
   expect(argFor(issues, ref('csv/09'))).toBe('csv/09')
   expect(argFor(null, ref('csv'))).toBe('csv')
+})
+
+test('a blocker title in brackets is not read as more blockers', () => {
+  expect(blockersOf('01 (Automation notice pattern, proven with Handoff at 80%)', 'hooks')).toEqual(
+    ['hooks/01'].map(ref),
+  )
+  expect(blockersOf('01 (step 2), billing/03 (export v2)', 'hooks')).toEqual(
+    ['hooks/01', 'billing/03'].map(ref),
+  )
 })
