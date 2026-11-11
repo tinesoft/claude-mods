@@ -18,7 +18,6 @@ import {
   NUDGE_PREFIX,
   nudgeNotice,
   rearmSession,
-  retroFeatureOf,
   retroNotice,
   SESSION_SCOPE,
   withArchitectureRun,
@@ -30,7 +29,7 @@ import { STATE_FILE } from '../../src/files'
 import type { AutomationNotice, FeatureKey, PhaseId } from '../../types'
 import { activeKey, activeRecord, recordChange } from './features'
 import { currentFlow, everyFlow } from './flow'
-import { addNotice, heldNotices, removeNotices } from './notices'
+import { addNotice, removeNotices } from './notices'
 import { pluginOf, readText, repoFacts, repoSnapshot, writableContext, writeRepoFile } from './repo'
 import { trackerKindOf, trackerOf } from './tracker'
 
@@ -83,22 +82,16 @@ export async function noteMainStep(
 
 /**
  * After each tracker read (the `tool.call` refresh in the session, and the read at session start
- * for a merge made while away): offers a retro once the active Feature's PR has merged.
+ * for a merge made while away): offers a retro once the active Feature's PR has merged. One notice
+ * per Feature: the offer is stored on the Feature as it is raised, answered or not.
  */
 export async function noteMergedPr($: EngineInterface) {
   const { config } = await repoFacts($)
   if (!config.automation.retroOnPr) return
   const [key, record, tracker] = await Promise.all([activeKey($), activeRecord($), trackerOf($)])
   if (key === null || record === null || !tracker?.rich) return
-  if (isRetroDue(record, tracker.pr)) await raiseAutomation($, retroNotice(key))
-}
-
-/** The user ran or dismissed an automation notice; an answer that outlives the session is stored. */
-export async function answerAutomation($: EngineInterface, noticeId: string) {
-  const notice = (await heldNotices($)).find(n => n.id === noticeId)
-  if (notice?.kind !== 'automation') return
-  const key = retroFeatureOf(notice.scope)
-  if (key !== null) await recordChange($, key, { kind: 'retro-offered' })
+  if (isRetroDue(record, tracker.pr) && (await raiseAutomation($, retroNotice(key))))
+    await recordChange($, key, { kind: 'retro-offered' })
 }
 
 /** At session start: offers the architecture check when its last run is over 7 days old. */

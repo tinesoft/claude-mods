@@ -311,7 +311,7 @@ export type FeatureRecord = {
   map?: IssueRef
   /** The user dismissed the Chart-a-map suggestion for this Feature. */
   wayfinderSuggestDismissed?: true
-  /** The user answered the retro-on-PR notice (ran or dismissed it): it is not offered again. */
+  /** The retro-on-PR notice was raised for this Feature: it is not offered again. */
   retroOffered?: true
   /** The latest handoff document the handoff skill wrote, as the skill named it. */
   handoff?: string

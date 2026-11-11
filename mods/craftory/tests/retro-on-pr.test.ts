@@ -127,12 +127,14 @@ test('a dismiss is final for the Feature, across sessions', async ($, on) => {
   expect(w.commandsRun).toEqual([])
 })
 
-test('a notice never answered comes back in the next session', async ($, on) => {
-  github(on, { state: 'MERGED' })
+test('one notice per Feature: raising it records the offer, so a notice never answered does not come back', async ($, on) => {
+  const w = github(on, { state: 'MERGED' })
   await startSession($)
   expect(await band($)).toContain(RETRO)
+  expect(stored(w).retroOffered).toBe(true)
   await startSession($)
-  expect(await band($)).toContain(RETRO)
+  expect(await band($)).not.toContain(RETRO)
+  expect(w.commandsRun).toEqual([])
 })
 
 test('a Feature whose retro already ran is not offered one', async ($, on) => {

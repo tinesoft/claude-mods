@@ -56,18 +56,14 @@ export const handoffNotice = (): AutomationNotice => ({
 })
 
 /**
- * Retro on PR is offered once a session until the user answers it; the answer (run or dismiss)
- * is stored on the Feature, so it is final for that Feature across sessions.
+ * Retro on PR is offered once per Feature: the offer is stored on the Feature when the notice is
+ * raised, so it is final for that Feature across sessions whether or not the user answers it.
  */
 const RETRO_SCOPE = `${SESSION_SCOPE}retro:`
 
 export const retroScope = (key: FeatureKey) => `${RETRO_SCOPE}${key}`
 
-/** The Feature a retro notice's scope names, or null for any other scope. */
-export const retroFeatureOf = (scope: string): FeatureKey | null =>
-  scope.startsWith(RETRO_SCOPE) ? (scope.slice(RETRO_SCOPE.length) as FeatureKey) : null
-
-/** The Feature's own PR has merged, the retro has not run, and the user has not answered yet. */
+/** The Feature's own PR has merged, the retro has not run, and it has not been offered yet. */
 export const isRetroDue = (record: FeatureRecord, pr: PullRequest | null) =>
   pr !== null &&
   pr.state === 'merged' &&
