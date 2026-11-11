@@ -26,6 +26,7 @@ Run before pushing:
 ```sh
 pnpm nx affected -t lint typecheck validate test
 node tools/sync-plugin-version.mjs --check
+node tools/check-scratch.mjs
 ```
 
 Run tests on the pinned Claude Code (`CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml`). A local `claude` auto-updates and can disagree with CI; the `test` targets print a warning when it does (`tools/check-claude-version.mjs`).
@@ -36,7 +37,7 @@ CI runs the same, plus `claude plugin validate . --strict` at the root, pinned t
 
 ### Issue tracker
 
-Local markdown under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+Local markdown under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`. For what's open, run `node tools/scratch-status.mjs` (it reads through Craftory's Local reader), not a grep: `Status:` lines come plain or bold.
 
 ### Triage labels
 

@@ -1,6 +1,6 @@
 # Craftory wayfinder rail
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Source: `.scratch/craftory-mvp/map.md` (resolved decisions 01, 02, 03, 04, 05, 07, 08, 09, 13). Sibling spec: `.scratch/craftory-automations-hooks/spec.md`.
 

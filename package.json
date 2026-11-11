@@ -16,6 +16,8 @@
     "check": "nx affected -t lint typecheck validate test",
     "format": "prettier --write .",
     "sync:check": "node tools/sync-plugin-version.mjs --check",
+    "scratch:check": "node tools/check-scratch.mjs",
+    "scratch:status": "node tools/scratch-status.mjs",
     "sa:dev": "nx dev session-activity",
     "cf:dev": "nx dev craftory",
     "sa:install": "nx install session-activity",

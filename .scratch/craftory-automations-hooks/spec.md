@@ -1,6 +1,6 @@
 # Craftory automations, hooks and release readiness
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Source: `.scratch/craftory-mvp/map.md` (resolved decisions 06, 10, 11, 12 and the Cleanup, Cloud summary and README fog items). Sibling spec: `.scratch/craftory-wayfinder-rail/spec.md`.
 

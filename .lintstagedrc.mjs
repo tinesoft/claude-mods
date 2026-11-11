@@ -16,6 +16,7 @@ const modRoot = file => {
 }
 
 export default {
+  '.scratch/**/*.md': () => 'node tools/check-scratch.mjs',
   '*.{ts,tsx,mjs,json,md}': files => {
     const quoted = files.map(f => JSON.stringify(f)).join(' ')
     const cmds = [`prettier --write ${quoted}`]

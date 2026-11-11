@@ -1,6 +1,6 @@
 # Craftory UI vs design: gap analysis
 
-**Status:** needs-triage
+**Status:** resolved
 
 Input for `/prototype` then `/to-spec`. Compares the mod's code (`mods/craftory/src/*.tsx`) with
 `docs/design/craftory/artboards/*.dc.html` and `DESIGN.md`. Where a board and `DESIGN.md` disagree,

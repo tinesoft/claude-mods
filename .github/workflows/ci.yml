@@ -38,6 +38,8 @@ jobs:
 
       - run: node tools/sync-plugin-version.mjs --check
 
+      - run: node tools/check-scratch.mjs
+
       - uses: nrwl/nx-set-shas@v4
         with:
           main-branch-name: develop
