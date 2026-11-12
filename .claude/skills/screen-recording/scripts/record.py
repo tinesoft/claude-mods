@@ -55,7 +55,7 @@ class Session:
                 del os.environ[k]
             os.environ.update(TERM="xterm-256color", COLORTERM="truecolor")
             # Pin the renderer: a user's own "tui" setting would change the layout of every recording.
-            settings = json.dumps({"tui": "default"})
+            settings = json.dumps({"tui": "fullscreen"})
             os.execvp("claude", ["claude", "--plugin-dir", plugin_dir, "--settings", settings, *extra_args])
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
 
