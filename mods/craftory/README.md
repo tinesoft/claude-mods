@@ -26,6 +26,14 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 
 ---
 
+## 📸 Screenshots
+
+### Terminal
+
+![Craftory in the terminal: the phase rail above the prompt, the Triage and map chips and the Build and Review phase cards open above it, then /craftory opens the pane with its Flow, Tickets, Worktrees, Glossary and Settings tabs](../../assets/screenshots/craftory.gif)
+
+---
+
 ## ✨ Features
 
 - 🔄 **A full SDLC, not just a rail.** Seven phases cover the lifecycle from idea to retro, each started by one of Matt's skills.
