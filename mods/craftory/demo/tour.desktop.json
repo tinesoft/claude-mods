@@ -1,0 +1,25 @@
+{
+  "steps": [
+    { "wait": 2.5, "note": "the band above the prompt" },
+    { "click": null, "wait": 3, "note": "the Triage 3 chip" },
+    { "click": null, "wait": 1, "note": "the card's × close" },
+    { "click": null, "wait": 3, "note": "the ◆ Billing v2 map chip" },
+    { "click": null, "wait": 1, "note": "the card's × close" },
+    { "click": null, "wait": 3, "note": "the Build phase step" },
+    { "click": null, "wait": 1, "note": "the card's × close" },
+    { "click": null, "wait": 0.5, "note": "the prompt box" },
+    { "keys": "/craftory", "wait": 1, "note": "type the command" },
+    {
+      "keys": "{Enter}",
+      "wait": 3,
+      "note": "the pane opens beside the transcript on the Flow tab"
+    },
+    { "click": null, "wait": 3, "note": "the Tickets tab" },
+    { "click": null, "wait": 3, "note": "the Worktrees tab" },
+    { "click": null, "wait": 2.5, "note": "the Glossary tab" },
+    { "click": null, "wait": 3, "note": "the Settings tab" },
+    { "click": null, "wait": 3, "note": "the Pipeline section of Settings" },
+    { "click": null, "wait": 3, "note": "the Automation section of Settings" },
+    { "click": null, "wait": 3, "note": "the pane's × close" }
+  ]
+}
