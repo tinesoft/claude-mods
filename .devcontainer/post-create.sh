@@ -65,6 +65,11 @@ echo -e "\n🦊 Installing GitLab CLI (glab)..."
 run_command "GLAB_URL=\$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://gitlab.com/gitlab-org/cli/-/releases/permalink/latest) && GLAB_VERSION=\${GLAB_URL##*/v} && curl -fsSL -o /tmp/glab.deb \"https://gitlab.com/gitlab-org/cli/-/releases/v\${GLAB_VERSION}/downloads/glab_\${GLAB_VERSION}_linux_\$(dpkg --print-architecture).deb\" && sudo apt-get install -y /tmp/glab.deb && rm -f /tmp/glab.deb"
 echo "✅ Done"
 
+echo -e "\n🎞️ Installing agg and pyte (to record the demo GIFs under 'assets/screenshots')..."
+run_command "sudo apt-get install -y python3-pyte"
+run_command "case \$(uname -m) in aarch64|arm64) AGG_ARCH=aarch64;; *) AGG_ARCH=x86_64;; esac && curl -fsSL -o /tmp/agg \"https://github.com/asciinema/agg/releases/latest/download/agg-\${AGG_ARCH}-unknown-linux-gnu\" && sudo install -m 0755 /tmp/agg /usr/local/bin/agg && rm -f /tmp/agg"
+echo "✅ Done"
+
 # Cleaning up apt cache to reduce image size
 
 echo -e "\n🧹 Cleaning cache..."
