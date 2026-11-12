@@ -31,3 +31,15 @@ Take each in the terminal, in light and dark. Save to `assets/images/craftory/` 
 7. **pane-settings**: gear, Settings tab.
 
 If the map chip is missing, attach the map from the Tickets tab.
+
+## Recording the GIF
+
+`record.py` drives Claude Code through a pty (answering the one-off trust prompt first), plays the tour, and writes an asciicast. `agg` renders it. Both come from the devcontainer (`python3-pyte` and `agg`).
+
+```sh
+node mods/craftory/demo/setup.mjs
+python3 mods/craftory/demo/record.py /tmp/craftory.cast
+agg --font-size 16 --theme github-dark --last-frame-duration 2 /tmp/craftory.cast assets/screenshots/craftory.gif
+```
+
+Edit `TOUR` in `record.py` to change the steps. `--probe` prints the screen after each step instead of recording.
