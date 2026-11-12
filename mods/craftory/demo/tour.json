@@ -1,0 +1,15 @@
+{
+  "cols": 110,
+  "rows": 30,
+  "steps": [
+    { "wait": 2.5 },
+    { "keys": "/craftory", "wait": 1.0 },
+    { "keys": "{Enter}", "wait": 3.0 },
+    { "keys": "2", "wait": 3.0 },
+    { "keys": "{PageDown}", "wait": 3.0 },
+    { "keys": "3", "wait": 3.0 },
+    { "keys": "4", "wait": 2.0 },
+    { "keys": "5", "wait": 3.0 },
+    { "keys": "{Esc}", "wait": 3.0 }
+  ]
+}
