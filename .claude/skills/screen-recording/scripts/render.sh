@@ -12,7 +12,7 @@ shift 2
 case "$output" in
   *.gif)
     command -v agg >/dev/null || { echo "agg not found; the devcontainer installs it (.devcontainer/post-create.sh)" >&2; exit 1; }
-    agg --font-size 16 --theme github-dark --last-frame-duration 2 "$@" "$input" "$output" >/dev/null
+    agg --font-size "${AGG_FONT_SIZE:-16}" --theme github-dark --last-frame-duration 2 "$@" "$input" "$output" >/dev/null
     ;;
   *.cast)
     cp "$input" "$output"

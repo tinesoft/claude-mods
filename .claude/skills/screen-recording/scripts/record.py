@@ -11,6 +11,7 @@ import fcntl
 import json
 import os
 import pty
+import re
 import select
 import struct
 import sys
@@ -28,13 +29,32 @@ KEYS = {
 TYPE_DELAY = 0.07  # seconds between typed characters, so the cast reads as typing
 
 
-def pieces(keys):
-    """Split 'text{Enter}' into typed characters and whole key sequences."""
+def pieces(keys, find):
+    """Split 'text{Enter}' into typed characters and whole key sequences.
+
+    `find(text, n)` returns the 1-based (col, row) of the n-th match of `text` on the screen.
+    """
     out, i = [], 0
     while i < len(keys):
         end = keys.find("}", i) if keys[i] == "{" else -1
-        if end != -1 and keys[i + 1 : end] in KEYS:
-            out.append((KEYS[keys[i + 1 : end]], True))
+        name = keys[i + 1 : end] if end != -1 else ""
+        if name in KEYS:
+            out.append((KEYS[name], True))
+            i = end + 1
+        elif name.startswith("Click:"):
+            # {Click:col,row} or {Click:some text} or {Click:some text#2}: a left click, sent as an
+            # SGR mouse press and release. Text is looked up on the screen when the step runs.
+            target = name[len("Click:") :]
+            if re.fullmatch(r"\d+,\d+", target):
+                col, row = target.split(",")
+            else:
+                text, _, n = target.partition("#")
+                col, row = find(text, int(n or 1))
+            out.append((f"\x1b[<0;{col};{row}M\x1b[<0;{col};{row}m", True))
+            i = end + 1
+        elif name.startswith("Wheel:") and name[len("Wheel:") :] in ("up", "down"):
+            button = 64 if name.endswith("up") else 65
+            out.append((f"\x1b[<{button};10;10M", True))
             i = end + 1
         else:
             out.append((keys[i], False))
@@ -71,10 +91,21 @@ class Session:
                 self.stream.feed(data)
 
     def send(self, keys):
-        for text, whole in pieces(keys):
+        for text, whole in pieces(keys, self.find):
             os.write(self.fd, text.encode())
             if not whole and len(keys) > 1:
                 self.pump(TYPE_DELAY)
+
+    def find(self, text, n=1):
+        seen = 0
+        for row, line in enumerate(self.screen.display, start=1):
+            start = 0
+            while (col := line.find(text, start)) != -1:
+                seen += 1
+                if seen == n:
+                    return col + 1 + len(text) // 2, row
+                start = col + 1
+        raise SystemExit(f"no match {n} for {text!r} on the screen:\n{self.text()}")
 
     def text(self):
         return "\n".join(line.rstrip() for line in self.screen.display)

@@ -48,4 +48,4 @@ Parse them from the arguments: the first word is the mod, and `output-format=<va
 
 ## Limits
 
-Only the terminal is covered. The Desktop app, VS Code and mobile need a human with a screen recorder. Records in the fullscreen renderer. Mouse clicks sent through the pty were ignored by the classic renderer, so a tour should stick to keys unless you have probed a click.
+Only the terminal is covered. The Desktop app, VS Code and mobile need a human with a screen recorder. Records in the fullscreen renderer, where a tour can use keys, `{Click:text}` and `{Wheel:...}`. Set `AGG_FONT_SIZE` (default 16) to shrink a wide recording.
