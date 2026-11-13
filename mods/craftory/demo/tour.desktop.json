@@ -1,25 +1,237 @@
 {
   "steps": [
-    { "wait": 2.5, "note": "the band above the prompt" },
-    { "click": null, "wait": 3, "note": "the Triage 3 chip" },
-    { "click": null, "wait": 1, "note": "the card's × close" },
-    { "click": null, "wait": 3, "note": "the ◆ Billing v2 map chip" },
-    { "click": null, "wait": 1, "note": "the card's × close" },
-    { "click": null, "wait": 3, "note": "the Build phase step" },
-    { "click": null, "wait": 1, "note": "the card's × close" },
-    { "click": null, "wait": 0.5, "note": "the prompt box" },
-    { "keys": "/craftory", "wait": 1, "note": "type the command" },
     {
-      "keys": "{Enter}",
-      "wait": 3,
-      "note": "the pane opens beside the transcript on the Flow tab"
+      "wait": 2.5,
+      "note": "the band above the prompt"
     },
-    { "click": null, "wait": 3, "note": "the Tickets tab" },
-    { "click": null, "wait": 3, "note": "the Worktrees tab" },
-    { "click": null, "wait": 2.5, "note": "the Glossary tab" },
-    { "click": null, "wait": 3, "note": "the Settings tab" },
-    { "click": null, "wait": 3, "note": "the Pipeline section of Settings" },
-    { "click": null, "wait": 3, "note": "the Automation section of Settings" },
-    { "click": null, "wait": 3, "note": "the pane's × close" }
+    {
+      "click": ["31.2%", "85.5%"],
+      "wait": 3,
+      "note": "the Triage 3 chip"
+    },
+    {
+      "scroll": {
+        "at": ["50%", "78%"],
+        "lines": 20
+      },
+      "wait": 1.5,
+      "note": "scroll the card down"
+    },
+    {
+      "scroll": {
+        "at": ["50%", "78%"],
+        "lines": -20
+      },
+      "wait": 1,
+      "note": "scroll the card back up"
+    },
+    {
+      "click": ["68.4%", "71.2%"],
+      "wait": 1,
+      "note": "the card's × close"
+    },
+    {
+      "click": ["39.3%", "85.5%"],
+      "wait": 2,
+      "note": "the inner Billing v2 button of the map chip"
+    },
+    {
+      "scroll": {
+        "at": ["50%", "78%"],
+        "lines": 20
+      },
+      "wait": 1.5,
+      "note": "scroll the card down"
+    },
+    {
+      "scroll": {
+        "at": ["50%", "78%"],
+        "lines": -20
+      },
+      "wait": 1,
+      "note": "scroll the card back up"
+    },
+    {
+      "click": ["68.4%", "71.2%"],
+      "wait": 1,
+      "note": "the card's × close"
+    },
+    {
+      "click": ["52.1%", "89.7%"],
+      "wait": 3,
+      "note": "the Build phase step"
+    },
+    {
+      "scroll": {
+        "at": ["50%", "78%"],
+        "lines": 20
+      },
+      "wait": 1.5,
+      "note": "scroll the card down"
+    },
+    {
+      "scroll": {
+        "at": ["50%", "78%"],
+        "lines": -20
+      },
+      "wait": 1,
+      "note": "scroll the card back up"
+    },
+    {
+      "click": ["68.4%", "71.2%"],
+      "wait": 1,
+      "note": "the card's × close"
+    },
+    {
+      "click": ["49.8%", "94.3%"],
+      "wait": 0.5,
+      "note": "the prompt box"
+    },
+    {
+      "keys": "/craftory",
+      "wait": 1,
+      "note": "type the command"
+    },
+    {
+      "click": ["31.8%", "90.7%"],
+      "wait": 1,
+      "note": "the craftory entry in the command list (Enter and Cmd+Enter are ignored by the Desktop app)"
+    },
+    {
+      "click": ["68.8%", "94.2%"],
+      "wait": 3,
+      "note": "the send button: the pane opens beside the transcript on the Flow tab"
+    },
+    {
+      "click": ["72.6%", "15.9%"],
+      "wait": 1.5,
+      "note": "the Tickets tab"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": 25
+      },
+      "wait": 1.5,
+      "note": "scroll the tab down"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": -25
+      },
+      "wait": 1,
+      "note": "scroll the tab back up"
+    },
+    {
+      "click": ["80.5%", "15.9%"],
+      "wait": 1.5,
+      "note": "the Worktrees tab"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": 25
+      },
+      "wait": 1.5,
+      "note": "scroll the tab down"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": -25
+      },
+      "wait": 1,
+      "note": "scroll the tab back up"
+    },
+    {
+      "click": ["87.9%", "15.9%"],
+      "wait": 1.5,
+      "note": "the Glossary tab"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": 25
+      },
+      "wait": 1.5,
+      "note": "scroll the tab down"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": -25
+      },
+      "wait": 1,
+      "note": "scroll the tab back up"
+    },
+    {
+      "click": ["95%", "15.9%"],
+      "wait": 1.5,
+      "note": "the Settings tab"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": 25
+      },
+      "wait": 1.5,
+      "note": "scroll the tab down"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": -25
+      },
+      "wait": 1,
+      "note": "scroll the tab back up"
+    },
+    {
+      "click": ["88.7%", "36.8%"],
+      "wait": 1.5,
+      "note": "the Pipeline section of Settings"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": 25
+      },
+      "wait": 1.5,
+      "note": "scroll the section down"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": -25
+      },
+      "wait": 1,
+      "note": "scroll the section back up"
+    },
+    {
+      "click": ["65.9%", "38.8%"],
+      "wait": 1.5,
+      "note": "the Automation section of Settings"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": 25
+      },
+      "wait": 1.5,
+      "note": "scroll the section down"
+    },
+    {
+      "scroll": {
+        "at": ["85%", "60%"],
+        "lines": -25
+      },
+      "wait": 1,
+      "note": "scroll the section back up"
+    },
+    {
+      "click": ["98.7%", "2.1%"],
+      "wait": 3,
+      "note": "the pane's × close"
+    }
   ]
 }
