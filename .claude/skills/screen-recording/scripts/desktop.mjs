@@ -96,10 +96,24 @@ function visibleFrame() {
   return JSON.parse(json)
 }
 
-/** The app's front window in points: { x, y, w, h }. Needs Accessibility permission. */
+/** Index of the app's largest window: the front window can be a title-bar strip, not the session. */
+function mainWindowIndex() {
+  const out = osascript(
+    `tell application "System Events" to tell process "${opt.app}" to get size of every window`,
+  )
+  const n = out.split(',').map(v => Number(v.trim()))
+  let best = 0
+  let bestArea = -1
+  for (let i = 0; i + 1 < n.length; i += 2) {
+    if (n[i] * n[i + 1] > bestArea) [best, bestArea] = [i / 2, n[i] * n[i + 1]]
+  }
+  return best + 1
+}
+
+/** The app's main (largest) window in points: { x, y, w, h }. Needs Accessibility permission. */
 function windowBounds() {
   const out = osascript(
-    `tell application "System Events" to tell process "${opt.app}" to get {position, size} of front window`,
+    `tell application "System Events" to tell process "${opt.app}" to get {position, size} of window ${mainWindowIndex()}`,
   )
   const [x, y, w, h] = out.split(',').map(n => Number(n.trim()))
   return { x, y, w, h }
@@ -111,7 +125,7 @@ function activate() {
 
 function maximize(frame) {
   osascript(
-    `tell application "System Events" to tell process "${opt.app}" to tell front window
+    `tell application "System Events" to tell process "${opt.app}" to tell window ${mainWindowIndex()}
        set position to {${frame.x}, ${frame.y}}
        set size to {${frame.w}, ${frame.h}}
      end tell`,
