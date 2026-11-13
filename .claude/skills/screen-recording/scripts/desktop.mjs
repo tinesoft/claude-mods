@@ -180,10 +180,27 @@ function keyCommands(keys) {
   return out
 }
 
+/** Scroll the wheel at a window-relative point: positive lines scroll down, negative up. */
+function scroll({ at, lines }, win) {
+  const [x, y] = clickPoint(at, win)
+  run('cliclick', [`m:${x},${y}`])
+  const chunk = lines > 0 ? -3 : 3
+  const count = Math.ceil(Math.abs(lines) / 3)
+  osascript(
+    `ObjC.import('CoreGraphics'); ObjC.import('Foundation');
+     for (let i = 0; i < ${count}; i++) {
+       $.CGEventPost($.kCGHIDEventTap, $.CGEventCreateScrollWheelEvent(null, 1, 1, ${chunk}));
+       $.NSThread.sleepForTimeInterval(0.04);
+     }`,
+    'JavaScript',
+  )
+}
+
 async function playStep(step, win) {
   // "click": null marks a target not calibrated yet; probe skips it rather than click a guess.
   if (step.click === null) console.log(`skipped uncalibrated click: ${step.note ?? ''}`)
   else if (step.click) run('cliclick', [`c:${clickPoint(step.click, win).join(',')}`])
+  if (step.scroll) scroll(step.scroll, win)
   if (step.keys) run('cliclick', ['-w', String(TYPE_DELAY_MS), ...keyCommands(step.keys)])
   await sleep((step.wait ?? 2) * 1000)
 }
@@ -191,6 +208,8 @@ async function playStep(step, win) {
 const describe = step =>
   [
     step.click && `click ${step.note ?? JSON.stringify(step.click)}`,
+    step.scroll &&
+      `scroll ${step.scroll.lines > 0 ? 'down' : 'up'} ${Math.abs(step.scroll.lines)} lines`,
     step.keys && `type ${JSON.stringify(step.keys)}`,
   ]
     .filter(Boolean)
@@ -291,7 +310,10 @@ async function scripted() {
   checkMaximized(win, frame)
   const restore = opt.appearance ? setAppearance(opt.appearance === 'dark') : undefined
   const movie = join(tmpdir(), `desktop-${process.pid}.mov`)
-  const seconds = Math.ceil(tour.steps.reduce((sum, s) => sum + (s.wait ?? 2), 0) + 3)
+  // Clicks, typing and scrolls take time on top of the waits, so -V is a generous cap and the
+  // movie is trimmed to the time the tour really took. screencapture cannot be stopped early:
+  // a signal from here kills it before it saves the movie.
+  const seconds = Math.ceil(tour.steps.reduce((sum, s) => sum + (s.wait ?? 2), 0) * 2 + 30)
   try {
     await sleep(1000)
     // -v records the main display, -V stops after a fixed time, -x keeps it silent.
@@ -299,11 +321,15 @@ async function scripted() {
       stdio: 'ignore',
     })
     const done = new Promise(resolve => recorder.on('exit', resolve))
+    const startedAt = Date.now()
     await sleep(1500)
     for (const step of tour.steps) await playStep(step, win)
+    const tourSeconds = (Date.now() - startedAt) / 1000 + 0.7
     await done
     if (!existsSync(movie))
       fail('screencapture wrote nothing: grant Screen Recording to the app that runs this script')
+    opt['trim-start'] ??= '1'
+    opt['trim-end'] = String(Math.max(0, probeMovie(movie).duration - tourSeconds))
     convert(movie, opt.out, win)
   } finally {
     if (restore !== undefined) setAppearance(restore)
