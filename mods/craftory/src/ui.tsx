@@ -11,6 +11,29 @@ export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button' | 'Link'> & {
 
 export const isRich = (ui: Ui) => ui.Svg !== undefined
 
+/**
+ * VS Code draws a step as character cells, so a vertical `xs` or `sm` is no row at all, where
+ * Desktop draws them as a few pixels. A structural gap (a row gap or a margin) of `sm` becomes one
+ * row there, so rows of chips and sections no longer touch; `xs` keeps the zero that separates text
+ * lines already and the padding is left alone.
+ */
+const VSCODE_GAPS = ['rowGap', 'marginTop', 'marginBottom'] as const
+
+/** Props of a Box with its vertical gaps sized for VS Code's cells; wrapped rows get a row gap. */
+export const vscodeSpaced = <P extends Record<string, unknown>>(props: P): P => {
+  const out: Record<string, unknown> = { ...props }
+  for (const key of VSCODE_GAPS) if (out[key] === 'sm') out[key] = 1
+  if (out.flexWrap === 'wrap' && out.flexDirection === 'row' && out.rowGap === undefined)
+    out.rowGap = 1
+  return out as P
+}
+
+/** A Box that applies `vscodeSpaced`; the other elements are VS Code's own. */
+export const vscodeBox =
+  (Box: Ui['Box']): Ui['Box'] =>
+  props =>
+    Box(vscodeSpaced(props))
+
 export const clip = (text: string, max: number, ascii = false) => {
   if (text.length <= max) return text
   const end = ascii ? ELLIPSIS.ascii : ELLIPSIS.glyph
@@ -235,12 +258,16 @@ export const Chip = ({
     const mark = glyph !== undefined && (
       <Text {...roleInk(role, tone)} {...(glyphBold && { bold: true })}>{`${glyph} `}</Text>
     )
+    const padX = layout?.padX ?? (isRich(ui) ? 'xs' : undefined)
+    const gap = layout?.gap ?? (isRich(ui) ? 'xs' : undefined)
     const frame = {
       key: boxKey,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      ...(layout?.padX !== undefined && { paddingX: layout.padX }),
-      ...(layout?.gap !== undefined && { columnGap: layout.gap }),
+      // An untinted rich surface (VS Code) draws a native button with next to no padding of its
+      // own, so a chip there keeps a cell either side and between its parts.
+      ...(padX !== undefined && { paddingX: padX }),
+      ...(gap !== undefined && { columnGap: gap }),
     }
     if (inside && onPress !== undefined)
       return (

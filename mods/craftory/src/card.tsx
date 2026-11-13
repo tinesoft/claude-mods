@@ -4,9 +4,9 @@ import { helperSvg, hexOr } from './icons'
 import { CARD_SPACE, type CardDensity, type CardView } from './card-model'
 import type { Acts } from './action'
 import { AgentsList } from './agents-list'
-import { CLOSE, paint, SPACE, TOKENS, TRIPLES } from './theme'
+import { paint, SPACE, TOKENS, TRIPLES } from './theme'
 import { Icon, inkOf, isRich, roleInk, withTint, type Ui } from './ui'
-import { HookNote } from './widgets'
+import { CloseButton, HookNote } from './widgets'
 
 const CommandChip = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => {
   const { Box, Text } = ui
@@ -127,7 +127,12 @@ export const DetailCard = ({
       rowGap={space.gap}
       {...withTint(surface)}
     >
-      <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.cardHeadGap}>
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="flex-start"
+        columnGap={SPACE.cardHeadGap}
+      >
         <Box flexDirection="column" rowGap={SPACE.lineGap} flexShrink={1} minWidth={0}>
           <Text mono size="caption" color={colours.fg} wrap="truncate-end" {...withTint(surface)}>
             {card.kicker}
@@ -141,9 +146,7 @@ export const DetailCard = ({
             {card.title}
           </Text>
         </Box>
-        <Button key="close" plain hotkey="x" label="Close" onPress={() => on.closeCard()}>
-          {isRich(ui) ? (ascii ? CLOSE.ascii : CLOSE.glyph) : 'Close'}
-        </Button>
+        <CloseButton ui={ui} tone={tone} ascii={ascii} glyph onPress={() => on.closeCard()} />
       </Box>
       <Text {...inkOf(tone, 'ink2')} {...withTint(surface)}>
         {card.why}

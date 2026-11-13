@@ -1,7 +1,7 @@
 import type { RenderSurface } from 'claude-code'
 import type { Tone } from '../types'
 import { hexOr, lockSvg, switchSvg, SWITCH_SIZE } from './icons'
-import { paint, type Role, SPACE, SWITCH_MARK, TOKENS, TRIPLES } from './theme'
+import { CLOSE, paint, type Role, SPACE, SWITCH_MARK, TOKENS, TRIPLES } from './theme'
 import { Icon, inkOf, isRich, roleInk, withTint, type Ui } from './ui'
 
 export const Eyebrow = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => (
@@ -321,6 +321,29 @@ export const HookNote = ({
       >
         {text}
       </Text>
+    </Box>
+  )
+}
+
+/**
+ * A card's close, pressed by `x`. The terminal's plain Button draws `x: Close` itself. Desktop draws
+ * the `×` glyph in a tinted card; VS Code with no tone draws the label with its key, `x: Close`,
+ * since its native button has no hotkey of its own to show.
+ */
+export const CloseButton = ({
+  ui,
+  tone,
+  ascii = false,
+  glyph = false,
+  onPress,
+}: Pick<Common, 'ui' | 'tone'> & { ascii?: boolean; glyph?: boolean; onPress: () => void }) => {
+  const { Box, Button } = ui
+  const label = !isRich(ui) ? 'Close' : tone === undefined ? 'x: Close' : null
+  return (
+    <Box key="close-slot" flexShrink={0}>
+      <Button key="close" plain hotkey="x" label="Close" onPress={onPress}>
+        {label ?? (glyph ? (ascii ? CLOSE.ascii : CLOSE.glyph) : undefined)}
+      </Button>
     </Box>
   )
 }

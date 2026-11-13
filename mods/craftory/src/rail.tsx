@@ -591,7 +591,8 @@ export function renderBand(args: BandArgs) {
             tone={tone}
             ascii={args.ascii}
             card={cardOf(open)}
-            density={cardDensity(rail, isRich(ui))}
+            // VS Code draws spacing in cells, where compact is no padding at all, so its cards stay roomy.
+            density={cardDensity(rail, isRich(ui) && args.surface !== 'vscode')}
             on={on}
           />
         </Box>

@@ -16,7 +16,7 @@ import {
 import { paint, SPACE, TOKENS } from './theme'
 import { diamondSvg, hexOr, ruleSvg } from './icons'
 import { Chip, inkOf, isRich, roleLook, withTint, type Ui } from './ui'
-import { Badge, buttonFrame, CardButton } from './widgets'
+import { Badge, buttonFrame, CardButton, CloseButton } from './widgets'
 
 /** The most Takeable rows the card lists; the rest are a count. */
 const FRONTIER_ROWS = 5
@@ -241,13 +241,18 @@ export const FrontierCard = ({
       rowGap={SPACE.cardGap}
       {...withTint(surface)}
     >
-      <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.cardHeadGap}>
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="flex-start"
+        columnGap={SPACE.cardHeadGap}
+      >
         <Box flexShrink={1} minWidth={0}>
           <Text mono size="caption" color={agent.fg} wrap="truncate-end" {...withTint(surface)}>
             {view.kicker}
           </Text>
         </Box>
-        <Button key="close" plain hotkey="x" label="Close" onPress={() => on.closeCard()} />
+        <CloseButton ui={ui} tone={tone} onPress={() => on.closeCard()} />
       </Box>
       <Text bold {...inkOf(tone, 'ink')} {...withTint(surface)}>
         {view.map.title}

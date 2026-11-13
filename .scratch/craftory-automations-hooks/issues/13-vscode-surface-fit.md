@@ -74,3 +74,19 @@ After the tone fix, with `theme: auto` the text is readable in both themes and n
 4. Give the Settings pane its own vertical rhythm: section gap, label-to-field gap, helper text gap, row padding, tab chip gap.
 5. Tests: a surface matrix for the untinted tier (spacing props present, no raw fills, close reads `x: Close`), and snapshots for Desktop and the terminal to show nothing moved.
 6. The user re-checks VS Code, `theme: auto` and Claude's theme forced to `dark` and `light`.
+
+## Progress, second pass (2026-11-13)
+
+Cause found: the engine draws a Space step as character cells on VS Code, so a vertical `xs` or `sm` is no row (down: `xs` and `sm` 0, `md` and `lg` 1), where Desktop draws them as pixels. Rows of chips, rail rows, fields and cards were touching. Also `cardDensity` went compact over the wrapping rail, which on VS Code means zero padding.
+
+Done in code:
+
+- `uiFor` wraps `Box` on VS Code with `vscodeSpaced` (`src/ui.tsx`): a vertical `sm` gap (`rowGap`, `marginTop`, `marginBottom`) becomes one row, and a wrapping row with no row gap gets one. Padding and `xs` are left alone. This reaches the rail rows, the card slots, the settings fields and the pane tabs, with no change to Desktop or the terminal.
+- VS Code cards stay roomy (`rail.tsx`); Desktop still goes compact over its wrapping rail.
+- A chip with no tone keeps a cell of padding and a cell between its parts on VS Code (`Chip` in `ui.tsx`).
+- One `CloseButton` (`widgets.tsx`) for the phase card and the map card, in a slot that doesn't shrink, with the header row aligned to the top. VS Code with no tone reads `x: Close`; Desktop keeps `×`; the terminal keeps `Close`, which its plain Button draws as `x: Close`.
+- Pinned by `tests/vscode-spacing.test.ts` (the band can't be mounted on VS Code by the 2.1.302 test engine, so the tests render it with the fake UI).
+
+Postponed by the user: the accent colour (replace blue with the host's terracotta where a mod can).
+
+Still for the live re-check: whether one row is too much or too little between the rail's two rows and between wrapped chip rows, and whether the settings pane reads well. VS Code can only space in whole rows, so there's no half-way step.
