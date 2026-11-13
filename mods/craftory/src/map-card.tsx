@@ -13,6 +13,7 @@ import {
   ticketTypeRole,
   type MapView,
 } from './map-view'
+import { CARD_SPACE, type CardDensity } from './card-model'
 import { paint, SPACE, TOKENS } from './theme'
 import { diamondSvg, hexOr, ruleSvg } from './icons'
 import { Chip, inkOf, isRich, roleLook, withTint, type Ui } from './ui'
@@ -170,12 +171,15 @@ export const FrontierCard = ({
   tone,
   ascii,
   view,
+  density = 'roomy',
   on,
 }: {
   ui: Ui
   tone: Tone | undefined
   ascii: boolean
   view: MapView
+  /** The phase card's spacing, so the two cards of the slot match. */
+  density?: CardDensity
   on: Pick<MapActions, 'closeCard' | 'pickMap'> & {
     wayfinder: (arg: string) => void
     /** Copies a map's location where the surface has no link to press. */
@@ -191,6 +195,7 @@ export const FrontierCard = ({
   const route = routeStatus(view)
   const more = view.takeable.length - shown.length
   const heading = 'Frontier · takeable now'
+  const space = CARD_SPACE[density]
   const rows = shown.map(ticket => (
     <FrontierRow
       key={ticket.ref}
@@ -237,8 +242,9 @@ export const FrontierCard = ({
       flexDirection="column"
       borderStyle="round"
       borderColor={t === undefined ? agent.fg : t.line}
-      paddingX={SPACE.cardPadX}
-      rowGap={SPACE.cardGap}
+      paddingX={space.padX}
+      paddingY={space.padY}
+      rowGap={space.gap}
       {...withTint(surface)}
     >
       <Box
@@ -247,24 +253,26 @@ export const FrontierCard = ({
         alignItems="flex-start"
         columnGap={SPACE.cardHeadGap}
       >
-        <Box flexShrink={1} minWidth={0}>
+        <Box flexDirection="column" rowGap={SPACE.lineGap} flexShrink={1} minWidth={0}>
           <Text mono size="caption" color={agent.fg} wrap="truncate-end" {...withTint(surface)}>
             {view.kicker}
+          </Text>
+          <Text bold {...inkOf(tone, 'ink')} {...withTint(surface)}>
+            {view.map.title}
           </Text>
         </Box>
         <CloseButton ui={ui} tone={tone} onPress={() => on.closeCard()} />
       </Box>
-      <Text bold {...inkOf(tone, 'ink')} {...withTint(surface)}>
-        {view.map.title}
-      </Text>
-      <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
-        {mapCountsText(view)}
-      </Text>
-      {view.map.destination !== '' && (
-        <Text {...inkOf(tone, 'ink2')} {...withTint(surface)}>
-          {`Destination: ${view.map.destination}`}
+      <Box flexDirection="column" rowGap={SPACE.lineGap}>
+        <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
+          {mapCountsText(view)}
         </Text>
-      )}
+        {view.map.destination !== '' && (
+          <Text {...inkOf(tone, 'ink2')} {...withTint(surface)}>
+            {`Destination: ${view.map.destination}`}
+          </Text>
+        )}
+      </Box>
       {frontier}
       {more > 0 && (
         <Text {...inkOf(tone, 'text2')} {...withTint(surface)}>
@@ -292,6 +300,7 @@ export const FrontierCard = ({
             id="frontier-work-next"
             label="Work next ticket"
             primary
+            padY
             onPress={() => on.wayfinder(mapArg(view.map))}
           />
         ) : (
@@ -314,6 +323,7 @@ export const FrontierCard = ({
             tone={tone}
             id="frontier-open-map"
             label="Open map"
+            padY
             onPress={surface => on.openFolder(view.map.location, surface)}
           />
         )}

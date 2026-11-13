@@ -581,6 +581,8 @@ export function renderBand(args: BandArgs) {
         )
   const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
   const mapCard = args.isMapOpen && args.map !== null && open === null
+  // VS Code draws spacing in cells, where compact is no padding at all, so its cards stay roomy.
+  const density = cardDensity(rail, isRich(ui) && args.surface !== 'vscode')
   return (
     <Box flexDirection="column">
       {below}
@@ -593,15 +595,21 @@ export function renderBand(args: BandArgs) {
             tone={tone}
             ascii={args.ascii}
             card={cardOf(open)}
-            // VS Code draws spacing in cells, where compact is no padding at all, so its cards stay roomy.
-            density={cardDensity(rail, isRich(ui) && args.surface !== 'vscode')}
+            density={density}
             on={on}
           />
         </Box>
       )}
       {mapCard && args.map !== null && (
         <Box key="map-slot" flexDirection="column" marginBottom={SPACE.cardAbove}>
-          <FrontierCard ui={ui} tone={tone} ascii={args.ascii} view={args.map} on={on} />
+          <FrontierCard
+            ui={ui}
+            tone={tone}
+            ascii={args.ascii}
+            view={args.map}
+            density={density}
+            on={on}
+          />
         </Box>
       )}
       {asChip ? <Summary args={railArgs} flow={flow} /> : <Rail args={railArgs} fit={rail} />}

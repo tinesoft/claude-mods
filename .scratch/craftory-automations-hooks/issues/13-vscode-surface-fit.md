@@ -111,3 +111,11 @@ The selected-tab marker is confirmed live. The phase chips were still on a stair
 
 - **Phase row (cause found):** the extension's webview (`anthropic.claude-code-2.1.323`, `webview/index.js`) draws a Box as a flex `div` and gives a row Box `flex-wrap: wrap` when the mod names no `flexWrap`; the terminal never wraps. Each phase step is a row Box of connector and chip, so when the steps row squeezed it, the chip wrapped under its connector. `vscodeSpaced` now gives a Box with no `flexWrap` `nowrap` on VS Code; a Box that asks for `wrap` still wraps. The dim-on-Button change stays, as it fades glyph and label together, but it was not the cause.
 - [ ] Live re-check: the seven phase chips on one row with their connectors.
+
+## Progress, sixth pass (2026-11-13)
+
+The phase row is confirmed on one line live.
+
+- **Wayfinder card spacing:** the frontier card now takes the phase card's spacing (`CARD_SPACE` at the same density, roomy on VS Code), groups its kicker and title beside the close as the phase card does, and gives its buttons a row of padding above and below. On Desktop it follows the phase card's density too, so it gains the same vertical padding.
+- **Flow tab:** VS Code draws the band, so the Flow tab no longer repeats the map chip, the wayfinder card and the phase strip there; only mobile, which has no band, keeps that head.
+- [ ] Live re-check: the wayfinder card's padding beside a phase card, and the Flow tab showing the vertical flow alone.

@@ -401,8 +401,8 @@ const FlowTab = ({
 >) => {
   const { Box, Text } = ui
   const rich = isRich(ui) && tone !== undefined
-  // No band on mobile or in VS Code: the tab heads with the rail and the map chip instead.
-  const isBandless = surface === 'mobile' || surface === 'vscode'
+  // No band on mobile: the tab heads with the rail and the map chip instead. VS Code draws the band.
+  const isBandless = surface === 'mobile'
   const head = map !== null && isBandless && (
     <Box key="map-head" flexDirection="column" rowGap={SPACE.paneGap}>
       <MapChip ui={ui} tone={tone} ascii={ascii} view={map} isOpen={isMapOpen} on={on} />

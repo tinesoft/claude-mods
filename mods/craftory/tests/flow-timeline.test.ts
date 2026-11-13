@@ -96,21 +96,17 @@ test('desktop: no Button in the Flow rows colours its own Text', async ($, on) =
       expect(JSON.stringify(button.children)).not.toContain('"color"')
 })
 
-for (const surface of ['mobile', 'vscode'] as const) {
-  test(`${surface}: the Flow tab heads with the rail and the map chip`, async ($, on) => {
-    const pane = await flowTab(on, $, surface, { files: scenarioFiles('local', 'mixed') })
-    expect(await pane.find({ key: 'pane-rail' })).toBeDefined()
-    expect(await pane.find({ key: 'map-chip' })).toBeDefined()
-  })
-}
+test('mobile: the Flow tab heads with the rail and the map chip', async ($, on) => {
+  const pane = await flowTab(on, $, 'mobile', { files: scenarioFiles('local', 'mixed') })
+  expect(await pane.find({ key: 'pane-rail' })).toBeDefined()
+  expect(await pane.find({ key: 'map-chip' })).toBeDefined()
+})
 
-test("vscode: with no tone from the editor, the rail draws no raw fills a dark window would clash with", async ($, on) => {
-  const pane = await flowTab(on, $, 'vscode', {
-    files: scenarioFiles('local', 'mixed'),
-    theme: 'auto',
-  })
-  const rail = JSON.stringify(await pane.find({ key: 'pane-rail' }))
-  expect(rail.match(/"(backgroundColor|borderColor|color)":"#[0-9A-Fa-f]+"/g)).toBeNull()
+test('vscode: the band is drawn, so the Flow tab is the phase flow alone', async ($, on) => {
+  const pane = await flowTab(on, $, 'vscode', { files: scenarioFiles('local', 'mixed') })
+  expect(await pane.find({ key: 'pane-rail' })).toBeUndefined()
+  expect(await pane.find({ key: 'map-chip' })).toBeUndefined()
+  expect(await pane.find({ key: 'flow-build' })).toBeDefined()
 })
 
 test('with no feature, the Flow tab leaves the /grill-with-docs pointer to the header', async ($, on) => {

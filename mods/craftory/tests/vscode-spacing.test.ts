@@ -3,7 +3,8 @@ import { DEFAULT_CONFIG } from '../src/config'
 import { deriveFlow, type PhaseState } from '../src/evidence'
 import { renderBand, type BandActions, type BandArgs } from '../src/rail'
 import { vscodeSpaced } from '../src/ui'
-import type { Feature, Tone } from '../types'
+import { mapView } from '../src/map-view'
+import type { Feature, IssueRef, Tone, WayMap } from '../types'
 import { byKey, fakeUi, findAll, textOf } from './fake-ui'
 import { featureWorld, mountPane, startSession } from './harness'
 
@@ -145,4 +146,45 @@ test('with no tone, the selected tab carries a marker and the others do not', as
   const pane = await mountPane($, 'vscode')
   expect((await pane.find({ key: 'tab-flow' }))?.text).toContain('▸ Flow')
   expect((await pane.find({ key: 'tab-tickets' }))?.text).not.toContain('▸')
+})
+
+const billing = mapView({
+  ref: 'm' as IssueRef,
+  source: 'local',
+  title: 'Billing v2',
+  origin: '.scratch/m',
+  location: '.scratch/m/map.md',
+  isClosed: false,
+  destination: 'A spec for usage-based billing',
+  hasFog: false,
+  tickets: [1, 2].map(n => ({
+    ref: `m/0${n}` as IssueRef,
+    title: `Ticket ${n}`,
+    type: null,
+    state: 'open' as const,
+    assignee: null,
+    blockedBy: [],
+    location: `.scratch/m/issues/0${n}.md`,
+  })),
+  updatedAt: 1,
+} satisfies WayMap)
+
+test("VS Code's wayfinder card takes the phase card's roomy spacing and padded buttons", () => {
+  const out = renderBand({
+    ...bandArgs('vscode', undefined),
+    open: null,
+    map: billing,
+    isMapOpen: true,
+  })
+  expect(byKey(out, 'map-card')?.props).toMatchObject({ paddingY: 'lg', rowGap: 'md' })
+  expect(textOf(byKey(out, 'close'))).toBe('x: Close')
+  const work = findAll(out, n => n.props.paddingY === 1 && textOf(n).includes('Work next ticket'))
+  expect(work.length).toBeGreaterThan(0)
+})
+
+test('with no tone, the band draws no raw fills a dark VS Code window would clash with', () => {
+  const out = renderBand({ ...bandArgs('vscode', undefined), map: billing })
+  expect(
+    JSON.stringify(out).match(/"(backgroundColor|borderColor|color)":"#[0-9A-Fa-f]+"/g),
+  ).toBeNull()
 })
