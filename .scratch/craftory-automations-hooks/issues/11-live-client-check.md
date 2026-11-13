@@ -14,12 +14,12 @@
 
 "Pinned" can't hold on every surface. CI pins 2.1.302, the Desktop app bundles its own build (it runs 2.1.321 as of 2026-11-11), and the terminal `claude` is the native install, 2.1.322 (it replaced the Homebrew cask, which stopped at 2.1.311). Write down the version each surface actually ran. Treat a failure on a newer build as a finding, not a blocker, and file it.
 
-| Surface  | Version | Light | Dark | Notes                                                                    |
-| -------- | ------- | ----- | ---- | ------------------------------------------------------------------------ |
-| Terminal | 2.1.322 | ✓     | ✓    | All checks passed (user, 2026-11-11). Agent first-render pass on 2.1.311 |
-| Desktop  | 2.1.321 | ✓     | ✓    | All checks passed (user, 2026-11-11), after the compact-card fix         |
-| VS Code  |         |       |      |                                                                          |
-| Mobile   |         |       |      |                                                                          |
+| Surface  | Version                | Light | Dark | Notes                                                                                 |
+| -------- | ---------------------- | ----- | ---- | ------------------------------------------------------------------------------------- |
+| Terminal | 2.1.322                | ✓     | ✓    | All checks passed (user, 2026-11-11). Agent first-render pass on 2.1.311              |
+| Desktop  | 2.1.321                | ✓     | ✓    | All checks passed (user, 2026-11-11), after the compact-card fix                      |
+| VS Code  | (version not recorded) | ✗     | ✗    | Draws the band and pane, but spacing, theme and buttons don't fit. Filed as ticket 13 |
+| Mobile   |                        |       |      |                                                                                       |
 
 ## Checklist (per surface, per theme)
 
@@ -74,3 +74,11 @@ Terminal, 2.1.311, 120 columns, first render in this repo:
 Desktop, 2.1.321:
 
 - Fixed: with a card open, the card and the wrapped rail didn't fit, so the band scrolled. `e4114ed` had removed compact spacing everywhere to fix the terminal Build card's missing blank lines. Compact is now back on Desktop only, whenever the rail wraps (story 25), and the terminal stays roomy. You checked it live and decided to keep it. A Build card with a long agents list can still scroll.
+
+VS Code, light and dark (user, 2026-11-13, `image-light.png`, `image-dark.png`):
+
+- Problem: padding and margins are too tight on chips and chip detail cards, and don't match DESIGN.md or Desktop. Filed as 13.
+- Problem: in dark, cards and chip rows draw light and the pane text is dark on dark. Filed as 13.
+- Problem: every button draws as a small blue label with no padding. Filed as 13.
+- Open: record the VS Code extension and Claude Code version that ran.
+- Not yet checked on VS Code: hover cards, `$.ui.ask`, `TaskStop`, glyph widths.
