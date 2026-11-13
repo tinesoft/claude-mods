@@ -119,7 +119,9 @@ const Connector = ({
 }) => {
   const { Box, Svg, Text } = ui
   const color = connectorColor(before.state.kind === 'done', tone)
-  if (Svg !== undefined && color !== undefined) {
+  // With no tone (VS Code) the connector is the same text dash as an undone one: a mix of Svg bars
+  // and text sits on different lines.
+  if (Svg !== undefined && color !== undefined && tone !== undefined) {
     // The steps row has no gap on rich surfaces. A step ends in the native button's padding, or in
     // its meta pill, which takes the connector's own sliver; the next step's left padding follows.
     return (

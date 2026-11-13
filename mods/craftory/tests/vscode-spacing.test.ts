@@ -1,10 +1,11 @@
 import { expect, test } from 'claude-code/testing'
 import { DEFAULT_CONFIG } from '../src/config'
-import { deriveFlow } from '../src/evidence'
+import { deriveFlow, type PhaseState } from '../src/evidence'
 import { renderBand, type BandActions, type BandArgs } from '../src/rail'
 import { vscodeSpaced } from '../src/ui'
 import type { Feature, Tone } from '../types'
-import { byKey, fakeUi, textOf } from './fake-ui'
+import { byKey, fakeUi, findAll, textOf } from './fake-ui'
+import { featureWorld, mountPane, startSession } from './harness'
 
 test('a structural `sm` gap becomes one row on VS Code, which draws steps as cells', () => {
   expect(vscodeSpaced({ rowGap: 'sm', marginBottom: 'sm', marginTop: 'sm' })).toEqual({
@@ -57,28 +58,30 @@ const on: BandActions = {
   openFolder: noop,
 }
 
+const bandArgs = (surface: BandArgs['surface'], tone: Tone | undefined): BandArgs => ({
+  ui: fakeUi(surface !== 'terminal'),
+  surface,
+  columns: 120,
+  tone,
+  ascii: false,
+  spinFrame: 0,
+  below: undefined,
+  layout: 'row',
+  flow: deriveFlow({ feature: draft, config: DEFAULT_CONFIG, tracker: null, running: null }),
+  config: DEFAULT_CONFIG,
+  waiting: 0,
+  agents: null,
+  notices: [],
+  open: 'spec',
+  map: null,
+  isMapOpen: false,
+  features: [],
+  isPickingFeature: false,
+  on,
+})
+
 const band = (surface: BandArgs['surface'], tone: Tone | undefined, rich: boolean) =>
-  renderBand({
-    ui: fakeUi(rich),
-    surface,
-    columns: 120,
-    tone,
-    ascii: false,
-    spinFrame: 0,
-    below: undefined,
-    layout: 'row',
-    flow: deriveFlow({ feature: draft, config: DEFAULT_CONFIG, tracker: null, running: null }),
-    config: DEFAULT_CONFIG,
-    waiting: 0,
-    agents: null,
-    notices: [],
-    open: 'spec',
-    map: null,
-    isMapOpen: false,
-    features: [],
-    isPickingFeature: false,
-    on,
-  })
+  renderBand({ ...bandArgs(surface, tone), ui: fakeUi(rich) })
 
 test("VS Code's card keeps its roomy padding and reads `x: Close`, with no tone", () => {
   const out = band('vscode', undefined, true)
@@ -103,4 +106,21 @@ test('a chip with no tone keeps a cell of padding on VS Code, and none extra on 
     byKey(band(rich ? 'vscode' : 'terminal', undefined, rich), 'box-gear')?.props
   expect(gear(true)).toMatchObject({ paddingX: 'xs', columnGap: 'xs' })
   expect(gear(false)).not.toHaveProperty('paddingX')
+})
+
+test('with no tone, every connector of the phase row is a text dash, so the row stays on one line', () => {
+  const base = deriveFlow({ feature: draft, config: DEFAULT_CONFIG, tracker: null, running: null })
+  const done: PhaseState = { kind: 'done' } as PhaseState
+  const flow = { ...base, phases: base.phases.map((s, i) => (i < 3 ? { ...s, state: done } : s)) }
+  const out = renderBand({ ...bandArgs('vscode', undefined), ui: fakeUi(true), flow, open: null })
+  const steps = byKey(out, 'phases-steps')
+  expect(findAll(steps, n => n.type === 'Svg')).toEqual([])
+  expect(findAll(steps, n => String(n.props.key).startsWith('connector-'))).toHaveLength(6)
+})
+
+test("VS Code's settings tabs take a row of padding above and below, with no tone", async ($, on) => {
+  featureWorld(on, { surfaces: ['vscode'], theme: 'auto' })
+  await startSession($, 'vscode')
+  const pane = await mountPane($, 'vscode')
+  expect((await pane.find({ key: 'tab-flow-box' }))?.props).toMatchObject({ paddingY: 1 })
 })

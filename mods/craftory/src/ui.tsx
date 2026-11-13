@@ -12,6 +12,14 @@ export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button' | 'Link'> & {
 export const isRich = (ui: Ui) => ui.Svg !== undefined
 
 /**
+ * Rows of padding above and below a button or tab where the surface draws no tone of its own
+ * (VS Code, in whole rows): its native buttons sit flush with the line, so a settings control
+ * takes one row either side. Elsewhere none.
+ */
+export const padRowsOf = (ui: Ui, tone: Tone | undefined) =>
+  isRich(ui) && tone === undefined ? 1 : 0
+
+/**
  * VS Code draws a step as character cells, so a vertical `xs` or `sm` is no row at all, where
  * Desktop draws them as a few pixels. A structural gap (a row gap or a margin) of `sm` becomes one
  * row there, so rows of chips and sections no longer touch; `xs` keeps the zero that separates text
@@ -201,7 +209,7 @@ export const Chip = ({
   /** The rich look; undefined on a toneless terminal. */
   look: ChipLook | undefined
   /** The terminal Box's padding and gap; rich surfaces take them from `look`. */
-  layout?: { padX?: Space; gap?: Space }
+  layout?: { padX?: Space; gap?: Space; padY?: Space }
   /** The label's colour on the terminal, and on rich surfaces when the chip is not pressable. */
   ink?: { color?: Color; dimColor?: boolean }
   /** Svg source, drawn on rich surfaces in place of `glyph`. Desktop hides an Svg with an empty alt. */
@@ -267,6 +275,7 @@ export const Chip = ({
       // An untinted rich surface (VS Code) draws a native button with next to no padding of its
       // own, so a chip there keeps a cell either side and between its parts.
       ...(padX !== undefined && { paddingX: padX }),
+      ...(layout?.padY !== undefined && { paddingY: layout.padY }),
       ...(gap !== undefined && { columnGap: gap }),
     }
     if (inside && onPress !== undefined)

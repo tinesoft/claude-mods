@@ -34,7 +34,7 @@ import {
   TOKENS,
   type Role,
 } from './theme'
-import { Chip, Icon, inkOf, isRich, roleInk, type Ui } from './ui'
+import { Chip, Icon, inkOf, isRich, padRowsOf, roleInk, type Ui } from './ui'
 import { Badge, CardButton } from './widgets'
 
 export type PaneActions = {
@@ -179,6 +179,7 @@ const WorktreeCard = ({
       <Box flexDirection="row" columnGap={SPACE.buttonsGap}>
         {row.canDiff && (
           <CardButton
+            padY
             ui={ui}
             tone={tone}
             id={`wt-diff-${row.shown}`}
@@ -187,6 +188,7 @@ const WorktreeCard = ({
           />
         )}
         <CardButton
+          padY
           ui={ui}
           tone={tone}
           id={`wt-terminal-${row.shown}`}
@@ -195,6 +197,7 @@ const WorktreeCard = ({
         />
         {row.canRemove && (
           <CardButton
+            padY
             ui={ui}
             tone={tone}
             id={`wt-remove-${row.shown}`}
@@ -231,6 +234,7 @@ const WorktreesTab = ({
         </Text>
         {view.prunable > 0 && (
           <CardButton
+            padY
             ui={ui}
             tone={tone}
             id="wt-prune"
@@ -286,7 +290,7 @@ const TabRow = ({
             id={`tab-${id}`}
             boxKey={`tab-${id}-box`}
             look={look}
-            layout={{ padX: SPACE.tabPad, gap: SPACE.chipGap }}
+            layout={{ padX: SPACE.tabPad, gap: SPACE.chipGap, padY: padRowsOf(ui, tone) }}
             ink={inkOf(tone, isOn ? 'ink' : 'text2')}
             label={title}
             pressed={isOn}
@@ -470,6 +474,7 @@ const FlowTab = ({
                   >
                     {row.buttons.primary !== null && (
                       <CardButton
+                        padY
                         id={`flow-${row.phase}-primary`}
                         ui={ui}
                         tone={tone}
@@ -480,6 +485,7 @@ const FlowTab = ({
                     )}
                     {row.buttons.secondary.map(button => (
                       <CardButton
+                        padY
                         id={`flow-${row.phase}-${button.id}`}
                         ui={ui}
                         tone={tone}
@@ -545,6 +551,7 @@ const InboxRow = ({
       </Box>
       {row.action !== null && row.label !== null && (
         <CardButton
+          padY
           ui={ui}
           tone={tone}
           id={`inbox-${row.action.kind}-${row.ref}`}
@@ -602,6 +609,7 @@ const TicketCard = ({
         )}
         {row.command !== null && (
           <CardButton
+            padY
             ui={ui}
             tone={tone}
             id={`implement-${row.ref}`}
@@ -639,6 +647,7 @@ const TicketsTab = ({
         </Text>
         {view.folder !== null && (
           <CardButton
+            padY
             ui={ui}
             tone={tone}
             id="open-folder"
@@ -696,6 +705,7 @@ const TicketsTab = ({
       ))}
       {view.runAll !== null && (
         <CardButton
+          padY
           ui={ui}
           tone={tone}
           id="implement-spec"
@@ -782,6 +792,7 @@ const GlossaryTab = ({
               {term.isNew && <Badge ui={ui} tone={tone} role="perm" text="New" id={term.name} />}
             </Box>
             <CardButton
+              padY
               ui={ui}
               tone={tone}
               id={`term-edit-${term.name}`}

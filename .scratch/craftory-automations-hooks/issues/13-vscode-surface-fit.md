@@ -90,3 +90,10 @@ Done in code:
 Postponed by the user: the accent colour (replace blue with the host's terracotta where a mod can).
 
 Still for the live re-check: whether one row is too much or too little between the rail's two rows and between wrapped chip rows, and whether the settings pane reads well. VS Code can only space in whole rows, so there's no half-way step.
+
+## Progress, third pass (2026-11-13)
+
+From the third live check (`image.png`, VS Code, dark):
+
+- **Phase row on one line:** the connector after a done phase was an Svg bar, and after the others a text dash, so the row sat on different lines. With no tone every connector is now the text dash (`Connector` in `rail.tsx`).
+- **Settings panel padding:** with no tone on a rich surface, the pane's tab chips, the settings segments and the pane's buttons take one row of padding above and below (`padRowsOf` in `ui.tsx`, the `padY` prop on `CardButton`). The band's cards and the rail are unchanged.

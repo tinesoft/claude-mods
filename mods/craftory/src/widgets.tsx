@@ -2,7 +2,7 @@ import type { RenderSurface } from 'claude-code'
 import type { Tone } from '../types'
 import { hexOr, lockSvg, switchSvg, SWITCH_SIZE } from './icons'
 import { CLOSE, paint, type Role, SPACE, SWITCH_MARK, TOKENS, TRIPLES } from './theme'
-import { Icon, inkOf, isRich, roleInk, withTint, type Ui } from './ui'
+import { Icon, inkOf, isRich, padRowsOf, roleInk, withTint, type Ui } from './ui'
 
 export const Eyebrow = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => (
   <ui.Text
@@ -114,7 +114,7 @@ export const Segments = ({
           <Box
             key={`${prefix}-${id}-${value}-box`}
             paddingX={SPACE.tabPad}
-            paddingY={0}
+            paddingY={padRowsOf(ui, tone)}
             marginY={0}
             {...(rich &&
               t &&
@@ -257,19 +257,29 @@ export const CardButton = ({
   label,
   primary = false,
   compact = false,
+  padY = false,
   onPress,
 }: Common & {
   label: string
   primary?: boolean
   compact?: boolean
+  /** Rows of padding above and below where the surface has no tone (see `padRowsOf`): the panes' buttons. */
+  padY?: boolean
   onPress: (surface: RenderSurface) => void
 }) => {
-  const { Button, Text } = ui
+  const { Box, Button, Text } = ui
   if (!isRich(ui) || tone === undefined) {
-    return (
+    const button = (
       <Button key={id} plain onPress={press => onPress(press.surface)}>
         <Text bold={primary} {...inkOf(tone, 'ink')}>{`[ ${label} ]`}</Text>
       </Button>
+    )
+    return padY && padRowsOf(ui, tone) > 0 ? (
+      <Box key={`${id}-pad`} paddingY={padRowsOf(ui, tone)}>
+        {button}
+      </Box>
+    ) : (
+      button
     )
   }
   return (

@@ -183,6 +183,7 @@ const GlossarySection = ({
             {!readOnly && (
               <Box flexDirection="row" columnGap={SPACE.buttonsGap}>
                 <CardButton
+                  padY
                   ui={ui}
                   tone={tone}
                   id={`gl-edit-${term.name}`}
@@ -190,6 +191,7 @@ const GlossarySection = ({
                   onPress={() => on.term.edit(term.name)}
                 />
                 <CardButton
+                  padY
                   ui={ui}
                   tone={tone}
                   id={`gl-delete-${term.name}`}
@@ -252,6 +254,7 @@ const GlossarySection = ({
           )}
           <Box flexDirection="row" columnGap={SPACE.buttonsGap}>
             <CardButton
+              padY
               ui={ui}
               tone={tone}
               id="gl-save"
@@ -260,6 +263,7 @@ const GlossarySection = ({
             />
             {draft.editing !== null && (
               <CardButton
+                padY
                 ui={ui}
                 tone={tone}
                 id="gl-cancel"
@@ -269,6 +273,7 @@ const GlossarySection = ({
             )}
             {glossary.hasContextMd && (
               <CardButton
+                padY
                 ui={ui}
                 tone={tone}
                 id="gl-import"
@@ -277,6 +282,7 @@ const GlossarySection = ({
               />
             )}
             <CardButton
+              padY
               ui={ui}
               tone={tone}
               id="gl-copy-path"
@@ -388,6 +394,7 @@ export const SettingsTab = (args: SettingsArgs) => {
           </Text>
           {!readOnly && (
             <CardButton
+              padY
               ui={ui}
               tone={tone}
               id="pane-write-setup"
@@ -419,6 +426,7 @@ export const SettingsTab = (args: SettingsArgs) => {
           alignItems="center"
         >
           <CardButton
+            padY
             ui={ui}
             tone={tone}
             id="settings-reset"
@@ -426,6 +434,7 @@ export const SettingsTab = (args: SettingsArgs) => {
             onPress={() => on.reset()}
           />
           <CardButton
+            padY
             ui={ui}
             tone={tone}
             id="settings-rerun"
