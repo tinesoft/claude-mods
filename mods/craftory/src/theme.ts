@@ -285,7 +285,8 @@ export type ToneInput = {
  * The tone to draw in, or undefined for the terminal's own colours. Claude Code's `auto` theme
  * answers an OSC 11 query mods cannot see, so the terminal falls back to `COLORFGBG`. An ANSI
  * theme keeps the terminal's palette. Other surfaces follow the OS appearance, then the Claude Code
- * theme, whatever the pref: Desktop draws its band and button labels in its own theme, so a forced
+ * theme, whatever the pref, except VS Code, which follows its own theme and gives no tone unless
+ * Claude Code's theme names one: Desktop draws its band and button labels in its own theme, so a forced
  * tone puts our fills under labels drawn for the other one.
  */
 export function resolveTone({
@@ -298,6 +299,11 @@ export function resolveTone({
   const match = typeof claudeTheme === 'string' ? CLAUDE_THEME.exec(claudeTheme) : null
   const isAnsi = match?.[2] === '-ansi'
   const claude = match && !isAnsi ? (match[1] as Tone) : undefined
+  // VS Code draws in the editor's webview, in the editor's theme. The OS appearance says nothing
+  // about it (and a remote or container host has no appearance to read), so a guessed tone puts
+  // light fills in a dark window. Without an explicit Claude theme it stays unknown, and the
+  // surface draws in theme keys that follow the editor.
+  if (surface === 'vscode') return claude
   if (surface !== 'terminal') return system ?? claude ?? 'light'
   if (theme !== 'auto') return theme
   return isAnsi ? undefined : (claude ?? colorFgBg ?? system ?? 'dark')

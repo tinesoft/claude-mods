@@ -77,3 +77,18 @@ test('the OS appearance decides where the terminal and the app say nothing, as i
     'dark',
   )
 })
+
+test("VS Code follows the editor's theme: the OS appearance and the pref don't pick its tone", () => {
+  const vscode = {
+    theme: 'dark',
+    claudeTheme: 'auto',
+    surface: 'vscode',
+    colorFgBg: undefined,
+    system: 'light',
+  } as const
+  expect(resolveTone(vscode)).toBeUndefined()
+  expect(resolveTone({ ...vscode, system: undefined })).toBeUndefined()
+  expect(resolveTone({ ...vscode, claudeTheme: 'dark' })).toBe('dark')
+  expect(resolveTone({ ...vscode, claudeTheme: 'light-daltonized', system: 'dark' })).toBe('light')
+  expect(resolveTone({ ...vscode, claudeTheme: 'dark-ansi' })).toBeUndefined()
+})

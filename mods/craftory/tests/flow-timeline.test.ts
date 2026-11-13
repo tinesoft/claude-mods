@@ -104,6 +104,15 @@ for (const surface of ['mobile', 'vscode'] as const) {
   })
 }
 
+test("vscode: with no tone from the editor, the rail draws no raw fills a dark window would clash with", async ($, on) => {
+  const pane = await flowTab(on, $, 'vscode', {
+    files: scenarioFiles('local', 'mixed'),
+    theme: 'auto',
+  })
+  const rail = JSON.stringify(await pane.find({ key: 'pane-rail' }))
+  expect(rail.match(/"(backgroundColor|borderColor|color)":"#[0-9A-Fa-f]+"/g)).toBeNull()
+})
+
 test('with no feature, the Flow tab leaves the /grill-with-docs pointer to the header', async ($, on) => {
   world(on, { surfaces: ['terminal'] })
   await startSession($, 'terminal')

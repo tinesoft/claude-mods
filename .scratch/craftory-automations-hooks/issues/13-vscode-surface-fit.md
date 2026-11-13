@@ -7,7 +7,7 @@
 **Status:** ready-for-agent
 
 - [ ] Chips, the chip detail cards and the rail have padding and margins that match DESIGN.md and Desktop
-- [ ] The tone follows the VS Code theme: no light cards in a dark window, and no dark text on a dark pane
+- [x] The tone follows the VS Code theme: no light cards in a dark window, and no dark text on a dark pane (code done; needs the live re-check)
 - [ ] Card buttons (Close, Work next ticket, Open map, Prototype, save, gear and × icon buttons) read as buttons in both themes
 - [ ] A test pins each fix; Desktop and terminal output unchanged
 - [ ] The user re-checks VS Code in light and dark
@@ -41,3 +41,9 @@
 - Spacing tokens: `SPACE` in `src/theme.ts` (`chipPadX`, `cardPadX`, `buttonPadX`, `railRowGap`…).
 - Tone: `src/theme.ts` (~274-303) and `src/appearance.ts`.
 - Surface support: the READMEs say VS Code draws nothing on 2.1.302. On the VS Code build used here it draws the band and the pane, so those lines are stale for newer builds. See the 2.1.323 migration ticket.
+
+## Progress (2026-11-13)
+
+- **Theme (done in code):** `resolveTone` now gives VS Code no tone unless Claude Code's own theme is explicitly `light` or `dark`. It ignores the OS appearance and the Craftory theme pref, which say nothing about the editor's theme (and a Dev Container or remote host has no appearance to read, so the old fallback to `light` drew light fills in a dark window). With no tone the surface draws in theme keys and plain `[ label ]` buttons, which follow the editor. Pinned by `tests/theme.test.ts` and `tests/flow-timeline.test.ts`.
+- **Still open:** spacing and button treatment on VS Code. With no tone, VS Code now takes the plain path, which fixes the dark-on-dark text and the native blue buttons, but it has terminal-like spacing, not the Desktop rich layout. Whether to give VS Code its own richer layout when the editor says light or dark is for the live re-check to decide.
+- **Live re-check (user):** with `theme: auto` and Claude Code's theme `auto`, check VS Code light and dark: text readable, buttons look like buttons, spacing acceptable. Also try Claude Code's theme set to `dark` and `light`, which should give the rich layout in that tone.
