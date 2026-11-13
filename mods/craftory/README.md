@@ -32,6 +32,10 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 
 ![Craftory in the terminal: the phase rail above the prompt, the Triage and map chips and the Build and Review phase cards open above it, then /craftory opens the pane with its Flow, Tickets, Worktrees, Glossary and Settings tabs](../../assets/screenshots/craftory.gif)
 
+### Claude Desktop app
+
+![Craftory in the Claude Desktop app: the same band with icons and rounded chips, the Triage, Billing v2 and Build cards open above the prompt and scrolled in full, then /craftory opens the pane beside the transcript, with each of its tabs scrolled down and back up](../../assets/screenshots/craftory-desktop.gif)
+
 ---
 
 ## ✨ Features
