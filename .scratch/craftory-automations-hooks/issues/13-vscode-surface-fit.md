@@ -47,3 +47,30 @@
 - **Theme (done in code):** `resolveTone` now gives VS Code no tone unless Claude Code's own theme is explicitly `light` or `dark`. It ignores the OS appearance and the Craftory theme pref, which say nothing about the editor's theme (and a Dev Container or remote host has no appearance to read, so the old fallback to `light` drew light fills in a dark window). With no tone the surface draws in theme keys and plain `[ label ]` buttons, which follow the editor. Pinned by `tests/theme.test.ts` and `tests/flow-timeline.test.ts`.
 - **Still open:** spacing and button treatment on VS Code. With no tone, VS Code now takes the plain path, which fixes the dark-on-dark text and the native blue buttons, but it has terminal-like spacing, not the Desktop rich layout. Whether to give VS Code its own richer layout when the editor says light or dark is for the live re-check to decide.
 - **Live re-check (user):** with `theme: auto` and Claude Code's theme `auto`, check VS Code light and dark: text readable, buttons look like buttons, spacing acceptable. Also try Claude Code's theme set to `dark` and `light`, which should give the rich layout in that tone.
+
+## Second live check (user, 2026-11-13, VS Code 1.146.0, Claude Code extension 2.1.323, `image2-light.png`, `image2-dark.png`)
+
+After the tone fix, with `theme: auto` the text is readable in both themes and nothing draws light-on-dark. Still wrong:
+
+1. **Spacing.** Inner padding and margins are too small in the chips, the rail, the band and the cards. They must closely match Claude Desktop.
+2. **Accent.** Buttons, toggles and links draw blue. They should use the accent of the host's own controls: the terracotta of "Show me" and the checkboxes in "Learn Claude Code".
+3. **Card close.** "Close" is misaligned and doesn't read `x: Close` as on the terminal. Match the Desktop card's header layout as closely as possible.
+4. **Settings pane.** Improve the padding and margins of the tabs, buttons, links and rows.
+
+### Why (read from the code and the types)
+
+- **Spacing has no VS Code layout.** `rich` is `isRich(ui) && tone !== undefined` in about 35 places (`card.tsx`, `map-card.tsx`, `rail.tsx`, `pane.tsx`, `widgets.tsx`, `ui.tsx`). With no tone, VS Code takes the terminal layout: terminal spacing, `fitRail` with `rich` false, and compact density never chosen. `rich` carries two meanings, structure and spacing (Svg exists, so a surface draws boxes and pixels) and tint (we know the tone and may paint fills). VS Code needs the first without the second. The fix is to split them: a `rich` for layout and a `tinted` for our own colours.
+- **Close.** On VS Code the card close is `Button key="close" plain hotkey="x" label="Close"` whose child is the bare string `Close`. The terminal's `x: Close` comes from the plain Button drawing the hotkey in the accent colour, a colon, then the label. The card header row's `justifyContent: 'space-between'` needs the Desktop close in a fixed-size slot.
+- **Accent colour is the host's.** The API says a Button draws as the surface's native button "either way", including `plain`, and the code notes that colours set inside a Button are dropped. So a mod can't repaint a native button's fill, and the blue here is VS Code's. Two things a mod can do:
+  - Text outside a Button can take the theme key `claude` (the host's terracotta) via `color="claude"`, which follows the person's theme without a tone. That covers links, counts, the toggle's "On" label and the active-chip marker.
+  - A pressable we draw ourselves, as a `Box` with our own fill, still needs a `Button` to be pressable, so its chrome stays the host's.
+- **To confirm live:** whether the blue on VS Code comes from the Button's own chrome, or from a `Link` or `suggestion` colour applied to a pressable's text.
+
+### Plan
+
+1. Split `rich` into layout and tint. Add a `look` tier: terminal, rich-untinted (VS Code with no tone) and rich-tinted (Desktop, mobile, VS Code with an explicit theme). Give the rich-untinted tier Desktop's spacing tokens and wrapping, with colours only from theme keys.
+2. Make the card close one component used by every card, laid out as on Desktop, with `x: Close` on VS Code and the glyph close where a tone exists.
+3. Replace blue with `color="claude"` for text accents on the untinted tier. Keep native button chrome as it is, and say so in the README's VS Code note.
+4. Give the Settings pane its own vertical rhythm: section gap, label-to-field gap, helper text gap, row padding, tab chip gap.
+5. Tests: a surface matrix for the untinted tier (spacing props present, no raw fills, close reads `x: Close`), and snapshots for Desktop and the terminal to show nothing moved.
+6. The user re-checks VS Code, `theme: auto` and Claude's theme forced to `dark` and `light`.
