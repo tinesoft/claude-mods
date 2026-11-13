@@ -104,3 +104,10 @@ The phase chips still sat on different lines (done and next ones level, todo and
 
 - **Phase row (hypothesis, not yet seen live):** the lower chips are the ones whose glyph and label are dim `Text` inside the native Button. With no tone, the dim now goes on the Button (`dimColor`) and the Text inside carries none (`Chip` in `ui.tsx`); the steps row also aligns to the top, not the centre, so a taller or shorter chip can't shift the others. If they are still uneven on the next check, note which chips are lower.
 - **Selected tab:** a native button shows no bold or underline, so with no tone the selected pane tab and settings segment carry a `▸` marker.
+
+## Progress, fifth pass (2026-11-13)
+
+The selected-tab marker is confirmed live. The phase chips were still on a staircase, so the fourth pass's dim hypothesis was wrong.
+
+- **Phase row (cause found):** the extension's webview (`anthropic.claude-code-2.1.323`, `webview/index.js`) draws a Box as a flex `div` and gives a row Box `flex-wrap: wrap` when the mod names no `flexWrap`; the terminal never wraps. Each phase step is a row Box of connector and chip, so when the steps row squeezed it, the chip wrapped under its connector. `vscodeSpaced` now gives a Box with no `flexWrap` `nowrap` on VS Code; a Box that asks for `wrap` still wraps. The dim-on-Button change stays, as it fades glyph and label together, but it was not the cause.
+- [ ] Live re-check: the seven phase chips on one row with their connectors.

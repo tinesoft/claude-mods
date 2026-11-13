@@ -27,9 +27,14 @@ export const padRowsOf = (ui: Ui, tone: Tone | undefined) =>
  */
 const VSCODE_GAPS = ['rowGap', 'marginTop', 'marginBottom'] as const
 
-/** Props of a Box with its vertical gaps sized for VS Code's cells; wrapped rows get a row gap. */
+/**
+ * Props of a Box with its vertical gaps sized for VS Code's cells; wrapped rows get a row gap.
+ * VS Code wraps a row Box that names no `flexWrap`, where the terminal never does, so a squeezed
+ * phase step put its chip on the line under its connector. A Box wraps there only when it asks to.
+ */
 export const vscodeSpaced = <P extends Record<string, unknown>>(props: P): P => {
   const out: Record<string, unknown> = { ...props }
+  if (out.flexWrap === undefined) out.flexWrap = 'nowrap'
   for (const key of VSCODE_GAPS) if (out[key] === 'sm') out[key] = 1
   if (out.flexWrap === 'wrap' && out.flexDirection === 'row' && out.rowGap === undefined)
     out.rowGap = 1
@@ -240,8 +245,8 @@ export const Chip = ({
   const { Box, Button, Text } = ui
   const rich = isRich(ui) && tone !== undefined
   const marked = pressed && pressedStyle === 'bold'
-  // With no tone on a rich surface (VS Code) the native Button draws a dim Text a line lower than
-  // a plain one, so the dim goes on the Button itself, which keeps the row level.
+  // With no tone on a rich surface (VS Code) the dim goes on the Button, so its glyph and label
+  // fade together.
   const untinted = isRich(ui) && tone === undefined
   const dimmed = dim || (untinted && onPress !== undefined && ink?.dimColor === true)
   const inkWithoutDim = Object.fromEntries(

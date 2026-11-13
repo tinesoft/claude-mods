@@ -8,7 +8,7 @@ import { byKey, fakeUi, findAll, textOf } from './fake-ui'
 import { featureWorld, mountPane, startSession } from './harness'
 
 test('a structural `sm` gap becomes one row on VS Code, which draws steps as cells', () => {
-  expect(vscodeSpaced({ rowGap: 'sm', marginBottom: 'sm', marginTop: 'sm' })).toEqual({
+  expect(vscodeSpaced({ rowGap: 'sm', marginBottom: 'sm', marginTop: 'sm' })).toMatchObject({
     rowGap: 1,
     marginBottom: 1,
     marginTop: 1,
@@ -17,7 +17,14 @@ test('a structural `sm` gap becomes one row on VS Code, which draws steps as cel
 
 test('`xs`, the larger steps, numbers and padding are left as they are', () => {
   const props = { rowGap: 'xs', marginBottom: 'md', marginTop: 2, paddingY: 'sm', columnGap: 'sm' }
-  expect(vscodeSpaced(props)).toEqual(props)
+  expect(vscodeSpaced(props)).toEqual({ ...props, flexWrap: 'nowrap' })
+})
+
+test('a Box wraps on VS Code only when it asks to, as on the terminal', () => {
+  expect(vscodeSpaced({ flexDirection: 'row' })).toMatchObject({ flexWrap: 'nowrap' })
+  expect(vscodeSpaced({ flexDirection: 'row', flexWrap: 'wrap' })).toMatchObject({
+    flexWrap: 'wrap',
+  })
 })
 
 test('a wrapping row gets a row gap unless it sets one', () => {
