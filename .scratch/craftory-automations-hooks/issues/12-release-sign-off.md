@@ -7,7 +7,7 @@
 **Status:** ready-for-human
 
 - [x] README screenshots taken and committed
-- [ ] End-to-end Local-tracker fixture run result reviewed
+- [x] End-to-end Local-tracker fixture run result reviewed
 - [ ] GitHub and GitLab sandbox live check done
 - [ ] `craftory@1.0.0` released via `nx release` from `main`
 
