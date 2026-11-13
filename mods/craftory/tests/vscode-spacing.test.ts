@@ -124,3 +124,18 @@ test("VS Code's settings tabs take a row of padding above and below, with no ton
   const pane = await mountPane($, 'vscode')
   expect((await pane.find({ key: 'tab-flow-box' }))?.props).toMatchObject({ paddingY: 1 })
 })
+
+test('with no tone, a dim phase label is dim on its Button, not on a Text inside it', () => {
+  const out = band('vscode', undefined, true)
+  const retro = byKey(out, 'phase-retro')
+  expect(retro?.props).toMatchObject({ dimColor: true })
+  expect(findAll(retro, n => n.type === 'Text' && n.props.dimColor !== undefined)).toEqual([])
+})
+
+test('with no tone, the selected tab carries a marker and the others do not', async ($, on) => {
+  featureWorld(on, { surfaces: ['vscode'], theme: 'auto' })
+  await startSession($, 'vscode')
+  const pane = await mountPane($, 'vscode')
+  expect((await pane.find({ key: 'tab-flow' }))?.text).toContain('▸ Flow')
+  expect((await pane.find({ key: 'tab-tickets' }))?.text).not.toContain('▸')
+})

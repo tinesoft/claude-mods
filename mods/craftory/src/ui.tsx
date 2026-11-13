@@ -1,6 +1,6 @@
 import type { Color, ElementTable, RenderElement, Space } from 'claude-code'
 import type { Tone } from '../types'
-import { CLEAR, ELLIPSIS, HOVER_MIX, mix, paint, type Role, SPACE, TOKENS } from './theme'
+import { CLEAR, ELLIPSIS, SELECTED, HOVER_MIX, mix, paint, type Role, SPACE, TOKENS } from './theme'
 
 /** `Svg` exists on every surface that draws rich (remote) elements, never on the terminal. */
 export type Ui = Pick<ElementTable, 'Box' | 'Text' | 'Button' | 'Link'> & {
@@ -48,6 +48,10 @@ export const clip = (text: string, max: number, ascii = false) => {
   return `${text.slice(0, Math.max(1, max - end.length))}${end}`
 }
 const ICON_PX = 14
+
+/** A text style without its `dimColor`, for text inside a Button that is dimmed as a whole. */
+const withoutDim = <T extends object>(style: T) =>
+  Object.fromEntries(Object.entries(style).filter(([key]) => key !== 'dimColor'))
 
 export const roleInk = (role: Role, tone: Tone | undefined) => {
   if (tone === undefined) {
@@ -236,16 +240,26 @@ export const Chip = ({
   const { Box, Button, Text } = ui
   const rich = isRich(ui) && tone !== undefined
   const marked = pressed && pressedStyle === 'bold'
+  // With no tone on a rich surface (VS Code) the native Button draws a dim Text a line lower than
+  // a plain one, so the dim goes on the Button itself, which keeps the row level.
+  const untinted = isRich(ui) && tone === undefined
+  const dimmed = dim || (untinted && onPress !== undefined && ink?.dimColor === true)
+  const inkWithoutDim = Object.fromEntries(
+    Object.entries(ink ?? {}).filter(([k]) => k !== 'dimColor'),
+  )
+  const inkOn = untinted && onPress !== undefined ? inkWithoutDim : ink
+  // A selected tab has no bold or underline to show on a native button, so it takes a marker.
+  const shown = untinted && marked ? `${SELECTED.glyph} ${label}` : label
   const text = (
     <Text
       key={onPress === undefined ? id : undefined}
       bold={bold || marked}
       {...(rich && size !== undefined && { size })}
       {...(strike && { strikethrough: true })}
-      {...((!rich || onPress === undefined) && ink)}
+      {...((!rich || onPress === undefined) && inkOn)}
       {...(!rich && pressedStyle === 'underline' && { underline: pressed })}
     >
-      {label}
+      {shown}
     </Text>
   )
   const press = (inner: RenderElement) =>
@@ -256,7 +270,7 @@ export const Chip = ({
         key={id}
         plain
         {...(hotkey !== undefined && { hotkey })}
-        {...(dim && { dimColor: true })}
+        {...(dimmed && { dimColor: true })}
         onPress={onPress}
       >
         {inner}
@@ -264,7 +278,12 @@ export const Chip = ({
     )
   if (!rich) {
     const mark = glyph !== undefined && (
-      <Text {...roleInk(role, tone)} {...(glyphBold && { bold: true })}>{`${glyph} `}</Text>
+      <Text
+        {...(untinted && onPress !== undefined
+          ? withoutDim(roleInk(role, tone))
+          : roleInk(role, tone))}
+        {...(glyphBold && { bold: true })}
+      >{`${glyph} `}</Text>
     )
     const padX = layout?.padX ?? (isRich(ui) ? 'xs' : undefined)
     const gap = layout?.gap ?? (isRich(ui) ? 'xs' : undefined)
@@ -285,7 +304,7 @@ export const Chip = ({
             key={id}
             plain
             {...(hotkey !== undefined && { hotkey })}
-            {...(dim && { dimColor: true })}
+            {...(dimmed && { dimColor: true })}
             onPress={onPress}
           >
             {mark}

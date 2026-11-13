@@ -1,7 +1,7 @@
 import type { RenderSurface } from 'claude-code'
 import type { Tone } from '../types'
 import { hexOr, lockSvg, switchSvg, SWITCH_SIZE } from './icons'
-import { CLOSE, paint, type Role, SPACE, SWITCH_MARK, TOKENS, TRIPLES } from './theme'
+import { CLOSE, paint, type Role, SELECTED, SPACE, SWITCH_MARK, TOKENS, TRIPLES } from './theme'
 import { Icon, inkOf, isRich, padRowsOf, roleInk, withTint, type Ui } from './ui'
 
 export const Eyebrow = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => (
@@ -130,7 +130,7 @@ export const Segments = ({
                 underline={isOn && !rich}
                 {...(!rich && (isOn ? inkOf(tone, 'ink') : inkOf(tone, 'text2')))}
               >
-                {label}
+                {isOn && isRich(ui) && tone === undefined ? `${SELECTED.glyph} ${label}` : label}
               </Text>
             </Button>
           </Box>

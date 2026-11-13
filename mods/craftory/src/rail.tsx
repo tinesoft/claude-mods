@@ -397,7 +397,7 @@ export const PhaseStrip = ({
       <Box
         key={`${id}-steps`}
         flexDirection="row"
-        alignItems="center"
+        alignItems={isRich(ui) && tone === undefined ? 'flex-start' : 'center'}
         columnGap={rich ? 0 : SPACE.railGap}
         flexWrap={wrapSteps ? 'wrap' : 'nowrap'}
       >

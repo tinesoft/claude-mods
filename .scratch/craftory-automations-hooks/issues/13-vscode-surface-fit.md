@@ -97,3 +97,10 @@ From the third live check (`image.png`, VS Code, dark):
 
 - **Phase row on one line:** the connector after a done phase was an Svg bar, and after the others a text dash, so the row sat on different lines. With no tone every connector is now the text dash (`Connector` in `rail.tsx`).
 - **Settings panel padding:** with no tone on a rich surface, the pane's tab chips, the settings segments and the pane's buttons take one row of padding above and below (`padRowsOf` in `ui.tsx`, the `padY` prop on `CardButton`). The band's cards and the rail are unchanged.
+
+## Progress, fourth pass (2026-11-13)
+
+The phase chips still sat on different lines (done and next ones level, todo and gated ones about a row lower), and the settings panel showed no selected tab.
+
+- **Phase row (hypothesis, not yet seen live):** the lower chips are the ones whose glyph and label are dim `Text` inside the native Button. With no tone, the dim now goes on the Button (`dimColor`) and the Text inside carries none (`Chip` in `ui.tsx`); the steps row also aligns to the top, not the centre, so a taller or shorter chip can't shift the others. If they are still uneven on the next check, note which chips are lower.
+- **Selected tab:** a native button shows no bold or underline, so with no tone the selected pane tab and settings segment carry a `▸` marker.

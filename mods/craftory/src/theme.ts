@@ -211,6 +211,9 @@ export const TRAY = { glyph: '⊟', ascii: '#' } as const
 export const GEAR = { glyph: '\u2699', ascii: '=' } as const
 
 /** After the title when it opens the feature switcher. */
+/** Marks the selected tab where a native button shows no bold or underline. */
+export const SELECTED = { glyph: '▸', ascii: '>' } as const
+
 export const CARET = { glyph: '▾', ascii: 'v' } as const
 
 /** Before a count of deleted lines. */
