@@ -80,7 +80,5 @@ Commit the demo repo, tours and recording. Use `docs(<mod>)` for the GIF.
 ## Limits
 
 - **Terminal**: records in the fullscreen renderer, where a tour can use keys, `{Click:text}` and `{Wheel:...}`. Set `AGG_FONT_SIZE` (default 16) to shrink a wide recording.
-- **Desktop**:
-  - Clicks are window-relative coordinates found by probing, so a tour only replays on a maximized window of the same size.
-  - The Desktop script was written without access to a Mac, so its first run doubles as its test.
+- **Desktop**: clicks are window-relative coordinates found by probing, so a tour only replays on a maximized window of the same size.
 - **VS Code and mobile** are not covered.

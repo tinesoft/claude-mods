@@ -6,7 +6,11 @@
 
 **Status:** ready-for-human
 
-- [ ] README screenshots taken and committed
+- [x] README screenshots taken and committed
 - [ ] End-to-end Local-tracker fixture run result reviewed
 - [ ] GitHub and GitLab sandbox live check done
 - [ ] `craftory@1.0.0` released via `nx release` from `main`
+
+## Notes
+
+- Screenshots (2026-11-13): the terminal GIF `assets/screenshots/craftory.gif` and the Desktop GIF `assets/screenshots/craftory-desktop.gif` are in the Craftory README. Both were recorded from `mods/craftory/demo/` with the repo's `screen-recording` skill.

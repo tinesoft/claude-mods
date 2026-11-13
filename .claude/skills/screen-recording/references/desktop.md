@@ -2,8 +2,6 @@
 
 The Desktop app is a macOS GUI, so this runs on the Mac host, never in the devcontainer: `scripts/desktop.mjs` refuses anywhere else. Run the skill from Claude Code in a host terminal, not from the Desktop app itself. A scripted tour clicks and types into the front Claude window, and that must not be the session doing the recording.
 
-None of this was tried on a Mac when it was written. The first run is a test: check each part and fix the script where it is wrong.
-
 ## One-off setup on the Mac
 
 - `brew install ffmpeg cliclick`. ffmpeg (and its ffprobe) converts the recording, and cliclick clicks and types for a scripted tour.
