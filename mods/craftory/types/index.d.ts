@@ -551,6 +551,8 @@ declare module 'claude-code' {
       askedFiles: string[]
       glossaryQuery: string
       setupNote: string | null
+      /** Text typed into each settings field since it was drawn, by field key. */
+      typed: Record<string, string>
     }
   }
 }

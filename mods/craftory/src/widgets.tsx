@@ -140,6 +140,72 @@ export const Segments = ({
   )
 }
 
+/**
+ * What the person has typed into a field, kept by the hook: VS Code draws an Input's own submit
+ * button in its theme's blue, so there the field's button is a craftory Button, which presses
+ * with the text typed so far.
+ */
+export type Typed = {
+  note: (key: string, text: string) => void
+  submit: (key: string, fallback: string, onSubmit: (text: string) => void) => void
+}
+
+/**
+ * A text field with its submit word. Where the surface draws no tone of its own (VS Code) and a
+ * `typed` store is at hand, the word is a Button beside the field; elsewhere the Input's own.
+ */
+export const Entry = ({
+  ui,
+  tone,
+  id,
+  value,
+  placeholder,
+  rows,
+  submitLabel,
+  onInput,
+  onSubmit,
+  typed,
+}: Common & {
+  value: string
+  placeholder?: string | undefined
+  rows?: number | undefined
+  submitLabel: string
+  onInput?: ((text: string) => void) | undefined
+  onSubmit: (text: string) => void
+  typed?: Typed | undefined
+}) => {
+  const { Box, Button, Input } = ui
+  if (Input === undefined) return null
+  const ownButton = isRich(ui) && tone === undefined && typed !== undefined
+  const input = (
+    <Input
+      key={id}
+      value={value}
+      {...(placeholder !== undefined && { placeholder })}
+      {...(rows !== undefined && { rows })}
+      {...((onInput !== undefined || ownButton) && {
+        onInput: (text: string) => {
+          if (ownButton) typed.note(id, text)
+          onInput?.(text)
+        },
+      })}
+      {...(!ownButton && { submitLabel })}
+      onSubmit={text => onSubmit(text)}
+    />
+  )
+  if (!ownButton) return input
+  return (
+    <Box key={`${id}-row`} flexDirection="row" alignItems="flex-start" columnGap={SPACE.chipGap}>
+      <Box key={`${id}-grow`} flexGrow={1} flexShrink={1} minWidth={0} flexDirection="column">
+        {input}
+      </Box>
+      <Button key={`${id}-submit`} onPress={() => typed.submit(id, value, onSubmit)}>
+        {submitLabel}
+      </Button>
+    </Box>
+  )
+}
+
 export const Field = ({
   ui,
   tone,
@@ -151,6 +217,7 @@ export const Field = ({
   rows,
   onInput,
   onSubmit,
+  typed,
 }: Common & {
   label: string
   hint?: string | undefined
@@ -159,6 +226,7 @@ export const Field = ({
   rows?: number
   onInput?: (text: string) => void
   onSubmit: ((text: string) => void) | undefined
+  typed?: Typed | undefined
 }) => {
   const { Box, Text, Input } = ui
   return (
@@ -167,14 +235,17 @@ export const Field = ({
         {label}
       </Text>
       {Input !== undefined && onSubmit !== undefined ? (
-        <Input
-          key={`set-${id}`}
+        <Entry
+          ui={ui}
+          tone={tone}
+          id={`set-${id}`}
           value={value}
-          {...(placeholder !== undefined && { placeholder })}
-          {...(rows !== undefined && { rows })}
-          {...(onInput !== undefined && { onInput: (text: string) => onInput(text) })}
-          submitLabel="save"
-          onSubmit={text => onSubmit(text)}
+          placeholder={placeholder}
+          rows={rows}
+          submitLabel="Save"
+          onInput={onInput}
+          onSubmit={onSubmit}
+          typed={typed}
         />
       ) : (
         <Text wrap="wrap" mono={isRich(ui)} {...inkOf(tone, 'ink2')}>

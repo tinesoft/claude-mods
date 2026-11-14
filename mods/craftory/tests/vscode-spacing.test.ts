@@ -2,7 +2,8 @@ import { expect, test } from 'claude-code/testing'
 import { DEFAULT_CONFIG } from '../src/config'
 import { deriveFlow, type PhaseState } from '../src/evidence'
 import { renderBand, type BandActions, type BandArgs } from '../src/rail'
-import { vscodeButton, vscodeSpaced } from '../src/ui'
+import { vscodeAccented, vscodeButton, vscodeSpaced } from '../src/ui'
+import { Entry, Field, type Typed } from '../src/widgets'
 import { mapView } from '../src/map-view'
 import type { Feature, IssueRef, Tone, WayMap } from '../types'
 import { byKey, fakeUi, findAll, textOf } from './fake-ui'
@@ -216,4 +217,61 @@ test('on VS Code a dim Button stays plain, with no outline', () => {
   } as never) as never
   expect((out as { type: string }).type).toBe('Button')
   expect(findAll(out, n => n.props.borderStyle !== undefined)).toEqual([])
+})
+
+test("on VS Code the theme keys it draws blue become Claude's terracotta", () => {
+  expect(vscodeAccented({ color: 'suggestion', borderColor: 'permission' })).toEqual({
+    color: 'claude',
+    borderColor: 'claude',
+  })
+  expect(vscodeAccented({ color: 'warning', backgroundColor: 'ide' })).toEqual({
+    color: 'warning',
+    backgroundColor: 'claude',
+  })
+})
+
+const richUi = () => ({ ...fakeUi(true), Input: fakeUi().Box }) as never
+
+const typedLog = () => {
+  const held: Record<string, string> = {}
+  const typed: Typed = {
+    note: (key, text) => void (held[key] = text),
+    submit: (key, fallback, submit) => submit(held[key] ?? fallback),
+  }
+  return { held, typed }
+}
+
+test('on VS Code a field draws its own Save Button, which saves what was typed', () => {
+  const { typed } = typedLog()
+  const saved: string[] = []
+  const out = Field({
+    ui: richUi(),
+    tone: undefined,
+    id: 'triage',
+    label: 'Needs triage',
+    value: 'needs-triage',
+    onSubmit: text => void saved.push(text),
+    typed,
+  })
+  const input = findAll(out, n => n.props.key === 'set-triage')[0]!
+  expect(input.props).not.toHaveProperty('submitLabel')
+  ;(input.props.onInput as (t: string) => void)('triage')
+  const save = byKey(out, 'set-triage-submit')!
+  expect(textOf(save)).toBe('Save')
+  ;(save.props.onPress as () => void)()
+  expect(saved).toEqual(['triage'])
+})
+
+test('elsewhere the Input keeps its own submit word, capitalised', () => {
+  const out = Entry({
+    ui: { ...fakeUi(true), Input: fakeUi().Box } as never,
+    tone: 'dark',
+    id: 'x',
+    value: '',
+    submitLabel: 'Save',
+    onSubmit: noop,
+    typed: typedLog().typed,
+  })
+  expect(byKey(out, 'x')?.props).toMatchObject({ submitLabel: 'Save' })
+  expect(byKey(out, 'x-submit')).toBeUndefined()
 })

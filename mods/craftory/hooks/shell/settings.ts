@@ -65,6 +65,9 @@ const askedFilesState = atom({ plugin: 'craftory', key: 'askedFiles' } as const,
 
 const termErrorState = atom({ plugin: 'craftory', key: 'termError' } as const, null)
 
+/** What has been typed into each settings field since it was drawn, for VS Code's Save button. */
+const typedState = atom({ plugin: 'craftory', key: 'typed' } as const, {})
+
 const WRITE_IT = 'Write'
 
 const NOT_NOW = 'Not now'
@@ -459,6 +462,18 @@ export async function settingsArgs(
       saveSetup: () => void saveSetup($),
       reset: () => void resetSettings($),
       rerunSetup: () => void rerunSetup($),
+      typed: {
+        // No redraw: the field already shows what was typed.
+        note: (key, text) => void update($, typedState, held => ({ ...held, [key]: text })),
+        submit: (key, fallback, onSubmit) =>
+          void (async () => {
+            const held = await read($, typedState)
+            await update($, typedState, all =>
+              Object.fromEntries(Object.entries(all).filter(([k]) => k !== key)),
+            )
+            onSubmit(held[key] ?? fallback)
+          })(),
+      },
       term: {
         draft: patch => {
           void update($, termDraftState, held => ({ ...held, ...patch })).then(() =>

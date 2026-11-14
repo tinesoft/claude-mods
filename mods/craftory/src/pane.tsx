@@ -738,7 +738,8 @@ const GlossaryTab = ({
           key="glossary-search"
           value={query}
           placeholder={`Search ${view.total} terms`}
-          submitLabel="search"
+          // It searches as the person types; VS Code would draw the submit word in its blue.
+          {...(!(rich && tone === undefined) && { submitLabel: 'Search' })}
           onInput={text => on.search(text)}
           onSubmit={text => on.search(text)}
         />

@@ -10,7 +10,7 @@ import {
 } from './sections'
 import { paint, SPACE, TOKENS } from './theme'
 import { inkOf, isRich, type Ui } from './ui'
-import { CardButton, Eyebrow, Field, Segments, SwitchRow } from './widgets'
+import { CardButton, Entry, Eyebrow, Field, Segments, SwitchRow, type Typed } from './widgets'
 
 export type GlossaryEdit = {
   terms: readonly Term[]
@@ -28,6 +28,8 @@ export type SettingsActions = {
   saveSetup: () => void
   reset: () => void
   rerunSetup: () => void
+  /** Text typed into a field, for the Save button VS Code draws as craftory's own. */
+  typed: Typed
   term: {
     draft: (patch: Partial<TermDraft>) => void
     save: (patch?: Partial<TermDraft>) => void
@@ -109,12 +111,15 @@ const RowView = ({
             onPick={readOnly ? undefined : value => on.set(row, value)}
           />
           {row.custom !== undefined && Input !== undefined && !readOnly && (
-            <Input
-              key={`set-${row.id}-custom`}
+            <Entry
+              ui={ui}
+              tone={tone}
+              id={`set-${row.id}-custom`}
               value=""
               placeholder={row.custom.placeholder}
-              submitLabel="set"
+              submitLabel="Set"
               onSubmit={text => on.setCustom(row, text)}
+              typed={on.typed}
             />
           )}
           {row.hint !== undefined && (
@@ -137,6 +142,7 @@ const RowView = ({
             {...(row.placeholder !== undefined && { placeholder: row.placeholder })}
             {...(row.rows !== undefined && { rows: row.rows })}
             onSubmit={readOnly ? undefined : text => on.set(row, text)}
+            typed={on.typed}
           />
         </Box>
       )
@@ -225,6 +231,7 @@ const GlossarySection = ({
             placeholder="Credit note"
             onInput={name => on.term.draft({ name })}
             onSubmit={name => on.term.save({ name })}
+            typed={on.typed}
           />
           <Field
             ui={ui}
@@ -235,6 +242,7 @@ const GlossarySection = ({
             placeholder="What it means in this codebase"
             onInput={definition => on.term.draft({ definition })}
             onSubmit={definition => on.term.save({ definition })}
+            typed={on.typed}
           />
           <Field
             ui={ui}
@@ -246,6 +254,7 @@ const GlossarySection = ({
             placeholder="refund"
             onInput={avoid => on.term.draft({ avoid })}
             onSubmit={avoid => on.term.save({ avoid })}
+            typed={on.typed}
           />
           {glossary.error !== null && (
             <Text wrap="wrap" color={paint('danger', tone).fg}>

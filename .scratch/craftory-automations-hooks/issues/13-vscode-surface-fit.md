@@ -128,3 +128,10 @@ The live check was close to done; the postponed terracotta accent is now taken u
 - **Chosen look: outline.** A filled terracotta box behind a dim button left the theme's grey label at about 2:1 contrast, so every accent Button is a dim one in a terracotta round outline, as Claude Code's own checkboxes are; a dim Button (a todo or gated step) stays plain. One wrapper, `vscodeButton` in `ui.tsx`, applied in `uiFor` beside `vscodeBox`.
 - **Left blue:** Links ("Open map", handoff links) keep VS Code's link colour; no mod prop reaches it.
 - [ ] Live re-check: the outlines in light and dark, their alignment in the phase row, the card buttons and the settings tabs.
+
+## Progress, eighth pass: accent everywhere it reaches (2026-11-14)
+
+- **Blue text:** VS Code draws the theme keys `suggestion`, `permission` and `ide` in its accent blue; craftory's `skill` role is `suggestion`, so the phase card's kicker and border and the Helpers list were blue. On VS Code, Text and Box swap those keys for `claude` (`vscodeAccented` in `ui.tsx`, applied in `uiFor`).
+- **Save buttons:** VS Code draws an Input's submit word as a native button in its blue. There a settings field now draws no submit word of its own and a craftory `Save` Button beside it instead (the terracotta outline), which saves what was typed (`Entry` in `widgets.tsx`; the typed text is held by the settings hook in a `typed` atom). Enter still saves. Elsewhere the Input keeps its own word. The words are capitalised: `Save`, `Set`, `Search`. The glossary search, which already searches as you type, drops its submit word on VS Code.
+- **Still blue:** Links (VS Code's link colour) and the Input's focus ring, which no mod prop reaches.
+- [ ] Live re-check: the card kicker and border, the Helpers list, and the Save buttons beside the settings fields.

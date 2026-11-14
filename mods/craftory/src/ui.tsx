@@ -45,7 +45,27 @@ export const vscodeSpaced = <P extends Record<string, unknown>>(props: P): P => 
 export const vscodeBox =
   (Box: Ui['Box']): Ui['Box'] =>
   props =>
-    Box(vscodeSpaced(props))
+    Box(vscodeAccented(vscodeSpaced(props)))
+
+/**
+ * The Claude Code theme keys VS Code draws in its own accent blue (`--app-accent-color`); there a
+ * mod's accent is Claude's terracotta, the `claude` key.
+ */
+const VSCODE_BLUES: ReadonlySet<unknown> = new Set(['suggestion', 'permission', 'ide'])
+const COLOUR_PROPS = ['color', 'backgroundColor', 'borderColor'] as const
+
+/** Props with VS Code's blue theme keys swapped for `claude`. */
+export const vscodeAccented = <P extends Record<string, unknown>>(props: P): P => {
+  const out: Record<string, unknown> = { ...props }
+  for (const key of COLOUR_PROPS) if (VSCODE_BLUES.has(out[key])) out[key] = 'claude'
+  return out as P
+}
+
+/** A Text with `vscodeAccented` colours. */
+export const vscodeText =
+  (Text: Ui['Text']): Ui['Text'] =>
+  props =>
+    Text(vscodeAccented(props))
 
 /**
  * VS Code fills a Button with its theme's button colour, which no prop changes, and draws only
