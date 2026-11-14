@@ -2,7 +2,6 @@ import { expect, test } from 'claude-code/testing'
 import { resolveSettings } from '../src/model'
 import { renderBand, type Ui } from '../src/render'
 import { SELECTED } from '../src/theme'
-import { vscodeButton, vscodeSpaced } from '../src/vscode'
 import type { Activation } from '../types'
 import { mountPane, session, stubEngine } from './harness'
 
@@ -38,32 +37,6 @@ const findAll = (node: unknown, match: (n: Node) => boolean): Node[] =>
 const byKey = (node: unknown, key: string) => findAll(node, n => n.props.key === key)[0]
 
 const HEX = /"(color|backgroundColor|borderColor)":"#[0-9A-Fa-f]+"/g
-
-test('a structural `sm` gap becomes one row on VS Code, and a Box wraps only when it asks to', () => {
-  expect(vscodeSpaced({ rowGap: 'sm', marginBottom: 'sm' })).toEqual({
-    rowGap: 1,
-    marginBottom: 1,
-    flexWrap: 'nowrap',
-  })
-  expect(vscodeSpaced({ rowGap: 'xs', paddingY: 'sm' })).toEqual({
-    rowGap: 'xs',
-    paddingY: 'sm',
-    flexWrap: 'nowrap',
-  })
-  expect(vscodeSpaced({ flexDirection: 'row', flexWrap: 'wrap' })).toMatchObject({ rowGap: 1 })
-})
-
-test('on VS Code an accent Button is a dim one in a terracotta outline; a dim one stays plain', () => {
-  const ui = fakeUi()
-  const Button = vscodeButton(ui.Button, ui.Box)
-  const out = Button({ key: 'go', onPress: () => undefined, children: 'Go' } as never)
-  const [outline] = findAll(out, n => n.props.borderStyle === 'round')
-  expect(outline?.props).toMatchObject({ borderColor: 'claude' })
-  expect(byKey(out, 'go')?.props).toMatchObject({ dimColor: true })
-  expect((out as unknown as Node).props).toMatchObject({ alignItems: 'flex-start', flexShrink: 0 })
-  const dim = Button({ key: 'later', dimColor: true, onPress: () => undefined } as never)
-  expect((dim as unknown as Node).type).toBe('Button')
-})
 
 const now = 1_000_000
 

@@ -2,41 +2,11 @@ import { expect, test } from 'claude-code/testing'
 import { DEFAULT_CONFIG } from '../src/config'
 import { deriveFlow, type PhaseState } from '../src/evidence'
 import { renderBand, type BandActions, type BandArgs } from '../src/rail'
-import { vscodeAccented, vscodeButton, vscodeSpaced } from '../src/ui'
 import { Entry, Field, type Typed } from '../src/widgets'
 import { mapView } from '../src/map-view'
 import type { Feature, IssueRef, Tone, WayMap } from '../types'
 import { byKey, fakeUi, findAll, textOf } from './fake-ui'
 import { featureWorld, mountPane, startSession } from './harness'
-
-test('a structural `sm` gap becomes one row on VS Code, which draws steps as cells', () => {
-  expect(vscodeSpaced({ rowGap: 'sm', marginBottom: 'sm', marginTop: 'sm' })).toMatchObject({
-    rowGap: 1,
-    marginBottom: 1,
-    marginTop: 1,
-  })
-})
-
-test('`xs`, the larger steps, numbers and padding are left as they are', () => {
-  const props = { rowGap: 'xs', marginBottom: 'md', marginTop: 2, paddingY: 'sm', columnGap: 'sm' }
-  expect(vscodeSpaced(props)).toEqual({ ...props, flexWrap: 'nowrap' })
-})
-
-test('a Box wraps on VS Code only when it asks to, as on the terminal', () => {
-  expect(vscodeSpaced({ flexDirection: 'row' })).toMatchObject({ flexWrap: 'nowrap' })
-  expect(vscodeSpaced({ flexDirection: 'row', flexWrap: 'wrap' })).toMatchObject({
-    flexWrap: 'wrap',
-  })
-})
-
-test('a wrapping row gets a row gap unless it sets one', () => {
-  expect(vscodeSpaced({ flexDirection: 'row', flexWrap: 'wrap' })).toMatchObject({ rowGap: 1 })
-  expect(vscodeSpaced({ flexDirection: 'row', flexWrap: 'wrap', rowGap: 0 })).toMatchObject({
-    rowGap: 0,
-  })
-  expect(vscodeSpaced({ flexDirection: 'row', flexWrap: 'nowrap' })).not.toHaveProperty('rowGap')
-  expect(vscodeSpaced({ flexDirection: 'column', flexWrap: 'wrap' })).not.toHaveProperty('rowGap')
-})
 
 const draft: Feature = {
   kind: 'draft',
@@ -188,46 +158,6 @@ test('with no tone, the band draws no raw fills a dark VS Code window would clas
   expect(
     JSON.stringify(out).match(/"(backgroundColor|borderColor|color)":"#[0-9A-Fa-f]+"/g),
   ).toBeNull()
-})
-
-test('on VS Code an accent Button is a dim one in a terracotta outline that hugs it', () => {
-  const ui = fakeUi(true)
-  const Button = vscodeButton(ui.Button, ui.Box)
-  const out = Button({ key: 'go', onPress: noop, children: 'Go' } as never) as never
-  const [outline] = findAll(out, n => n.props.borderStyle === 'round')
-  expect(outline?.props).toMatchObject({ borderColor: 'claude', flexWrap: 'nowrap' })
-  expect(byKey(out, 'go')?.props).toMatchObject({ dimColor: true })
-  expect(byKey(out, 'go')?.type).toBe('Button')
-  expect((out as { props: Record<string, unknown> }).props).toMatchObject({
-    alignItems: 'flex-start',
-    flexShrink: 0,
-  })
-})
-
-test('on VS Code a dim Button stays plain, with no outline', () => {
-  const ui = fakeUi(true)
-  const out = vscodeButton(
-    ui.Button,
-    ui.Box,
-  )({
-    key: 'later',
-    dimColor: true,
-    onPress: noop,
-    children: 'Later',
-  } as never) as never
-  expect((out as { type: string }).type).toBe('Button')
-  expect(findAll(out, n => n.props.borderStyle !== undefined)).toEqual([])
-})
-
-test("on VS Code the theme keys it draws blue become Claude's terracotta", () => {
-  expect(vscodeAccented({ color: 'suggestion', borderColor: 'permission' })).toEqual({
-    color: 'claude',
-    borderColor: 'claude',
-  })
-  expect(vscodeAccented({ color: 'warning', backgroundColor: 'ide' })).toEqual({
-    color: 'warning',
-    backgroundColor: 'claude',
-  })
 })
 
 const richUi = () => ({ ...fakeUi(true), Input: fakeUi().Box }) as never

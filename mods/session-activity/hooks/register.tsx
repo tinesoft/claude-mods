@@ -39,7 +39,7 @@ import { ENGINE_FLOOR, meetsFloor } from '../src/_kit/engine-floor'
 import { renderPane, type PaneFlag } from '../src/pane'
 import { lineSummary, markdownSummary } from '../src/summary'
 import { renderBand, type Ui } from '../src/render'
-import { vscodeBox, vscodeButton } from '../src/vscode'
+import { vscodeBox, vscodeButton } from '../src/_kit/vscode-fit'
 import { resolveTone, SPIN_MS, TOGGLE_ORDER, type Tone } from '../src/theme'
 
 const PANE = 'session-activity'

@@ -1,5 +1,7 @@
 import type { Color, ElementTable, RenderElement, Space } from 'claude-code'
 import type { Tone } from '../types'
+import { vscodeAccentBox } from './_kit/vscode-accent'
+import { vscodeBox as vscodeFitBox } from './_kit/vscode-fit'
 import { CLEAR, ELLIPSIS, SELECTED, HOVER_MIX, mix, paint, type Role, SPACE, TOKENS } from './theme'
 
 /** `Svg` exists on every surface that draws rich (remote) elements, never on the terminal. */
@@ -19,79 +21,8 @@ export const isRich = (ui: Ui) => ui.Svg !== undefined
 export const padRowsOf = (ui: Ui, tone: Tone | undefined) =>
   isRich(ui) && tone === undefined ? 1 : 0
 
-/**
- * VS Code draws a step as character cells, so a vertical `xs` or `sm` is no row at all, where
- * Desktop draws them as a few pixels. A structural gap (a row gap or a margin) of `sm` becomes one
- * row there, so rows of chips and sections no longer touch; `xs` keeps the zero that separates text
- * lines already and the padding is left alone.
- */
-const VSCODE_GAPS = ['rowGap', 'marginTop', 'marginBottom'] as const
-
-/**
- * Props of a Box with its vertical gaps sized for VS Code's cells; wrapped rows get a row gap.
- * VS Code wraps a row Box that names no `flexWrap`, where the terminal never does, so a squeezed
- * phase step put its chip on the line under its connector. A Box wraps there only when it asks to.
- */
-export const vscodeSpaced = <P extends Record<string, unknown>>(props: P): P => {
-  const out: Record<string, unknown> = { ...props }
-  if (out.flexWrap === undefined) out.flexWrap = 'nowrap'
-  for (const key of VSCODE_GAPS) if (out[key] === 'sm') out[key] = 1
-  if (out.flexWrap === 'wrap' && out.flexDirection === 'row' && out.rowGap === undefined)
-    out.rowGap = 1
-  return out as P
-}
-
-/** A Box that applies `vscodeSpaced`; the other elements are VS Code's own. */
-export const vscodeBox =
-  (Box: Ui['Box']): Ui['Box'] =>
-  props =>
-    Box(vscodeAccented(vscodeSpaced(props)))
-
-/**
- * The Claude Code theme keys VS Code draws in its own accent blue (`--app-accent-color`); there a
- * mod's accent is Claude's terracotta, the `claude` key.
- */
-const VSCODE_BLUES: ReadonlySet<unknown> = new Set(['suggestion', 'permission', 'ide'])
-const COLOUR_PROPS = ['color', 'backgroundColor', 'borderColor'] as const
-
-/** Props with VS Code's blue theme keys swapped for `claude`. */
-export const vscodeAccented = <P extends Record<string, unknown>>(props: P): P => {
-  const out: Record<string, unknown> = { ...props }
-  for (const key of COLOUR_PROPS) if (VSCODE_BLUES.has(out[key])) out[key] = 'claude'
-  return out as P
-}
-
-/** A Text with `vscodeAccented` colours. */
-export const vscodeText =
-  (Text: Ui['Text']): Ui['Text'] =>
-  props =>
-    Text(vscodeAccented(props))
-
-/**
- * VS Code fills a Button with its theme's button colour, which no prop changes, and draws only
- * the plain text inside it. A dim Button is transparent, so an accent Button is a dim one in a
- * terracotta outline (Claude Code's own `claude` colour, as its checkboxes); a dim Button stays
- * plain. The outer Box takes any stretch from its row or column, so the outline hugs the button
- * at the top, where VS Code aligns a button of its own.
- */
-export const vscodeButton =
-  (Button: Ui['Button'], Box: Ui['Box']): Ui['Button'] =>
-  props =>
-    props.dimColor === true
-      ? Button(props)
-      : Box({
-          flexDirection: 'row',
-          flexWrap: 'nowrap',
-          alignItems: 'flex-start',
-          flexShrink: 0,
-          children: Box({
-            flexDirection: 'row',
-            flexWrap: 'nowrap',
-            borderStyle: 'round',
-            borderColor: 'claude',
-            children: Button({ ...props, dimColor: true }),
-          }),
-        })
+/** A Box fitted to VS Code's cells, with its blues swapped for Claude's terracotta. */
+export const vscodeBox = (Box: Ui['Box']): Ui['Box'] => vscodeAccentBox(vscodeFitBox(Box))
 
 export const clip = (text: string, max: number, ascii = false) => {
   if (text.length <= max) return text

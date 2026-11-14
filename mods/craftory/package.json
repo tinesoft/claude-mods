@@ -5,6 +5,8 @@
   "type": "module",
   "kit": [
     "appearance",
-    "engine-floor"
+    "engine-floor",
+    "vscode-accent",
+    "vscode-fit"
   ]
 }
