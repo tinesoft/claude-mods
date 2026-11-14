@@ -23,7 +23,7 @@ permissions:
   pull-requests: write
 
 env:
-  CLAUDE_CODE_VERSION: 2.1.302
+  CLAUDE_CODE_VERSION: 2.1.325
 
 jobs:
   release:

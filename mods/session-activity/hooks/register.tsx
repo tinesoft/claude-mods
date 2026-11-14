@@ -21,6 +21,7 @@ import {
   hookTarget,
   lineCount,
   stopNotice,
+  wasRefused,
 } from '../src/classify'
 import {
   bandCandidates,
@@ -340,6 +341,8 @@ export const register: Register = (on, options) => {
   on('tool.check', async ($, e, next) => {
     const verdict = await next(e)
     if (e.tool_use_id === undefined) return next(e)
+    // A call the engine checks again (its own, once the ask is answered) is one observation.
+    if ((await read($, activations)).some(a => a.askedCallId === e.tool_use_id)) return next(e)
     const cwd = await $.session.cwd()
     await observe($, options, fromPermission(e.tool, e.input, verdict, cwd, e.tool_use_id))
     // At tool.check next(e) replays the settled verdict, it does not ask again.
@@ -348,7 +351,8 @@ export const register: Register = (on, options) => {
 
   on('tool.call', async ($, e, next) => {
     const ran = await next(e)
-    if (ran.deny === undefined) {
+    const refused = wasRefused(ran)
+    if (!refused) {
       await observe(
         $,
         options,
@@ -366,8 +370,8 @@ export const register: Register = (on, options) => {
     const asked = (await read($, activations)).find(a => a.askedCallId === e.tool_use_id)
     if (asked === undefined) return ran
     const at = await $.clock.now()
-    await commit($, options, list => settleAsked(list, e.tool_use_id, ran.deny === undefined, at))
-    if (ran.deny !== undefined) {
+    await commit($, options, list => settleAsked(list, e.tool_use_id, !refused, at))
+    if (refused) {
       await notify($, options, { status: 'denied', label: asked.label, meta: asked.meta })
     }
     return ran

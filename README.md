@@ -12,7 +12,7 @@ claude plugin install <mod-name> --marketplace tinesoft/claude-mods@main
 
 > `<mod-name>` = Name of the Mod to install (see below)
 
-Mods need Claude Code 2.1.287 or later. CI tests against 2.1.302.
+Mods need Claude Code 2.1.299 or later. CI tests against 2.1.325.
 
 ## Mods
 

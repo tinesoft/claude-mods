@@ -87,7 +87,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
 
   on('session.surfaces', () => ({ value: options.surfaces ?? ['terminal'] }))
   on('session.version', () => {
-    const version = options.version ?? '2.1.302'
+    const version = options.version ?? '2.1.325'
     return { value: { version, base: version, builtAt: '2026-10-01T00:00:00.000Z' } }
   })
   on('config.list', () => ({
@@ -297,6 +297,7 @@ export const startSession = async ($: Engine, surface: RenderSurface = 'terminal
 
 export const bandProps = (bodyColumns: number, maxRows = 24) => ({
   hasSurvey: false,
+  isCollapsed: false,
   isWorking: false,
   maxRows,
   bodyColumns,

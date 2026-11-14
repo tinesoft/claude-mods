@@ -2,6 +2,20 @@ import { expect, test } from 'claude-code/testing'
 import { TRIPLES } from '../src/theme'
 import { allText, BAND_SURFACES, mattCommands, mountBand, startSession, world } from './harness'
 
+type Drawn = { type: string; props?: { key?: string }; children?: Drawn[] }
+
+/** What sits right before the keyed row: the pinned engine stands for another mod's draw as an `engine` node. */
+const beforeKeyed = (node: Drawn, key: string): string | undefined => {
+  const children = node.children ?? []
+  const at = children.findIndex(c => c.props?.key === key)
+  if (at > 0) return children[at - 1]!.type
+  for (const child of children) {
+    const found = beforeKeyed(child, key)
+    if (found !== undefined) return found
+  }
+  return undefined
+}
+
 const INSTALL_ARGV = ['claude', 'plugin', 'install', 'mattpocock-skills@claude-plugins-official']
 const IN_RANGE = [
   { id: 'mattpocock-skills@claude-plugins-official', version: '1.3.1', enabled: true },
@@ -58,10 +72,8 @@ for (const tone of ['light', 'dark'] as const) {
 test("another mod's row stays in its own row above the notice", async ($, on) => {
   world(on)
   await startSession($)
-  const drawn = (await (await mountBand($)).drawn()) as {
-    children: { type: string; props: { key?: string } }[]
-  }
-  expect(drawn.children.map(c => c.props?.key)).toEqual([undefined, 'notice-plugin'])
+  const drawn = (await (await mountBand($)).drawn()) as Drawn
+  expect(beforeKeyed(drawn, 'notice-plugin')).toBe('engine')
 })
 
 test('nothing runs until Install is pressed, then exactly the install argv runs', async ($, on) => {
@@ -191,6 +203,7 @@ test('a survey on screen keeps the band out of its way', async ($, on) => {
     component: 'AbovePrompt',
     props: {
       hasSurvey: true,
+      isCollapsed: false,
       isWorking: false,
       maxRows: 24,
       bodyColumns: 100,

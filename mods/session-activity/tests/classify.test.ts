@@ -12,6 +12,7 @@ import {
   hookTarget,
   hookCommands,
   mcpParts,
+  wasRefused,
 } from '../src/classify'
 
 test('an MCP tool name splits into server and tool', () => {
@@ -209,4 +210,13 @@ test('a slash command chip leaves the slash to its glyph', () => {
   const c = fromCommand('release-notes', 'v2')
   expect(c.label).toBe('release-notes')
   expect(c.detail).toBe('Ran /release-notes v2')
+})
+
+test('a refused call is a deny, or the error result the pinned engine answers for a refused ask', () => {
+  expect(wasRefused({ deny: 'declined' })).toBe(true)
+  expect(
+    wasRefused({ isError: true, text: 'Permission to use Bash has been denied. IMPORTANT: ...' }),
+  ).toBe(true)
+  expect(wasRefused({ isError: true, text: 'exit code 1' })).toBe(false)
+  expect(wasRefused({})).toBe(false)
 })

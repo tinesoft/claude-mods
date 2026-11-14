@@ -20,7 +20,7 @@ export const session = (
   store = new Map<string, unknown>(),
   theme = 'dark',
   surfaces: readonly RenderSurface[] = ['terminal'],
-  version = '2.1.302',
+  version = '2.1.325',
 ) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   on('store.get', ($, e) => ({ value: store.get(e.key) }))
@@ -50,6 +50,7 @@ export const session = (
 
 export const bandProps = (bodyColumns: number, maxRows = 24) => ({
   hasSurvey: false,
+  isCollapsed: false,
   isWorking: false,
   maxRows,
   bodyColumns,
@@ -182,7 +183,10 @@ export const stubEngine = (
   const status: { text: string | undefined }[] = []
   const panes = new Map<string, string>()
   on('tool.call', () => answers.call ?? { result: 'ran' })
-  on('tool.check', () => answers.verdict ?? { decision: 'allow' })
+  // The pinned engine runs the check again inside `tool.call` and refuses an ask nobody answers,
+  // so a test that plays the person approving changes the verdict with `answerChecksWith` first.
+  const verdictOf = { current: answers.verdict }
+  on('tool.check', () => verdictOf.current ?? { decision: 'allow' })
   on('skill.prompt', ($, e) => ({ text: `body of ${e.skill}` }))
   on('agent.spawn', ($, e) => ({ model: 'haiku', agentId: `agent-${e.description}` }))
   on('turn.complete', ($, e) => ({ text: e.answer }))
@@ -222,6 +226,9 @@ export const stubEngine = (
     opened,
     copied,
     toasts,
+    answerChecksWith: (verdict: NonNullable<typeof answers.verdict>) => {
+      verdictOf.current = verdict
+    },
     invalidations: () => invalidations,
     opens,
     isOpen: (id: string) => panes.has(id),

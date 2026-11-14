@@ -86,7 +86,7 @@ test(
   { options: { show_permissions: true } },
   async ($, on) => {
     const clock = session(on)
-    stubEngine(on, { verdict: { decision: 'ask' } })
+    const { answerChecksWith } = stubEngine(on, { verdict: { decision: 'ask' } })
     await $.tool.check({
       tool: 'Bash',
       input: { command: 'git push' },
@@ -95,6 +95,7 @@ test(
     expect(await band($, clock)).toEqual([
       expect.stringMatching(/^perm:Bash:git push\|[◐◓◑◒] git push$/),
     ])
+    answerChecksWith({ decision: 'allow' })
     await $.tool.call({ tool: 'Bash', command: 'git push', tool_use_id: 'tu2' } as never)
     expect(await band($, clock)).toEqual(['perm:Bash:git push|⚷ Allowed: git push'])
   },
@@ -234,8 +235,12 @@ test('every observed event reaches the caller exactly as the engine answered it'
   session(on, {
     hooks: { Stop: [{ hooks: [{ type: 'command', command: 'x.sh' }] }] },
   })
-  stubEngine(on, { verdict: { decision: 'ask', reason: 'why' }, stop: { block: 'keep going' } })
+  const { answerChecksWith } = stubEngine(on, {
+    verdict: { decision: 'allow' },
+    stop: { block: 'keep going' },
+  })
   expect(await $.tool.call({ tool: 'mcp__github__get_issue' } as never)).toEqual({ result: 'ran' })
+  answerChecksWith({ decision: 'ask', reason: 'why' })
   expect(
     await $.tool.check({ tool: 'Bash', input: { command: 'x' }, tool_use_id: 't' } as never),
   ).toEqual({ decision: 'ask', reason: 'why' })

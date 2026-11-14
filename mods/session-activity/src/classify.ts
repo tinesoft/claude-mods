@@ -342,3 +342,17 @@ export const stopNotice = (
   if (seen.status === 'denied') return `⚷ ${seen.meta ?? 'A tool'} denied: ${seen.label}`
   return undefined
 }
+
+/**
+ * Whether a `tool.call` answer is a refusal of the call, not a result. An older Claude Code
+ * answers a refused ask as `{ deny }`; the pinned one answers an error result whose text is the
+ * refusal, so an error that is not one (the tool ran and failed) stays a run.
+ */
+export const wasRefused = (ran: {
+  deny?: string | undefined
+  isError?: true | undefined
+  text?: string | undefined
+}) =>
+  ran.deny !== undefined ||
+  (ran.isError === true &&
+    /^(Permission to use .+ has been denied|The user doesn't want to proceed)/.test(ran.text ?? ''))

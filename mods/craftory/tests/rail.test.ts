@@ -13,6 +13,20 @@ import {
   turnComplete,
 } from './harness'
 
+type Drawn = { type: string; props?: { key?: string }; children?: Drawn[] }
+
+/** What sits right before the keyed row: the pinned engine stands for another mod's draw as an `engine` node. */
+const beforeKeyed = (node: Drawn, key: string): string | undefined => {
+  const children = node.children ?? []
+  const at = children.findIndex(c => c.props?.key === key)
+  if (at > 0) return children[at - 1]!.type
+  for (const child of children) {
+    const found = beforeKeyed(child, key)
+    if (found !== undefined) return found
+  }
+  return undefined
+}
+
 type Seen = { find: (q: ElementQuery) => Promise<FoundElement | undefined> }
 const find = (band: Seen, key: string) => band.find({ key })
 
@@ -56,10 +70,8 @@ for (const surface of BAND_SURFACES) {
 test("another mod's row is drawn in its own row above the rail", async ($, on) => {
   featureWorld(on)
   await startSession($)
-  const drawn = (await (await mountBand($)).drawn()) as {
-    children: { props: { key?: string } }[]
-  }
-  expect(drawn.children.map(c => c.props?.key)).toEqual([undefined, 'rail'])
+  const drawn = (await (await mountBand($)).drawn()) as Drawn
+  expect(beforeKeyed(drawn, 'rail')).toBe('engine')
 })
 
 test('pressing a view opens its card, a second press and Close shut it', async ($, on) => {

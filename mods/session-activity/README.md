@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/tinesoft/claude-mods/actions/workflows/ci.yml/badge.svg)](https://github.com/tinesoft/claude-mods/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-%E2%89%A52.1.287-D97757.svg)](https://claude.com/claude-code)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-%E2%89%A52.1.299-D97757.svg)](https://claude.com/claude-code)
 
 </div>
 
@@ -52,7 +52,7 @@ A Claude Code mod that shows what took part in your session. A row of chips abov
 
 ## 📦 Installation
 
-Requires Claude Code 2.1.299 or later. On an older version the mod draws nothing and says to run `claude update`. Tested with 2.1.302.
+Requires Claude Code 2.1.299 or later. On an older version the mod draws nothing and says to run `claude update`. Tested with 2.1.325.
 
 Install the mod from `main`, which holds released code only:
 

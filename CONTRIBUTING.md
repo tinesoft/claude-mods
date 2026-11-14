@@ -66,7 +66,7 @@ Tests live in `mods/<name>/tests/` and run with `claude plugin test`, which supp
 Run tests on the Claude Code version CI pins (see `CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml`). A locally installed `claude` auto-updates, and a newer version can pass or fail differently than CI:
 
 ```sh
-npm install -g @anthropic-ai/claude-code@2.1.302
+npm install -g @anthropic-ai/claude-code@2.1.325
 ```
 
 Nx caches `lint`, `typecheck`, `validate` and `test` per `claude --version`, so changing versions reruns them.
@@ -84,8 +84,8 @@ The new Nx project name becomes a valid commit scope, and `nx release` picks up 
 
 `typecheck` reads `tools/claude-code-types/<version>/index.d.ts`, a snapshot of the types Claude Code generates in `.claude-plugin/types/`. When you move to a new Claude Code version:
 
-1. Add the new snapshot to `tools/claude-code-types/<new-version>/index.d.ts`.
-2. Update the version in `CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml` and `.github/workflows/release.yml`, in each mod's `tsconfig.json` `include`, and in the "CI tests against" line in `README.md`.
+1. Add the new snapshot to `tools/claude-code-types/<new-version>/index.d.ts`, and the built-in tool inputs Claude Code lays beside it (`.claude-plugin/types/claude-code-tools/index.d.ts`) as `tools.d.ts` in the same folder. On 2.1.325 they are a separate file; without it every `Edit`/`Write` field types as `unknown`.
+2. Update the version in `CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml` and `.github/workflows/release.yml`, in each mod's and `libs/mod-kit`'s `tsconfig.json` `include` (both snapshot files), and in the "CI tests against" line in `README.md`.
 3. Run `pnpm nx run-many -t lint typecheck validate test` on that version.
 
 ## Branches and commits

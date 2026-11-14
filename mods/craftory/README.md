@@ -54,7 +54,7 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 
 ## 📦 Installation
 
-Requires Claude Code 2.1.299 or later. On an older version the mod draws nothing and says to run `claude update`. Tested with 2.1.302.
+Requires Claude Code 2.1.299 or later. On an older version the mod draws nothing and says to run `claude update`. Tested with 2.1.325.
 
 Install the mod from `main`, which holds released code only:
 

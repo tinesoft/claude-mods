@@ -8,14 +8,14 @@
 
 Decisions (grilled 2026-11-14): target 2.1.325, falling back to 2.1.323 only if 2.1.325 breaks something 2.1.323 didn't. The mods keep their stated floor, so permission-result handling must cope with both the old and new answer shapes. Only the "tested with" lines change; the floor wording stays, except the mismatch below.
 
-- [ ] Rerun the trial on 2.1.325 first (see below); note any breakage beyond the 2.1.323 list
-- [ ] `tools/claude-code-types/2.1.325/index.d.ts` added, `2.1.302` removed
-- [ ] Pin updated: `CLAUDE_CODE_VERSION` in `ci.yml` and `release.yml`, the `tsconfig.json` `include` of both mods **and `libs/mod-kit`**, the `version` default in both `tests/harness.ts`, the READMEs' "Tested with" lines, root `README.md`, `CLAUDE.md`, `CONTRIBUTING.md` (the `npm install -g` line)
-- [ ] The floor mismatch is settled: root `README.md` says "2.1.287 or later", both mod READMEs say "2.1.299 or later". Confirm which is right from the types and make them agree. Otherwise leave the floors alone
-- [ ] Permission-result handling in session-activity works on the old and new shapes, with the new behaviour tested on the pin
-- [ ] `pnpm nx run-many -t lint typecheck validate test` passes on 2.1.325
-- [ ] `claude plugin validate . --strict` passes at the root
-- [ ] `node tools/sync-kit.mjs --check` and `node tools/sync-plugin-version.mjs --check` pass
+- [x] Rerun the trial on 2.1.325 first (see below); note any breakage beyond the 2.1.323 list
+- [x] `tools/claude-code-types/2.1.325/index.d.ts` added, `2.1.302` removed
+- [x] Pin updated: `CLAUDE_CODE_VERSION` in `ci.yml` and `release.yml`, the `tsconfig.json` `include` of both mods **and `libs/mod-kit`**, the `version` default in both `tests/harness.ts`, the READMEs' "Tested with" lines, root `README.md`, `CLAUDE.md`, `CONTRIBUTING.md` (the `npm install -g` line)
+- [x] The floor mismatch is settled: root `README.md` says "2.1.287 or later", both mod READMEs say "2.1.299 or later". Confirm which is right from the types and make them agree. Otherwise leave the floors alone
+- [x] Permission-result handling in session-activity works on the old and new shapes, with the new behaviour tested on the pin
+- [x] `pnpm nx run-many -t lint typecheck validate test` passes on 2.1.325
+- [x] `claude plugin validate . --strict` passes at the root
+- [x] `node tools/sync-kit.mjs --check` and `node tools/sync-plugin-version.mjs --check` pass
 
 Out of scope (ticket 02): re-checking the doc claims tied to 2.1.302, and the VS Code band tests.
 

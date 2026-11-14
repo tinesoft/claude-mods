@@ -185,6 +185,7 @@ test('while a survey holds the band the mod draws nothing of its own', async ($,
     component: 'AbovePrompt',
     props: {
       hasSurvey: true,
+      isCollapsed: false,
       isWorking: false,
       maxRows: 24,
       bodyColumns: 100,
@@ -200,9 +201,10 @@ test('the band keeps another mod content first', async ($, on) => {
   stubEngine(on)
   await loadSkills($, clock)
   const drawn = (await (await mountBand($)).drawn()) as {
-    children: { part?: { plugin: string } }[]
+    children: { children: { type: string }[] }[]
   }
-  expect(drawn.children[0]).toEqual({ type: 'Box', part: { plugin: 'test' } })
+  // The pinned engine stands for what the hooks beneath drew with a `{ type: 'engine', ref }` node.
+  expect(drawn.children[0]!.children[0]).toMatchObject({ type: 'engine' })
 })
 
 test('the band draws on the terminal and on desktop', async ($, on) => {
