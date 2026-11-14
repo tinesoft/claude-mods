@@ -43,9 +43,9 @@ The design is implemented on the **rich surfaces** (Desktop Code tab, VS Code, m
 element table has `Svg`) and on the **terminal**. Rich surfaces get exact hex colours, the artboards' icons
 redrawn as `Svg`, round bordered chips, hover and clicks. The terminal uses glyphs and one-row tinted chips.
 
-Claude Code raises the `AbovePrompt` band on the terminal and desktop only, and the `Pane` on every surface
-(`tools/claude-code-types/2.1.302/index.d.ts`). So the chip row and its detail card exist on the terminal and
-desktop. On VS Code and mobile, the status line counter and `/session-activity` are the way in, and the pane is
+Claude Code 2.1.302 raises the `AbovePrompt` band on the terminal and desktop only, and the `Pane` on every
+surface (`tools/claude-code-types/2.1.302/index.d.ts`); from 2.1.323 VS Code draws the band too (see
+`docs/agents/vscode-surface.md`). On mobile, the status line counter and `/session-activity` are the way in, and the pane is
 the whole UI. On mobile the pane header starts with the `N active` chip, with a red dot when something stopped.
 claude.ai chat can't show a mod's UI and is out of scope;
 claude.ai/code cloud sessions get text summaries at most (optional milestone M6).
@@ -121,7 +121,7 @@ running, ok or blocked. The Error look still draws for MCP errors and failed age
 
 ## Pane rules
 
-- Opened by `+N more`, the band's `⚙` (on tab `2: Settings`), `/session-activity` (`immediate: true`), or a chip press when the band is too short for the detail card. On VS Code and mobile, which have no band, `/session-activity` is the way in.
+- Opened by `+N more`, the band's `⚙` (on tab `2: Settings`), `/session-activity` (`immediate: true`), or a chip press when the band is too short for the detail card. On mobile, which has no band (nor VS Code before 2.1.323), `/session-activity` is the way in.
 - On mobile the header starts with the `N active` chip, plus a `danger` `●` when anything is blocked, denied or errored. It never adds `+N more`.
 - Tab `1: Activity`: header `Session activity` and `N items · M activations · started X ago · Customize`; filters `a: All`, `s: Skills`, `g: Agents`, `p: MCP`, `k: Permissions`, `h: Hooks`, `r: Rules` with counts; rows grouped by type showing an icon tile, name, meta, status badge, a why line, `×count · last` and a `Mute` / `Unmute` button (stopped and errored rows always show, so they carry a note instead). The selected row also expands to the source path and `c: Copy path`.
 - Tab `2: Settings`: title and intro, master toggle, live preview with layout buttons (chip row / collapsed summary), one switch per type in "Shown by default" and "Optional · Off by default · N of 8 on", chip theme (auto / light / dark), chip style (tinted / text), digit hotkeys on chips (off), toast when blocked or denied (on), text summary after each answer (off), `Reset to defaults`, `Turn everything on`. Saved per user in `$.store`.

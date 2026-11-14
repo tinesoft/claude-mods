@@ -23,7 +23,7 @@ Surfaces, as agreed with the owner:
 | --- | --- |
 | Terminal (`claude`, including editor terminals and JetBrains) | Full UI |
 | Claude Desktop app, Code tab | Full UI on a rich surface (any surface whose element table has `Svg`): clicks, hover, exact colours, `Svg` icons; the closest to the design |
-| VS Code; mobile | The pane and the status line, drawn as on desktop. No band, because Claude Code raises `AbovePrompt` on the terminal and desktop only |
+| VS Code; mobile | The pane and the status line, drawn as on desktop. No band, because Claude Code 2.1.302 raises `AbovePrompt` on the terminal and desktop only; from 2.1.323 VS Code draws the band too (see `docs/agents/vscode-surface.md`) |
 | claude.ai/code cloud sessions | Optional milestone M6: text summaries only, after a spike confirms the plugin can be installed and the text shows |
 | Remote Control from claude.ai | Nothing to build: the chips appear in the terminal on the user's machine |
 | claude.ai chat, `claude -p` | Out of scope: claude.ai chat has no mod support; `claude -p` runs hooks but draws nothing |
@@ -382,7 +382,7 @@ Where a board description promises what the mod lacks, the pane keeps the accura
 1. Opened with `$.ui.open({ id: 'session-activity', title: 'Session activity', focus: true, closeOnEscape: true })` from `+N more`, the band's `⚙` (view `settings`), `/session-activity` (registered with `immediate: true`), or the fallback of U2 (`rows: 10`, view `detail`).
 2. Views: `detail` (one item, popover content), `activity` (tab 1), `settings` (tab 2), kept in `$.state` as `paneView`.
 3. Opened only by user action, so it places at any width.
-4. On VS Code and mobile, which have no band, `/session-activity` and the status line counter are the way in.
+4. On mobile, which has no band (nor VS Code before 2.1.323), `/session-activity` and the status line counter are the way in.
 5. On mobile the header starts with the `N active` chip, with a `danger` `●` when anything is blocked, denied or errored. It never adds `+N more`.
 
 ### Palette
@@ -441,7 +441,7 @@ Claude Code's own `auto` theme asks the terminal for its colours (OSC 11), an an
 
 ### Rich surfaces (desktop, vscode, mobile)
 
-A surface is rich when its element table has `Svg`. Claude Code raises the `Pane` on every surface but the `AbovePrompt` band on the terminal and desktop only, so desktop is the only rich surface with chips above the prompt. VS Code and mobile get the pane and the status line. The same hooks draw all of them; `uiFor` in `hooks/register.tsx` hands `Svg` over for every surface but the terminal, and `isRich` in `src/render.tsx` switches the look:
+A surface is rich when its element table has `Svg`. Claude Code raises the `Pane` on every surface but the `AbovePrompt` band on the terminal and desktop only, so on 2.1.302 desktop is the only rich surface with chips above the prompt, and VS Code and mobile get the pane and the status line. From 2.1.323 VS Code draws the band too (see `docs/agents/vscode-surface.md`). The same hooks draw all of them; `uiFor` in `hooks/register.tsx` hands `Svg` over for every surface but the terminal, and `isRich` in `src/render.tsx` switches the look:
 
 | Design element | Terminal (above) | Rich surfaces |
 | --- | --- | --- |
@@ -541,7 +541,7 @@ Six milestones in order, plus an optional seventh; each ends in a PR to `develop
 
 The spikes ran against Claude Code 2.1.302. Its declarations are committed as a snapshot in `tools/claude-code-types/2.1.302/index.d.ts`, which is how `typecheck` gets them in CI. Line numbers below are in that file.
 
-- **Render sites.** Claude Code raises `AbovePrompt` on the terminal and desktop only (`:10673`) and `Pane` on every attached surface (`:10730`). VS Code and mobile therefore have no band.
+- **Render sites.** Claude Code raises `AbovePrompt` on the terminal and desktop only (`:10673`) and `Pane` on every attached surface (`:10730`). VS Code and mobile therefore have no band on 2.1.302; VS Code draws one from 2.1.323.
 - **Hooks.** A mod sees the commands configured for an event through `$.settings.read` and sees a block or deny in the result of `next(e)`. No field reports a settings hook's exit code, so a hook chip is running, ok or blocked and never Error. Hooks that plugins configure are not in the settings, so they show only when they block.
 - **Permissions.** `tool.check` gives `allow`, `ask` or `deny`, and the `tool.call` result tells whether an asked call ran. Whether the user approved "once" or "always" is not visible.
 - **Rules and memory.** `classic.InstructionsLoaded` names each loaded `CLAUDE.md` and rules file. Memory has no event of its own, so memory chips come from `Write`, `Edit` and `MultiEdit` calls on memory files. Checkpoints have no event, so that toggle records nothing.

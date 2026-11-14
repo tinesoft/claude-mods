@@ -11,6 +11,7 @@
 - [ ] `pnpm nx run-many -t lint typecheck validate test` passes on 2.1.323
 - [ ] `claude plugin validate . --strict` passes at the root
 - [ ] Doc claims tied to 2.1.302 re-checked (see below)
+- [ ] The VS Code band tests in `mods/craftory/tests/vscode-spacing.test.ts` mount the band with `mountBand($, 'vscode')` through the real `uiFor` wrappers, in place of `fake-ui` and `renderBand` (2.1.302's test engine refuses a band on `vscode`; see `docs/agents/vscode-surface.md`). The design docs' "from 2.1.323" band notes then become plain fact
 
 ## Getting the snapshot
 

@@ -24,9 +24,11 @@ export default {
     if (lintable.length) {
       cmds.push(`eslint --fix ${lintable.map(f => JSON.stringify(f)).join(' ')}`)
     }
+    // On the version CI pins, as the `test` targets run: a local `claude` auto-updates.
     if (hasClaude()) {
       const mods = new Set(files.map(modRoot).filter(Boolean))
-      for (const mod of mods) cmds.push(`claude plugin validate ${mod} --strict`)
+      for (const mod of mods)
+        cmds.push(`node tools/claude-pinned.mjs plugin validate ${mod} --strict`)
     }
     return cmds
   },

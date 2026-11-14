@@ -31,7 +31,8 @@ and interaction logic, which is the most useful part to read.
 | --- | --- |
 | Terminal | Rail in the band (glyphs, one row, wraps if narrow), detail card above it, the pane, the status line |
 | Desktop Code tab | Same, with `Svg` icons, exact colours, hover, clicks; glossary terms underlined with a hover card |
-| VS Code, mobile | Pane and status line. The Flow tab starts with the rail. Glossary hover as on Desktop |
+| VS Code | Band and pane as on Desktop, drawn with no tone: Claude Code's theme keys and its terracotta accent (see `docs/agents/vscode-surface.md`). The Flow tab is the phase flow alone. Glossary hover as on Desktop |
+| Mobile | Pane and status line. The Flow tab starts with the rail. Glossary hover as on Desktop |
 | claude.ai/code cloud, `claude -p` | No band, pane or status line. `/craftory` replies in text (below) |
 | claude.ai chat | Nothing: mods do not run there |
 
