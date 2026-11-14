@@ -13,12 +13,23 @@
     ]
   },
   "targetDefaults": {
+    "kit-check": {
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/package.json",
+        "{projectRoot}/src/_kit/**/*",
+        "{workspaceRoot}/libs/mod-kit/src/**/*",
+        "{workspaceRoot}/tools/sync-kit.mjs"
+      ]
+    },
     "lint": {
       "cache": true,
+      "dependsOn": ["kit-check"],
       "inputs": ["default", "^default", "toolchain"]
     },
     "typecheck": {
       "cache": true,
+      "dependsOn": ["kit-check"],
       "inputs": ["default", "^default", "toolchain"]
     },
     "validate": {
@@ -33,6 +44,7 @@
     },
     "test": {
       "cache": true,
+      "dependsOn": ["kit-check"],
       "inputs": [
         "default",
         "^default",

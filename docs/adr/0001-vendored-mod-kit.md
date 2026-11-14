@@ -16,5 +16,5 @@ Claude Code installs a mod by copying only its own directory into the plugin cac
 
 - A kit change is committed as a `fix(<mod>)` or `feat(<mod>)` in each mod whose copy changes, so that mod's version and changelog move. `mod-kit` is a commit scope only for kit-internal changes.
 - Nx cannot see the copies as imports, so each mod declares `implicitDependencies: ["mod-kit"]`.
-- `Tone` and `ThemeChoice` are owned by the kit; each mod's `types/index.d.ts` re-exports them.
+- `Tone` and `ThemeChoice` are owned by the kit. A mod's `types/index.d.ts` must be self-contained (`claude plugin validate --strict` rejects any `import` or `export … from`), so it cannot re-export them. It declares them itself, and each mod's `tests/kit-types.ts` fails typecheck if they differ from the kit's.
 - Kit tests run through `claude plugin test` on an unpublished plugin shell, not a second runner.

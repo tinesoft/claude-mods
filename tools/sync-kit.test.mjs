@@ -113,4 +113,18 @@ describe('sync-kit', () => {
     assert.equal(r.code, 1)
     assert.match(r.err, /two: src\/_kit\/extra\.ts/)
   })
+
+  it('--add lists modules in the mod, then syncs them', () => {
+    assert.equal(run('--add', 'two', 'a').code, 0)
+    assert.deepEqual(JSON.parse(read('mods/two/package.json')).kit, ['a', 'c'])
+    assert.ok(has(`${vendored('two')}/a.ts`))
+    assert.ok(has(`${vendored('two')}/b.ts`))
+    assert.ok(!has(`${vendored('one')}/c.ts`))
+  })
+
+  it('--add with an unknown module changes nothing', () => {
+    const before = read('mods/two/package.json')
+    assert.equal(run('--add', 'two', 'nope').code, 1)
+    assert.equal(read('mods/two/package.json'), before)
+  })
 })

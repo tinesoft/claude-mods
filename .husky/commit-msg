@@ -1,1 +1,2 @@
 pnpm commitlint --edit "$1"
+node tools/check-kit-scope.mjs "$1"

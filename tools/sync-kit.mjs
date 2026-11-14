@@ -4,6 +4,7 @@
  *
  *   node tools/sync-kit.mjs [mod...]            writes mods/<mod>/src/_kit/ from libs/mod-kit/src/
  *   node tools/sync-kit.mjs [mod...] --check    reports drift, writes nothing, exits 1 on drift
+ *   node tools/sync-kit.mjs --add <mod> <module>...   adds modules to the mod's kit list, then syncs it
  *   --root <dir>                                run against another workspace (used by the tests)
  *
  * A mod's `kit` field in package.json lists kit module names (paths under libs/mod-kit/src without
@@ -14,14 +15,19 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const args = process.argv.slice(2)
+const argv = process.argv.slice(2)
+const addAt = argv.indexOf('--add')
+const [addMod, ...addModules] = addAt >= 0 ? argv.slice(addAt + 1) : []
+const args = addAt >= 0 ? argv.slice(0, addAt) : argv
 const rootFlag = args.indexOf('--root')
 const root =
   rootFlag >= 0
     ? path.resolve(args[rootFlag + 1])
     : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const check = args.includes('--check')
-const named = args.filter((a, i) => !a.startsWith('--') && (rootFlag < 0 || i !== rootFlag + 1))
+const named = addMod
+  ? [addMod]
+  : args.filter((a, i) => !a.startsWith('--') && (rootFlag < 0 || i !== rootFlag + 1))
 
 const modsDir = path.join(root, 'mods')
 const kitDir = path.join(root, 'libs', 'mod-kit', 'src')
@@ -86,6 +92,15 @@ const prune = dir => {
 
 const known = new Set(allMods())
 for (const n of named) if (!known.has(n)) fail(`unknown mod "${n}"`)
+if (addAt >= 0) {
+  if (!addMod || !addModules.length) fail('usage: sync-kit --add <mod> <module>...')
+  if (check) fail('--add and --check cannot be combined')
+  const file = path.join(modsDir, addMod, 'package.json')
+  const pkg = JSON.parse(readFileSync(file, 'utf8'))
+  pkg.kit = [...new Set([...(pkg.kit ?? []), ...addModules])].sort()
+  closure(addMod, pkg.kit) // fails on an unknown name before anything is written
+  writeFileSync(file, JSON.stringify(pkg, null, 2) + '\n')
+}
 const mods = named.length ? named : [...known]
 
 // Resolve every mod first so an unknown module name writes nothing at all.

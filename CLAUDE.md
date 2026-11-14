@@ -20,11 +20,11 @@ One Nx workspace and one plugin marketplace (`tinesoft-mods`). Each mod lives in
 
 ## Shared code
 
-Shared mod code lives in `libs/mod-kit/src/`. Each mod lists the modules it uses in the `kit` field of its `package.json`; `node tools/sync-kit.mjs` writes them to `mods/<mod>/src/_kit/`. Edit the kit, run Sync, never edit `_kit`. Commit synced copies under each mod's scope (`fix`/`feat`); `mod-kit` is the scope for kit-internal changes. See `docs/adr/0001-vendored-mod-kit.md`.
+Shared mod code lives in `libs/mod-kit/src/`. Each mod lists the modules it uses in the `kit` field of its `package.json`; `node tools/sync-kit.mjs` writes them to `mods/<mod>/src/_kit/`. Edit the kit, run Sync, never edit `_kit`. Commit synced copies under each mod's scope (`fix`/`feat`, one mod per commit; a hook enforces it); `mod-kit` is the scope for kit-internal changes. See `docs/adr/0001-vendored-mod-kit.md`.
 
 ## Checks
 
-Run before pushing:
+Run after each change, and before pushing (`validate` catches manifest and contract errors `typecheck` does not):
 
 ```sh
 pnpm nx affected -t lint typecheck validate test --output-style=static

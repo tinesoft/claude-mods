@@ -5,6 +5,16 @@
   "implicitDependencies": ["mod-kit"],
   "sourceRoot": "mods/session-activity",
   "targets": {
+    "kit-check": {
+      "metadata": {
+        "description": "Fail when a vendored kit copy differs from libs/mod-kit, before a type error says so less clearly."
+      },
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node ../../tools/sync-kit.mjs --check session-activity",
+        "cwd": "{projectRoot}"
+      }
+    },
     "lint": {
       "metadata": { "description": "Lint the mod with ESLint." },
       "executor": "nx:run-commands",
