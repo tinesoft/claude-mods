@@ -26,11 +26,11 @@
     },
     "validate": {
       "metadata": {
-        "description": "Validate the plugin manifest and layout with `claude plugin validate --strict`, and check the vendored upstream templates for drift."
+        "description": "Validate the plugin manifest and layout with `claude plugin validate --strict` on the pinned Claude Code, and check the vendored upstream templates for drift."
       },
       "executor": "nx:run-commands",
       "options": {
-        "command": "claude plugin validate . --strict && node ../../tools/vendor-craftory-templates.mjs --check",
+        "command": "node ../../tools/claude-pinned.mjs plugin validate . --strict && node ../../tools/vendor-craftory-templates.mjs --check",
         "cwd": "{projectRoot}"
       }
     },

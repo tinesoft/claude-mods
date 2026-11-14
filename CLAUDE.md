@@ -28,7 +28,7 @@ node tools/sync-plugin-version.mjs --check
 node tools/check-scratch.mjs
 ```
 
-The `test` targets run the Claude Code version CI pins (`CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml`) through `tools/claude-pinned.mjs`, whatever the local `claude` is.
+The `test` and `validate` targets run the Claude Code version CI pins (`CLAUDE_CODE_VERSION` in `.github/workflows/ci.yml`) through `tools/claude-pinned.mjs`, whatever the local `claude` is.
 
 CI runs the same, plus `claude plugin validate . --strict` at the root, pinned to Claude Code 2.1.302.
 
