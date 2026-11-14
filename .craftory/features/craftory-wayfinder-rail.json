@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "spec": "craftory-wayfinder-rail",
+  "origin": "spec",
+  "title": "Craftory wayfinder rail",
+  "entry": "align",
+  "enteredFrom": null,
+  "skips": {},
+  "integrationBranch": "feat/craftory-wayfinder-rail",
+  "pr": null,
+  "marks": {
+    "align": {
+      "ranAt": "2026-11-05T13:50:32.177Z"
+    },
+    "spec": {
+      "ranAt": "2026-11-05T14:52:35.682Z",
+      "endedAt": "2026-11-08T16:31:11.176Z"
+    },
+    "tickets": {
+      "ranAt": "2026-11-06T19:58:31.535Z",
+      "endedAt": "2026-11-08T22:13:34.268Z"
+    },
+    "build": {
+      "ranAt": "2026-11-06T20:55:51.405Z",
+      "endedAt": "2026-11-08T22:22:10.244Z"
+    },
+    "review": {
+      "ranAt": "2026-11-07T06:44:21.361Z",
+      "endedAt": "2026-11-08T23:21:17.049Z",
+      "markedDoneAt": "2026-11-07T21:09:15.487Z"
+    },
+    "ship": {
+      "markedDoneAt": "2026-11-07T21:09:42.321Z"
+    },
+    "retro": {
+      "ranAt": "2026-11-07T21:09:52.369Z",
+      "endedAt": "2026-11-07T21:10:16.108Z"
+    }
+  },
+  "agents": {
+    "craftory-wayfinder-rail/01": {
+      "ticket": "craftory-wayfinder-rail/01",
+      "name": "craftory-craftory-wayfinder-rail-01-local-map-in-the",
+      "branch": "craftory/craftory-wayfinder-rail-01-local-map-in-the",
+      "worktree": ".claude/worktrees/craftory-wayfinder-rail-01-local-map-in-the",
+      "tokens": 88530,
+      "budget": 80000,
+      "outcome": "over-budget",
+      "startedAt": "2026-11-06T20:56:09.166Z",
+      "endedAt": "2026-11-06T20:56:45.362Z"
+    }
+  }
+}

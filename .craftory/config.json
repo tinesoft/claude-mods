@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "entry": {
+    "triage": {
+      "enabled": true,
+      "enterAt": "bugs-build-else-align"
+    },
+    "wayfinder": {
+      "suggest": "long-grill"
+    }
+  },
+  "phases": {
+    "align": {
+      "enabled": true,
+      "gate": true,
+      "command": "grill-with-docs"
+    },
+    "spec": {
+      "enabled": true,
+      "gate": true,
+      "command": "to-spec"
+    },
+    "tickets": {
+      "enabled": true,
+      "gate": false,
+      "command": "to-tickets"
+    },
+    "build": {
+      "enabled": true,
+      "gate": true,
+      "command": "implement-spec"
+    },
+    "review": {
+      "enabled": true,
+      "gate": true
+    },
+    "ship": {
+      "enabled": true,
+      "gate": false
+    },
+    "retro": {
+      "enabled": true,
+      "gate": false,
+      "command": "retro"
+    }
+  },
+  "tracker": {
+    "github": {
+      "specLabel": "spec",
+      "ticketLabel": "ticket"
+    },
+    "gitlab": {
+      "instance": "gitlab.com",
+      "project": ""
+    }
+  },
+  "docs": {
+    "research": "docs/research/"
+  },
+  "worktrees": {
+    "folder": ".claude/worktrees/",
+    "integrationBranch": "feat/{spec-slug}",
+    "ticketBranch": "craftory/{ticket}-{slug}",
+    "maxParallel": 3,
+    "tokenBudget": 200000,
+    "setup": "pnpm install --frozen-lockfile",
+    "copy": [".env.local", ".tool-versions"],
+    "removeAfterMerge": true,
+    "rebaseOnMove": true,
+    "keepFailed": true,
+    "pruneStale": false
+  },
+  "automation": {
+    "suggestNext": true,
+    "liveAgents": true,
+    "underlineTerms": true,
+    "retroOnPr": false,
+    "handoffAt80": false,
+    "weeklyArchitecture": false
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "spec": "craftory-design-parity",
+  "origin": "spec",
+  "title": "Spec: Craftory design parity on the terminal and Desktop",
+  "entry": "align",
+  "enteredFrom": null,
+  "skips": {},
+  "integrationBranch": "feat/spec-craftory-design-parity-on-the",
+  "pr": null,
+  "marks": {
+    "align": {
+      "ranAt": "2026-11-02T21:30:28.726Z",
+      "endedAt": "2026-11-02T21:33:36.587Z",
+      "markedDoneAt": "2026-11-03T23:39:00.508Z"
+    },
+    "spec": {
+      "ranAt": "2026-11-05T14:59:55.647Z",
+      "endedAt": "2026-11-05T15:00:29.762Z"
+    },
+    "build": {
+      "ranAt": "2026-11-05T23:44:07.057Z",
+      "endedAt": "2026-11-05T23:47:32.407Z"
+    },
+    "review": {
+      "markedDoneAt": "2026-11-11T15:36:18.976Z"
+    },
+    "ship": {
+      "markedDoneAt": "2026-11-11T15:36:29.693Z"
+    },
+    "retro": {
+      "ranAt": "2026-11-11T15:36:35.100Z",
+      "endedAt": "2026-11-11T15:37:10.916Z",
+      "markedDoneAt": "2026-11-11T15:42:42.783Z",
+      "unparsedAt": "2026-11-11T15:37:10.916Z"
+    }
+  },
+  "agents": {}
+}
