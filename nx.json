@@ -15,16 +15,17 @@
   "targetDefaults": {
     "lint": {
       "cache": true,
-      "inputs": ["default", "toolchain"]
+      "inputs": ["default", "^default", "toolchain"]
     },
     "typecheck": {
       "cache": true,
-      "inputs": ["default", "toolchain"]
+      "inputs": ["default", "^default", "toolchain"]
     },
     "validate": {
       "cache": true,
       "inputs": [
         "default",
+        "^default",
         {
           "runtime": "claude --version"
         }
@@ -34,6 +35,7 @@
       "cache": true,
       "inputs": [
         "default",
+        "^default",
         {
           "runtime": "claude --version"
         }

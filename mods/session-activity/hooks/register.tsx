@@ -35,7 +35,7 @@ import {
   type Observed,
 } from '../src/model'
 import { parseColorFgBg, SYSTEM_PROBES } from '../src/appearance'
-import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
+import { ENGINE_FLOOR, meetsFloor } from '../src/_kit/engine-floor'
 import { renderPane, type PaneFlag } from '../src/pane'
 import { lineSummary, markdownSummary } from '../src/summary'
 import { renderBand, type Ui } from '../src/render'

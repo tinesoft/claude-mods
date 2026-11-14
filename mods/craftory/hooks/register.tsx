@@ -16,7 +16,7 @@ import {
   withoutIsolation,
 } from '../src/build'
 import { editDenial, skipGateDenial } from '../src/deny'
-import { meetsFloor } from '../src/engine'
+import { meetsFloor } from '../src/_kit/engine-floor'
 import { waitingForTriage } from '../src/evidence'
 import type { RunRequest } from '../src/gates'
 import { removalTargets, worktreeRemoveArgv } from '../src/git'

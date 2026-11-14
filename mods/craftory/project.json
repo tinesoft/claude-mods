@@ -70,5 +70,6 @@
         "cwd": "{workspaceRoot}"
       }
     }
-  }
+  },
+  "implicitDependencies": ["mod-kit"]
 }

@@ -2,5 +2,8 @@
   "name": "session-activity",
   "version": "1.2.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "kit": [
+    "engine-floor"
+  ]
 }

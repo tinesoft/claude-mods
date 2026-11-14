@@ -1,0 +1,5 @@
+{
+  "name": "mod-kit",
+  "description": "Unpublished shell so the kit's tests run through `claude plugin test`. Never listed in the marketplace.",
+  "version": "0.0.0"
+}

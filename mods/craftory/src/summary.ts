@@ -1,6 +1,6 @@
 import type { PluginStatus } from '../types'
 import type { Flow } from './evidence'
-import { ENGINE_FLOOR } from './engine'
+import { ENGINE_FLOOR } from './_kit/engine-floor'
 import { chipText, phaseMeta } from './card-model'
 import { PHASES, PLUGIN, TESTED_RANGE } from './phases'
 import { PHASE_LOOKS } from './theme'

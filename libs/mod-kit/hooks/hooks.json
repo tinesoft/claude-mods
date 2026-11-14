@@ -1,0 +1,4 @@
+{
+  "description": "mod-kit test shell: loads nothing, so `claude plugin test` has a module to run",
+  "modules": ["./register.ts"]
+}

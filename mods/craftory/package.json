@@ -2,5 +2,8 @@
   "name": "craftory",
   "version": "0.1.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "kit": [
+    "engine-floor"
+  ]
 }

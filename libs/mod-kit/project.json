@@ -1,0 +1,38 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "mod-kit",
+  "projectType": "library",
+  "sourceRoot": "libs/mod-kit/src",
+  "targets": {
+    "lint": {
+      "metadata": {
+        "description": "Lint the kit with ESLint."
+      },
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint .",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "typecheck": {
+      "metadata": {
+        "description": "Type-check the kit with tsc against the claude-code types, without emitting."
+      },
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p . --noEmit",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test": {
+      "metadata": {
+        "description": "Run the kit tests with `claude plugin test` on the Claude Code version CI pins."
+      },
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node ../../tools/claude-pinned.mjs plugin test .",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}

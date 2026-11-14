@@ -6,12 +6,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] `mod-kit` is an Nx project, never listed in the marketplace, with lint, typecheck and test targets that pass
-- [ ] The engine floor tests live in the kit and run once on kit source
-- [ ] Both mods' `package.json` carry a Kit list naming the engine floor, and the vendored copies are committed and pass `sync-kit --check`
-- [ ] ESLint ignores vendored copies
-- [ ] Each mod declares an implicit dependency on `mod-kit`, so `nx affected` re-tests both mods after a kit change
-- [ ] Both mods' existing tests pass unchanged
+- [x] `mod-kit` is an Nx project, never listed in the marketplace, with lint, typecheck and test targets that pass
+- [x] The engine floor tests live in the kit and run once on kit source
+- [x] Both mods' `package.json` carry a Kit list naming the engine floor, and the vendored copies are committed and pass `sync-kit --check`
+- [x] ESLint ignores vendored copies
+- [x] Each mod declares an implicit dependency on `mod-kit`, so `nx affected` re-tests both mods after a kit change
+- [x] Both mods' existing tests pass unchanged
 - [ ] A real `claude plugin install` of each mod loads it with no import outside its own directory (manual check recorded in the ticket)
+
+**Manual check:** not yet done with a real `claude plugin install` (it replaces the installed marketplace, so left for the maintainer: `pnpm nx install <mod>`). Stand-in done: each mod directory copied alone to a temp dir, and every relative import in `hooks/` and `src/` resolves inside it.
 
 Spec: ../spec.md. Decision: docs/adr/0001-vendored-mod-kit.md.

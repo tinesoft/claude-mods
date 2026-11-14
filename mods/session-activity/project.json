@@ -2,6 +2,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "session-activity",
   "projectType": "application",
+  "implicitDependencies": ["mod-kit"],
   "sourceRoot": "mods/session-activity",
   "targets": {
     "lint": {

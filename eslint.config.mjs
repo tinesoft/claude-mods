@@ -11,6 +11,7 @@ export default tseslint.config(
       '**/.claude-plugin/types/**',
       'tools/claude-code-types/**',
       'design/**',
+      'mods/*/src/_kit/**',
     ],
   },
   js.configs.recommended,
