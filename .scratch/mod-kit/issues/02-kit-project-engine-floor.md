@@ -12,8 +12,8 @@
 - [x] ESLint ignores vendored copies
 - [x] Each mod declares an implicit dependency on `mod-kit`, so `nx affected` re-tests both mods after a kit change
 - [x] Both mods' existing tests pass unchanged
-- [ ] A real `claude plugin install` of each mod loads it with no import outside its own directory (manual check recorded in the ticket)
+- [x] A real `claude plugin install` of each mod loads it with no import outside its own directory (manual check recorded in the ticket)
 
-**Manual check:** not yet done with a real `claude plugin install` (it replaces the installed marketplace, so left for the maintainer: `pnpm nx install <mod>`). Stand-in done: each mod directory copied alone to a temp dir, and every relative import in `hooks/` and `src/` resolves inside it.
+**Manual check:** done by the maintainer with a real `claude plugin install` of each mod; both loaded fine. Earlier stand-in: each mod directory copied alone to a temp dir, and every relative import in `hooks/` and `src/` resolves inside it.
 
 Spec: ../spec.md. Decision: docs/adr/0001-vendored-mod-kit.md.
