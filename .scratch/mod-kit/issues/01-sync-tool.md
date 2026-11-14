@@ -6,12 +6,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] Sync writes exactly the listed modules and their kit imports; unlisted modules are absent
-- [ ] Running Sync twice changes nothing
-- [ ] Removing a name from a Kit list removes its vendored file
-- [ ] An unknown kit module name is an error
-- [ ] Naming one mod syncs only that mod
-- [ ] `--check` exits non-zero and names the mod and file when a copy is edited, deleted, or the kit changed; exits zero when in sync
-- [ ] Behaviour is tested on a temporary workspace (spec seam 1) and follows the conventions of the version sync tool
+- [x] Sync writes exactly the listed modules and their kit imports; unlisted modules are absent
+- [x] Running Sync twice changes nothing
+- [x] Removing a name from a Kit list removes its vendored file
+- [x] An unknown kit module name is an error
+- [x] Naming one mod syncs only that mod
+- [x] `--check` exits non-zero and names the mod and file when a copy is edited, deleted, or the kit changed; exits zero when in sync
+- [x] Behaviour is tested on a temporary workspace (spec seam 1) and follows the conventions of the version sync tool
 
 Spec: ../spec.md. Decision: docs/adr/0001-vendored-mod-kit.md.
