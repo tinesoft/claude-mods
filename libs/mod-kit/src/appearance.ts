@@ -1,4 +1,4 @@
-import type { Tone } from '../types'
+import type { Tone } from './types'
 
 /** The last field of `COLORFGBG` is the background colour index: 0-6 and 8 are dark, 7 and 9-15 light. */
 export const parseColorFgBg = (value: string | undefined): Tone | undefined => {

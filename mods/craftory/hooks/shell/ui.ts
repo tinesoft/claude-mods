@@ -10,7 +10,7 @@ import {
   type Timer,
   update,
 } from 'claude-code'
-import { parseColorFgBg, SYSTEM_PROBES } from '../../src/appearance'
+import { parseColorFgBg, SYSTEM_PROBES } from '../../src/_kit/appearance'
 import { parsePrefOverrides, resolvePrefs, STORE_PREFS } from '../../src/config'
 import type { Flow } from '../../src/evidence'
 import { termKey } from '../../src/glossary'

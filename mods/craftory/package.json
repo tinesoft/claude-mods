@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "kit": [
-    "engine-floor",
-    "types"
+    "appearance",
+    "engine-floor"
   ]
 }
