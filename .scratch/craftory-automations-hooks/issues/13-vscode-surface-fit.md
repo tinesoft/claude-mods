@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately). Needs the user for the live re-check.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Chips, the chip detail cards and the rail have padding and margins that match DESIGN.md and Desktop
-- [x] The tone follows the VS Code theme: no light cards in a dark window, and no dark text on a dark pane (code done; needs the live re-check)
-- [ ] Card buttons (Close, Work next ticket, Open map, Prototype, save, gear and × icon buttons) read as buttons in both themes
-- [ ] A test pins each fix; Desktop and terminal output unchanged
-- [ ] The user re-checks VS Code in light and dark
+- [x] Chips, the chip detail cards and the rail have padding and margins that match DESIGN.md and Desktop
+- [x] The tone follows the VS Code theme: no light cards in a dark window, and no dark text on a dark pane (confirmed live)
+- [x] Card buttons (Close, Work next ticket, Open map, Prototype, save, gear and × icon buttons) read as buttons in both themes
+- [x] A test pins each fix; terminal output unchanged. Desktop changed on purpose in one place: the frontier card takes the phase card's padding (sixth pass)
+- [x] The user re-checks VS Code in light and dark (2026-11-14)
 
 ## Findings (user, 2026-11-13, VS Code, `image-light.png` and `image-dark.png`)
 
@@ -110,7 +110,7 @@ The phase chips still sat on different lines (done and next ones level, todo and
 The selected-tab marker is confirmed live. The phase chips were still on a staircase, so the fourth pass's dim hypothesis was wrong.
 
 - **Phase row (cause found):** the extension's webview (`anthropic.claude-code-2.1.323`, `webview/index.js`) draws a Box as a flex `div` and gives a row Box `flex-wrap: wrap` when the mod names no `flexWrap`; the terminal never wraps. Each phase step is a row Box of connector and chip, so when the steps row squeezed it, the chip wrapped under its connector. `vscodeSpaced` now gives a Box with no `flexWrap` `nowrap` on VS Code; a Box that asks for `wrap` still wraps. The dim-on-Button change stays, as it fades glyph and label together, but it was not the cause.
-- [ ] Live re-check: the seven phase chips on one row with their connectors.
+- [x] Live re-check: the seven phase chips on one row with their connectors.
 
 ## Progress, sixth pass (2026-11-13)
 
@@ -118,7 +118,7 @@ The phase row is confirmed on one line live.
 
 - **Wayfinder card spacing:** the frontier card now takes the phase card's spacing (`CARD_SPACE` at the same density, roomy on VS Code), groups its kicker and title beside the close as the phase card does, and gives its buttons a row of padding above and below. On Desktop it follows the phase card's density too, so it gains the same vertical padding.
 - **Flow tab:** VS Code draws the band, so the Flow tab no longer repeats the map chip, the wayfinder card and the phase strip there; only mobile, which has no band, keeps that head.
-- [ ] Live re-check: the wayfinder card's padding beside a phase card, and the Flow tab showing the vertical flow alone.
+- [x] Live re-check: the wayfinder card's padding beside a phase card, and the Flow tab showing the vertical flow alone.
 
 ## Progress, seventh pass: the accent colour (2026-11-14)
 
@@ -127,11 +127,15 @@ The live check was close to done; the postponed terracotta accent is now taken u
 - **What VS Code allows** (read from the extension's `webview/index.js` and `index.css`): a Button is filled with `--vscode-button-background`, which no prop changes; everything inside a Button is flattened to plain text, so no colour, bold or dim inside it survives; a Link is always `--app-link-foreground`. A Box's `backgroundColor` and `borderColor` take the `claude` key, `var(--app-claude-orange)` (`#d97757`), and a dim Button is transparent.
 - **Chosen look: outline.** A filled terracotta box behind a dim button left the theme's grey label at about 2:1 contrast, so every accent Button is a dim one in a terracotta round outline, as Claude Code's own checkboxes are; a dim Button (a todo or gated step) stays plain. One wrapper, `vscodeButton` in `ui.tsx`, applied in `uiFor` beside `vscodeBox`.
 - **Left blue:** Links ("Open map", handoff links) keep VS Code's link colour; no mod prop reaches it.
-- [ ] Live re-check: the outlines in light and dark, their alignment in the phase row, the card buttons and the settings tabs.
+- [x] Live re-check: the outlines in light and dark, their alignment in the phase row, the card buttons and the settings tabs.
 
 ## Progress, eighth pass: accent everywhere it reaches (2026-11-14)
 
 - **Blue text:** VS Code draws the theme keys `suggestion`, `permission` and `ide` in its accent blue; craftory's `skill` role is `suggestion`, so the phase card's kicker and border and the Helpers list were blue. On VS Code, Text and Box swap those keys for `claude` (`vscodeAccented` in `ui.tsx`, applied in `uiFor`).
 - **Save buttons:** VS Code draws an Input's submit word as a native button in its blue. There a settings field now draws no submit word of its own and a craftory `Save` Button beside it instead (the terracotta outline), which saves what was typed (`Entry` in `widgets.tsx`; the typed text is held by the settings hook in a `typed` atom). Enter still saves. Elsewhere the Input keeps its own word. The words are capitalised: `Save`, `Set`, `Search`. The glossary search, which already searches as you type, drops its submit word on VS Code.
 - **Still blue:** Links (VS Code's link colour) and the Input's focus ring, which no mod prop reaches.
-- [ ] Live re-check: the card kicker and border, the Helpers list, and the Save buttons beside the settings fields.
+- [x] Live re-check: the card kicker and border, the Helpers list, and the Save buttons beside the settings fields.
+
+## Sign-off (user, 2026-11-14)
+
+The VS Code live check passes, on VS Code 1.146.0 with the Claude Code extension 2.1.323. The accent reaches everything a mod can colour there; Links and the Input focus ring stay VS Code's blue.

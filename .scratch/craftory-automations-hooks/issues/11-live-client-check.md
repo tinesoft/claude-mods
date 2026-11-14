@@ -14,12 +14,12 @@
 
 "Pinned" can't hold on every surface. CI pins 2.1.302, the Desktop app bundles its own build (it runs 2.1.321 as of 2026-11-11), and the terminal `claude` is the native install, 2.1.322 (it replaced the Homebrew cask, which stopped at 2.1.311). Write down the version each surface actually ran. Treat a failure on a newer build as a finding, not a blocker, and file it.
 
-| Surface  | Version                | Light | Dark | Notes                                                                                 |
-| -------- | ---------------------- | ----- | ---- | ------------------------------------------------------------------------------------- |
-| Terminal | 2.1.322                | ✓     | ✓    | All checks passed (user, 2026-11-11). Agent first-render pass on 2.1.311              |
-| Desktop  | 2.1.321                | ✓     | ✓    | All checks passed (user, 2026-11-11), after the compact-card fix                      |
-| VS Code  | (version not recorded) | ✗     | ✗    | Draws the band and pane, but spacing, theme and buttons don't fit. Filed as ticket 13 |
-| Mobile   |                        |       |      |                                                                                       |
+| Surface  | Version                    | Light | Dark | Notes                                                                    |
+| -------- | -------------------------- | ----- | ---- | ------------------------------------------------------------------------ |
+| Terminal | 2.1.322                    | ✓     | ✓    | All checks passed (user, 2026-11-11). Agent first-render pass on 2.1.311 |
+| Desktop  | 2.1.321                    | ✓     | ✓    | All checks passed (user, 2026-11-11), after the compact-card fix         |
+| VS Code  | 1.146.0, extension 2.1.323 | ✓     | ✓    | Passed after ticket 13's fixes (user, 2026-11-14)                        |
+| Mobile   |                            |       |      |                                                                          |
 
 ## Checklist (per surface, per theme)
 
@@ -43,7 +43,7 @@ Run from this repo, which has three Features in `.craftory/features/` and `.scra
 - [ ] Header shows the Feature (kicker, title, phases done); the plugin line is under Settings
 - [ ] The hotkeys 1–5 switch tabs; the tab counts show
 - [ ] Tickets: map card with its switcher, Takeable / Claimed / Blocked / Decided, Inbox
-- [ ] Mobile and VS Code: the Flow tab heads with the wrapped rail and the map chip
+- [ ] Mobile: the Flow tab heads with the wrapped rail and the map chip (VS Code draws the band, so its Flow tab is the phase flow alone)
 
 **Interactions**
 
@@ -82,3 +82,4 @@ VS Code, light and dark (user, 2026-11-13, `image-light.png`, `image-dark.png`):
 - Problem: every button draws as a small blue label with no padding. Filed as 13.
 - Open: record the VS Code extension and Claude Code version that ran.
 - Not yet checked on VS Code: hover cards, `$.ui.ask`, `TaskStop`, glyph widths.
+- Fixed in 13 (2026-11-13 to 2026-11-14): spacing in whole rows, the toneless theme, button and tab padding, the phase row's wrap, the selected-tab marker, the Flow tab without the band's repeat, and Claude's terracotta in place of VS Code's blue. VS Code, 1.146.0 with extension 2.1.323, light and dark: passed (user, 2026-11-14).
