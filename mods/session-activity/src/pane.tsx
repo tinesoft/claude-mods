@@ -23,6 +23,7 @@ import {
   DetailCard,
   inkOf,
   isRich,
+  isUntinted,
   kindIcon,
   lookOf,
   type Ui,
@@ -33,6 +34,7 @@ import {
   isUrgent,
   KIND_ORDER,
   mix,
+  SELECTED,
   SPACE,
   TOGGLE_ORDER,
   TOGGLES,
@@ -79,21 +81,42 @@ export type PaneArgs = {
 
 const withTint = (tint: Color | undefined) => (tint === undefined ? {} : { backgroundColor: tint })
 
-const Tabs = ({ ui, view, on }: Pick<PaneArgs, 'ui' | 'view' | 'on'>) => {
+/**
+ * A choice's label where the surface draws no tone (VS Code): its native Button shows no bold or
+ * dim inside it, so the pick carries a marker and the rest a dim Button.
+ */
+const pickLook = (ui: Ui, tone: Tone | undefined, label: string, isOn: boolean) =>
+  isUntinted(ui, tone)
+    ? { label: isOn ? `${SELECTED} ${label}` : label, button: isOn ? {} : { dimColor: true } }
+    : { label, button: {} }
+
+/** Rows of padding above and below a tab or choice where VS Code sets its buttons flush. */
+const padRows = (ui: Ui, tone: Tone | undefined) => (isUntinted(ui, tone) ? 1 : 0)
+
+const Tabs = ({ ui, tone, view, on }: Pick<PaneArgs, 'ui' | 'tone' | 'view' | 'on'>) => {
   const { Box, Button, Text } = ui
   const tabs: [PaneView, string, string][] = [
     ['activity', '1', 'Activity'],
     ['settings', '2', 'Settings'],
   ]
   return (
-    <Box flexDirection="row" columnGap={SPACE.tabGap}>
-      {tabs.map(([id, hotkey, title]) => (
-        <Button key={`tab-${id}`} plain hotkey={hotkey} onPress={() => on.view(id)}>
-          <Text bold={view === id} dimColor={view !== id}>
-            {title}
-          </Text>
-        </Button>
-      ))}
+    <Box flexDirection="row" columnGap={SPACE.tabGap} paddingY={padRows(ui, tone)}>
+      {tabs.map(([id, hotkey, title]) => {
+        const pick = pickLook(ui, tone, title, view === id)
+        return (
+          <Button
+            key={`tab-${id}`}
+            plain
+            hotkey={hotkey}
+            {...pick.button}
+            onPress={() => on.view(id)}
+          >
+            <Text bold={view === id} dimColor={view !== id}>
+              {pick.label}
+            </Text>
+          </Button>
+        )
+      })}
     </Box>
   )
 }
@@ -130,14 +153,26 @@ const Segmented = ({
     >
       {segments.map(({ key, boxKey, label, count, isOn, hotkey, onPress }) => {
         const bg = segmented && isOn ? t!.surface : undefined
+        const pick = pickLook(ui, tone, label, isOn)
         return (
-          <Box key={boxKey} paddingX={segmented ? 1 : 0} {...withTint(bg)}>
-            <Button key={key} plain {...(hotkey !== undefined && { hotkey })} onPress={onPress}>
+          <Box
+            key={boxKey}
+            paddingX={segmented ? 1 : 0}
+            paddingY={padRows(ui, tone)}
+            {...withTint(bg)}
+          >
+            <Button
+              key={key}
+              plain
+              {...(hotkey !== undefined && { hotkey })}
+              {...pick.button}
+              onPress={onPress}
+            >
               <Text
                 bold={isOn}
                 {...(segmented ? inkOf(ui, tone, isOn ? 'ink' : 'text2', bg) : { dimColor: !isOn })}
               >
-                {label}
+                {pick.label}
               </Text>
               {count !== undefined && (
                 <Text mono size="caption" {...inkOf(ui, tone, 'muted', bg)}>
@@ -233,6 +268,17 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
     (badgeText === '' ? 0 : badgeText.length + 2) +
     (isMuted ? ' Muted '.length : 0)
   const metaRoom = columns - right - across(SPACE.rowSide) - left
+  const extras = [
+    a.meta !== undefined && metaRoom >= MIN_META && (
+      <Text key="meta" mono size="footnote" {...inkOf(ui, tone, 'muted')}>
+        {` ${clip(a.meta, metaRoom)}`}
+      </Text>
+    ),
+    badgeText !== '' && <Badge ui={ui} text={badgeText} tone={tone} status={a.status} />,
+    isMuted && <MutedBadge ui={ui} tone={tone} />,
+  ]
+  // VS Code draws a Button's plain text only, so the meta and badges keep their colours beside it.
+  const besideButton = isUntinted(ui, tone)
   return (
     <Box
       key={`rowbox-${id}`}
@@ -254,19 +300,17 @@ const Row = ({ args, a }: { args: PaneArgs; a: Activation }) => {
         >
           <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowSide}>
             <Box flexDirection="row" flexShrink={1} minWidth={0} overflow="hidden">
-              <Button key={`row-${a.kind}-${a.key}`} plain onPress={() => on.select(id)}>
-                <Text>{isSelected ? '▸' : ' '}</Text>
+              <Button
+                key={`row-${a.kind}-${a.key}`}
+                plain
+                {...(besideButton && isMuted && { dimColor: true })}
+                onPress={() => on.select(id)}
+              >
+                <Text>{isSelected ? SELECTED : ' '}</Text>
                 <Text bold dimColor={isMuted}>{` ${clip(a.label, 28)}`}</Text>
-                {a.meta !== undefined && metaRoom >= MIN_META && (
-                  <Text mono size="footnote" {...inkOf(ui, tone, 'muted')}>
-                    {` ${clip(a.meta, metaRoom)}`}
-                  </Text>
-                )}
-                {badgeText !== '' && (
-                  <Badge ui={ui} text={badgeText} tone={tone} status={a.status} />
-                )}
-                {isMuted && <MutedBadge ui={ui} tone={tone} />}
+                {!besideButton && extras}
               </Button>
+              {besideButton && extras}
             </Box>
             <Box flexDirection="row" columnGap={SPACE.rowSide} flexShrink={0}>
               <Text mono size="footnote" {...inkOf(ui, tone, 'text2')}>
@@ -441,6 +485,13 @@ const ToggleMark = ({ ui, tone, toggle }: { ui: Ui; tone: Tone | undefined; togg
   )
 }
 
+/** The switch's word: beside a drawn track, spelled out where VS Code shows no tone, else a dot. */
+const switchLabel = (isOn: boolean, hasTrack: boolean, isUntintedRich: boolean) => {
+  if (hasTrack) return isOn ? 'On' : 'Off'
+  if (isUntintedRich) return isOn ? '● On' : '○ Off'
+  return isOn ? '●' : '○'
+}
+
 const Switch = ({
   ui,
   tone,
@@ -495,9 +546,16 @@ const Switch = ({
             height={SWITCH_SIZE.height}
           />
         )}
-        <Button key={id} plain onPress={onPress}>
+        <Button
+          key={id}
+          plain
+          // With no tone (VS Code) the dim inside a Button is lost, and a lone glyph is a small
+          // target: the state is spelled out and an off switch is a dim Button.
+          {...(isUntinted(ui, tone) && !isOn && { dimColor: true })}
+          onPress={onPress}
+        >
           <Text {...(Svg ? inkOf(ui, tone, 'muted') : { dimColor: !isOn })}>
-            {Svg ? (isOn ? 'On' : 'Off') : isOn ? '●' : '○'}
+            {switchLabel(isOn, Svg !== undefined, isUntinted(ui, tone))}
           </Text>
         </Button>
       </Box>
@@ -792,10 +850,10 @@ export const renderPane = (args: PaneArgs) => {
       {args.surface === 'mobile' ? (
         <Box flexDirection="row" columnGap={SPACE.tabGap}>
           <Lead {...args} />
-          <Tabs ui={args.ui} view={args.view} on={args.on} />
+          <Tabs ui={args.ui} tone={args.tone} view={args.view} on={args.on} />
         </Box>
       ) : (
-        <Tabs ui={args.ui} view={args.view} on={args.on} />
+        <Tabs ui={args.ui} tone={args.tone} view={args.view} on={args.on} />
       )}
       {args.view === 'settings' ? (
         <SettingsTab {...args} columns={inner} />

@@ -41,6 +41,16 @@ const TABLE: [string, Partial<ToneInput>, 'light' | 'dark' | undefined][] = [
   ],
   ['mobile ignores a pinned chip_theme', { surface: 'mobile', chipTheme: 'dark' }, 'light'],
   ['vscode then the Claude theme', { surface: 'vscode', claudeTheme: 'dark' }, 'dark'],
+  [
+    'vscode with no Claude theme has no tone, whatever the system says',
+    { surface: 'vscode', claudeTheme: 'auto', system: 'light' },
+    undefined,
+  ],
+  [
+    'vscode ignores a pinned chip_theme',
+    { surface: 'vscode', chipTheme: 'light', claudeTheme: 'dark' },
+    'dark',
+  ],
   ['mobile ignores COLORFGBG', { surface: 'mobile', colorFgBg: 'dark' }, 'light'],
   [
     'mobile with an ansi theme and no hint is light',
@@ -55,8 +65,9 @@ for (const [name, patch, tone] of TABLE) {
   })
 }
 
-test('every surface resolves a tone when tinted and nothing else is known', () => {
-  for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as RenderSurface[]) {
+test('every surface but VS Code resolves a tone when tinted and nothing else is known', () => {
+  expect(resolveTone({ ...base, surface: 'vscode' })).toBeUndefined()
+  for (const surface of ['terminal', 'desktop', 'mobile'] as RenderSurface[]) {
     expect(resolveTone({ ...base, surface })).toBeDefined()
   }
 })

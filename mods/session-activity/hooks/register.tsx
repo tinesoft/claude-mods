@@ -39,6 +39,7 @@ import { ENGINE_FLOOR, meetsFloor } from '../src/engine'
 import { renderPane, type PaneFlag } from '../src/pane'
 import { lineSummary, markdownSummary } from '../src/summary'
 import { renderBand, type Ui } from '../src/render'
+import { vscodeBox, vscodeButton } from '../src/vscode'
 import { resolveTone, SPIN_MS, TOGGLE_ORDER, type Tone } from '../src/theme'
 
 const PANE = 'session-activity'
@@ -243,7 +244,10 @@ const drawsAnything = async ($: EngineInterface) =>
 /** `Svg` is handed to every surface whose element table has it; the terminal never draws one. */
 function uiFor($: EngineInterface, event: Parameters<EngineInterface['ui']['resolve']>[0]): Ui {
   const table = $.ui.resolve(event)
-  const { Box, Text, Button } = table
+  const isVscode = event.surface === 'vscode'
+  const Box = isVscode ? vscodeBox(table.Box) : table.Box
+  const Button = isVscode ? vscodeButton(table.Button, table.Box) : table.Button
+  const { Text } = table
   return event.surface !== 'terminal' && 'Svg' in table
     ? { Box, Text, Button, Svg: table.Svg }
     : { Box, Text, Button }

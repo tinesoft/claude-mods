@@ -348,6 +348,9 @@ export const SPINNER = ['◐', '◓', '◑', '◒'] as const
 
 export const SPIN_MS = 150
 
+/** Marks the selected tab or choice where a native button shows no bold (VS Code). */
+export const SELECTED = '▸'
+
 export const FRESH_MS = 4000
 
 const CLAUDE_THEME = /^(light|dark)(-daltonized|-ansi)?$/
@@ -367,8 +370,9 @@ export type ToneInput = {
 /**
  * The tone chips are drawn in, or undefined for the untinted look. Claude Code's own
  * `auto` theme answers an OSC 11 query mods cannot see, so the terminal falls back to
- * `COLORFGBG`, then the OS appearance. Other surfaces follow the OS or app first, whatever
- * `chipTheme`: they draw their band in their own theme, so a pinned tone would clash with it.
+ * `COLORFGBG`, then the OS appearance. VS Code takes Claude Code's theme or none. Other surfaces
+ * follow the OS or app first, whatever `chipTheme`: they draw their band in their own theme, so a
+ * pinned tone would clash with it.
  */
 export const resolveTone = (input: ToneInput): Tone | undefined => {
   const { chipStyle, chipTheme, claudeTheme, surface, colorFgBg, system } = input
@@ -376,6 +380,10 @@ export const resolveTone = (input: ToneInput): Tone | undefined => {
   const match = typeof claudeTheme === 'string' ? CLAUDE_THEME.exec(claudeTheme) : null
   const isAnsi = match?.[2] === '-ansi'
   const claude = match && !isAnsi ? (match[1] as Tone) : undefined
+  // VS Code draws in the editor's webview, in the editor's theme, and tells a mod nothing of it:
+  // a guessed tone puts light chips in a dark window. Without an explicit Claude theme there is no
+  // tone, and the chips draw in theme keys that follow the editor.
+  if (surface === 'vscode') return claude
   if (surface !== 'terminal') return system ?? claude ?? 'light'
   if (chipTheme !== 'auto') return chipTheme
   return isAnsi ? undefined : (claude ?? colorFgBg ?? system ?? 'dark')

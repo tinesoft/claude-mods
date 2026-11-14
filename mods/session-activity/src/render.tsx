@@ -34,6 +34,12 @@ export const isRich = (ui: Ui) => ui.Svg !== undefined
 
 const isPill = (ui: Ui, tone: Tone | undefined) => isRich(ui) && tone !== undefined
 
+/**
+ * A rich surface with no tone (VS Code, unless Claude Code's theme names one). Its Buttons draw
+ * only their plain text, so a colour or a dim the design puts inside one goes beside it instead.
+ */
+export const isUntinted = (ui: Ui, tone: Tone | undefined) => isRich(ui) && tone === undefined
+
 const ICON_PX = 14
 
 const SUMMARY_ICON_PX = 13
@@ -131,15 +137,24 @@ export const Icon = ({ ui, svg, alt, width = ICON_PX, height = ICON_PX }: IconAr
   return Svg && <Svg source={svg} alt={alt} width={width} height={height} />
 }
 
-export const kindIcon = (ui: Ui, kind: Kind | 'plugin', look: Look, px = ICON_PX) => (
-  <Icon
-    ui={ui}
-    svg={iconSvg(kind, hexOr(look.color))}
-    alt={TOGGLES[kind].noun}
-    width={px}
-    height={px}
-  />
-)
+/**
+ * The type's mark. With no tone the look is a theme key, which an `Svg` cannot take (it falls
+ * back to grey), so the mark is the type's glyph in that key, as on the terminal.
+ */
+export const kindIcon = (ui: Ui, kind: Kind | 'plugin', look: Look, px = ICON_PX) =>
+  look.tint === undefined ? (
+    <ui.Text key={`mark-${kind}`} color={look.color} dimColor={look.dim}>
+      {TOGGLES[kind].glyph}
+    </ui.Text>
+  ) : (
+    <Icon
+      ui={ui}
+      svg={iconSvg(kind, hexOr(look.color))}
+      alt={TOGGLES[kind].noun}
+      width={px}
+      height={px}
+    />
+  )
 
 const withTint = (tint: Color | undefined) => (tint === undefined ? {} : { backgroundColor: tint })
 
@@ -307,10 +322,28 @@ type RowArgs = {
   on: Pick<Actions, 'pick' | 'open'>
 }
 
-type ChipIconArgs = { ui: Ui; a: Activation; look: Look; now: number; isFresh: boolean }
+type ChipIconArgs = {
+  ui: Ui
+  a: Activation
+  look: Look
+  now: number
+  isFresh: boolean
+  glyph: string
+}
 
-const ChipIcon = ({ ui, a, look, now, isFresh }: ChipIconArgs) => {
+const ChipIcon = ({ ui, a, look, now, isFresh, glyph }: ChipIconArgs) => {
   const noun = TOGGLES[a.kind].noun
+  // With no tone the look is a theme key an `Svg` cannot take: the glyph, beside the Button.
+  if (look.tint === undefined) {
+    return (
+      <ui.Text
+        color={a.status === 'error' ? 'error' : look.color}
+        dimColor={look.dim && a.status !== 'error'}
+      >
+        {glyph}
+      </ui.Text>
+    )
+  }
   if (a.status === 'running') {
     const frame = Math.floor(now / SPIN_MS)
     const svg = spinnerSvg(frame, hexOr(look.color), hexOr(look.border, OFF_TRACK))
@@ -365,7 +398,7 @@ const Chip = ({ args, a, index, labelMax }: ChipArgs) => {
       })}
       {...(rich && look.hover !== undefined && { hover: { backgroundColor: look.hover } })}
     >
-      {rich && <ChipIcon ui={ui} a={a} look={look} now={now} isFresh={p.isFresh} />}
+      {rich && <ChipIcon ui={ui} a={a} look={look} now={now} isFresh={p.isFresh} glyph={p.glyph} />}
       <Button
         key={`chip-${a.kind}-${a.key}`}
         plain
@@ -691,7 +724,15 @@ export const DetailCard = ({
             </Text>
           </Box>
           {on.close && (
-            <Button key="close" plain hotkey="x" label="Close" onPress={() => on.close?.()} />
+            <Button
+              key="close"
+              plain
+              hotkey="x"
+              // A native button with no tone (VS Code) draws no hotkey of its own; the terminal
+              // draws a plain hotkey Button as `x: Close`.
+              label={isUntinted(ui, tone) ? 'x: Close' : 'Close'}
+              onPress={() => on.close?.()}
+            />
           )}
         </Box>
         {isRich(ui) ? (
@@ -768,10 +809,13 @@ export type BandArgs = Omit<RowArgs, 'fits' | 'on'> & {
 }
 
 export const renderBand = (args: BandArgs) => {
-  const { ui, columns, maxRows, now, tone, chips, settings, selected, below, on } = args
+  const { ui, surface, columns, maxRows, now, tone, chips, settings, selected, below, on } = args
   const { Box } = ui
   const chipRowRows = isPill(ui, tone) ? 3 : 1
   const fitOf = (a: Activation): CardFit | undefined => {
+    // VS Code sizes spacing in cells, where compact is no padding at all, and scrolls its band
+    // rather than measuring it in Desktop's points: the card stays roomy there.
+    if (surface === 'vscode') return { density: 'roomy', isWhyBrief: false }
     const density = CARD_DENSITIES.find(density =>
       isRich(ui)
         ? fitsDesktop(a, columns, density, maxRows)

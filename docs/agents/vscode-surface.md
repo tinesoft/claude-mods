@@ -45,3 +45,13 @@ Minified names change between versions; search by the string around them (`align
 - `vscodeText` – blue theme keys become `claude`.
 - `vscodeButton` – an accent Button is a dim one inside a `claude` round outline; a dim Button stays plain.
 - `Entry` in `src/widgets.tsx` draws its own Save Button beside an Input in place of the native submit button.
+
+## How session-activity fits it
+
+`uiFor` in `mods/session-activity/hooks/register.tsx` wraps the element table on `vscode` with `vscodeBox` and `vscodeButton` from `mods/session-activity/src/vscode.ts`. They work as craftory's do, but nothing swaps blue for `claude`: in session-activity `suggestion` and `permission` are the Skill and Permission type colours, matching Claude Code's own, not an accent. `resolveTone` gives no tone on `vscode` unless Claude Code's `theme` names one, and `isUntinted` in `src/render.tsx` marks that case:
+
+- A type's mark is its glyph in the type's theme key, not an `Svg` (`kindIcon`, `ChipIcon`), beside the Button, so its colour survives.
+- A row's meta and status badges sit beside its Button; a muted row is a dim Button.
+- The selected tab or choice carries a `▸`; the others are dim Buttons. Tabs and choices take a row of padding above and below.
+- A switch reads `● On` or `○ Off`, and off is a dim Button.
+- The detail card stays roomy in the band and its close reads `x: Close`.
