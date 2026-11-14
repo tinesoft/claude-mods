@@ -119,3 +119,12 @@ The phase row is confirmed on one line live.
 - **Wayfinder card spacing:** the frontier card now takes the phase card's spacing (`CARD_SPACE` at the same density, roomy on VS Code), groups its kicker and title beside the close as the phase card does, and gives its buttons a row of padding above and below. On Desktop it follows the phase card's density too, so it gains the same vertical padding.
 - **Flow tab:** VS Code draws the band, so the Flow tab no longer repeats the map chip, the wayfinder card and the phase strip there; only mobile, which has no band, keeps that head.
 - [ ] Live re-check: the wayfinder card's padding beside a phase card, and the Flow tab showing the vertical flow alone.
+
+## Progress, seventh pass: the accent colour (2026-11-14)
+
+The live check was close to done; the postponed terracotta accent is now taken up.
+
+- **What VS Code allows** (read from the extension's `webview/index.js` and `index.css`): a Button is filled with `--vscode-button-background`, which no prop changes; everything inside a Button is flattened to plain text, so no colour, bold or dim inside it survives; a Link is always `--app-link-foreground`. A Box's `backgroundColor` and `borderColor` take the `claude` key, `var(--app-claude-orange)` (`#d97757`), and a dim Button is transparent.
+- **Chosen look: outline.** A filled terracotta box behind a dim button left the theme's grey label at about 2:1 contrast, so every accent Button is a dim one in a terracotta round outline, as Claude Code's own checkboxes are; a dim Button (a todo or gated step) stays plain. One wrapper, `vscodeButton` in `ui.tsx`, applied in `uiFor` beside `vscodeBox`.
+- **Left blue:** Links ("Open map", handoff links) keep VS Code's link colour; no mod prop reaches it.
+- [ ] Live re-check: the outlines in light and dark, their alignment in the phase row, the card buttons and the settings tabs.

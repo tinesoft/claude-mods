@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { DEFAULT_CONFIG } from '../src/config'
 import { deriveFlow, type PhaseState } from '../src/evidence'
 import { renderBand, type BandActions, type BandArgs } from '../src/rail'
-import { vscodeSpaced } from '../src/ui'
+import { vscodeButton, vscodeSpaced } from '../src/ui'
 import { mapView } from '../src/map-view'
 import type { Feature, IssueRef, Tone, WayMap } from '../types'
 import { byKey, fakeUi, findAll, textOf } from './fake-ui'
@@ -187,4 +187,33 @@ test('with no tone, the band draws no raw fills a dark VS Code window would clas
   expect(
     JSON.stringify(out).match(/"(backgroundColor|borderColor|color)":"#[0-9A-Fa-f]+"/g),
   ).toBeNull()
+})
+
+test('on VS Code an accent Button is a dim one in a terracotta outline that hugs it', () => {
+  const ui = fakeUi(true)
+  const Button = vscodeButton(ui.Button, ui.Box)
+  const out = Button({ key: 'go', onPress: noop, children: 'Go' } as never) as never
+  const [outline] = findAll(out, n => n.props.borderStyle === 'round')
+  expect(outline?.props).toMatchObject({ borderColor: 'claude', flexWrap: 'nowrap' })
+  expect(byKey(out, 'go')?.props).toMatchObject({ dimColor: true })
+  expect(byKey(out, 'go')?.type).toBe('Button')
+  expect((out as { props: Record<string, unknown> }).props).toMatchObject({
+    alignItems: 'flex-start',
+    flexShrink: 0,
+  })
+})
+
+test('on VS Code a dim Button stays plain, with no outline', () => {
+  const ui = fakeUi(true)
+  const out = vscodeButton(
+    ui.Button,
+    ui.Box,
+  )({
+    key: 'later',
+    dimColor: true,
+    onPress: noop,
+    children: 'Later',
+  } as never) as never
+  expect((out as { type: string }).type).toBe('Button')
+  expect(findAll(out, n => n.props.borderStyle !== undefined)).toEqual([])
 })

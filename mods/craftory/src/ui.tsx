@@ -47,6 +47,32 @@ export const vscodeBox =
   props =>
     Box(vscodeSpaced(props))
 
+/**
+ * VS Code fills a Button with its theme's button colour, which no prop changes, and draws only
+ * the plain text inside it. A dim Button is transparent, so an accent Button is a dim one in a
+ * terracotta outline (Claude Code's own `claude` colour, as its checkboxes); a dim Button stays
+ * plain. The outer Box takes any stretch from its row or column, so the outline hugs the button
+ * at the top, where VS Code aligns a button of its own.
+ */
+export const vscodeButton =
+  (Button: Ui['Button'], Box: Ui['Box']): Ui['Button'] =>
+  props =>
+    props.dimColor === true
+      ? Button(props)
+      : Box({
+          flexDirection: 'row',
+          flexWrap: 'nowrap',
+          alignItems: 'flex-start',
+          flexShrink: 0,
+          children: Box({
+            flexDirection: 'row',
+            flexWrap: 'nowrap',
+            borderStyle: 'round',
+            borderColor: 'claude',
+            children: Button({ ...props, dimColor: true }),
+          }),
+        })
+
 export const clip = (text: string, max: number, ascii = false) => {
   if (text.length <= max) return text
   const end = ascii ? ELLIPSIS.ascii : ELLIPSIS.glyph

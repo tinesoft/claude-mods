@@ -16,7 +16,7 @@ import type { Flow } from '../../src/evidence'
 import { termKey } from '../../src/glossary'
 import { glossaryView, ticketsView } from '../../src/pane-view'
 import { namespaced, SKILLS } from '../../src/phases'
-import { type Ui, vscodeBox } from '../../src/ui'
+import { type Ui, vscodeBox, vscodeButton } from '../../src/ui'
 import { termKeysIn } from '../../src/reply'
 import { resolveTone, type Tone } from '../../src/theme'
 import { TRACKERS } from '../../src/tracker'
@@ -47,10 +47,11 @@ export function uiFor(
 ): Ui {
   const table = $.ui.resolve(event)
   const { Box, Text, Button, Link } = table
+  const isVscode = event.surface === 'vscode'
   return {
-    Box: event.surface === 'vscode' ? vscodeBox(Box) : Box,
+    Box: isVscode ? vscodeBox(Box) : Box,
     Text,
-    Button,
+    Button: isVscode ? vscodeButton(Button, Box) : Button,
     Link,
     ...(event.surface !== 'terminal' && 'Svg' in table && { Svg: table.Svg }),
     ...('Input' in table && { Input: table.Input }),
