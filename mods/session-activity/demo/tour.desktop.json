@@ -1,0 +1,44 @@
+{
+  "steps": [
+    { "wait": 2.5, "note": "the band above the prompt: the two rule chips" },
+    { "click": null, "wait": 0.5, "note": "the prompt box" },
+    { "keys": "/ship-check", "wait": 1, "note": "type the command" },
+    {
+      "click": null,
+      "wait": 1,
+      "note": "the ship-check entry in the command list (Enter and Cmd+Enter are ignored by the Desktop app)"
+    },
+    {
+      "click": null,
+      "wait": 25,
+      "note": "the send button: Claude runs the skill, the github tool and the agent, and the hook blocks cat .env"
+    },
+    { "click": null, "wait": 3.5, "note": "the blocked hook chip, first in the row" },
+    { "click": null, "wait": 1, "note": "the card's × close" },
+    { "click": null, "wait": 3, "note": "the code-reviewer chip" },
+    { "click": null, "wait": 1, "note": "the card's × close" },
+    { "click": null, "wait": 3, "note": "the gear: the pane opens on Settings" },
+    {
+      "scroll": { "at": ["85%", "60%"], "lines": 25 },
+      "wait": 1.5,
+      "note": "scroll Settings down"
+    },
+    {
+      "scroll": { "at": ["85%", "60%"], "lines": -25 },
+      "wait": 1,
+      "note": "scroll Settings back up"
+    },
+    { "click": null, "wait": 3, "note": "the Activity tab" },
+    {
+      "scroll": { "at": ["85%", "60%"], "lines": 25 },
+      "wait": 1.5,
+      "note": "scroll Activity down"
+    },
+    {
+      "scroll": { "at": ["85%", "60%"], "lines": -25 },
+      "wait": 1,
+      "note": "scroll Activity back up"
+    },
+    { "click": null, "wait": 3, "note": "the pane's × close" }
+  ]
+}
