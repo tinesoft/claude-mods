@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The VS Code band tests in `mods/craftory/tests/vscode-spacing.test.ts` mount the band with `mountBand($, 'vscode')` through the real `uiFor` wrappers, in place of `fake-ui` and `renderBand` (2.1.302's test engine refuses a band on `vscode`; see `docs/agents/vscode-surface.md`). The design docs' "from 2.1.323" band notes then become plain fact
 - [x] "Claude Code 2.1.302 attaches no surface for a mod" in VS Code (`mods/craftory/README.md`, `mods/session-activity/README.md`, `docs/design/*`): verified on 2.1.325 and reworded

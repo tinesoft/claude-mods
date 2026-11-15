@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] `mod-kit` is an Nx project, never listed in the marketplace, with lint, typecheck and test targets that pass
 - [x] The engine floor tests live in the kit and run once on kit source

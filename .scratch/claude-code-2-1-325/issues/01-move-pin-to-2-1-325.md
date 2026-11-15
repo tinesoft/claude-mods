@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Decisions (grilled 2026-11-14): target 2.1.325, falling back to 2.1.323 only if 2.1.325 breaks something 2.1.323 didn't. The mods keep their stated floor, so permission-result handling must cope with both the old and new answer shapes. Only the "tested with" lines change; the floor wording stays, except the mismatch below.
 

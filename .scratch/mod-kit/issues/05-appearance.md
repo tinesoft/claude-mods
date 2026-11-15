@@ -4,7 +4,7 @@
 
 **Blocked by:** 02, 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The identical appearance test moves into the kit and passes on kit source
 - [x] Both mods list and vendor appearance; the duplicate source and test in each mod are gone

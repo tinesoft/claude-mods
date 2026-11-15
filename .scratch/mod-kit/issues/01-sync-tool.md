@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Sync writes exactly the listed modules and their kit imports; unlisted modules are absent
 - [x] Running Sync twice changes nothing

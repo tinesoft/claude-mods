@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] `sync-kit --check` runs in the pre-push checks and in CI next to the version-sync check
 - [x] `mod-kit` is an allowed commit scope in commitlint

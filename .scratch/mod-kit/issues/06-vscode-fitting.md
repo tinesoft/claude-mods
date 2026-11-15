@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Kit exposes the space/wrap fitting and the button outline as one module, and the recolouring (box and text) as a separate one
 - [x] Session activity vendors only the fitting and Craftory vendors both; the duplicate code in each mod is gone

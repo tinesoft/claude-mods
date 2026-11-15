@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: resolved
 
 # Mod kit: shared mod code, vendored into each mod
 
