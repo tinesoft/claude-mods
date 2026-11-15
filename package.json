@@ -24,7 +24,8 @@
     "sa:dev": "nx dev session-activity",
     "cf:dev": "nx dev craftory",
     "sa:install": "nx install session-activity",
-    "cf:install": "nx install craftory"
+    "cf:install": "nx install craftory",
+    "mods:install": "node tools/install-mods.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
