@@ -50,6 +50,12 @@ test('a hook command is named by its script', () => {
   expect(commandName('node ./scripts/check.mjs')).toBe('check')
 })
 
+test('a hook command wrapped in inline shell is named by its script, not by /dev/null', () => {
+  const wrapper = `if [ -z "\${HOME-}" ]; then printf '{}\\n'; elif [ -f "\${HOOK_DIR}/notify.sh" ]; then "\${HOOK_DIR}/notify.sh"; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi`
+  expect(commandName(wrapper)).toBe('notify')
+  expect(commandName('cat 2>/dev/null')).not.toBe('null')
+})
+
 const settings = {
   hooks: {
     PreToolUse: [

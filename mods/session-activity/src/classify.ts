@@ -197,13 +197,26 @@ const matches = (matcher: unknown, target: string | undefined) => {
 const LAUNCHER_WORD =
   /^(npx|pnpx|bunx|npm|pnpm|yarn|bun|deno|node|uv|python3?|bash|sh|zsh|exec|dlx|run|-.*)$/
 
+const SCRIPT_EXT = /\.(sh|js|mjs|cjs|ts|py)$/
+
+/** A word of an inline shell snippet that names no script: a redirection or a `/dev` device. */
+const isPlumbing = (w: string) => /^\d*[<>&]/.test(w) || /\/dev\//.test(w)
+
 export const commandName = (command: string) => {
-  const words = command.trim().split(/\s+/)
+  const words = command
+    .trim()
+    .split(/\s+/)
+    .map(w => w.replace(/^["'{(]+|["');}]+$/g, ''))
+    .filter(w => w !== '' && !isPlumbing(w))
   const named = words.find(w => !LAUNCHER_WORD.test(w))
   const script =
-    words.find(w => w.includes('/') || /\.(sh|js|mjs|ts|py)$/.test(w)) ?? named ?? words[0] ?? ''
+    words.find(w => SCRIPT_EXT.test(w)) ??
+    words.find(w => w.includes('/')) ??
+    named ??
+    words[0] ??
+    ''
   const base = script.split('/').pop() ?? script
-  return base.replace(/\.(sh|js|mjs|cjs|ts|py)$/, '') || command
+  return base.replace(SCRIPT_EXT, '') || command
 }
 
 export type HookOutcome = 'running' | { blocked?: string }
