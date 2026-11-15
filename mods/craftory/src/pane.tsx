@@ -19,7 +19,7 @@ import { FrontierCard, MapChip, MapTicketsCard } from './map-card'
 import type { MapView } from './map-view'
 import type { NoticeView } from './notices'
 import { NoticeRow } from './notice-row'
-import { PhaseStrip, type BandActions } from './rail'
+import { ArchiveButton, PhaseStrip, type BandActions } from './rail'
 import { SettingsTab, type SettingsData } from './settings'
 import { barSvg, DOT_PX, dotOf, hexOr, phaseDotSvg, VBAR_SIZE } from './icons'
 import {
@@ -35,6 +35,7 @@ import {
   type Role,
 } from './theme'
 import { Chip, Icon, inkOf, isRich, padRowsOf, roleInk, type Ui } from './ui'
+import type { ArchiveView } from './archive'
 import { Badge, CardButton } from './widgets'
 
 export type PaneActions = {
@@ -69,6 +70,7 @@ export type PaneArgs = {
   tab: PaneTab
   pluginLine: string
   flow: Flow | null
+  archive: ArchiveView
   /** Agents running for the Feature, for the header's progress line. */
   agents: number
   map: MapView | null
@@ -380,6 +382,7 @@ const FlowTab = ({
   ascii,
   spinFrame,
   flow,
+  archive,
   map,
   isMapOpen,
   waiting,
@@ -393,6 +396,7 @@ const FlowTab = ({
   | 'ascii'
   | 'spinFrame'
   | 'flow'
+  | 'archive'
   | 'map'
   | 'isMapOpen'
   | 'waiting'
@@ -401,6 +405,28 @@ const FlowTab = ({
 >) => {
   const { Box, Text } = ui
   const rich = isRich(ui) && tone !== undefined
+  const archived = archive.archived.length > 0 && (
+    <Box key="archived" flexDirection="column" rowGap={SPACE.paneGap}>
+      <Text bold {...inkOf(tone, 'ink')}>{`Archived · ${archive.archived.length}`}</Text>
+      {archive.archived.map(item => (
+        <Box key={`archived-${item.key}`} flexDirection="row" columnGap={SPACE.rowLabelGap}>
+          <Box flexShrink={1} minWidth={0}>
+            <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+              {item.title}
+            </Text>
+          </Box>
+          <CardButton
+            padY
+            id={`unarchive-${item.key}`}
+            ui={ui}
+            tone={tone}
+            label="Unarchive"
+            onPress={() => on.act({ kind: 'unarchive', key: item.key })}
+          />
+        </Box>
+      ))}
+    </Box>
+  )
   // No band on mobile: the tab heads with the rail and the map chip instead. VS Code draws the band.
   const isBandless = surface === 'mobile'
   const head = map !== null && isBandless && (
@@ -413,6 +439,7 @@ const FlowTab = ({
     return (
       <Box key="flow" flexDirection="column" rowGap={SPACE.paneGap}>
         {head}
+        {archived}
       </Box>
     )
   }
@@ -427,11 +454,34 @@ const FlowTab = ({
           id="pane-rail"
           wrap
           args={{ ui, tone, ascii, spinFrame, flow, waiting, open: null, on: on.rail }}
+          {...(archive.archivable !== null && {
+            trailing: (
+              <ArchiveButton
+                ui={ui}
+                tone={tone}
+                ascii={ascii}
+                feature={archive.archivable}
+                on={on}
+              />
+            ),
+          })}
         />
       )}
       <Text {...inkOf(tone, 'text2')}>
         {`${flow.title} · ${flow.doneCount} of ${flow.enabledCount} phases done`}
       </Text>
+      {archive.archivable !== null && !isBandless && (
+        <Box key="archive-feature" flexDirection="row" flexWrap="wrap" columnGap={SPACE.buttonsGap}>
+          <CardButton
+            padY
+            id="archive-feature"
+            ui={ui}
+            tone={tone}
+            label="Archive feature"
+            onPress={() => on.act({ kind: 'archive', key: archive.archivable! })}
+          />
+        </Box>
+      )}
       {flowRows(flow).map((row, i, rows) => {
         const look = PHASE_LOOKS[row.state]
         const colours = paint(look.role, tone)
@@ -499,6 +549,7 @@ const FlowTab = ({
           </Box>
         )
       })}
+      {archived}
     </Box>
   )
 }

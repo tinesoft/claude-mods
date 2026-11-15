@@ -1,10 +1,11 @@
 import { atom, type EngineInterface, read, type Timer, update } from 'claude-code'
+import { archiveRisks, canArchive, isAutoArchivable, shipFactsOf } from '../../src/archive'
 import { integrationContext, isoOf } from '../../src/build'
 import { integrationBranchFor } from '../../src/config'
 import { driftDiffArgv, findDrift, rankedText, retroSuggestions } from '../../src/drift'
 import { skipGateDenial } from '../../src/deny'
 import { deriveFlow, type Flow } from '../../src/evidence'
-import { draftKey, enteredRecord, featureOf, specKey } from '../../src/features'
+import { draftKey, enteredRecord, featureOf, isArchived, specKey } from '../../src/features'
 import { dropText, type RunRequest } from '../../src/gates'
 import { termKey } from '../../src/glossary'
 import type { InboxAction } from '../../src/pane-view'
@@ -23,6 +24,7 @@ import {
   featuresOf,
   promoteDrafts,
   recordChange,
+  reselectActive,
   setActive,
 } from './features'
 import { gitOf } from './git'
@@ -85,6 +87,7 @@ export async function everyFlow($: EngineInterface): Promise<Flow[]> {
  * can see ends here.
  */
 export async function settle($: EngineInterface) {
+  await autoArchive($)
   const flow = await currentFlow($)
   $.ui.status(statusLine(flow))
   const isRunning = flow?.phases.some(s => s.state.kind === 'running') === true
@@ -111,6 +114,52 @@ export async function settle($: EngineInterface) {
     }
   }
   $.ui.invalidate('ui.render')
+}
+
+/**
+ * With `automation.archiveOnShip` on, archives each Feature whose Ship is done (and whose
+ * retro is, when one was offered). It runs once per Feature, so work that brings it back is
+ * not undone by the next settle.
+ */
+async function autoArchive($: EngineInterface) {
+  if (!(await repoFacts($)).config.automation.archiveOnShip) return
+  const active = await activeKey($)
+  const at = isoOf(await $.clock.now())
+  for (const flow of await everyFlow($)) {
+    if (flow.feature.kind !== 'specced') continue
+    const { record, key } = flow.feature
+    const facts = shipFactsOf(flow)
+    if (!isAutoArchivable(record, facts)) continue
+    await recordChange($, key, { kind: 'archive', at })
+    if (key === active) await reselectActive($)
+  }
+}
+
+/** Archives a Feature, asking first when an agent of it has not finished cleanly. */
+export async function archiveFeature($: EngineInterface, key: FeatureKey) {
+  const feature = featureOf(key, await featuresOf($), await draftsOf($))
+  if (feature?.kind !== 'specced' || isArchived(feature.record)) return
+  const [flow] = (await everyFlow($)).filter(f => f.feature.key === key)
+  if (flow === undefined || !canArchive(flow)) return
+  const risks = archiveRisks(feature.record)
+  if (risks.length > 0) {
+    const answer = await $.ui
+      .ask(
+        `${feature.record.title || feature.record.spec} has tickets whose agents have not finished (${risks.join(', ')}). Their worktrees stay in the Worktrees tab. Archive it anyway?`,
+        ['Archive', 'Cancel'],
+      )
+      .catch(() => null)
+    if (answer !== 'Archive') return
+  }
+  await recordChange($, key, { kind: 'archive', at: isoOf(await $.clock.now()) })
+  if ((await activeKey($)) === key) await reselectActive($)
+  await settle($)
+}
+
+export async function unarchiveFeature($: EngineInterface, key: FeatureKey) {
+  await recordChange($, key, { kind: 'unarchive', at: isoOf(await $.clock.now()) })
+  await setActive($, key)
+  await settle($)
 }
 
 export async function dropNotices($: EngineInterface, drops: (notice: EventNotice) => boolean) {

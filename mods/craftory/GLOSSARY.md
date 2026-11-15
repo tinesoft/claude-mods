@@ -38,6 +38,10 @@ _Avoid_: Block, guard
 The unit that runs through all seven phases, from a title at the start to retro at the end. Exists before it has a Spec.
 _Avoid_: Epic, project
 
+**Archived**:
+A Feature hidden from the switcher, the rail and the status line once Ship is done. Its record, Worktrees and Tickets are kept, and the pane's Flow tab lists it with an Unarchive button. New work on it, other than a retro, brings it back.
+_Avoid_: Closed, deleted, hidden
+
 **Map**:
 A wayfinder effort for large work: a destination, the decisions made so far and the tickets still open. It sits before the Specs it produces, and a Feature may name one as its parent.
 _Avoid_: Roadmap, epic

@@ -75,6 +75,7 @@ const bandArgs = (surface: BandArgs['surface'], tone: Tone | undefined): BandArg
   map: null,
   isMapOpen: false,
   features: [],
+  archivable: null,
   isPickingFeature: false,
   on,
 })

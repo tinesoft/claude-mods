@@ -54,6 +54,8 @@ export type Flow = {
   enabledCount: number
   spec: Issue | null
   tickets: TicketRow[]
+  /** The Feature's pull request is still open: Ship reads as done once it is ready, before it merges. */
+  hasOpenPr?: true
 }
 
 export type FlowInput = {
@@ -380,6 +382,7 @@ export function deriveFlow(input: FlowInput): Flow {
     enabledCount: phases.filter(s => s.state.kind !== 'skipped').length,
     spec,
     tickets: facts.tickets,
+    ...(facts.pr?.state === 'open' && { hasOpenPr: true as const }),
   }
 }
 

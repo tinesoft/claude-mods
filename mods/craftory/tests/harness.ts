@@ -67,6 +67,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   const store = new Map(Object.entries(options.store ?? {}))
   on('store.get', (_$, e) => ({ value: store.get(e.key) }))
   on('store.set', (_$, e) => (store.set(e.key, e.value), { value: undefined }))
+  on('store.delete', (_$, e) => (store.delete(e.key), { value: undefined }))
   const ran: string[][] = []
   const writes: { path: string; text: string }[] = []
   const opens: { id: string; title?: string }[] = []

@@ -88,9 +88,16 @@ export async function loadFeatures($: EngineInterface) {
  * that nothing writes the active atom except here. Loading is not a change: it reads the
  * remembered key and picks from it.
  */
-export async function setActive($: EngineInterface, key: FeatureKey) {
+export async function setActive($: EngineInterface, key: FeatureKey | null) {
   await update($, activeState, () => key)
-  await $.store.set(STORE_LAST_ACTIVE, key)
+  if (key === null) await $.store.delete(STORE_LAST_ACTIVE)
+  else await $.store.set(STORE_LAST_ACTIVE, key)
+}
+
+/** The Feature to show after the active one is archived: the newest unarchived one, or none. */
+export async function reselectActive($: EngineInterface) {
+  const [features, drafts] = await Promise.all([featuresOf($), draftsOf($)])
+  await setActive($, pickActive({ features, drafts, git: null, lastActive: null }))
 }
 
 export async function activeRecord($: EngineInterface): Promise<FeatureRecord | null> {

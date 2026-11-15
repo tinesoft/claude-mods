@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import type { Space } from 'claude-code'
 import { across } from '../src/theme'
-import { featureWorld, mountBand, startSession } from './harness'
+import { allText, featureWorld, mountBand, startSession } from './harness'
 import { scenarioFiles } from './wayfinder'
 
 const mixed = () => ({ files: scenarioFiles('local', 'mixed') })
@@ -110,3 +110,24 @@ for (const phase of ['spec', 'review', 'build'] as const) {
     expect(card.props).toMatchObject({ paddingX: 'lg', paddingY: 'xs', rowGap: 'xs' })
   })
 }
+
+test('desktop: the head row never wraps, and a narrow band compacts the map chip and clips the title', async ($, on) => {
+  featureWorld(on, mixed())
+  await startSession($, 'desktop')
+  const wide = await mountBand($, 'desktop', 200)
+  const head = (await wide.find({ key: 'phases-head' }))!
+  const row = head.children!.find(
+    c => isNode(c) && c.type === 'Box' && c.props.flexDirection === 'row',
+  ) as Node
+  expect(row.props.flexWrap).toBeUndefined()
+  const narrow = await mountBand($, 'desktop', 70)
+  const [full, tight] = [await allText(wide), await allText(narrow)]
+  expect(full).toContain('2 decided · 4 open')
+  expect(tight).toContain('2✓ 4?')
+  // still one head row, however narrow
+  expect(
+    ((await narrow.find({ key: 'phases-head' }))!.children as Node[]).filter(
+      c => isNode(c) && c.props.flexWrap === 'wrap',
+    ),
+  ).toEqual([])
+})

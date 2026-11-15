@@ -1,4 +1,4 @@
-import type { IssueRef, NoticeKey, PhaseId, SkillName } from '../types'
+import type { FeatureKey, IssueRef, NoticeKey, PhaseId, SkillName } from '../types'
 
 /**
  * Everything a button can ask for. Each payload is complete, so the one `dispatch` that answers
@@ -26,6 +26,8 @@ export type Action =
   | { kind: 'open-tickets' }
   | { kind: 'open-panel' }
   | { kind: 'pause-all' }
+  | { kind: 'archive'; key: FeatureKey }
+  | { kind: 'unarchive'; key: FeatureKey }
 
 /** What a view needs to hand a button's action back to the shell. */
 export type Acts = { act: (action: Action) => void }

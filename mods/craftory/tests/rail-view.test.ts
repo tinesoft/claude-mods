@@ -63,6 +63,7 @@ const args = (over: Partial<BandArgs> = {}): BandArgs => ({
   map: null,
   isMapOpen: false,
   features: [],
+  archivable: null,
   isPickingFeature: false,
   on,
   ...over,
@@ -377,4 +378,25 @@ test('a Build that failed or ran out of budget offers diagnosing-bugs instead of
     ;(byKey(card, 'diagnose')!.props.onPress as () => void)()
     expect(calls).toEqual(['diagnose'])
   }
+})
+
+test('the band draws one Archive button before the gear only while the feature may be archived', () => {
+  const off = renderBand(args())
+  expect(byKey(off, 'archive')).toBeUndefined()
+  for (const layout of ['row', 'summary'] as const) {
+    const out = renderBand(args({ layout, archivable: 'spec:#42' }))
+    expect(textOf(byKey(out, 'archive'))).toContain('Archive')
+    expect(byKey(out, 'gear')).toBeDefined()
+    ;(byKey(out, 'archive')!.props.onPress as () => void)()
+    expect(calls.at(-1)).toBe('archive')
+  }
+})
+
+test('the switcher has no per-feature archive chips', () => {
+  const features = [
+    { key: 'spec:#42' as const, title: 'Export invoices', isActive: true },
+    { key: 'spec:#50' as const, title: 'Dark mode', isActive: false },
+  ]
+  const out = renderBand(args({ features, isPickingFeature: true, archivable: 'spec:#42' }))
+  expect(byKey(out, 'archive-spec:#42')).toBeUndefined()
 })

@@ -84,6 +84,11 @@ export function isSkipped(record: Pick<FeatureRecord, 'skips'>, phase: PhaseId):
   return Date.parse(mark.skippedAt) > Date.parse(mark.unskippedAt ?? '1970-01-01T00:00:00.000Z')
 }
 
+/** Archived while the last archive is later than the last unarchive. */
+export const isArchived = (record: Pick<FeatureRecord, 'archivedAt' | 'unarchivedAt'>): boolean =>
+  record.archivedAt !== undefined &&
+  Date.parse(record.archivedAt) > Date.parse(record.unarchivedAt ?? '1970-01-01T00:00:00.000Z')
+
 const mergeSkip = (a: SkipMark = {}, b: SkipMark = {}): SkipMark => {
   const skippedAt = max(a.skippedAt, b.skippedAt)
   const unskippedAt = max(a.unskippedAt, b.unskippedAt)
@@ -223,6 +228,8 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     integrationBranch: branch,
     pr: parseIssueRef(text(json.pr) ?? '') ?? null,
     ...(json.retroOffered === true && { retroOffered: true as const }),
+    ...(stampOf(json.archivedAt) && { archivedAt: stampOf(json.archivedAt)! }),
+    ...(stampOf(json.unarchivedAt) && { unarchivedAt: stampOf(json.unarchivedAt)! }),
     ...parseSharedFields(json),
     marks: parseMarks(json.marks),
     agents,
@@ -285,6 +292,8 @@ export function serialiseFeature(record: FeatureRecord): string {
       integrationBranch: record.integrationBranch,
       pr: record.pr,
       ...(record.retroOffered && { retroOffered: true }),
+      ...(record.archivedAt && { archivedAt: record.archivedAt }),
+      ...(record.unarchivedAt && { unarchivedAt: record.unarchivedAt }),
       ...sharedFields(record),
       marks,
       agents,
@@ -334,6 +343,11 @@ const mergeSkips = (a: FeatureRecord['skips'], b: FeatureRecord['skips']): Featu
 const earlierPhase = (a: PhaseId, b: PhaseId) =>
   PHASE_ORDER.indexOf(a) <= PHASE_ORDER.indexOf(b) ? a : b
 
+const stamps = (archivedAt: IsoTime | undefined, unarchivedAt: IsoTime | undefined) => ({
+  ...(archivedAt && { archivedAt }),
+  ...(unarchivedAt && { unarchivedAt }),
+})
+
 export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): FeatureRecord {
   if (disk === null) return mine
   const marks: Partial<Record<PhaseId, PhaseMark>> = {}
@@ -361,6 +375,7 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
       handoff: mine.handoff ?? disk.handoff,
     }),
     ...((mine.retroOffered || disk.retroOffered) && { retroOffered: true as const }),
+    ...stamps(max(disk.archivedAt, mine.archivedAt), max(disk.unarchivedAt, mine.unarchivedAt)),
     marks,
     agents,
   }
@@ -378,6 +393,8 @@ export type FeatureChange =
   | { kind: 'dismiss-wayfinder' }
   | { kind: 'link-map'; map: IssueRef }
   | { kind: 'retro-offered' }
+  | { kind: 'archive'; at: IsoTime }
+  | { kind: 'unarchive'; at: IsoTime }
   /** The latest handoff document wins: the card links the one written last. */
   | { kind: 'handoff'; path: string }
 
@@ -419,13 +436,29 @@ function sharedChange<T extends SharedFields>(held: T, change: FeatureChange): T
   return held
 }
 
+/**
+ * New work on an archived Feature brings it back: a phase that runs or ends, or an agent that
+ * starts, after the archive. A retro is the exception, since it normally runs after Ship.
+ */
+function revived(record: FeatureRecord, at: IsoTime): FeatureRecord {
+  if (!isArchived(record) || Date.parse(at) <= Date.parse(record.archivedAt!)) return record
+  return { ...record, unarchivedAt: at }
+}
+
 export function applyChange(record: FeatureRecord, change: FeatureChange): FeatureRecord {
   switch (change.kind) {
     case 'ran':
-    case 'ended':
+    case 'ended': {
+      const next = { ...record, marks: changeMarks(record.marks, change) }
+      return change.phase === 'retro' ? next : revived(next, change.at)
+    }
     case 'mark-done':
     case 'nudged':
       return { ...record, marks: changeMarks(record.marks, change) }
+    case 'archive':
+      return { ...record, archivedAt: max(record.archivedAt, change.at)! }
+    case 'unarchive':
+      return { ...record, unarchivedAt: max(record.unarchivedAt, change.at)! }
     case 'skip':
       return {
         ...record,
@@ -444,13 +477,16 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
       }
     case 'agent': {
       const old = record.agents[change.record.ticket]
-      return {
-        ...record,
-        agents: {
-          ...record.agents,
-          [change.record.ticket]: old ? mergeAgent(old, change.record) : change.record,
+      return revived(
+        {
+          ...record,
+          agents: {
+            ...record.agents,
+            [change.record.ticket]: old ? mergeAgent(old, change.record) : change.record,
+          },
         },
-      }
+        change.record.startedAt,
+      )
     }
     case 'pr':
       return { ...record, pr: change.pr }
@@ -468,6 +504,7 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
 }
 
 export function applyDraftChange(draft: DraftFeature, change: FeatureChange): DraftFeature {
+  if (change.kind === 'archive' || change.kind === 'unarchive') return draft
   if (
     change.kind === 'dismiss-wayfinder' ||
     change.kind === 'link-map' ||
@@ -576,9 +613,9 @@ export function pickActive(args: {
     r => r.integrationBranch !== '' && r.integrationBranch === args.git?.branch,
   )
   if (onBranch) return specKey(onBranch.spec)
-  if (args.lastActive && featureOf(args.lastActive, args.features, args.drafts))
-    return args.lastActive
-  const newest = records.sort((a, b) => touchedAt(b) - touchedAt(a))[0]
+  const live = args.lastActive && featureOf(args.lastActive, args.features, args.drafts)
+  if (live && !(live.kind === 'specced' && isArchived(live.record))) return args.lastActive
+  const newest = records.filter(r => !isArchived(r)).sort((a, b) => touchedAt(b) - touchedAt(a))[0]
   if (newest) return specKey(newest.spec)
   const draft = Object.values(args.drafts).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0]
   return draft ? draftKey(draft.draftId) : null
@@ -634,11 +671,14 @@ export function featureChoices(
   active: FeatureKey | null,
 ): FeatureChoice[] {
   return [
-    ...Object.values(features).map(f => ({
-      key: specKey(f.spec),
-      title: f.title || f.spec,
-      isActive: specKey(f.spec) === active,
-    })),
+    ...Object.values(features)
+      // an archived one is listed only while it is the active one, as when its branch is checked out
+      .filter(f => !isArchived(f) || specKey(f.spec) === active)
+      .map(f => ({
+        key: specKey(f.spec),
+        title: f.title || f.spec,
+        isActive: specKey(f.spec) === active,
+      })),
     ...Object.values(drafts).map(d => ({
       key: draftKey(d.draftId),
       title: d.title,

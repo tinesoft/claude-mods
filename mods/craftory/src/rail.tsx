@@ -6,6 +6,7 @@ import {
   summaryParts,
   fitRail,
   focusPhase,
+  ARCHIVE_RESERVE,
   GEAR_RESERVE,
   phaseCard,
   phaseMeta,
@@ -23,6 +24,7 @@ import {
   DOT_PX,
   dotOf,
   hexOr,
+  archiveSvg,
   inboxSvg,
   listSvg,
   OFF_TRACK,
@@ -40,6 +42,7 @@ import {
   CARET,
   CONNECTOR,
   connectorColor,
+  ARCHIVE,
   GEAR,
   TRAY,
   mix,
@@ -95,6 +98,8 @@ export type BandArgs = {
   map: MapView | null
   isMapOpen: boolean
   features: readonly FeatureChoice[]
+  /** The active Feature, when it may be archived: the band then draws the Archive button. */
+  archivable: FeatureKey | null
   isPickingFeature: boolean
   on: BandActions
 }
@@ -253,6 +258,48 @@ const TriageButton = ({ args }: { args: TriageArgs }) => {
   )
 }
 
+/**
+ * Archive, drawn as Triage is (dashed outline, icon and label) and shown only while the active
+ * Feature may be archived. Shared by the band and the pane's mobile head.
+ */
+export const ArchiveButton = ({
+  ui,
+  tone,
+  ascii,
+  feature,
+  on,
+}: Pick<BandArgs, 'ui' | 'tone' | 'ascii'> & {
+  feature: FeatureKey
+  on: Pick<BandActions, 'act'>
+}) => {
+  const t = tone === undefined ? undefined : TOKENS[tone]
+  const step = stepLook(tone, t?.ink ?? '')
+  return (
+    <Chip
+      ui={ui}
+      tone={tone}
+      id="archive"
+      ink={inkOf(tone, 'text2')}
+      look={step && t && { ...step, border: t.lineDashed, dashed: true }}
+      {...(t && { icon: archiveSvg(hexOr(t.ink2)) })}
+      glyph={ascii ? ARCHIVE.ascii : ARCHIVE.glyph}
+      label="Archive"
+      onPress={() => on.act({ kind: 'archive', key: feature })}
+    />
+  )
+}
+
+/** The right end of the head row: Archive when offered, then the gear. */
+const Trailing = ({ args }: { args: BandArgs }) => {
+  const { Box } = args.ui
+  return (
+    <Box flexDirection="row" alignItems="center" columnGap={SPACE.railGap}>
+      {args.archivable !== null && <ArchiveButton {...args} feature={args.archivable} />}
+      <Gear args={args} />
+    </Box>
+  )
+}
+
 /** A one-glyph plain Button: Desktop draws the glyph alone, with a hover tint. */
 const Gear = ({ args }: { args: BandArgs }) => {
   const { ui, tone, on } = args
@@ -309,7 +356,7 @@ const FeaturePicker = ({ args }: { args: BandArgs }) => {
       columnGap={SPACE.pickerGap}
       marginBottom={SPACE.pickerBelow}
     >
-      {features.map(feature => (
+      {features.flatMap(feature => [
         // Drawn as a phase step: the feature in focus pressed, as an open phase is.
         <Chip
           key={`chip-feature-${feature.key}`}
@@ -324,8 +371,8 @@ const FeaturePicker = ({ args }: { args: BandArgs }) => {
           dim={!feature.isActive}
           inside
           onPress={() => on.switchFeature(feature.key)}
-        />
-      ))}
+        />,
+      ])}
     </Box>
   )
 }
@@ -342,6 +389,7 @@ export const PhaseStrip = ({
   id,
   wrap = false,
   wrapSteps = wrap,
+  wrapHead = wrap,
   lead,
   title,
   trailing,
@@ -351,6 +399,8 @@ export const PhaseStrip = ({
   wrap?: boolean
   /** The phases row may wrap too; the band keeps its seven steps on one line, a phone cannot. */
   wrapSteps?: boolean
+  /** The head row (Triage, map, title, Archive, gear) may wrap; the band keeps it on one row. */
+  wrapHead?: boolean
   /** Drawn between the Triage button and the title, such as the map chip. */
   lead?: RenderElement | false
   /** Drawn last on the head row, such as the feature title. */
@@ -375,7 +425,7 @@ export const PhaseStrip = ({
         {ascii ? RAIL_DIVIDER.ascii : RAIL_DIVIDER.glyph}
       </Text>
     )
-  const wraps = wrap && { flexWrap: 'wrap' as const }
+  const wraps = wrapHead && { flexWrap: 'wrap' as const }
   return (
     <Box key={id} flexDirection="column" rowGap={SPACE.railRowGap}>
       <Box
@@ -452,9 +502,10 @@ const Rail = ({ args, fit }: { args: RailArgs; fit: RailFit }) => {
         args={args}
         lead={lead}
         title={<Title args={args} flow={flow} />}
-        trailing={<Gear args={args} />}
+        trailing={<Trailing args={args} />}
         wrap={fit.wrap}
         wrapSteps={false}
+        wrapHead={false}
       />
     </Box>
   )
@@ -476,7 +527,8 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
   const parts = summaryParts(flow)
   const phaseText = `· ${parts.phase}`
   const rest = 1 + phaseText.length + (parts.count === null ? 0 : 1 + parts.count.length)
-  const titleMax = Math.min(TITLE_MAX, columns - GEAR_RESERVE - 6 - mapWidth - rest)
+  const archiveWidth = args.archivable === null ? 0 : ARCHIVE_RESERVE
+  const titleMax = Math.min(TITLE_MAX, columns - GEAR_RESERVE - archiveWidth - 6 - mapWidth - rest)
   const title = clip(parts.title, Math.max(SUMMARY_TITLE_MIN, titleMax), args.ascii)
   const t = rich ? TOKENS[tone] : undefined
   return (
@@ -535,7 +587,7 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
             ))}
         </Chip>
       </Box>
-      <Gear args={args} />
+      <Trailing args={args} />
     </Box>
   )
 }
@@ -561,6 +613,7 @@ export function renderBand(args: BandArgs) {
     rich: isRich(ui),
     waiting,
     features: args.features.length,
+    isArchivable: args.archivable !== null,
     map:
       args.map === null
         ? null

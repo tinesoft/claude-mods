@@ -54,6 +54,8 @@ export type AutomationConfig = {
   handoffAt80: boolean
   weeklyArchitecture: boolean
   nudgeUnmetDone: boolean
+  /** Archive a Feature by itself once its Ship is done (and its retro, when one was offered). */
+  archiveOnShip: boolean
 }
 
 /** Opt-in guardrails that deny a tool call. Both default off. */
@@ -327,6 +329,10 @@ export type FeatureRecord = {
   retroOffered?: true
   /** The latest handoff document the handoff skill wrote, as the skill named it. */
   handoff?: string
+  /** When the Feature was archived. It is archived while this is later than `unarchivedAt`. */
+  archivedAt?: IsoTime
+  /** When the Feature was last brought back, by hand or by new activity. */
+  unarchivedAt?: IsoTime
   marks: Partial<Record<PhaseId, PhaseMark>>
   /** Keyed by ticket ref string. The latest attempt per ticket wins. */
   agents: Record<string, AgentRecord>

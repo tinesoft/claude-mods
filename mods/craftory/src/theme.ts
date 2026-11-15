@@ -206,6 +206,7 @@ export const RAIL_DIVIDER = { glyph: '│', ascii: '|' } as const
 
 /** The Settings button, one cell. */
 /** The Triage button's tray on the terminal, where Desktop draws the board's inbox icon. */
+export const ARCHIVE = { glyph: '▤', ascii: '%' } as const
 export const TRAY = { glyph: '⊟', ascii: '#' } as const
 
 export const GEAR = { glyph: '\u2699', ascii: '=' } as const

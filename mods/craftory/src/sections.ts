@@ -610,6 +610,13 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
     on => ({ automation: { retroOnPr: on } }),
   ),
   toggle(
+    'auto-archive-on-ship',
+    'Archive a feature once it ships',
+    'Hides a Feature from the switcher and the rail when its Ship is done, and its retro too when one was offered. It comes back on new work, and you can unarchive it.',
+    c => au(c).archiveOnShip,
+    on => ({ automation: { archiveOnShip: on } }),
+  ),
+  toggle(
     'auto-handoff',
     'Write a handoff before context runs out',
     'At 80% context, condense the session so a fresh one can pick up the ticket.',

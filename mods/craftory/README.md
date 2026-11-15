@@ -157,6 +157,14 @@ Four opt-in automations, all off by default, each turned on in Settings › Auto
 - **Weekly architecture check** (`automation.weeklyArchitecture`). At session start, when the last run is over 7 days old and no feature is mid-Build, the notice offers `/improve-codebase-architecture`. Its findings land in the Inbox as `needs-triage` items. The date of the last finished run is kept in `.craftory/state.json`, so a cancelled run does not count.
 - **Nudge on unmet Done when** (`automation.nudgeUnmetDone`). When a turn ends in a running phase whose Done when is not met, the notice names the phase and what is missing, with no action but **Dismiss**. Once per phase per feature.
 
+### Archiving features
+
+A shipped feature can leave the switcher and the rail. Once its Ship is done and its pull request is no longer open, an **Archive** button appears at the right end of the band, before the gear. On the mobile pane it heads the Flow tab, and on other surfaces the Flow tab also shows **Archive feature**. If an agent of the feature has not finished cleanly (running, stopped, failed or over budget), Craftory asks first; its worktrees stay in the Worktrees tab either way.
+
+The flag is stored on the feature's record in `.craftory/features/`, so it is shared with your team. Archived features are listed at the bottom of the Flow tab with **Unarchive**. New work on an archived feature (a phase running, an agent starting) brings it back, except a retro, which normally runs after Ship. When the active feature is archived, the rail shows the next most recent one.
+
+Turn on `automation.archiveOnShip` (Settings › Automation) to archive by itself once Ship is done, and once the retro is too when one was offered. It happens once per feature, so unarchiving one is final.
+
 ### The pane
 
 Open it with `/craftory`, the gear, **Open panel** or a card button. The tabs have hotkeys `1` to `5`.
@@ -202,6 +210,7 @@ These `.craftory/config.json` keys sit behind the Worktrees and Automation rows.
 | `automation.retroOnPr`          | `false` | Offer `/retro` when the feature's PR merges                                              |
 | `automation.weeklyArchitecture` | `false` | Offer `/improve-codebase-architecture` when the last run is over 7 days old              |
 | `automation.nudgeUnmetDone`     | `false` | Say what is missing when a turn ends in a running phase whose Done when is not met       |
+| `automation.archiveOnShip`      | `false` | Archive a feature by itself once its Ship is done (see Archiving features)               |
 | `deny.skipGate`                 | `false` | Refuse a gated phase's skill until the phase before it is done (see Gates)               |
 | `deny.editOnIntegrationBranch`  | `false` | Refuse `Edit` and `Write` in the main checkout on the integration branch (see Gates)     |
 

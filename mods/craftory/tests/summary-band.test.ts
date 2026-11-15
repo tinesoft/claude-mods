@@ -100,6 +100,7 @@ const band = (over: Partial<BandArgs> = {}) =>
     map: billing,
     isMapOpen: false,
     features: [],
+    archivable: null,
     isPickingFeature: false,
     on,
     ...over,

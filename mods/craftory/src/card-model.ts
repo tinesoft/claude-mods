@@ -65,6 +65,8 @@ export function chipText(flow: Flow): string {
 }
 
 export const GEAR_RESERVE = 3
+/** The cells the Archive button takes beside the gear: glyph, label and gap. */
+export const ARCHIVE_RESERVE = 2 + 'Archive'.length + 1
 
 const phaseWidth = (view: PhaseView, flow: Flow) => {
   const meta = phaseMeta(view, flow)
@@ -74,6 +76,9 @@ const phaseWidth = (view: PhaseView, flow: Flow) => {
 const MIN_TITLE = 8
 /** The gear draws one glyph; its gap is counted with the others. */
 const GEAR_CELLS = 1
+/** Cells a rich chip's padding and border add to its text, and the gear's own hit area. */
+const RICH_CHIP = 4
+const RICH_GEAR = 2
 
 export type RailFit = {
   /** `row` draws the rail, `chip` the summary in its place. */
@@ -96,18 +101,15 @@ export function fitRail(args: {
   rich: boolean
   waiting: number
   features: number
+  /** The Archive button is drawn, and takes cells from the head row. */
+  isArchivable?: boolean
   /** Cells of the map chip, full and compact; null with no map. */
   map: { full: number; compact: number } | null
 }): RailFit {
-  const { flow, columns, rich, waiting, features, map } = args
-  // Rich surfaces always draw both rows and let them wrap.
-  if (rich) return { mode: 'row', titleMax: TITLE_MAX, compactMap: false, wrap: true }
+  const { flow, columns, rich, waiting, features, map, isArchivable = false } = args
   const gap = across(SPACE.railGap)
-  // The phases row: the seven steps, their connectors and the gaps between them.
-  const steps =
-    flow.phases.reduce((sum, s) => sum + phaseWidth(s, flow), 0) +
-    (flow.phases.length - 1) * (1 + gap)
-  // The head row, less its title: the Triage button (tray glyph and label), the divider, the gear and the gaps between them.
+  // The head row, less its title: the Triage button (tray glyph and label), the divider, the gear
+  // and the gaps between them. A rich chip also carries its own padding and border.
   const triage = 2 + 'Triage'.length + (waiting > 0 ? 1 + String(waiting).length : 0)
   const head = (mapCells: number | null) =>
     triage +
@@ -115,9 +117,30 @@ export function fitRail(args: {
     GEAR_CELLS +
     3 * gap +
     (features > 1 ? 2 : 0) +
-    (mapCells === null ? 0 : mapCells + 1 + 2 * gap)
+    (isArchivable ? ARCHIVE_RESERVE : 0) +
+    (mapCells === null ? 0 : mapCells + 1 + 2 * gap) +
+    (rich ? RICH_CHIP * (2 + (mapCells === null ? 0 : 1) + (isArchivable ? 1 : 0)) + RICH_GEAR : 0)
   const least = Math.min(MIN_TITLE, flow.title.length)
   const chips = map === null ? [null] : [map.full, map.compact]
+  if (rich) {
+    // The head row never wraps: the map chip goes compact, then the title clips, to keep one row.
+    const fits = chips.map((chip, index) => ({
+      chip,
+      index,
+      titleMax: Math.min(TITLE_MAX, columns - head(chip)),
+    }))
+    const found = fits.find(f => f.titleMax >= least) ?? fits.at(-1)!
+    return {
+      mode: 'row',
+      titleMax: Math.max(least, found.titleMax),
+      compactMap: found.index > 0,
+      wrap: true,
+    }
+  }
+  // The phases row: the seven steps, their connectors and the gaps between them.
+  const steps =
+    flow.phases.reduce((sum, s) => sum + phaseWidth(s, flow), 0) +
+    (flow.phases.length - 1) * (1 + gap)
   if (steps <= columns)
     for (const [index, chip] of chips.entries()) {
       const titleMax = Math.min(TITLE_MAX, columns - head(chip))

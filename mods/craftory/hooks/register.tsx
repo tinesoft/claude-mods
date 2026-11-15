@@ -26,6 +26,7 @@ import { renderPane } from '../src/pane'
 import { type InboxAction, tabCounts } from '../src/pane-view'
 import { namespaced, recognise, SKILLS } from '../src/phases'
 import { bareIsOurs, INSTALL_ARGV, pluginLine, UPDATE_ARGV } from '../src/plugin'
+import { archiveViewOf } from '../src/archive'
 import { featureChoices } from '../src/features'
 import { type BandActions, renderBand, spinFrameOf } from '../src/rail'
 import { linkTerms, Reply } from '../src/reply'
@@ -74,6 +75,8 @@ import {
   skillStarted,
   startContext,
   switchFeature,
+  archiveFeature,
+  unarchiveFeature,
 } from './shell/flow'
 import {
   finishHandoff,
@@ -240,6 +243,10 @@ async function dispatch($: EngineInterface, action: Action) {
       return openPane($, 'worktrees')
     case 'pause-all':
       return togglePause($)
+    case 'archive':
+      return archiveFeature($, action.key)
+    case 'unarchive':
+      return unarchiveFeature($, action.key)
     default: {
       const _exhaustive: never = action
       return _exhaustive
@@ -525,6 +532,7 @@ export const register: Register = (on, options) => {
       map: await mapViewOf($),
       isMapOpen: await isMapOpenOf($),
       features: featureChoices(await featuresOf($), await draftsOf($), await activeKey($)),
+      archivable: archiveViewOf(flow, await featuresOf($)).archivable,
       isPickingFeature: await isPickingFeatureOf($),
       on: bandActions($),
     })
@@ -574,6 +582,7 @@ export const register: Register = (on, options) => {
       tab: await paneTabOf($),
       pluginLine: pluginLine(await pluginOf($)),
       flow,
+      archive: archiveViewOf(flow, await featuresOf($)),
       agents: runningAgents(agents).length,
       map: await mapViewOf($),
       isMapOpen: await isMapOpenOf($),
