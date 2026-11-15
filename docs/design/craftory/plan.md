@@ -33,8 +33,8 @@ The look is in [`DESIGN.md`](./DESIGN.md). Mockup boards map to the mod as follo
 | `States.dc.html` | State rules, band notices, glossary hover, toasts | `AbovePrompt`, `AssistantMessage`, `$.ui.toast` |
 | `Mobile.dc.html` | Rail at the top of the Flow tab | `Pane` |
 
-Target: Claude Code 2.1.299 or later, tested on 2.1.302 (the snapshot in
-`tools/claude-code-types/2.1.302/index.d.ts`). Where the generated types disagree with this document,
+Target: Claude Code 2.1.299 or later, tested on 2.1.325 (the snapshot in
+`tools/claude-code-types/2.1.325/index.d.ts`). Where the generated types disagree with this document,
 the types win.
 
 ## Decisions

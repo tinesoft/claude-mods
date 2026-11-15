@@ -1,6 +1,6 @@
 # 01: Move the pinned Claude Code from 2.1.302 to 2.1.325
 
-**What to build:** Move the pin to 2.1.325 for both mods and the mod kit, following CONTRIBUTING.md's "Updating the pinned Claude Code version", and fix what the new types and engine break. Deferred from the Craftory `1.0.0` sign-off so the release isn't held up by an API migration. Craftory 1.0.0 ships on 2.1.302; do not merge this into `develop` ahead of it unless the owner decides 1.0.0 ships on the new pin (then ticket 11 in `craftory-automations-hooks` needs a live recheck).
+**What to build:** Move the pin to 2.1.325 for both mods and the mod kit, following CONTRIBUTING.md's "Updating the pinned Claude Code version", and fix what the new types and engine break. Deferred from the Craftory `1.0.0` sign-off so the release isn't held up by an API migration. Decided 2026-11-15: this merges into `develop` ahead of Craftory 1.0.0, so 1.0.0 ships on 2.1.325. Ticket 11 in `craftory-automations-hooks` needs a live recheck on the new pin (Desktop, VS Code and terminal), and its earlier passes on 2.1.321 and 2.1.322 no longer cover the release.
 
 **Blocked by:** None (can start immediately).
 
