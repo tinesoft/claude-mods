@@ -1,5 +1,5 @@
 /**
- * A toast carries no action in 2.1.302: the action (Open, Run anyway) lives on the band notice.
+ * A toast carries no action in 2.1.325 (`ToastOptions` is `timeoutMs` only): the action (Open, Run anyway) lives on the band notice.
  */
 import type {
   BudgetSignalBasis,

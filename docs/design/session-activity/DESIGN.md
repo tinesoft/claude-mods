@@ -43,9 +43,9 @@ The design is implemented on the **rich surfaces** (Desktop Code tab, VS Code, m
 element table has `Svg`) and on the **terminal**. Rich surfaces get exact hex colours, the artboards' icons
 redrawn as `Svg`, round bordered chips, hover and clicks. The terminal uses glyphs and one-row tinted chips.
 
-Claude Code 2.1.302 raises the `AbovePrompt` band on the terminal and desktop only, and the `Pane` on every
-surface (`tools/claude-code-types/2.1.302/index.d.ts`); from 2.1.323 VS Code draws the band too (see
-`docs/agents/vscode-surface.md`). On mobile, the status line counter and `/session-activity` are the way in, and the pane is
+Claude Code raises the `Pane` on every surface. Its 2.1.302 and 2.1.325 declarations list the `AbovePrompt` band for
+the terminal and desktop (2.1.325 adds mobile), yet from 2.1.323 VS Code draws the band too, and the 2.1.325 test
+engine mounts it there (see `docs/agents/vscode-surface.md`). On mobile, the status line counter and `/session-activity` are the way in, and the pane is
 the whole UI. On mobile the pane header starts with the `N active` chip, with a red dot when something stopped.
 claude.ai chat can't show a mod's UI and is out of scope;
 claude.ai/code cloud sessions get text summaries at most (optional milestone M6).
@@ -103,7 +103,7 @@ The dark values and every neutral token are in `plan.md` (Palette).
 | Pinned | pin icon, stays first | out of scope for v1 |
 | Selected | 3 px focus ring | border takes the kind colour on rich surfaces; `underline` on the label; detail card opens above the row |
 
-A hook chip never reaches Hook failed. The 2.1.302 API reports no exit code for a settings hook, so a hook chip is
+A hook chip never reaches Hook failed. The 2.1.325 API (as 2.1.302's) reports no exit code for a settings hook, so a hook chip is
 running, ok or blocked. The Error look still draws for MCP errors and failed agents.
 
 ## Band rules

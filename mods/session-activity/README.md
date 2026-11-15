@@ -75,14 +75,14 @@ This is unverified until the cloud spike confirms that a setup script can instal
 
 ### Surfaces
 
-| Surface                               | What you get                                                                                                                 |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Terminal (`claude`, editor terminals) | The full UI, drawn with glyphs and one-row tinted chips                                                                      |
-| Claude Desktop app, Code tab          | The full UI with `Svg` icons, exact colours, rounded bordered chips, a darker tint on hover, and clicks on every control     |
-| VS Code                               | The pane and the status line, drawn as on Desktop. Claude Code draws no band here, so open the pane with `/session-activity` |
-| Mobile                                | The pane and the status line, with an `N active` chip (and a red dot when something stopped) heading the pane. No band       |
-| claude.ai/code cloud sessions         | Text only: `/session-activity` replies with a summary, and `text_summary` adds a line after each answer                      |
-| claude.ai chat, `claude -p`           | Nothing is drawn. Hooks still run, so `/session-activity` replies in text where it is available                              |
+| Surface                               | What you get                                                                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Terminal (`claude`, editor terminals) | The full UI, drawn with glyphs and one-row tinted chips                                                                                                             |
+| Claude Desktop app, Code tab          | The full UI with `Svg` icons, exact colours, rounded bordered chips, a darker tint on hover, and clicks on every control                                            |
+| VS Code                               | The pane and the status line, drawn as on Desktop. The band draws here too (live-checked for Craftory on extension 2.1.323), and `/session-activity` opens the pane |
+| Mobile                                | The pane and the status line, with an `N active` chip (and a red dot when something stopped) heading the pane. No band                                              |
+| claude.ai/code cloud sessions         | Text only: `/session-activity` replies with a summary, and `text_summary` adds a line after each answer                                                             |
+| claude.ai chat, `claude -p`           | Nothing is drawn. Hooks still run, so `/session-activity` replies in text where it is available                                                                     |
 
 Remote Control from claude.ai shows the chips in the terminal on your machine. Desktop WSL sessions do not load plugins.
 
@@ -202,8 +202,8 @@ It starts no other program. If a command is missing, the mod falls back to `COLO
 - Rule chips mean a file was loaded, not that a line in it shaped an action.
 - Where an organization manages Claude Code, skill, hook, rule and compaction events reach only plugins the organization lists, so those chips stay empty.
 - On Team and Enterprise plans, or under managed settings, Claude Code's security guard can send hook and prompt events past every plugin and print a notice such as `its classic.SessionStart hook was skipped` for each hook this plugin registers. Setting `hook_events` to `false` registers none of them, which silences the notices at the cost of the Hook, Rules and compaction chips; skills then come from Skill tool calls instead.
-- Checkpoints are not supported yet: Claude Code 2.1.302 sends no event for them, so the toggle exists and records nothing. Memory chips come only from writes Claude makes with `Write`, `Edit` or `MultiEdit`.
-- Claude Code draws the band above the prompt only in the terminal and on Desktop. On VS Code and mobile, use the status line and `/session-activity`.
+- Checkpoints are not supported yet: Claude Code 2.1.325 sends no event for them, so the toggle exists and records nothing. Memory chips come only from writes Claude makes with `Write`, `Edit` or `MultiEdit`.
+- Claude Code draws the band above the prompt in the terminal, on Desktop and, as live-checked for Craftory on extension 2.1.323, in VS Code. On mobile, use the status line and `/session-activity`.
 - Background task chips never show as running, because no event reports a background shell exiting.
 - The ANSI themes cannot be told apart as light or dark, so chips fall back to coloured text there. Under the `auto` theme the tone is a guess from `COLORFGBG` or the system, and dark when neither is known; pin it with `chip_theme`.
 - The system appearance is read with `defaults` (macOS), `gsettings` (Linux) or `reg` (Windows) every five seconds. Where none is available the guess stops at the Claude Code theme.

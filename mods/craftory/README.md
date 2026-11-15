@@ -77,7 +77,7 @@ The first time Craftory runs in a repo without `docs/agents/`, the band offers *
 | Terminal (`claude`, editor terminals) | The rail and card above the prompt, drawn with glyphs, the pane and the status line                |
 | Claude Desktop app, Code tab          | The same with `Svg` icons, exact colours, hover and clicks, and glossary links and hover cards     |
 | Mobile                                | The pane, whose Flow tab starts with the rail, and glossary links. Settings are read-only. No band |
-| VS Code                               | Nothing. Claude Code 2.1.302 attaches no surface for a mod there                                   |
+| VS Code                               | The band and the pane, drawn in VS Code's theme with no `Svg`. Live-checked on extension 2.1.323   |
 | claude.ai/code cloud, `claude -p`     | Text only: `/craftory` replies with the active feature's phases and the next command to run        |
 | claude.ai chat                        | Nothing. Mods do not run there                                                                     |
 
@@ -277,7 +277,7 @@ It starts no other program. The `setup` and `test` commands are the ones in `.cr
 
 - Craftory reads the tracker and git on a short timer after the session starts and after a turn or an agent ends, so the first draw may show the previous state for about a second. It never holds a turn or the session start for those reads.
 - The kept-worktree guard on Bash is best-effort. A command that builds the path with a variable, a glob or a `cd` is not caught.
-- VS Code draws nothing: Claude Code 2.1.302 attaches no surface for a mod there.
+- VS Code passes no light or dark appearance a mod can read, so Craftory draws there with Claude Code's theme colours unless the `theme` setting names one. The 2.1.325 type declarations still list the band for the terminal, desktop and mobile only, though VS Code draws it.
 - Where an organization manages Claude Code, `skill.prompt` hooks do not reach user plugins, so phases started by a skill are seen only through typed commands and the tracker.
 - A toast cannot carry a button, so each toast's action sits in the band or the pane.
 - The `Q6 of ~14` progress of a grill is not visible to a mod. The phase shows Needs you without a count.

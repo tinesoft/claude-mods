@@ -1,5 +1,7 @@
 # Handoff: craftory mod (claude-mods)
 
+> The line numbers and `:NNNN` cites below refer to the Claude Code 2.1.302 snapshot, which the 2.1.325 pin move removed from the tree: `git show dfbfdd6^:tools/claude-code-types/2.1.302/index.d.ts`. They are kept as the history of the spikes.
+
 Oct 25, 2026 · @Tine Kondo
 
 ## Summary

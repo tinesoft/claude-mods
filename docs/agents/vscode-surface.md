@@ -15,7 +15,7 @@ Minified names change between versions; search by the string around them (`align
 
 ## What it draws
 
-- **Band and pane.** On 2.1.323 VS Code raises the `AbovePrompt` band as well as the `Pane`. The 2.1.302 declarations (the CI pin) say the band is terminal and desktop only, and the 2.1.302 test engine refuses to mount a band on `vscode`: render the band with `tests/fake-ui.ts` there.
+- **Band and pane.** VS Code raises the `AbovePrompt` band as well as the `Pane` (live-checked on extension 2.1.323). The 2.1.325 declarations (the CI pin) still list the band for the terminal, desktop and mobile only, but the 2.1.325 test engine mounts it on `vscode`: use `mountBand($, 'vscode')`, so the tests run the real `uiFor` wrappers, which turn the roomy `lg`/`md`/`xs` spacing into whole rows and cells.
 - **Tone.** VS Code passes no light or dark appearance a mod can read; craftory's `resolveTone` returns no tone there unless Claude Code's `theme` setting names one. With no tone, draw with Claude Code's theme keys, never hex fills.
 
 ## Layout

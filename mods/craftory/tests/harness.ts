@@ -4,7 +4,7 @@ import type { ElementQuery, Engine, FoundElement } from 'claude-code/testing'
 
 export const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
 
-/** The engine raises `AbovePrompt` on these surfaces only. */
+/** The surfaces the declarations name for `AbovePrompt`; the band tests that loop over them keep to these. */
 export const BAND_SURFACES = ['terminal', 'desktop'] as const
 export type BandSurface = (typeof BAND_SURFACES)[number]
 
@@ -305,20 +305,24 @@ export const bandProps = (bodyColumns: number, maxRows = 24) => ({
   view: {},
 })
 
-export const mountBand = async <S extends BandSurface = 'terminal'>(
+/**
+ * The 2.1.325 engine mounts the band on `vscode` too (the declarations do not list it, and
+ * VS Code draws it live: docs/agents/vscode-surface.md), so only mobile is refused.
+ */
+export const mountBand = async <S extends BandSurface | 'vscode' = 'terminal'>(
   $: Engine,
   surface: S = 'terminal' as S,
   columns = 100,
   maxRows = 24,
 ) => {
-  if (!(BAND_SURFACES as readonly string[]).includes(surface))
-    throw new Error(`the engine never raises AbovePrompt on ${surface}`)
+  if (![...BAND_SURFACES, 'vscode'].includes(surface))
+    throw new Error(`the band is not mounted on ${surface}`)
   return $.ui.mount({
     plugin: 'craftory',
     surface,
     component: 'AbovePrompt',
     props: bandProps(columns, maxRows),
-  })
+  } as never)
 }
 
 export const mountPane = <S extends RenderSurface = 'terminal'>(
