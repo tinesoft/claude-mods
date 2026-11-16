@@ -35,6 +35,8 @@ export type WorldOptions = {
     cwd: string | undefined,
   ) => { exitCode: number; stdout?: string; stderr?: string } | { deny: string } | undefined
   ask?: (question: string) => string | undefined
+  /** Esc on every question: nothing is answered, including "Anything to add". */
+  dismissAsk?: boolean
   spawn?: (e: { tool_use_id: string; cwd?: string }) => { agentId: string } | { deny: string }
   usage?: (e: { agentId?: string; index: number }) => {
     input_tokens: number
@@ -133,7 +135,8 @@ export const world = (on: On, options: WorldOptions = {}) => {
     if (e.tool === 'AskUserQuestion') {
       const question = (e as unknown as { questions: { question: string }[] }).questions[0]!
         .question
-      const label = options.ask?.(question)
+      const label =
+        options.ask?.(question) ?? (options.dismissAsk ? undefined : defaultAnswer(question))
       return label === undefined
         ? { deny: 'no one to ask' }
         : { result: { questions: [], answers: { [question]: label } } as never }
@@ -446,3 +449,15 @@ export const mountReply = <S extends RenderSurface>($: Engine, surface: S, text:
     component: 'AssistantMessage',
     props: { text, isFirstOfReply: true },
   })
+
+/** What a person who just clicks through would pick; `dismissAsk` is Esc instead. */
+function defaultAnswer(question: string): string | undefined {
+  if (
+    question.startsWith('Anything to add for') ||
+    question.startsWith('What should be diagnosed?')
+  )
+    return 'Nothing to add'
+  if (question.startsWith('Craftory will change')) return 'Write'
+  if (question.startsWith('Setup already exists')) return 'Keep my setup'
+  return undefined
+}

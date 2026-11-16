@@ -165,7 +165,8 @@ async function diagnoseArgs($: EngineInterface, about: string) {
   const answer = await $.ui
     .ask(`What should be diagnosed? ${about}.`, [`Just that: ${about}`, NOTHING_MORE])
     .catch(() => null)
-  if (answer === null || answer === NOTHING_MORE || answer.startsWith('Just that')) return about
+  if (answer === null) return null
+  if (answer === NOTHING_MORE || answer.startsWith('Just that')) return about
   return `${about}. ${answer}`
 }
 
@@ -179,12 +180,10 @@ async function dispatch($: EngineInterface, action: Action) {
       return dismissNotice($, action.key)
     case 'setup':
       return openPane($, 'settings')
-    case 'run':
-      return requestRun(
-        $,
-        action.skill,
-        await withContext($, `Anything to add for /${action.skill}?`, action.args),
-      )
+    case 'run': {
+      const args = await withContext($, `Anything to add for /${action.skill}?`, action.args)
+      return args === null ? undefined : requestRun($, action.skill, args)
+    }
     case 'run-phase':
       return runFromCard($, action.phase)
     case 'run-anyway': {
@@ -197,7 +196,8 @@ async function dispatch($: EngineInterface, action: Action) {
     }
     case 'diagnose': {
       if (action.noticeId !== undefined) await dropNotice($, action.noticeId)
-      return requestRun($, SKILLS.diagnosingBugs, await diagnoseArgs($, action.about))
+      const args = await diagnoseArgs($, action.about)
+      return args === null ? undefined : requestRun($, SKILLS.diagnosingBugs, args)
     }
     case 'raise-budget': {
       await raiseBudget($, action.ticket)
@@ -237,8 +237,10 @@ async function dispatch($: EngineInterface, action: Action) {
     }
     case 'mark-done':
       return markDone($, action.phase)
-    case 'write-pr':
-      return requestRun($, SKILLS.pr, await withContext($, 'Anything to add for the PR?', ''))
+    case 'write-pr': {
+      const args = await withContext($, 'Anything to add for the PR?', '')
+      return args === null ? undefined : requestRun($, SKILLS.pr, args)
+    }
     case 'open-tickets':
       return openPane($, 'tickets')
     case 'open-panel':

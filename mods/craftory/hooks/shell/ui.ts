@@ -310,23 +310,29 @@ const NOTHING_MORE = 'Nothing to add'
 
 /**
  * Asks whether to add to what a button is about to run. The args stand when there is nothing to
- * add, no one to ask, or the person turned the question off in Settings.
+ * add or the person turned the question off in Settings. Null when the dialog was dismissed
+ * (Esc) or there is no one to ask: the run is cancelled.
  */
-export async function withContext($: EngineInterface, question: string, args: string) {
+export async function withContext(
+  $: EngineInterface,
+  question: string,
+  args: string,
+): Promise<string | null> {
   if ((await read($, prefsState))?.askContext === false) return args
   const answer = await $.ui.ask(question, [NOTHING_MORE]).catch(() => null)
-  if (answer === null || answer === NOTHING_MORE || answer.trim() === '') return args
+  if (answer === null) return null
+  if (answer === NOTHING_MORE || answer.trim() === '') return args
   return args === '' ? answer : `${args} ${answer}`
 }
 
 export async function runFromCard($: EngineInterface, phase: PhaseId | 'triage') {
-  if (phase === 'triage')
-    return requestRun($, SKILLS.triage, await withContext($, 'Anything to add for /triage?', ''))
+  if (phase === 'triage') {
+    const args = await withContext($, 'Anything to add for /triage?', '')
+    return args === null ? undefined : requestRun($, SKILLS.triage, args)
+  }
   const view = (await currentFlow($))?.phases.find(s => s.phase === phase)
-  if (view?.command)
-    await requestRun(
-      $,
-      view.command,
-      await withContext($, `Anything to add for /${view.command}?`, view.args),
-    )
+  if (view?.command) {
+    const args = await withContext($, `Anything to add for /${view.command}?`, view.args)
+    if (args !== null) await requestRun($, view.command, args)
+  }
 }

@@ -119,7 +119,7 @@ async function confirmFirstWrites(
     `Craftory will change ${fresh.length === 1 ? 'a file' : `${fresh.length} files`} your team shares:`,
     ...fresh.map(w => `${w.path}: ${diffSummary(w.before, w.after)}`),
   ].join('\n')
-  const answer = await $.ui.ask(question, [WRITE_IT, NOT_NOW]).catch(() => WRITE_IT)
+  const answer = await $.ui.ask(question, [WRITE_IT, NOT_NOW]).catch(() => NOT_NOW)
   if (answer !== WRITE_IT) return false
   await update($, askedFilesState, held => [...held, ...fresh.map(w => w.path)])
   return true
@@ -300,20 +300,23 @@ async function rerunSetup($: EngineInterface) {
     return void $.ui.toast('Install mattpocock-skills first: the setup skill comes with it')
   const repo = await repoSnapshot($)
   const args = repo?.setup.state === 'ok' ? await keepOrRestart($, KEEP_SETUP_ARGS) : ''
+  if (args === null) return
   await $.command.run({ command: namespaced(SKILLS.setupMattPocockSkills), args })
 }
 
 const START_OVER = 'Start over'
 
-async function keepOrRestart($: EngineInterface, keep: string) {
+/** Null when the dialog was dismissed: the setup skill does not run. */
+async function keepOrRestart($: EngineInterface, keep: string): Promise<string | null> {
   const answer = await $.ui
     .ask('Setup already exists. Keep your tracker, labels and docs layout?', [
       'Keep my setup',
       START_OVER,
     ])
     .catch(() => null)
+  if (answer === null) return null
   if (answer === START_OVER) return ''
-  return answer === null || answer === 'Keep my setup' ? keep : `${keep} ${answer}`
+  return answer === 'Keep my setup' ? keep : `${keep} ${answer}`
 }
 
 const TERM_ERRORS: Record<GlossaryEditError, string> = {
