@@ -1,3 +1,23 @@
+## 1.2.1 (2026-11-16)
+
+### 🚀 Features
+
+- **repo:** add the mod-kit project with the engine floor vendored ([b099ef4](https://github.com/tinesoft/claude-mods/commit/b099ef4))
+- **repo:** add an install target and cf:install and sa:install scripts ([039bfdf](https://github.com/tinesoft/claude-mods/commit/039bfdf))
+
+### 🩹 Fixes
+
+- **session-activity:** name an inline-shell hook by its script, not by /dev/null ([44adb51](https://github.com/tinesoft/claude-mods/commit/44adb51))
+- **session-activity:** fit the band and pane to VS Code in light and dark ([4558199](https://github.com/tinesoft/claude-mods/commit/4558199))
+- **session-activity:** follow the system appearance off the terminal, whatever chip_theme ([07f10d6](https://github.com/tinesoft/claude-mods/commit/07f10d6))
+- **session-activity:** center and size the activity row icon like the settings one ([22ef1f4](https://github.com/tinesoft/claude-mods/commit/22ef1f4))
+- **session-activity:** fit a blocked hook's card in the desktop band ([7eb1b29](https://github.com/tinesoft/claude-mods/commit/7eb1b29))
+- **session-activity:** let the guard-skipped hooks be turned off ([52a4ca0](https://github.com/tinesoft/claude-mods/commit/52a4ca0))
+
+### ❤️ Thank You
+
+- Tine Kondo @tinesoft
+
 ## 1.2.0 (2026-10-24)
 
 ### 🚀 Features
