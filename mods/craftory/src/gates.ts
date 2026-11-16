@@ -53,3 +53,7 @@ export const consumePass = (
   req: RunRequest,
   now: Millis,
 ): GatePass[] => passes.filter(p => isLive(p, now) && p.key !== passKey(req))
+
+/** Under deny.hardGates a gated press is refused, not asked. */
+export const hardGateText = (phase: PhaseId, by: PhaseId, reason: string) =>
+  `${PHASES[phase].label} is gated: ${reason}. Hard gates refuses it until ${PHASES[by].label} is done.`

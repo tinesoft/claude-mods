@@ -15,7 +15,7 @@ import {
   stoppedStep,
   withoutIsolation,
 } from '../src/build'
-import { editDenial, skipGateDenial } from '../src/deny'
+import { editDenial, reviewDenial, reviewOutflow, ruleVia, skipGateDenial } from '../src/deny'
 import { meetsFloor } from '../src/_kit/engine-floor'
 import { waitingForTriage } from '../src/evidence'
 import type { RunRequest } from '../src/gates'
@@ -189,6 +189,8 @@ async function dispatch($: EngineInterface, action: Action) {
       return runFromCard($, action.phase)
     case 'run-anyway': {
       const { noticeId, ...req } = action
+      // A notice from before hardGates was turned on may still be held: it refuses now.
+      if ((await repoFacts($)).config.deny.hardGates) return dropNotice($, noticeId)
       if (await allowGate($, noticeId, req))
         await $.command.run({ command: namespaced(req.skill), args: req.args })
       return
@@ -464,8 +466,9 @@ export const register: Register = (on, options) => {
   on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
     const found = recognise(e.skill, { bare: bareIsOurs(await pluginOf($)) })
     if (found?.kind !== 'phase') return next(e)
-    if ((await repoFacts($)).config.deny.skipGate) {
-      const denial = skipGateDenial(namespaced(found.skill), found.phase, await currentFlow($))
+    const via = ruleVia((await repoFacts($)).config.deny, 'skipGate')
+    if (via !== null) {
+      const denial = skipGateDenial(namespaced(found.skill), found.phase, await currentFlow($), via)
       if (denial !== null) return { deny: denial }
     }
     if (found.phase !== 'review') return next(e)
@@ -482,6 +485,11 @@ export const register: Register = (on, options) => {
   on('tool.call', { tool: 'Write' }, denyIntegrationEdit)
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const outflow = reviewOutflow(e.command)
+    if (outflow !== null && (await repoFacts($)).config.deny.hardGates) {
+      const denial = reviewDenial(outflow, await currentFlow($))
+      if (denial !== null) return { deny: denial }
+    }
     const targets = removalTargets(e.command)
     if (targets.length === 0) return next(e)
     const kept = await keptWorktrees($)
@@ -651,7 +659,8 @@ async function denyIntegrationEdit<E extends { tool: string; file_path: string }
 /** The cached git snapshot only: an edit never waits on git, and without one it is let through. */
 async function integrationEditDenial($: EngineInterface, tool: string, path: string) {
   const { config } = await repoFacts($)
-  if (!config.deny.editOnIntegrationBranch) return null
+  const via = ruleVia(config.deny, 'editOnIntegrationBranch')
+  if (via === null) return null
   const git = await gitOf($)
   if (git === null) return null
   return editDenial({
@@ -664,5 +673,6 @@ async function integrationEditDenial($: EngineInterface, tool: string, path: str
       others: git.worktrees.map(w => w.path).filter(p => p !== git.root),
     },
     integrationBranch: config.worktrees.integrationBranch,
+    via,
   })
 }

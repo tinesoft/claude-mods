@@ -42,7 +42,7 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 
 - 🧭 **An SDLC rail for the active feature.** Seven phases from idea to retro, each backed by one of Matt's skills, with a state glyph, a text badge and what it produced, such as `#42` or `1/5`.
 - 🔍 **A card per phase.** Press a phase to see what the phase does, the command that starts it, the skills it uses, what it wrote, and its gate.
-- 🚦 **Soft gates.** Starting a phase whose gated predecessor is not done asks first, with **Run anyway** and **Diagnose**. Nothing is refused unless you turn on a deny rule.
+- 🚦 **Soft gates.** Starting a phase whose gated predecessor is not done asks first, with **Run anyway** and **Diagnose**. Nothing is refused unless you turn on a deny rule or **Hard gates**.
 - 🤖 **Build steering.** One git worktree and branch per implementer, at most `maxParallel` at a time, and a token budget per agent with a live Agents list.
 - 📋 **A full pane.** `/craftory` opens Flow, Tickets with a triage Inbox, Worktrees, Glossary and Settings.
 - ⚙️ **Settings that edit the repo's own files.** The tracker, triage labels, docs layout and glossary are written where Matt's skills read them, exactly as `/setup-matt-pocock-skills` writes them.
@@ -131,9 +131,11 @@ A gate is soft. When you start a phase whose gated predecessor is not done, Craf
 
 Craftory asks in the band, so it gates a typed command only where a band is drawn: the terminal and Claude Desktop. On mobile and in VS Code a typed command always runs. On mobile, a gated button in the pane shows the same question, with **Run anyway** and **Diagnose**, at the top of the Flow tab. Align gates the next phase only until it has run. A grill ends when you move on, so typing `/to-spec` after a grill that ran is not gated, and Spec stays gated if no grill ran.
 
-Two deny rules, off by default, turn a soft check into a refusal. Each denial names its rule and the switch that turns it off (Settings › Automation, or `"deny"` in `.craftory/config.json`).
+Hard gates and two deny rules, off by default, turn a soft check into a refusal. Each denial names its rule and the switch that turns it off (Settings › Automation, or `"deny"` in `.craftory/config.json`).
 
-- `deny.skipGate` refuses a gated phase's skill until the phase before it is done: Claude's `Skill` call for it, and a slash command you type for it, on every surface. A press in the rail or the pane still asks, and its **Run anyway** still runs.
+- `deny.hardGates` is the one switch for a team that wants the order enforced. It turns on both rules below, whatever their own values (they show on and locked in Settings), removes **Run anyway** so a press in the rail or the pane is refused like a typed command (**Diagnose** stays), and refuses `gh pr create`, `gh pr ready`, `glab mr create` and `glab mr update --ready` until Review is done. A draft is let through, since Build opens one. There is no per-command override: the denial names `deny.hardGates` and the one switch that turns it off. It refuses only when Craftory can see that the phase before is not done; an unreadable tracker, an invalid `config.json`, no feature or Review turned off lets the call through. The check reads the command through `rtk`, `sudo`, `env` and `VAR=value` prefixes and across `&&`, `;` and pipes; it does not follow quoted text, `gh api` or `glab api` calls, or any host other than GitHub and GitLab. It is a guard for people and agents in Claude Code, not a security boundary: branch protection and required reviews on the host are.
+
+- `deny.skipGate` refuses a gated phase's skill until the phase before it is done: Claude's `Skill` call for it, and a slash command you type for it, on every surface. A press in the rail or the pane still asks, and its **Run anyway** still runs, unless `deny.hardGates` is on.
 - `deny.editOnIntegrationBranch` refuses `Edit` and `Write` in the main checkout while it is on the integration branch (`worktrees.integrationBranch`, `feat/{spec-slug}` by default). Ticket worktrees and files outside the repo are left alone.
 
 ### Build
@@ -205,17 +207,18 @@ The parallel limit, token budget and test timeout each have a field under their 
 
 These `.craftory/config.json` keys sit behind the Worktrees and Automation rows. Each is also editable in the file.
 
-| Key                             | Default | Effect                                                                                   |
-| ------------------------------- | ------- | ---------------------------------------------------------------------------------------- |
-| `worktrees.test`                | `""`    | Test command run in a ticket's worktree after its implementer's turn. Empty runs nothing |
-| `worktrees.testTimeoutSec`      | `600`   | Seconds before a test run is stopped and the ticket is Failed, timed out (10 to 600)     |
-| `automation.handoffAt80`        | `false` | Offer `/handoff` at 80% context                                                          |
-| `automation.retroOnPr`          | `false` | Offer `/retro` when the feature's PR merges                                              |
-| `automation.weeklyArchitecture` | `false` | Offer `/improve-codebase-architecture` when the last run is over 7 days old              |
-| `automation.nudgeUnmetDone`     | `false` | Say what is missing when a turn ends in a running phase whose Done when is not met       |
-| `automation.archiveOnShip`      | `false` | Archive a feature by itself once its Ship is done (see Archiving features)               |
-| `deny.skipGate`                 | `false` | Refuse a gated phase's skill until the phase before it is done (see Gates)               |
-| `deny.editOnIntegrationBranch`  | `false` | Refuse `Edit` and `Write` in the main checkout on the integration branch (see Gates)     |
+| Key                             | Default | Effect                                                                                       |
+| ------------------------------- | ------- | -------------------------------------------------------------------------------------------- |
+| `worktrees.test`                | `""`    | Test command run in a ticket's worktree after its implementer's turn. Empty runs nothing     |
+| `worktrees.testTimeoutSec`      | `600`   | Seconds before a test run is stopped and the ticket is Failed, timed out (10 to 600)         |
+| `automation.handoffAt80`        | `false` | Offer `/handoff` at 80% context                                                              |
+| `automation.retroOnPr`          | `false` | Offer `/retro` when the feature's PR merges                                                  |
+| `automation.weeklyArchitecture` | `false` | Offer `/improve-codebase-architecture` when the last run is over 7 days old                  |
+| `automation.nudgeUnmetDone`     | `false` | Say what is missing when a turn ends in a running phase whose Done when is not met           |
+| `automation.archiveOnShip`      | `false` | Archive a feature by itself once its Ship is done (see Archiving features)                   |
+| `deny.hardGates`                | `false` | Hard gates: both rules below, no Run anyway, and no ready PR or MR before Review (see Gates) |
+| `deny.skipGate`                 | `false` | Refuse a gated phase's skill until the phase before it is done (see Gates)                   |
+| `deny.editOnIntegrationBranch`  | `false` | Refuse `Edit` and `Write` in the main checkout on the integration branch (see Gates)         |
 
 The Local Markdown tracker keeps its files under `.scratch/` by default, the same place `/setup-matt-pocock-skills` puts local issues. It reads the layout Matt's skills write, in place: `.scratch/<feature>/spec.md` and `.scratch/<feature>/issues/NN-*.md`, with `Status:` and `Blocked by:` lines. A feature is its folder name (`csv`) and a ticket is `csv/01`; a bare number in `Blocked by:` names a ticket of the same feature and `other/02` one of another. An issue file in a folder with no `spec.md` is a standalone issue for the Inbox, and a folder with a `map.md` and no `spec.md` is a wayfinder map, not a feature. A spec counts as created when its file last changed, which is how a draft finds it. Setup writes Matt's own Local tracker doc.
 
@@ -275,11 +278,11 @@ It starts no other program. The `setup` and `test` commands are the ones in `.cr
 
 **What its hooks decide**
 
-- `prompt.submit` drops a gated command, where a band can show **Run anyway**. With `deny.skipGate` on, it drops a typed gated command on every surface, with the denial. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder. It answers nothing else.
+- `prompt.submit` drops a gated command, where a band can show **Run anyway**. With `deny.skipGate` or `deny.hardGates` on, it drops a typed gated command on every surface, with the denial. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder. It answers nothing else.
 - `tool.call` on `Agent` gives a Build implementer its name and drops `isolation`, or refuses it when the queue is full, the ticket is blocked, or the ticket is for a human. Other Agent calls pass through.
 - `agent.spawn` points a Build implementer at its worktree with `cwd`.
 - `turn.step` ends an agent's step only after that agent passed its token budget or stopped on a merge conflict.
-- `tool.call` on `Skill` asks before a gated `code-review`, and with `deny.skipGate` on refuses any gated phase's skill. `tool.call` on `Edit` and `Write` refuses an edit in the main checkout on the integration branch when `deny.editOnIntegrationBranch` is on. `tool.call` on `Bash` refuses `git worktree remove` and `rm` of a kept worktree, best-effort.
+- `tool.call` on `Skill` asks before a gated `code-review`, and with `deny.skipGate` or `deny.hardGates` on refuses any gated phase's skill. `tool.call` on `Edit` and `Write` refuses an edit in the main checkout on the integration branch when `deny.editOnIntegrationBranch` is on. `tool.call` on `Bash` refuses `git worktree remove` and `rm` of a kept worktree, best-effort, and with `deny.hardGates` on refuses a ready PR or MR before Review is done.
 - `skill.prompt`, `turn.complete`, the other `tool.call`s and `ui.render` pass their result through unchanged. On Desktop and mobile, `ui.render` on `AssistantMessage` adds glossary links to the drawing only. The stored reply never changes.
 - `/craftory` is the only command the mod registers.
 

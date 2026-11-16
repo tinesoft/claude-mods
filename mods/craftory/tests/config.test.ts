@@ -189,9 +189,17 @@ test('the wayfinder suggestion defaults to long grills after 12 questions and ca
 })
 
 test('the deny rules are off by default and a bad value falls back with a note', () => {
-  expect(okValue('{}').value.deny).toEqual({ skipGate: false, editOnIntegrationBranch: false })
+  expect(okValue('{}').value.deny).toEqual({
+    hardGates: false,
+    skipGate: false,
+    editOnIntegrationBranch: false,
+  })
   const set = okValue('{"deny":{"skipGate":true,"editOnIntegrationBranch":true}}')
-  expect(set.value.deny).toEqual({ skipGate: true, editOnIntegrationBranch: true })
+  expect(set.value.deny).toEqual({
+    hardGates: false,
+    skipGate: true,
+    editOnIntegrationBranch: true,
+  })
   const bad = okValue('{"deny":{"skipGate":"yes"}}')
   expect(bad.value.deny.skipGate).toBe(false)
   expect(bad.problem).toContain('deny.skipGate')

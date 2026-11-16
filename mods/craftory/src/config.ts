@@ -58,7 +58,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     nudgeUnmetDone: false,
     archiveOnShip: false,
   },
-  deny: { skipGate: false, editOnIntegrationBranch: false },
+  deny: { hardGates: false, skipGate: false, editOnIntegrationBranch: false },
 }
 
 type Json = Record<string, unknown>

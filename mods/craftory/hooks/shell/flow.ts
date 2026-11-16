@@ -3,7 +3,7 @@ import { archiveRisks, canArchive, isAutoArchivable, shipFactsOf } from '../../s
 import { integrationContext, isoOf } from '../../src/build'
 import { integrationBranchFor } from '../../src/config'
 import { driftDiffArgv, findDrift, rankedText, retroSuggestions } from '../../src/drift'
-import { skipGateDenial } from '../../src/deny'
+import { ruleVia, skipGateDenial } from '../../src/deny'
 import { deriveFlow, type Flow } from '../../src/evidence'
 import { draftKey, enteredRecord, featureOf, isArchived, specKey } from '../../src/features'
 import { dropText, type RunRequest } from '../../src/gates'
@@ -186,8 +186,10 @@ export async function gateVerdict($: EngineInterface, req: RunRequest) {
 export async function holdForGate($: EngineInterface, req: RunRequest, flow: Flow | null) {
   const verdict = await checkGate($, req, flow)
   if (verdict.kind === 'go') return undefined
+  const hard = (await repoFacts($)).config.deny.hardGates
   await addNotice($, {
     kind: 'gate',
+    ...(hard && { hard }),
     id: `gate-${verdict.phase}`,
     phase: verdict.phase,
     by: verdict.by,
@@ -222,8 +224,9 @@ export async function gatePrompt(
   const typed = typedCommand(e)
   const req = typed && requestOf(typed.name, typed.args, bareIsOurs(await pluginOf($)))
   if (req) {
-    if (req.phase !== null && (await repoFacts($)).config.deny.skipGate) {
-      const denial = skipGateDenial(namespaced(req.skill), req.phase, await currentFlow($))
+    const via = req.phase === null ? null : ruleVia((await repoFacts($)).config.deny, 'skipGate')
+    if (req.phase !== null && via !== null) {
+      const denial = skipGateDenial(namespaced(req.skill), req.phase, await currentFlow($), via)
       if (denial !== null) return denial
     }
     if (!canAsk) return undefined

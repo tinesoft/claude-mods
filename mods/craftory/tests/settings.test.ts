@@ -204,14 +204,38 @@ test('the deny rules appear under Automation, off, and turning one on writes den
   expect(words).toContain('Deny edits in your checkout on an integration branch')
   await pane.press({ key: 'set-deny-skip-gate' })
   expect(JSON.parse(w.files.get('.craftory/config.json')!).deny).toEqual({
+    hardGates: false,
     skipGate: true,
     editOnIntegrationBranch: false,
   })
   await pane.press({ key: 'set-deny-edit-on-integration' })
   expect(JSON.parse(w.files.get('.craftory/config.json')!).deny).toEqual({
+    hardGates: false,
     skipGate: true,
     editOnIntegrationBranch: true,
   })
+})
+
+test('Hard gates is a switch in Automation, and turning it on writes deny.hardGates', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'automation')
+  expect(await allText(pane)).toContain('Hard gates')
+  await pane.press({ key: 'set-deny-hard-gates' })
+  expect(JSON.parse(w.files.get('.craftory/config.json')!).deny.hardGates).toBe(true)
+})
+
+test('with Hard gates on, the two deny rules read on and cannot be turned off', async ($, on) => {
+  const { w, pane } = await settings(
+    on,
+    $,
+    'local',
+    { files: { '.craftory/config.json': JSON.stringify({ deny: { hardGates: true } }) } },
+    'terminal',
+    'automation',
+  )
+  expect(await allText(pane)).toContain('On because Hard gates is on.')
+  await pane.press({ key: 'set-deny-skip-gate' }).catch(() => undefined)
+  await pane.press({ key: 'set-deny-edit-on-integration' }).catch(() => undefined)
+  expect(JSON.parse(w.files.get('.craftory/config.json')!).deny).toEqual({ hardGates: true })
 })
 
 test('Reset to defaults asks, then restores config.json and clears personal prefs', async ($, on) => {

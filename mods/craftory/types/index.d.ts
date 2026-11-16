@@ -58,8 +58,13 @@ export type AutomationConfig = {
   archiveOnShip: boolean
 }
 
-/** Opt-in guardrails that deny a tool call. Both default off. */
+/** Opt-in guardrails that deny a tool call. All default off. */
 export type DenyConfig = {
+  /**
+   * Hard gates: turns on both rules below, refuses a rail or pane press of a gated phase
+   * (no Run anyway), and refuses `gh pr create` and `glab mr create` until Review is done.
+   */
+  hardGates: boolean
   /** Deny a gated phase's skill until the phase before it is done. */
   skipGate: boolean
   /** Deny Edit and Write in the main checkout while it is on an integration branch. */
@@ -445,6 +450,8 @@ export type EventNotice =
       reason: string
       skill: SkillName
       args: string
+      /** Under deny.hardGates: the notice refuses, with no Run anyway. */
+      hard?: boolean
     }
   | { kind: 'budget'; id: string; ticket: IssueRef; budget: number }
   | { kind: 'rebase-conflict'; id: string; ticket: IssueRef; worktree: string }

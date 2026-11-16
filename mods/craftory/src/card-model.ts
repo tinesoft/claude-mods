@@ -264,9 +264,13 @@ export function phaseCard(
   )
   const gate =
     view.state.kind === 'gated'
-      ? `Gated: ${view.state.blockers.join(', ') || `${PHASES[view.state.by].label} is not done`}. It still runs after you confirm.`
+      ? `Gated: ${view.state.blockers.join(', ') || `${PHASES[view.state.by].label} is not done`}. ${
+          config.deny.hardGates
+            ? 'Hard gates refuses it until then.'
+            : 'It still runs after you confirm.'
+        }`
       : config.phases[view.phase].gate && next !== undefined
-        ? `Gate on: if ${spec.label} is not done when ${PHASES[next].label} starts, Craftory asks you to confirm first.`
+        ? `Gate on: if ${spec.label} is not done when ${PHASES[next].label} starts, Craftory ${config.deny.hardGates ? 'refuses it' : 'asks you to confirm first'}.`
         : null
   return {
     kicker: `Phase ${spec.n} of ${PHASE_ORDER.length} · ${look.label}`,

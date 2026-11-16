@@ -29,8 +29,12 @@ A phase whose evidence exists, such as a Spec on the tracker or every Ticket mer
 A phase whose skill ran, whether or not its evidence exists yet. Align is cleared by Ran, because a grill ends when you move on.
 
 **Gate**:
-A soft check before a phase starts that asks first when the preceding gated phase has not cleared. Done clears it, except for Align, which Ran clears. Nothing is refused unless the opt-in `deny.skipGate` rule is on, which refuses the gated phase's skill, called by Claude or typed, instead of asking.
+A soft check before a phase starts that asks first when the preceding gated phase has not cleared. Done clears it, except for Align, which Ran clears. Nothing is refused unless an opt-in is on: `deny.skipGate` refuses the gated phase's skill, called by Claude or typed, instead of asking, and `deny.hardGates` makes every gate hard (see **Hard gates**).
 _Avoid_: Block, guard
+
+**Hard gates**:
+The opt-in `deny.hardGates` switch, repo-wide. It turns the soft gates into refusals: a gated phase typed, called by Claude or pressed is refused with no Run anyway, edits in the main checkout on an integration branch are refused, and a ready PR or MR is refused until Review is done. It refuses only on evidence it can read, and has no per-command override.
+_Avoid_: Strict mode, enforce
 
 ### Work items
 

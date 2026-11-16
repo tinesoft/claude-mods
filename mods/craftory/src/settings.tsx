@@ -90,9 +90,15 @@ const RowView = ({
             id={row.id}
             ascii={ascii}
             title={row.label}
-            description={hintOf(row)}
+            description={
+              row.locked?.(facts) === true
+                ? `${hintOf(row)} On because Hard gates is on.`
+                : hintOf(row)
+            }
             isOn={row.read(facts)}
-            onChange={readOnly ? undefined : isOn => on.set(row, isOn)}
+            onChange={
+              readOnly || row.locked?.(facts) === true ? undefined : isOn => on.set(row, isOn)
+            }
           />
         </Box>
       )

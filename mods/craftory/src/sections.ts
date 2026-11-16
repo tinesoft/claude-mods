@@ -41,6 +41,8 @@ type RowBase = {
   hint?: string
   file: SettingsFile
   visible?: (facts: SettingsFacts) => boolean
+  /** On and not editable: another row decides it. The hint says which. */
+  locked?: (facts: SettingsFacts) => boolean
   header?: true
   /** Hidden where it does nothing: off the terminal, where the surface draws in its own theme. */
   terminalOnly?: true
@@ -638,18 +640,27 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
     on => ({ automation: { nudgeUnmetDone: on } }),
   ),
   toggle(
+    'deny-hard-gates',
+    'Hard gates',
+    'Refuses instead of asking, everywhere: a gated phase typed, called by Claude or pressed in the rail or pane (no Run anyway), edits in your checkout on an integration branch, and gh pr create or glab mr create until Review is done. Turns on both rules below. Anything Craftory cannot read lets the call through.',
+    c => c.deny.hardGates,
+    on => ({ deny: { hardGates: on } }),
+  ),
+  toggle(
     'deny-skip-gate',
     'Deny a gated phase until the one before it is done',
     'Refuses the phase’s skill when Claude calls it or you type its command early, instead of asking. Rail and pane presses still ask. The denial names this switch.',
-    c => c.deny.skipGate,
+    c => c.deny.hardGates || c.deny.skipGate,
     on => ({ deny: { skipGate: on } }),
+    { locked: f => f.config.deny.hardGates },
   ),
   toggle(
     'deny-edit-on-integration',
     'Deny edits in your checkout on an integration branch',
     'Refuses Edit and Write in the main checkout while it is on the worktrees.integrationBranch branch, so work stays in worktrees.',
-    c => c.deny.editOnIntegrationBranch,
+    c => c.deny.hardGates || c.deny.editOnIntegrationBranch,
     on => ({ deny: { editOnIntegrationBranch: on } }),
+    { locked: f => f.config.deny.hardGates },
   ),
 ]
 

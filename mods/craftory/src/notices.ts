@@ -9,7 +9,7 @@ import type {
 import type { Action } from './action'
 import { budgetK } from './build'
 import { driftText, retroText } from './drift'
-import { gateText } from './gates'
+import { gateText, hardGateText } from './gates'
 import { PHASES, PLUGIN, SKILLS, TESTED_RANGE } from './phases'
 import type { Role } from './theme'
 
@@ -163,21 +163,28 @@ export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): Notice
       return {
         id: notice.id,
         role: 'hook',
-        text: gateText(notice.phase, notice.reason),
+        text:
+          notice.hard === true
+            ? hardGateText(notice.phase, notice.by, notice.reason)
+            : gateText(notice.phase, notice.reason),
         replacesRail: false,
         actions: [
-          {
-            id: `run-anyway-${notice.phase}`,
-            label: 'Run anyway',
-            action: {
-              kind: 'run-anyway',
-              noticeId: notice.id,
-              phase: notice.phase,
-              skill: notice.skill,
-              args: notice.args,
-            },
-            primary: true,
-          },
+          ...(notice.hard === true
+            ? []
+            : [
+                {
+                  id: `run-anyway-${notice.phase}`,
+                  label: 'Run anyway',
+                  action: {
+                    kind: 'run-anyway',
+                    noticeId: notice.id,
+                    phase: notice.phase,
+                    skill: notice.skill,
+                    args: notice.args,
+                  },
+                  primary: true,
+                } satisfies NoticeButton,
+              ]),
           {
             id: `diagnose-${notice.phase}`,
             label: 'Diagnose',
@@ -186,6 +193,7 @@ export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): Notice
               noticeId: notice.id,
               about: `${PHASES[notice.phase].label} is gated: ${notice.reason}`,
             },
+            ...(notice.hard === true && { primary: true as const }),
           },
           dismiss(notice.id),
         ],
