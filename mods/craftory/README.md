@@ -13,7 +13,7 @@
 
 </div>
 
-An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. It guides a feature from idea to merged PR in seven phases: Align, Spec, Tickets, Build, Review, Ship and Retro. Each phase runs one of Matt Pocock's skills from the [`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Craftory does not do the work itself. A phase rail above the prompt shows where the active feature is and what to run next, the `/craftory` pane holds the tickets, worktrees, glossary and settings, and Craftory steers the parallel agents that `/implement-spec` starts.
+An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. It guides a feature from idea to merged PR in seven phases: Align, Spec, Tickets, Build, Review, Ship and Retro. Each phase is backed by one of Matt Pocock's skills from the [`mattpocock-skills`](https://github.com/mattpocock/skills) plugin. Craftory does not do the work itself. A phase rail above the prompt shows where the active feature is and what to run next, the `/craftory` pane holds the tickets, worktrees, glossary and settings, and Craftory steers the parallel agents that `/implement-spec` starts.
 
 ```text
  ⊟ Triage 3 │ Export invoices as CSV                                                                                ⚙
@@ -40,14 +40,17 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 
 ## ✨ Features
 
-- 🔄 **A full SDLC, not just a rail.** Seven phases cover the lifecycle from idea to retro, each started by one of Matt's skills.
-- 🧭 **An SDLC rail for the active feature.** Seven phases, each with a state glyph, a text badge and what it produced, such as `#42` or `1/5`.
+- 🧭 **An SDLC rail for the active feature.** Seven phases from idea to retro, each backed by one of Matt's skills, with a state glyph, a text badge and what it produced, such as `#42` or `1/5`.
 - 🔍 **A card per phase.** Press a phase to see what the phase does, the command that starts it, the skills it uses, what it wrote, and its gate.
 - 🚦 **Soft gates.** Starting a phase whose gated predecessor is not done asks first, with **Run anyway** and **Diagnose**. Nothing is refused unless you turn on a deny rule.
 - 🤖 **Build steering.** One git worktree and branch per implementer, at most `maxParallel` at a time, and a token budget per agent with a live Agents list.
 - 📋 **A full pane.** `/craftory` opens Flow, Tickets with a triage Inbox, Worktrees, Glossary and Settings.
 - ⚙️ **Settings that edit the repo's own files.** The tracker, triage labels, docs layout and glossary are written where Matt's skills read them, exactly as `/setup-matt-pocock-skills` writes them.
-- 📖 **Glossary in replies.** On Desktop and mobile, glossary terms in Claude's replies link to `/wait-what` and have a hover card.
+- 🗺️ **Wayfinder maps.** A map chip in the rail and a frontier card list the tickets you can take next, with **Take** and **Work next ticket**, and a switcher when several maps are open.
+- 🗄️ **Archiving.** A shipped feature leaves the switcher and the rail, and can be brought back.
+- 🔔 **Opt-in automations.** Offer `/handoff` at 80% context, `/retro` when the PR merges, a weekly architecture check, and a nudge when a phase's Done when is unmet. All off by default.
+- 📖 **Glossary in replies.** On Desktop and mobile, glossary terms in Claude's replies link to `/wait-what` and have a hover card. The terminal never rewrites a reply.
+- 🔎 **Glossary drift.** When Review or Ship starts, Craftory flags words the glossary says to avoid in the lines the integration branch adds.
 - ♿ **Never colour alone.** Every state is also a word, and `ascii_glyphs` draws the rail with plain characters.
 
 ---
