@@ -1,7 +1,7 @@
 {
   "name": "craftory",
   "displayName": "Craftory",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "An SDLC framework, built on top of Matt Pocock's skills, as a mod. A phase rail above the prompt takes a feature from idea to merged PR (Align, Spec, Tickets, Build, Review, Ship, Retro).",
   "author": {
     "name": "tinesoft",
