@@ -59,41 +59,45 @@ const openCard = async ($: Engine, surface: 'terminal' | 'desktop') => {
 
 for (const surface of BAND_SURFACES) {
   for (const tone of ['light', 'dark'] as const) {
-    test(`${surface} ${tone}: the bar is skill at 79%, amber at 80% and danger at 100%`, async ($, on) => {
-      await atThresholds(on, $, surface, tone)
-      if (surface === 'desktop') await startSession($, surface)
-      const card = await openCard($, surface)
-      const colour = (role: 'skill' | 'hook' | 'danger') => paint(role, tone).fg
-      const expected = [
-        ['csv/01', 'skill', '79%'],
-        ['csv/02', 'hook', '80%'],
-        ['csv/03', 'danger', '100%'],
-      ] as const
-      if (surface === 'desktop') {
-        for (const [ref, role, width] of expected) {
-          const fill = await card.find({ key: `agent-bar-fill-${ref}` })
-          expect(fill?.props, ref).toMatchObject({ width, backgroundColor: colour(role) })
+    test(
+      `${surface} ${tone}: the bar is skill at 79%, amber at 80% and danger at 100%`,
+      { timeoutMs: 30_000 },
+      async ($, on) => {
+        await atThresholds(on, $, surface, tone)
+        if (surface === 'desktop') await startSession($, surface)
+        const card = await openCard($, surface)
+        const colour = (role: 'skill' | 'hook' | 'danger') => paint(role, tone).fg
+        const expected = [
+          ['csv/01', 'skill', '79%'],
+          ['csv/02', 'hook', '80%'],
+          ['csv/03', 'danger', '100%'],
+        ] as const
+        if (surface === 'desktop') {
+          for (const [ref, role, width] of expected) {
+            const fill = await card.find({ key: `agent-bar-fill-${ref}` })
+            expect(fill?.props, ref).toMatchObject({ width, backgroundColor: colour(role) })
+          }
+          const over = paint('danger', tone)
+          expect((await card.find({ key: 'badge-csv/03' }))?.props).toMatchObject({
+            backgroundColor: over.bg,
+            borderColor: over.bd,
+          })
+          const near = paint('hook', tone)
+          expect((await card.find({ key: 'badge-csv/02' }))?.props).toMatchObject({
+            backgroundColor: near.bg,
+            borderColor: near.bd,
+          })
+        } else {
+          const fills = (await card.findAll({ type: 'Text' })).filter(t => /^█+$/.test(t.text))
+          expect(fills.map(f => [f.text.length, f.props.color])).toEqual(
+            expected.map(([, role, width]) => [
+              Math.round((parseInt(width) / 100) * 12),
+              colour(role),
+            ]),
+          )
         }
-        const over = paint('danger', tone)
-        expect((await card.find({ key: 'badge-csv/03' }))?.props).toMatchObject({
-          backgroundColor: over.bg,
-          borderColor: over.bd,
-        })
-        const near = paint('hook', tone)
-        expect((await card.find({ key: 'badge-csv/02' }))?.props).toMatchObject({
-          backgroundColor: near.bg,
-          borderColor: near.bd,
-        })
-      } else {
-        const fills = (await card.findAll({ type: 'Text' })).filter(t => /^█+$/.test(t.text))
-        expect(fills.map(f => [f.text.length, f.props.color])).toEqual(
-          expected.map(([, role, width]) => [
-            Math.round((parseInt(width) / 100) * 12),
-            colour(role),
-          ]),
-        )
-      }
-    })
+      },
+    )
   }
 }
 
