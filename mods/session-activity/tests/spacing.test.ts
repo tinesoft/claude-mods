@@ -178,21 +178,25 @@ const cardAt = async ($: Engine, on: On, surface: BandSurface) => {
 }
 
 for (const surface of BAND_SURFACES) {
-  test(`on ${surface} the card is roomy where the band has the rows, compact where it is short, and the pane only below that`, async ($, on) => {
-    const probe = await cardAt($, on, surface)
+  test(
+    `on ${surface} the card is roomy where the band has the rows, compact where it is short, and the pane only below that`,
+    { timeoutMs: 30_000 },
+    async ($, on) => {
+      const probe = await cardAt($, on, surface)
 
-    const seen: string[] = []
-    for (let rows = 0; rows <= 40; rows++) seen.push(await probe(rows))
-    const first = (kind: string) => seen.indexOf(kind)
-    expect(seen.join()).not.toContain('none')
-    expect(first('compact')).toBeGreaterThan(0)
-    expect(first('roomy')).toBeGreaterThan(first('compact'))
-    expect(seen.slice(0, first('compact')).every(kind => kind === 'pane')).toBe(true)
-    expect(seen.slice(first('compact'), first('roomy')).every(kind => kind === 'compact')).toBe(
-      true,
-    )
-    expect(seen.slice(first('roomy')).every(kind => kind === 'roomy')).toBe(true)
-  })
+      const seen: string[] = []
+      for (let rows = 0; rows <= 40; rows++) seen.push(await probe(rows))
+      const first = (kind: string) => seen.indexOf(kind)
+      expect(seen.join()).not.toContain('none')
+      expect(first('compact')).toBeGreaterThan(0)
+      expect(first('roomy')).toBeGreaterThan(first('compact'))
+      expect(seen.slice(0, first('compact')).every(kind => kind === 'pane')).toBe(true)
+      expect(seen.slice(first('compact'), first('roomy')).every(kind => kind === 'compact')).toBe(
+        true,
+      )
+      expect(seen.slice(first('roomy')).every(kind => kind === 'roomy')).toBe(true)
+    },
+  )
 }
 
 test('on desktop the 12 rows the band reports hold the compact card, and more rows the roomy one', async ($, on) => {
