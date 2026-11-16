@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** resolved
 
-- [ ] Desktop, VS Code and terminal rechecked in light and dark on the 2.1.325 pin (earlier passes: user, 2026-11-11 and 2026-11-14, on older builds); mobile out of scope for now
-- [ ] Band, pane, hover cards, `$.ui.ask` in a Skill hook, `TaskStop` and glyph widths checked
-- [ ] Any problems filed as tickets
+- [x] Desktop, VS Code and terminal rechecked in light and dark on the 2.1.325 pin (earlier passes: user, 2026-11-11 and 2026-11-14, on older builds); mobile out of scope for now
+- [x] Band, pane, hover cards, `$.ui.ask` in a Skill hook, `TaskStop` and glyph widths checked
+- [x] Any problems filed as tickets (none found)
 
 ## Versions
 
@@ -16,9 +16,9 @@
 
 | Surface  | Version                    | Light | Dark | Notes                                                                                           |
 | -------- | -------------------------- | ----- | ---- | ----------------------------------------------------------------------------------------------- |
-| Terminal | 2.1.322                    | ✓     | ✓    | All checks passed (user, 2026-11-11). Agent first-render pass on 2.1.311                        |
-| Desktop  | 2.1.321                    | ✓     | ✓    | All checks passed (user, 2026-11-11), after the compact-card fix                                |
-| VS Code  | 1.146.0, extension 2.1.323 | ✓     | ✓    | Passed after ticket 13's fixes (user, 2026-11-14)                                               |
+| Terminal | 2.1.325                    | ✓     | ✓    | All checks passed on the pin (user, 2026-11-16)                                                 |
+| Desktop  | 2.1.325                    | ✓     | ✓    | All checks passed on the pin (user, 2026-11-16)                                                 |
+| VS Code  | 1.146.0, extension 2.1.325 | ✓     | ✓    | All checks passed on the pin (user, 2026-11-16)                                                 |
 | Mobile   | —                          | —     | —    | Out of scope for now (user, 2026-11-14); the mobile code paths stay as they are, unchecked live |
 
 ## Checklist (per surface, per theme)
