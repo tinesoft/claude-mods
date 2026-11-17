@@ -2,8 +2,20 @@ import { atom, type EngineInterface, read, type Timer, update } from 'claude-cod
 import { isoOf } from '../../src/build'
 import { SPEND_DIR } from '../../src/files'
 import {
+  draftOfKey,
   EMPTY_SPEND,
   observe,
+  otherRowsOf,
+  OUTSIDE_DAYS,
+  ownRowsOf,
+  parseLocalSpend,
+  rekeyLedger,
+  rekeyRows,
+  rowsOfKey,
+  STORE_SPEND_OUTSIDE,
+  storeDraftKey,
+  withinDays,
+  withSession,
   parseSpendFile,
   reading,
   rowsBySpec,
@@ -19,7 +31,8 @@ import {
   tokensOf,
   totalOf,
 } from '../../src/spend'
-import type { FeatureKey, SpendDisk, SpendRow, SpendTarget } from '../../types'
+import type { FeatureKey, LocalSpend, SpendDisk, SpendRow, SpendTarget } from '../../types'
+import { draftsOf } from './features'
 import { listDir, readText, sh, writableContext, writeRepoFile } from './repo'
 
 const spendState = atom({ plugin: 'craftory', key: 'spend' } as const, EMPTY_SPEND)
@@ -29,6 +42,8 @@ const EMPTY_DISK: SpendDisk = {
   user: null,
   startedAt: null,
   others: {},
+  drafts: {},
+  outside: [],
   skipped: [],
   written: {},
 }
@@ -82,6 +97,29 @@ async function readSessionFiles($: EngineInterface, session: string): Promise<Se
   return out
 }
 
+async function localOf($: EngineInterface, key: string): Promise<LocalSpend> {
+  return parseLocalSpend(await $.store.get(key).catch(() => undefined))
+}
+
+type LocalRows = { drafts: Record<string, SpendRow[]>; outside: SpendRow[]; own: SpendRow[] }
+
+/**
+ * The spend kept on this machine: other sessions' rows of each draft still in flight and of
+ * Outside features (the last 30 days of it), and this session's own, which a resume takes back.
+ */
+async function readLocal($: EngineInterface, session: string, now: number): Promise<LocalRows> {
+  const out: LocalRows = { drafts: {}, outside: [], own: [] }
+  for (const id of Object.keys(await draftsOf($))) {
+    const local = await localOf($, storeDraftKey(id))
+    out.drafts[id] = otherRowsOf(local, session)
+    out.own.push(...ownRowsOf(local, session))
+  }
+  const outside = withinDays(await localOf($, STORE_SPEND_OUTSIDE), now, OUTSIDE_DAYS)
+  out.outside = otherRowsOf(outside, session)
+  out.own.push(...ownRowsOf(outside, session))
+  return out
+}
+
 /**
  * At session start: the cost already on the session (0 for a new one, more after a resume) is the
  * baseline, so the first step is priced and nothing from before the resume is charged to it. The
@@ -95,14 +133,21 @@ export async function startSpend($: EngineInterface) {
     userOf($),
     $.clock.now(),
   ])
-  const files = await readSessionFiles($, session)
-  await update($, spendState, () => seedRows({ ...EMPTY_SPEND, baseline: usd ?? null }, files.own))
+  const [files, local] = await Promise.all([
+    readSessionFiles($, session),
+    readLocal($, session, now),
+  ])
+  await update($, spendState, () =>
+    seedRows({ ...EMPTY_SPEND, baseline: usd ?? null }, [...files.own, ...local.own]),
+  )
   await update($, diskState, () => ({
     ...EMPTY_DISK,
     session,
     user,
     startedAt: isoOf(now),
     others: files.others,
+    drafts: local.drafts,
+    outside: local.outside,
     skipped: files.skipped,
   }))
 }
@@ -123,7 +168,9 @@ export async function reloadSpendFiles($: EngineInterface) {
 export async function flushSpend($: EngineInterface) {
   const disk = await read($, diskState)
   if (disk.session === null || disk.startedAt === null) return
-  const bySpec = rowsBySpec(sessionRows(await read($, spendState)))
+  const all = sessionRows(await read($, spendState))
+  await saveLocal($, disk.session, all)
+  const bySpec = rowsBySpec(all)
   if (bySpec.size === 0) return
   const ctx = await writableContext($)
   const written: Record<string, string> = {}
@@ -146,6 +193,48 @@ export async function flushSpend($: EngineInterface) {
   }
   if (Object.keys(written).length > 0)
     await update($, diskState, held => ({ ...held, written: { ...held.written, ...written } }))
+}
+
+/**
+ * Keeps this session's draft and Outside features rows in `$.store`, never in the repo: a draft
+ * has no spec to file them under yet, and Outside features is nobody's Feature.
+ */
+async function saveLocal($: EngineInterface, session: string, rows: readonly SpendRow[]) {
+  const now = await $.clock.now()
+  const at = isoOf(now)
+  const drafts = new Set(rows.flatMap(r => draftOfKey(r.feature) ?? []))
+  for (const id of drafts) {
+    const key = storeDraftKey(id)
+    const mine = rowsOfKey(rows, `draft:${id}`)
+    await $.store.set(key, withSession(await localOf($, key), session, mine, at))
+  }
+  const outside = rowsOfKey(rows, null)
+  if (outside.length === 0) return
+  const kept = withinDays(await localOf($, STORE_SPEND_OUTSIDE), now, OUTSIDE_DAYS)
+  await $.store.set(STORE_SPEND_OUTSIDE, withSession(kept, session, outside, at))
+}
+
+/**
+ * A draft's spec bound: its spend follows it. This session's rows are charged to the spec, every
+ * other session's stored rows of the draft join them, and the stored entry is cleared, so the
+ * next flush commits all of it, once, in this session's file.
+ */
+export async function moveDraftSpend($: EngineInterface, from: FeatureKey, to: FeatureKey) {
+  const id = draftOfKey(from)
+  if (id === null) return
+  const disk = await read($, diskState)
+  const theirs = rekeyRows(
+    disk.session === null ? [] : otherRowsOf(await localOf($, storeDraftKey(id)), disk.session),
+    from,
+    to,
+  )
+  await update($, spendState, ledger => seedRows(rekeyLedger(ledger, from, to), theirs))
+  await $.store.delete(storeDraftKey(id))
+  await update($, diskState, held => ({
+    ...held,
+    drafts: Object.fromEntries(Object.entries(held.drafts).filter(([d]) => d !== id)),
+  }))
+  $.clock.after(0, () => void flushSpend($))
 }
 
 /** After an agent's step: a flush within `FLUSH_EVERY_MS`, unless one is already due. */
@@ -215,8 +304,16 @@ export async function spendTotalOf(
   feature: FeatureKey | null,
 ): Promise<SpendTotal> {
   const [ledger, disk] = await Promise.all([read($, spendState), read($, diskState)])
+  return totalOf(ledger, feature, diskRowsOf(disk, feature))
+}
+
+/** Other sessions' rows of a Feature key: committed files, a draft's or Outside features' store. */
+function diskRowsOf(disk: SpendDisk, feature: FeatureKey | null): SpendRow[] {
+  if (feature === null) return disk.outside
   const spec = specOfKey(feature)
-  return totalOf(ledger, feature, spec === null ? [] : (disk.others[spendSlug(spec)] ?? []))
+  if (spec !== null) return disk.others[spendSlug(spec)] ?? []
+  const draft = draftOfKey(feature)
+  return draft === null ? [] : (disk.drafts[draft] ?? [])
 }
 
 /** Spend files that could not be read, for the Spend tab. */

@@ -4,10 +4,10 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Draft rollup in the store, keyed by draft id
-- [ ] The rollup moves on bind; the totals after the bind include Align
-- [ ] A discarded draft is never committed
-- [ ] `spend:outside` with the 30-day roll-off
-- [ ] Fake-world test: grill, then `/to-spec`, then the spec binds, then the status line total includes the grill
+- [x] Draft rollup in the store, keyed by draft id
+- [x] The rollup moves on bind; the totals after the bind include Align
+- [x] A discarded draft is never committed
+- [x] `spend:outside` with the 30-day roll-off
+- [x] Fake-world test: grill, then `/to-spec`, then the spec binds, then the status line total includes the grill
