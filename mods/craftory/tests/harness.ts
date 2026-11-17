@@ -52,6 +52,10 @@ export type WorldOptions = {
   racy?: { path: string; onRead: number; text: string }
   /** Commands that answer only after this many milliseconds on the mock clock. */
   stall?: { when: (argv: readonly string[]) => boolean; ms: number | (() => number) }
+  /** `$.session.id()`; `s1` unless given. A function lets a test change it, as a /clear does. */
+  session?: string | (() => string)
+  /** Writes to paths it matches fail, as a full disk or a read-only folder would. */
+  failWrite?: (path: string) => boolean
 }
 
 let clockInUse: ReturnType<typeof mock.clock> | undefined
@@ -162,6 +166,10 @@ export const world = (on: On, options: WorldOptions = {}) => {
     },
   }))
   on('session.measure', (_$, e) => ({ changed: e.changed }))
+  on('session.id', () => ({
+    value: typeof options.session === 'function' ? options.session() : (options.session ?? 's1'),
+  }))
+  on('session.end', (_$, e) => ({ sessionId: e.sessionId }))
   on(
     'session.send',
     (_$, e) => (sent.push({ to: e.to, text: e.text }), { isDelivered: true as const }),
@@ -224,6 +232,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
         }
   })
   on('fs.write', (_$, e) => {
+    if (options.failWrite?.(rel(e.path))) return { deny: `${rel(e.path)}: read-only` }
     writes.push({ path: rel(e.path), text: e.text })
     files.set(rel(e.path), e.text)
     return { value: undefined }

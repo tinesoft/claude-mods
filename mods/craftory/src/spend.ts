@@ -10,14 +10,21 @@ import type {
   AgentId,
   AgentRun,
   FeatureKey,
+  IsoTime,
+  IssueRef,
+  Loaded,
   PhaseId,
   Running,
+  SpendFile,
   SpendLedger,
   SpendRow,
   SpendStep,
   SpendTarget,
   TokenCounts,
 } from '../types'
+import { SPEND_DIR } from './files'
+import { PHASE_ORDER } from './phases'
+import { refSlug } from './tracker/refs'
 
 export const EMPTY_SPEND: SpendLedger = { baseline: null, queue: [], rows: {} }
 
@@ -179,10 +186,11 @@ export type SpendTotal = {
   isEstimated: boolean
 }
 
-/** What the Feature has cost in this session, the steps still waiting for a price included. */
-export function totalOf(ledger: SpendLedger, feature: FeatureKey | null): SpendTotal {
-  const rows = Object.values(ledger.rows).filter(r => r.feature === feature)
-  const queued = ledger.queue.filter(s => s.feature === feature)
+/** The total of some rows, and of steps still waiting for a price. */
+export function totalOfRows(
+  rows: readonly SpendRow[],
+  queued: readonly SpendStep[] = [],
+): SpendTotal {
   const tokens = [...rows.map(r => r.tokens), ...queued.map(s => s.tokens)].reduce(
     addTokens,
     ZERO_TOKENS,
@@ -195,6 +203,144 @@ export function totalOf(ledger: SpendLedger, feature: FeatureKey | null): SpendT
     usd: priced.length === 0 ? null : priced.reduce((sum, r) => sum + r.usd!, 0),
     isEstimated: priced.some(r => r.isEstimated),
   }
+}
+
+/**
+ * What the Feature has cost: this session's rows and waiting steps, plus `disk`, the rows other
+ * sessions committed for it.
+ */
+export function totalOf(
+  ledger: SpendLedger,
+  feature: FeatureKey | null,
+  disk: readonly SpendRow[] = [],
+): SpendTotal {
+  const rows = Object.values(ledger.rows).filter(r => r.feature === feature)
+  const queued = ledger.queue.filter(s => s.feature === feature)
+  return totalOfRows([...rows, ...disk], queued)
+}
+
+/** The spec a Feature key names; null for a draft, whose spend is not committed. */
+export const specOfKey = (key: FeatureKey | null): IssueRef | null =>
+  key !== null && key.startsWith('spec:') ? (key.slice('spec:'.length) as IssueRef) : null
+
+/** The folder name a Feature's spend files live under. */
+export const spendSlug = (spec: IssueRef) => refSlug(spec).replace(/[^A-Za-z0-9-]/g, '-')
+
+/** A session id as a file name: only letters, digits and dashes, like every Craftory file. */
+export const sessionSlug = (session: string) => session.replace(/[^A-Za-z0-9-]/g, '-')
+
+export const spendPath = (spec: IssueRef, session: string) =>
+  `${SPEND_DIR}${spendSlug(spec)}/${sessionSlug(session)}.json`
+
+/**
+ * This session's rows, with the steps still waiting for a price rolled up unpriced, so a file
+ * written now keeps their tokens. The ledger itself is not changed: they are priced later.
+ */
+export function sessionRows(ledger: SpendLedger): SpendRow[] {
+  return Object.values(rollUp(ledger.rows, ledger.queue, [], false))
+}
+
+/** The rows of committed Features, by spec. Drafts and Outside features are left out. */
+export function rowsBySpec(rows: readonly SpendRow[]): Map<IssueRef, SpendRow[]> {
+  const out = new Map<IssueRef, SpendRow[]>()
+  for (const row of rows) {
+    const spec = specOfKey(row.feature)
+    if (spec === null) continue
+    out.set(spec, [...(out.get(spec) ?? []), row])
+  }
+  return out
+}
+
+/** A session file, rows in a fixed order so an unchanged rollup writes the same text. */
+export function serialiseSpendFile(file: SpendFile): string {
+  const rows = [...file.rows].sort((a, b) =>
+    rowKey(a, a.model).localeCompare(rowKey(b, b.model), 'en'),
+  )
+  return `${JSON.stringify({ ...file, rows }, null, 2)}\n`
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
+const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0
+const textOrNull = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null)
+const SPEND_PHASES: readonly string[] = [...PHASE_ORDER, 'between']
+
+function parseRow(v: unknown): SpendRow | null {
+  if (!isRecord(v) || !isRecord(v.tokens)) return null
+  const t = v.tokens
+  if (![t.input, t.output, t.cacheRead, t.cacheWrite].every(isCount)) return null
+  if (typeof v.model !== 'string' || !isCount(v.steps)) return null
+  if (v.usd !== null && !isCount(v.usd)) return null
+  const phase = v.phase === null || SPEND_PHASES.includes(v.phase as string) ? v.phase : undefined
+  if (phase === undefined) return null
+  return {
+    feature: textOrNull(v.feature) as FeatureKey | null,
+    phase: phase as SpendRow['phase'],
+    ticket: textOrNull(v.ticket) as IssueRef | null,
+    agentId: textOrNull(v.agentId) as AgentId | null,
+    model: v.model,
+    tokens: {
+      input: t.input as number,
+      output: t.output as number,
+      cacheRead: t.cacheRead as number,
+      cacheWrite: t.cacheWrite as number,
+    },
+    usd: v.usd as number | null,
+    isEstimated: v.isEstimated === true,
+    steps: v.steps,
+  }
+}
+
+/**
+ * Reads a session file. A row that does not parse is dropped and named in `problem`; a file that
+ * is not a version 1 object with a session id is invalid as a whole.
+ */
+export function parseSpendFile(raw: string): Loaded<SpendFile> {
+  let json: unknown
+  try {
+    json = JSON.parse(raw)
+  } catch (error) {
+    return { state: 'invalid', raw, problem: error instanceof Error ? error.message : 'not JSON' }
+  }
+  if (!isRecord(json) || json.version !== 1 || typeof json.session !== 'string')
+    return { state: 'invalid', raw, problem: 'expected a version 1 object with a session' }
+  const list = Array.isArray(json.rows) ? json.rows : []
+  const rows = list.flatMap(r => parseRow(r) ?? [])
+  const dropped = list.length - rows.length
+  const user = textOrNull(json.user)
+  const value: SpendFile = {
+    version: 1,
+    session: json.session,
+    ...(user !== null && { user }),
+    startedAt: (textOrNull(json.startedAt) ?? '') as IsoTime,
+    rows,
+  }
+  return {
+    state: 'ok',
+    value,
+    raw,
+    ...(dropped > 0 && { problem: `${dropped} row${dropped === 1 ? '' : 's'} dropped` }),
+  }
+}
+
+/** Folds rows into a ledger's rollup: how a resumed session takes back what it wrote before. */
+export function seedRows(ledger: SpendLedger, rows: readonly SpendRow[]): SpendLedger {
+  const seeded = { ...ledger.rows }
+  for (const row of rows) {
+    const key = rowKey(row, row.model)
+    const was = seeded[key]
+    seeded[key] =
+      was === undefined
+        ? row
+        : {
+            ...was,
+            tokens: addTokens(was.tokens, row.tokens),
+            usd: row.usd === null ? was.usd : (was.usd ?? 0) + row.usd,
+            isEstimated: was.isEstimated || row.isEstimated,
+            steps: was.steps + row.steps,
+          }
+  }
+  return { ...ledger, rows: seeded }
 }
 
 /** Dollars as the rail shows them: cents under $10, then one decimal. */

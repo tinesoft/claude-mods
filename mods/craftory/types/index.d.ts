@@ -458,6 +458,32 @@ export type SpendLedger = {
   rows: Record<string, SpendRow>
 }
 
+/**
+ * One session's spend on one Feature, as committed at `.craftory/spend/<slug>/<session>.json`.
+ * Only that session writes it, so files never conflict; readers sum them.
+ */
+export type SpendFile = {
+  version: 1
+  session: string
+  /** `git config user.email` of whoever ran the session; absent when unset. */
+  user?: string
+  startedAt: IsoTime
+  rows: SpendRow[]
+}
+
+/** Spend on disk: this session's file names, and every other session's rows by Feature slug. */
+export type SpendDisk = {
+  /** This session's id, as its files are named; null before session start. */
+  session: string | null
+  user: string | null
+  startedAt: IsoTime | null
+  others: Record<string, SpendRow[]>
+  /** Spend files that could not be read, by path. */
+  skipped: string[]
+  /** What this session last wrote, by path, so an unchanged file is not written again. */
+  written: Record<string, string>
+}
+
 export type GatePass = { key: string; until: Millis }
 
 export type PluginStatus =
@@ -572,6 +598,7 @@ declare module 'claude-code' {
       running: Running | null
       build: BuildLedger
       spend: SpendLedger
+      spendDisk: SpendDisk
       steeringNote: string | null
       passes: GatePass[]
       notices: EventNotice[]
