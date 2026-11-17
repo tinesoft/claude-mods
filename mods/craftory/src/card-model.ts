@@ -181,6 +181,8 @@ export type CardView = {
   agents: AgentsView | null
   /** The Feature's latest handoff document, linked from every phase card; null without one. */
   handoff: string | null
+  /** What the phase has cost (`$2.14 · 318k fresh · 61% cache`); null when it spent nothing. */
+  spend: string | null
 }
 
 const TRIAGE_WHY =
@@ -202,6 +204,7 @@ export function triageCard(waiting: number): CardView {
     secondary: [],
     agents: null,
     handoff: null,
+    spend: null,
   }
 }
 
@@ -256,6 +259,7 @@ export function phaseCard(
   flow: Flow,
   config: CraftoryConfig,
   agents: AgentsView | null = null,
+  spend: string | null = null,
 ): CardView {
   const spec: PhaseSpec = PHASES[view.phase]
   const look = PHASE_LOOKS[view.state.kind]
@@ -286,5 +290,6 @@ export function phaseCard(
     ...phaseButtons(view, flow),
     agents: view.phase === 'build' ? agents : null,
     handoff: handoffOf(flow.feature),
+    spend,
   }
 }

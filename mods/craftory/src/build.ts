@@ -566,6 +566,8 @@ export type AgentRow = {
   deleted: number | null
   commits: string | null
   note: string | null
+  /** The ticket's dollars beside its token bar, `≈` when shared with other agents. */
+  spend?: string | null
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`

@@ -106,6 +106,7 @@ import {
 import {
   endSpend,
   flushSpend,
+  phaseSpendOf,
   noteSpendReading,
   noteSpendStep,
   scheduleSpendFlush,
@@ -582,6 +583,7 @@ export const register: Register = (on, options) => {
       archivable: archiveViewOf(flow, await featuresOf($)).archivable,
       isPickingFeature: await isPickingFeatureOf($),
       spend: flow === null ? null : spendText(await spendTotalOf($, flow.feature.key)),
+      phaseSpend: flow === null ? {} : await phaseSpendOf($, flow.feature.key),
       on: bandActions($),
     })
   })
