@@ -26,7 +26,7 @@ All settled in the grill on Nov 17, 2026.
 | 5 | Token counting | Budgets keep the **fresh** count (input + cache-creation + output, as today). Views also show cache reads and the cache-hit % |
 | 6 | $ per agent | The delta is split across the active agents by their token share in that interval and shown as an estimate (`≈$1.20`). $ is exact at the phase level |
 | 7 | Display | Phase cards, the Build agent list, the status line and summary chip, and a new **Spend** pane tab |
-| 8 | Merge-safe storage | One append-only file per session: `.craftory/features/<f>/spend/<session>.json`. Totals are summed when read |
+| 8 | Merge-safe storage | One append-only file per session: `.craftory/spend/<slug>/<session>.json`. Totals are summed when read |
 | 9 | Budget levels | An optional $ cap per feature and per phase. The per-agent token cap (80k) is unchanged |
 | 10 | Enforcement | Amber at 80%. At 100%, a band notice with **Raise budget**, **Continue** and **Diagnose**. A new `deny.overBudget` refuses new phase skills and agent spawns. `deny.hardGates` turns it on |
 | 11 | Rate limits | Show the windows on the Build card, slow down parallelism above a threshold, and warn before `/implement-spec` when the forecast exceeds what is left of a window |
@@ -35,7 +35,7 @@ All settled in the grill on Nov 17, 2026.
 | 14 | Main thread | Routing applies to subagents only. Routing the main thread is a separate opt-in. When it is on, the band says so and the model reverts when the phase ends |
 | 15 | Escalation | Offered on the card (**Retry on <stronger model>**), never automatic |
 | 16 | Forecast basis | This repo's history: the median and p90 per ticket and per phase. Shows "no history yet" until 2 or more features have finished |
-| 17 | Retro | A spend summary on the Retro card, injected into `/retro`'s context, and written to `.craftory/features/<f>/spend.md` |
+| 17 | Retro | A spend summary on the Retro card, injected into `/retro`'s context, and written to `.craftory/spend/<slug>/spend.md` |
 | 18 | Spend outside a phase | Spend under the active feature with no phase running is "Between phases". Spend with no active feature goes to "Outside features", which appears only in the Spend tab |
 | 19 | Delivery | Three slices (below), this document first |
 
@@ -75,16 +75,18 @@ type SpendEntry = {
 
 ### Storage
 
+Feature records are flat files (`.craftory/features/<slug>.json`), and `isWritable` allows only `<slug>.json` there. So spend lives in its own folder:
+
 ```
-.craftory/features/<f>/
-  feature.json              # existing record; gains budgets: { usd?: number; phases?: Partial<Record<PhaseId, number>> }
-  spend/<sessionId>.json    # { session, user: git user.email, model, entries: rolled-up per (phase,ticket,agent,model) }
-  spend.md                  # written at Retro (or Ship when Retro is off)
+.craftory/features/<slug>.json          # existing record; gains budgets in v2
+.craftory/spend/<slug>/<sessionId>.json # { version, session, user?, startedAt, rows }: rolled up per (phase, ticket, agent, model)
+.craftory/spend/<slug>/spend.md         # v3: written at Retro (or Ship when Retro is off)
 ```
 
-- A session file holds rows rolled up by phase, ticket, agent and model, not every step, so files stay small. Raw entries stay in memory only.
+- A session file holds rollups, not every step, so files stay small. Raw entries stay in memory only.
 - `user` is `git config user.email`. When it is unset, the field is left out. The Spend tab can group by person.
-- Outside-features spend goes to `.craftory/spend/<sessionId>.json`.
+- A draft feature (no spec yet) keeps its spend in `$.store` and moves it into the session file when the spec binds.
+- Outside-features spend stays in `$.store` only, as a rolling 30-day rollup. It is not committed.
 - Readers sum every session file. A file that fails to parse is skipped and named on the Spend tab.
 
 ### Config
@@ -129,7 +131,7 @@ New keys in `.craftory/config.json`. All are off or empty by default.
 - **Routing.** For a subagent, the model is set at spawn: the `Agent` call's `model` input in the existing `tool.call` hook, with `effort` on the agent's first step. Craftory never changes the model mid-loop, because a model switch throws away the prompt cache. Main-thread routing (opt-in) rewrites `turn.step` while the phase runs, and the band shows `Align runs on opus/high`.
 - **Escalation.** On a Failed or Over budget ticket, the card adds **Retry on <escalateTo>**. It reuses the kept worktree.
 - **Forecast.** From all finished features' spend files, it takes the median and p90 $ per ticket for Build and per phase for the rest. It shows on the Tickets card (`Build ≈ $9 (p90 $14) for 5 tickets`) and is saved on the feature when Build starts, so Retro can compare.
-- **Retro.** The card shows the total, forecast against actual, the top 3 tickets and phases by cost, the cache-hit % and the spend by model. When `/retro` is submitted, the same summary goes in as `additionalContext`. At the end of Retro (or Ship, when Retro is off), Craftory writes `spend.md`.
+- **Retro.** The card shows the total, forecast against actual, the top 3 tickets and phases by cost, the cache-hit % and the spend by model. When `/retro` is submitted, the same summary goes in as `additionalContext`. At the end of Retro (or Ship, when Retro is off), Craftory writes `.craftory/spend/<slug>/spend.md`.
 
 ## Risks and open edges
 
