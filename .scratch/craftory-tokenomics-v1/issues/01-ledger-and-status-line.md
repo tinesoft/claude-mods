@@ -4,12 +4,16 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Spike first: confirm whether `cost.usd` moves with each `turn.step` answer, subagent steps included, or only at `session.measure`, and note the answer in the spec's Open Questions
-- [ ] `src/spend.ts`: `SpendEntry`, `attribute`, `splitDelta`, `rollup`, with table tests
-- [ ] `turn.step` wiring on the main and agent branches; the budget stop path is not charged
-- [ ] Between phases and Outside features attribution
-- [ ] Baseline on the first step and after a resume; a missing `cost` gives `usd: null`, never `0`
-- [ ] `statusLine` and `chipText` append the total; fake-world tests for main-only, 3 parallel agents (the phase is exact, the agents are `≈`) and no `cost`
-- [ ] The latency test covers the new `turn.step` work
+- [x] Spike first: confirm whether `cost.usd` moves with each `turn.step` answer, subagent steps included, or only at `session.measure`, and note the answer in the spec. Settled from the types, with a design that works either way (see the spec's Decisions made while building). The live check is left for a human (see Comments)
+- [x] `src/spend.ts`: `SpendEntry`, `attribute`, `splitDelta`, `rollup`, with table tests
+- [x] `turn.step` wiring on the main and agent branches; the budget stop path is not charged
+- [x] Between phases and Outside features attribution
+- [x] Baseline on the first step and after a resume; a missing `cost` gives `usd: null`, never `0`
+- [x] `statusLine` and `chipText` append the total; fake-world tests for main-only, 3 parallel agents (the phase is exact, the agents are `≈`) and no `cost`
+- [x] The latency test covers the new `turn.step` work
+
+## Comments
+
+- 2026-11-17: no authenticated Claude Code session was available, so the cost-timing spike was not run live. To check by hand: in a real session with this branch loaded, run a Build with 2 or more agents and compare the status line total with `/cost`. The two should match to the cent, less any spend from before the first step.

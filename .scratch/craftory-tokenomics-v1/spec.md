@@ -99,10 +99,19 @@ Craftory records every answered step's tokens and its share of the session's `co
 - A switch to keep spend out of git (`spend.commit: false`). It is noted in the design doc and not in v1.
 - Exporting spend (CSV or JSON) beyond the committed files.
 
-## Open Questions
+## Decisions made while building
 
-- Confirm that Outside features stays local-only (see Implementation Decisions), not committed as the design doc said.
-- Does `cost.usd` move synchronously with each `turn.step` answer, including subagent steps, or only at `session.measure`? Ticket 01 settles this. If it lags, the queue in `splitDelta` absorbs it, but a phase boundary that falls inside the lag would charge some spend to the wrong phase.
+- **Outside features stays local.** Confirmed on 2026-11-17: it lives in `$.store` and is never committed.
+- **When `cost.usd` moves (ticket 01's spike).**
+  - The 2.1.325 types say `cost.usd` is the `/cost` total, summed over every priced response, subagents included. `session.measure` raises `cost` whenever that total grows.
+  - They do not say whether the total has already moved when a `turn.step`'s `next(e)` answers. This workspace has no authenticated session, so it could not be checked live.
+  - The ledger works either way. It reads the cost after every step and on every `session.measure`. Steps queue until a reading moves, and each queued step keeps the target it had when it was answered, so a lagging reading can't move spend to a later phase. It can only spread one delta over the steps that were waiting for it.
+- **One `turn.step` hook.** The engine refuses a second unmatched `turn.step` hook, so spend is charged at the end of the existing budget hook. A stopped step has `usage: null` and is not charged.
+- **Baseline at session start.** `session.start` reads the cost first: 0 for a new session, the total so far after a resume. If that read fails, the first step's reading sets the baseline and that step is unpriced.
+- **Weights.** A delta is shared over fresh tokens plus cache reads at a tenth, since cache reads bill at about a tenth of input. With fresh tokens alone, a cache-heavy step would get almost nothing. When every weight is 0, the delta is shared equally.
+- **Subagents that are not implementers** (a `code-review` agent, an explorer) are charged where the main session is: the running phase, or Between phases.
+- **A delta with no step to take it** is not charged. This happens with a compaction, or another mod's `$.model` call before any step. The baseline moves past it, so phase dollars are exact for the steps Craftory saw.
+- **The queue is capped at 200 steps.** On a host whose cost never moves, older steps are rolled up unpriced, and their tokens still count.
 
 ## Further Notes
 

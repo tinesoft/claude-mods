@@ -420,6 +420,44 @@ export type BuildLedger = {
   isPaused: boolean
 }
 
+/** Where a step's spend is charged: a phase, or the main session between phases. */
+export type SpendPhase = PhaseId | 'between'
+
+/** The four token counts of a step, in Craftory's spelling of the API's. */
+export type TokenCounts = { input: number; output: number; cacheRead: number; cacheWrite: number }
+
+/**
+ * Who pays for a step. `feature` null is Outside features, and its `phase` is null too. `agentId`
+ * is any subagent's, `ticket` only an implementer's.
+ */
+export type SpendTarget = {
+  feature: FeatureKey | null
+  phase: SpendPhase | null
+  ticket: IssueRef | null
+  agentId: AgentId | null
+}
+
+/** One answered step, waiting for the session's cost to move so it can take its share. */
+export type SpendStep = SpendTarget & { model: string; tokens: TokenCounts }
+
+/** Steps rolled up by target and model. `usd` is null until one of them was priced. */
+export type SpendRow = SpendTarget & {
+  model: string
+  tokens: TokenCounts
+  usd: number | null
+  /** Part of `usd` was split across steps of other rows that one cost reading covered. */
+  isEstimated: boolean
+  steps: number
+}
+
+/** This session's spend: the last cost reading, the steps it has not priced, and the rollup. */
+export type SpendLedger = {
+  /** The session's `cost.usd` at the last reading; null before the first. */
+  baseline: number | null
+  queue: SpendStep[]
+  rows: Record<string, SpendRow>
+}
+
 export type GatePass = { key: string; until: Millis }
 
 export type PluginStatus =
@@ -533,6 +571,7 @@ declare module 'claude-code' {
       active: FeatureKey | null
       running: Running | null
       build: BuildLedger
+      spend: SpendLedger
       steeringNote: string | null
       passes: GatePass[]
       notices: EventNotice[]

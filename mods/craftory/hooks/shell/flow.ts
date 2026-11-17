@@ -12,15 +12,17 @@ import type { InboxAction } from '../../src/pane-view'
 import { namespaced, recognise } from '../../src/phases'
 import { bareIsOurs } from '../../src/plugin'
 import { TOAST_MS, toastText } from '../../src/signals'
+import { attribute, spendText } from '../../src/spend'
 import { statusLine } from '../../src/summary'
 import { SPIN_MS } from '../../src/theme'
-import type { EventNotice, FeatureKey, PhaseId, Running } from '../../types'
+import type { AgentId, EventNotice, FeatureKey, PhaseId, Running, SpendTarget } from '../../types'
 import {
   activeKey,
   activeRecord,
   adoptRecord,
   createDraft,
   draftsOf,
+  featureOfTicket,
   featuresOf,
   promoteDrafts,
   recordChange,
@@ -28,7 +30,7 @@ import {
   setActive,
 } from './features'
 import { gitOf } from './git'
-import { ledgerOf } from './ledger'
+import { ledgerOf, runOf } from './ledger'
 import {
   addNotice,
   checkGate,
@@ -40,6 +42,7 @@ import {
   removeNotices,
 } from './notices'
 import { glossaryTerms, pluginOf, repoFacts, sh } from './repo'
+import { spendTotalOf } from './spend'
 import { trackerOf } from './tracker'
 
 const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
@@ -81,6 +84,38 @@ export async function everyFlow($: EngineInterface): Promise<Flow[]> {
   })
 }
 
+/** The status line: the active Feature's summary and, once it has any, what it has cost. */
+async function showStatus($: EngineInterface, flow: Flow | null) {
+  const spend = flow === null ? null : spendText(await spendTotalOf($, flow.feature.key))
+  $.ui.status(statusLine(flow, spend))
+}
+
+/** Redraws what shows spend, after a step or a cost reading changed it. */
+export async function refreshSpend($: EngineInterface) {
+  await showStatus($, await currentFlow($))
+  $.ui.invalidate('ui.render')
+}
+
+/** Who pays for a step: see `attribute`. */
+export async function spendTarget(
+  $: EngineInterface,
+  agentId: AgentId | undefined,
+): Promise<SpendTarget> {
+  const [run, running, active] = await Promise.all([
+    runOf($, agentId),
+    read($, runningState),
+    activeKey($),
+  ])
+  const record = run === undefined ? null : await featureOfTicket($, run.ticket)
+  return attribute({
+    agentId: agentId ?? null,
+    run: run ?? null,
+    runFeature: record === null ? null : specKey(record.spec),
+    running,
+    active,
+  })
+}
+
 /**
  * Brings everything derived from the atoms up to date: the status line, the spinner, the held
  * notices, the toasts for what the tracker newly shows, and the redraw. Every change a person
@@ -89,7 +124,7 @@ export async function everyFlow($: EngineInterface): Promise<Flow[]> {
 export async function settle($: EngineInterface) {
   await autoArchive($)
   const flow = await currentFlow($)
-  $.ui.status(statusLine(flow))
+  await showStatus($, flow)
   const isRunning = flow?.phases.some(s => s.state.kind === 'running') === true
   if (isRunning && spinner === undefined) {
     spinner = $.clock.every(SPIN_MS, () => $.ui.invalidate('ui.render'))

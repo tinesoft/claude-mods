@@ -101,6 +101,8 @@ export type BandArgs = {
   /** The active Feature, when it may be archived: the band then draws the Archive button. */
   archivable: FeatureKey | null
   isPickingFeature: boolean
+  /** The active Feature's short spend (`$4.12`, `412k`), drawn in the summary; null with none. */
+  spend?: string | null
   on: BandActions
 }
 
@@ -526,7 +528,12 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
     args.map === null ? 0 : `${mapChipCompactText(args.map, args.ascii)} ${sep}`.length + 1
   const parts = summaryParts(flow)
   const phaseText = `· ${parts.phase}`
-  const rest = 1 + phaseText.length + (parts.count === null ? 0 : 1 + parts.count.length)
+  const spendText = args.spend ? `· ${args.spend}` : null
+  const rest =
+    1 +
+    phaseText.length +
+    (parts.count === null ? 0 : 1 + parts.count.length) +
+    (spendText === null ? 0 : 1 + spendText.length)
   const archiveWidth = args.archivable === null ? 0 : ARCHIVE_RESERVE
   const titleMax = Math.min(TITLE_MAX, columns - GEAR_RESERVE - archiveWidth - 6 - mapWidth - rest)
   const title = clip(parts.title, Math.max(SUMMARY_TITLE_MIN, titleMax), args.ascii)
@@ -585,6 +592,9 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
                 {` ${parts.count} `}
               </Text>
             ))}
+          {spendText !== null && (
+            <Text key="summary-spend" {...inkOf(tone, 'muted')}>{` ${spendText}`}</Text>
+          )}
         </Chip>
       </Box>
       <Trailing args={args} />

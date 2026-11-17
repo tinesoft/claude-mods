@@ -206,3 +206,10 @@ for (const [surface, theme] of [
     expect(w.opens).toHaveLength(1)
   })
 }
+
+test('the summary chip ends with the spend once there is any, and chipText with it', () => {
+  const out = band({ spend: '$4.12' })
+  expect(textOf(byKey(out, 'summary-spend'))).toBe(' · $4.12')
+  expect(chipText(running(), '$4.12')).toBe('Export invoices as CSV · Build 2/5 · $4.12')
+  expect(byKey(band({ spend: null }), 'summary-spend')).toBeUndefined()
+})
