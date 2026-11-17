@@ -47,6 +47,8 @@ export type WorldOptions = {
   answer?: (e: { agentId?: string; index: number }) => string
   /** The main session's context window, as `$.session.usage()` reports it. */
   window?: number
+  /** The session's `cost.usd` as `$.session.usage()` reports it now; absent, the host keeps no ledger. */
+  cost?: () => number
   racy?: { path: string; onRead: number; text: string }
   /** Commands that answer only after this many milliseconds on the mock clock. */
   stall?: { when: (argv: readonly string[]) => boolean; ms: number | (() => number) }
@@ -152,8 +154,14 @@ export const world = (on: On, options: WorldOptions = {}) => {
   )
   on('session.cwd', () => ({ value: '/repo' }))
   on('session.usage', () => ({
-    value: { startedAt: 0, context: { window: options.window ?? 200_000 }, rateLimits: [] },
+    value: {
+      startedAt: 0,
+      context: { window: options.window ?? 200_000 },
+      rateLimits: [],
+      ...(options.cost && { cost: { usd: options.cost() } }),
+    },
   }))
+  on('session.measure', (_$, e) => ({ changed: e.changed }))
   on(
     'session.send',
     (_$, e) => (sent.push({ to: e.to, text: e.text }), { isDelivered: true as const }),

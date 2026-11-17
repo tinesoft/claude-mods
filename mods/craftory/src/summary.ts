@@ -5,8 +5,9 @@ import { chipText, phaseMeta } from './card-model'
 import { PHASES, PLUGIN, TESTED_RANGE } from './phases'
 import { PHASE_LOOKS } from './theme'
 
-export const statusLine = (flow: Flow | null): string | undefined =>
-  flow === null ? undefined : `${chipText(flow)} · /craftory`
+/** The status line: the summary chip's text, the Feature's spend when it has any, the command. */
+export const statusLine = (flow: Flow | null, spend: string | null = null): string | undefined =>
+  flow === null ? undefined : `${chipText(flow, spend)} · /craftory`
 
 export const unsupportedText = `Craftory needs Claude Code ${ENGINE_FLOOR} or later. Run claude update.`
 

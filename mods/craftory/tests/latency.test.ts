@@ -207,3 +207,43 @@ test('the architecture check reporting done does not hold turn.complete for the 
   expect(w.writes.map(x => x.path)).toContain('.craftory/state.json')
   await w.clock.advance(SLOW_MS * 2)
 })
+
+test('a main step and an agent step are charged without waiting on a slow git read', async ($, on) => {
+  let isStalled = false
+  let usd = 0
+  const { w } = await building(on, $, {
+    cost: () => usd,
+    usage: () => ({
+      input_tokens: 10,
+      output_tokens: 10,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+    }),
+    stall: { when: argv => isStalled && gitList(argv), ms: SLOW_MS },
+  })
+  await start($, 43, 'Export button')
+  isStalled = true
+  const drain = async (agentId?: string) => {
+    const stream = $.turn.step({
+      turnId: 't',
+      index: 0,
+      model: 'sonnet',
+      messageCount: 1,
+      ...(agentId && { agentId }),
+    } as never)
+    const iterator = (stream as AsyncIterable<unknown>)[Symbol.asyncIterator]()
+    while (!(await iterator.next()).done) {
+      // drained
+    }
+  }
+  let finished = 0
+  usd = 0.1
+  void drain().then(() => finished++)
+  await w.clock.settle()
+  usd = 0.2
+  void drain('agent-tu43').then(() => finished++)
+  await w.clock.settle()
+  expect(finished).toBe(2)
+  expect(w.statuses.at(-1)).toMatch(/ · \$0\.20 · \/craftory$/)
+  await w.clock.advance(SLOW_MS * 2)
+})

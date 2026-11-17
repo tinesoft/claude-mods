@@ -30,6 +30,7 @@ import { archiveViewOf } from '../src/archive'
 import { featureChoices } from '../src/features'
 import { type BandActions, renderBand, spinFrameOf } from '../src/rail'
 import { linkTerms, Reply } from '../src/reply'
+import { spendText } from '../src/spend'
 import { markdownSummary, unsupportedText } from '../src/summary'
 import { argFor } from '../src/tracker/refs'
 import type { AgentId } from '../types'
@@ -71,8 +72,10 @@ import {
   gatePrompt,
   gateVerdict,
   markDone,
+  refreshSpend,
   settle,
   skillStarted,
+  spendTarget,
   startContext,
   switchFeature,
   archiveFeature,
@@ -100,6 +103,7 @@ import {
   scheduleRefresh,
   touchesTracker,
 } from './shell/sync'
+import { noteSpendReading, noteSpendStep, spendTotalOf, startSpend } from './shell/spend'
 import { mapViewOf, trackerOf, wayfinderOfferOf } from './shell/tracker'
 import {
   detectPlugin,
@@ -321,7 +325,13 @@ export const register: Register = (on, options) => {
     if (!(await isSupported($))) {
       $.ui.toast(unsupportedText)
     }
-    await Promise.all([loadRepo($), loadFeatures($), detectPlugin($), rearmAutomations($)])
+    await Promise.all([
+      loadRepo($),
+      loadFeatures($),
+      detectPlugin($),
+      rearmAutomations($),
+      startSpend($),
+    ])
     await stopStaleAgents($)
     await rememberGlossaryAtStart($)
     await offerArchitecture($)
@@ -439,24 +449,39 @@ export const register: Register = (on, options) => {
     return result
   })
 
+  // A cost that grew after the steps it covers prices them here.
+  on('session.measure', async ($, e, next) => {
+    const result = await next(e)
+    if (e.cost !== undefined && e.changed.includes('cost'))
+      if (await noteSpendReading($, e.cost.usd, await activeKey($))) await refreshSpend($)
+    return result
+  })
+
   // Yielding a text chunk and returning without `next` sends no request and ends the subagent at
-  // once; its Agent call then returns that text. This is the hard stop at the budget.
+  // once; its Agent call then returns that text. This is the hard stop at the budget. Every step
+  // is then charged to whoever it was for; a stopped one carries no usage and is not.
   on('turn.step', async function* ($, e, next) {
     const agentId = e.agentId as AgentId | undefined
-    if (agentId === undefined) {
+    const answer = async function* () {
+      if (agentId === undefined) {
+        const result = yield* next(e)
+        await noteMainStep($, result.usage)
+        return result
+      }
+      const run = await runOf($, agentId)
+      if (run === undefined || run.status !== 'running') return yield* next(e)
+      if (run.stop !== null) {
+        await markStopDelivered($, agentId)
+        yield { kind: 'text' as const, index: 0, text: stoppedAnswer(run) }
+        return stoppedStep(e.turnId, e.index, run)
+      }
       const result = yield* next(e)
-      await noteMainStep($, result.usage)
+      await countStep($, agentId, result)
       return result
     }
-    const run = await runOf($, agentId)
-    if (run === undefined || run.status !== 'running') return yield* next(e)
-    if (run.stop !== null) {
-      await markStopDelivered($, agentId)
-      yield { kind: 'text', index: 0, text: stoppedAnswer(run) }
-      return stoppedStep(e.turnId, e.index, run)
-    }
-    const result = yield* next(e)
-    await countStep($, agentId, result)
+    const result = yield* answer()
+    const target = await spendTarget($, agentId)
+    if (await noteSpendStep($, target, result.usage, await activeKey($))) await refreshSpend($)
     return result
   })
 
@@ -544,6 +569,7 @@ export const register: Register = (on, options) => {
       features: featureChoices(await featuresOf($), await draftsOf($), await activeKey($)),
       archivable: archiveViewOf(flow, await featuresOf($)).archivable,
       isPickingFeature: await isPickingFeatureOf($),
+      spend: flow === null ? null : spendText(await spendTotalOf($, flow.feature.key)),
       on: bandActions($),
     })
   })

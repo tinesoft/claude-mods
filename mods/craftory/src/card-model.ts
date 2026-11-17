@@ -59,9 +59,9 @@ export function summaryParts(flow: Flow): { title: string; phase: string; count:
   return { title: flow.title, phase: PHASES[view.phase].label, count: phaseMeta(view, flow) }
 }
 
-export function chipText(flow: Flow): string {
+export function chipText(flow: Flow, spend: string | null = null): string {
   const { title, phase, count } = summaryParts(flow)
-  return `${clip(title, TITLE_MAX)} · ${phase}${count ? ` ${count}` : ''}`
+  return `${clip(title, TITLE_MAX)} · ${phase}${count ? ` ${count}` : ''}${spend ? ` · ${spend}` : ''}`
 }
 
 export const GEAR_RESERVE = 3
