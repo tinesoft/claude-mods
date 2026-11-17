@@ -46,7 +46,11 @@ const cardLinks = async ($: Engine) => {
   return (await band.findAll({ type: 'Link' })).map(l => l.props.href)
 }
 
-const craftoryWrites = (w: World) => w.writes.filter(x => !x.path.startsWith('.craftory/features/'))
+/** What Craftory wrote besides its own records (Feature files and spend files). */
+const craftoryWrites = (w: World) =>
+  w.writes.filter(
+    x => !x.path.startsWith('.craftory/features/') && !x.path.startsWith('.craftory/spend/'),
+  )
 
 test('the handoff the notice ran is linked from the Feature card once it is written', async ($, on) => {
   const w = await pressedHandoff(on, $)

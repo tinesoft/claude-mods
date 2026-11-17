@@ -22,6 +22,8 @@ export const AGENT_DOCS = {
 export const GITIGNORE = '.gitignore'
 export const CONFIG_FILE = '.craftory/config.json'
 export const FEATURES_DIR = '.craftory/features/'
+/** One folder per Feature slug, one file per session: `.craftory/spend/<slug>/<session>.json`. */
+export const SPEND_DIR = '.craftory/spend/'
 /** Repo state that is not settings, such as `architectureLastRun`: git-ignored, one per repo. */
 export const STATE_FILE = '.craftory/state.json'
 
@@ -58,6 +60,8 @@ export function isWritable(path: string, ctx: WritableContext): boolean {
   if (exact.includes(clean)) return true
   if (clean.startsWith(FEATURES_DIR))
     return /^[A-Za-z0-9-]+\.json$/.test(clean.slice(FEATURES_DIR.length))
+  if (clean.startsWith(SPEND_DIR))
+    return /^[A-Za-z0-9-]+\/[A-Za-z0-9-]+\.json$/.test(clean.slice(SPEND_DIR.length))
   return false
 }
 

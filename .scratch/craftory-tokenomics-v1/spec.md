@@ -112,6 +112,13 @@ Craftory records every answered step's tokens and its share of the session's `co
 - **Subagents that are not implementers** (a `code-review` agent, an explorer) are charged where the main session is: the running phase, or Between phases.
 - **A delta with no step to take it** is not charged. This happens with a compaction, or another mod's `$.model` call before any step. The baseline moves past it, so phase dollars are exact for the steps Craftory saw.
 - **The queue is capped at 200 steps.** On a host whose cost never moves, older steps are rolled up unpriced, and their tokens still count.
+- **Resume.** At session start, Craftory reads this session's own file, if a resume finds one, back into the ledger. That way the next flush rewrites the whole file and drops nothing. Other sessions' files are only read.
+- **`/clear`.** The process goes on under a new session id and no `session.start` fires. So `session.end` flushes under the old id, then starts the ledger over: the next step sets the baseline, and the next flush writes a file named after the new id.
+- **Flush details.**
+  - A main turn's flush runs off the turn (`$.clock.after(0)`), so a slow disk never holds `turn.complete`.
+  - A file whose text is unchanged is not written again.
+  - Steps still waiting for a price are written as unpriced rows. They are priced in memory later, and the next flush rewrites them.
+- **Reading.** Other sessions' files are read at session start and on every tracker refresh. A file that doesn't parse is skipped, and its path is kept for the Spend tab (ticket 05).
 
 ## Further Notes
 

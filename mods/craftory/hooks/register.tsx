@@ -103,7 +103,15 @@ import {
   scheduleRefresh,
   touchesTracker,
 } from './shell/sync'
-import { noteSpendReading, noteSpendStep, spendTotalOf, startSpend } from './shell/spend'
+import {
+  endSpend,
+  flushSpend,
+  noteSpendReading,
+  noteSpendStep,
+  scheduleSpendFlush,
+  spendTotalOf,
+  startSpend,
+} from './shell/spend'
 import { mapViewOf, trackerOf, wayfinderOfferOf } from './shell/tracker'
 import {
   detectPlugin,
@@ -376,7 +384,14 @@ export const register: Register = (on, options) => {
     await noteMainTurnEnd($, e.isAborted === true)
     await finishHandoff($, e.isAborted === true)
     scheduleRefresh($)
+    // Off the turn: the write waits on nothing the person is waiting for.
+    $.clock.after(0, () => void flushSpend($))
     return result
+  })
+
+  on('session.end', async ($, e, next) => {
+    await endSpend($, e.reason === 'clear')
+    return next(e)
   })
 
   on('tool.call', async ($, e, next) => {
@@ -482,6 +497,7 @@ export const register: Register = (on, options) => {
     const result = yield* answer()
     const target = await spendTarget($, agentId)
     if (await noteSpendStep($, target, result.usage, await activeKey($))) await refreshSpend($)
+    if (agentId !== undefined) scheduleSpendFlush($)
     return result
   })
 

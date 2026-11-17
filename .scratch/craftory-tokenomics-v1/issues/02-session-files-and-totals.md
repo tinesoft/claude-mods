@@ -4,11 +4,11 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `isWritable` allows `.craftory/spend/<slug>/<id>.json` only; it still refuses `..`, `.git` and other names (tests)
-- [ ] The file shape is `{ version: 1, session, user?, startedAt, rows }`; `user` comes from `git config user.email`, left out when unset
-- [ ] Flush points and the 30-second debounce; a failed write is retried at the next flush
-- [ ] `sumFiles` across sessions and people; a corrupt file is skipped and remembered for the Spend tab
-- [ ] Read on session start and on each tracker refresh; the status line shows the feature's total across sessions
-- [ ] Fake-world test: a second session's file is summed and never rewritten
+- [x] `isWritable` allows `.craftory/spend/<slug>/<id>.json` only; it still refuses `..`, `.git` and other names (tests)
+- [x] The file shape is `{ version: 1, session, user?, startedAt, rows }`; `user` comes from `git config user.email`, left out when unset
+- [x] Flush points and the 30-second debounce; a failed write is retried at the next flush
+- [x] `sumFiles` across sessions and people; a corrupt file is skipped and remembered for the Spend tab
+- [x] Read on session start and on each tracker refresh; the status line shows the feature's total across sessions
+- [x] Fake-world test: a second session's file is summed and never rewritten

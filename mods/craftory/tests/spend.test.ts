@@ -1,19 +1,27 @@
 import { expect, test } from 'claude-code/testing'
+import { isWritable } from '../src/files'
 import {
   attribute,
   cacheHit,
   EMPTY_SPEND,
   freshOf,
   observe,
+  parseSpendFile,
   QUEUE_MAX,
   reading,
+  rowsBySpec,
+  seedRows,
+  serialiseSpendFile,
+  sessionRows,
+  specOfKey,
+  spendPath,
   splitDelta,
   spendText,
   tokensText,
   totalOf,
   usdText,
 } from '../src/spend'
-import type { AgentId, FeatureKey, IssueRef, SpendStep, SpendTarget } from '../types'
+import type { AgentId, FeatureKey, IssueRef, SpendRow, SpendStep, SpendTarget } from '../types'
 
 const CSV = 'spec:csv' as FeatureKey
 const OTHER = 'spec:other' as FeatureKey
@@ -229,4 +237,105 @@ test('the short spend prefers dollars, falls back to fresh tokens, and is null w
   expect(spendText({ ...base, fresh: 412_000, usd: 4.12, isEstimated: false })).toBe('$4.12')
   expect(spendText({ ...base, fresh: 412_000, usd: null, isEstimated: false })).toBe('412k')
   expect(spendText({ ...base, fresh: 0, usd: null, isEstimated: false })).toBeNull()
+})
+
+const ctx = { steering: null, docs: { glossary: 'GLOSSARY.md' } } as never
+
+test('spend files live one folder per Feature, one file per session', () => {
+  expect(spendPath('csv' as IssueRef, 'a1b2-c3')).toBe('.craftory/spend/csv/a1b2-c3.json')
+  expect(spendPath('#42' as IssueRef, 'x.y/z')).toBe('.craftory/spend/42/x-y-z.json')
+  expect(specOfKey(CSV)).toBe('csv')
+  expect(specOfKey('draft:d1' as FeatureKey)).toBeNull()
+  expect(specOfKey(null)).toBeNull()
+})
+
+test('Craftory may write a spend file and nothing else under .craftory/spend/', () => {
+  expect(isWritable('.craftory/spend/csv/a1b2-c3.json', ctx)).toBe(true)
+  for (const path of [
+    '.craftory/spend/a1b2.json',
+    '.craftory/spend/csv/deep/a1.json',
+    '.craftory/spend/csv/../../x.json',
+    '.craftory/spend/csv/a1.md',
+    '.craftory/spend/.git/a1.json',
+    '.craftory/spend/csv/a b.json',
+  ])
+    expect(isWritable(path, ctx)).toBe(false)
+})
+
+test('a file written now keeps the tokens of steps still waiting for a price', () => {
+  let ledger = reading(EMPTY_SPEND, 0)
+  ledger = observe(ledger, step(main()), 1)
+  ledger = observe(ledger, step(main('build'), 50), 1)
+  const rows = sessionRows(ledger)
+  expect(rows.map(r => [r.phase, r.tokens.input, r.usd])).toEqual([
+    ['align', 100, 1],
+    ['build', 50, null],
+  ])
+  expect(ledger.queue).toHaveLength(1)
+})
+
+test('rows are grouped by spec; drafts and Outside features are never committed', () => {
+  let ledger = reading(EMPTY_SPEND, 0)
+  ledger = observe(ledger, step(main()), 1)
+  ledger = observe(ledger, step(main('align', 'draft:d1' as FeatureKey)), 2)
+  ledger = observe(ledger, step(main(null, null)), 3)
+  ledger = observe(ledger, step(main('spec', OTHER)), 4)
+  const bySpec = rowsBySpec(sessionRows(ledger))
+  expect([...bySpec.keys()].sort()).toEqual(['csv', 'other'])
+})
+
+const file = (rows: SpendRow[]) => ({
+  version: 1 as const,
+  session: 's1',
+  user: 'dev@example.com',
+  startedAt: '2026-11-17T10:00:00.000Z',
+  rows,
+})
+
+test('a session file round-trips, its rows in a fixed order', () => {
+  let ledger = reading(EMPTY_SPEND, 0)
+  ledger = observe(ledger, step(main('spec')), 0.5)
+  ledger = observe(ledger, step({ ...main('build'), ticket: T1, agentId: A1 }), 1.5)
+  const rows = sessionRows(ledger)
+  const text = serialiseSpendFile(file(rows))
+  expect(serialiseSpendFile(file([...rows].reverse()))).toBe(text)
+  const parsed = parseSpendFile(text)
+  expect(parsed.state).toBe('ok')
+  if (parsed.state !== 'ok') return
+  expect(parsed.value.user).toBe('dev@example.com')
+  expect(parsed.value.rows).toHaveLength(2)
+  near(totalOf(EMPTY_SPEND, CSV, parsed.value.rows).usd!, 1.5)
+})
+
+test('a file that is not JSON or not version 1 is invalid; a bad row is dropped and named', () => {
+  expect(parseSpendFile('{').state).toBe('invalid')
+  expect(parseSpendFile('{"version":2,"session":"s"}').state).toBe('invalid')
+  expect(parseSpendFile('[]').state).toBe('invalid')
+  const good = JSON.parse(
+    serialiseSpendFile(file(sessionRows(observe(reading(EMPTY_SPEND, 0), step(main()), 1)))),
+  )
+  const raw = JSON.stringify({
+    ...good,
+    rows: [...good.rows, { model: 'x' }, { ...good.rows[0], usd: -1 }],
+  })
+  const parsed = parseSpendFile(raw)
+  expect(parsed.state === 'ok' && parsed.value.rows.length).toBe(1)
+  expect(parsed.state === 'ok' && parsed.problem).toBe('2 rows dropped')
+})
+
+test("a Feature total adds other sessions' rows to this session's", () => {
+  const ledger = observe(reading(EMPTY_SPEND, 0), step(main()), 1)
+  const theirs = sessionRows(observe(reading(EMPTY_SPEND, 0), step(main('spec'), 300), 2))
+  const total = totalOf(ledger, CSV, theirs)
+  near(total.usd!, 3)
+  expect(total.fresh).toBe(400)
+})
+
+test('seeding takes back rows a resumed session wrote, adding to any already held', () => {
+  const before = sessionRows(observe(reading(EMPTY_SPEND, 0), step(main()), 1))
+  const ledger = seedRows(observe(reading(EMPTY_SPEND, 5), step(main()), 5.5), before)
+  const [row] = Object.values(ledger.rows)
+  near(row!.usd!, 1.5)
+  expect(row!.steps).toBe(2)
+  expect(row!.tokens.input).toBe(200)
 })

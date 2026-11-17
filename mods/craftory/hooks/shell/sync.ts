@@ -9,6 +9,7 @@ import type { GitSnapshot, RepoSnapshot } from '../../types'
 import { noteMergedPr, nudgeUnmetDone } from './automations'
 import { activeKey, draftsOf, featureOfTicket, featuresOf, reloadFeatures } from './features'
 import { bindDrafts, settle } from './flow'
+import { reloadSpendFiles } from './spend'
 import { cleanupInputs, gitOf, loadGit } from './git'
 import { ledgerOf, stopForConflict } from './ledger'
 import { addNotice } from './notices'
@@ -59,6 +60,7 @@ export async function refreshTracker($: EngineInterface) {
   await bindDrafts($)
   await cleanupMerged($)
   await noteMergedPr($)
+  await reloadSpendFiles($)
   await settle($)
 }
 
