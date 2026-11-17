@@ -126,6 +126,10 @@ Craftory records every answered step's tokens and its share of the session's `co
   - the store entry is deleted.
 - **A discarded draft.** Drafts are only removed by binding, so a draft left unbound simply keeps its spend in the store.
 - **Start order.** `startSpend` now runs after `loadFeatures`, since it finds a draft's spend by the draft's id.
+- **Card spend.**
+  - A phase's dollars on its card carry no `≈`: the phase sum is the exact sum of the cost deltas.
+  - An agent's `≈$` is per ticket, so it covers every run of that ticket in every session, the same way the agent list's tokens do.
+  - "$ unavailable on this surface" appears only when this session's host has no cost ledger. A row another session left unpriced just shows tokens.
 
 ## Further Notes
 

@@ -26,6 +26,7 @@ import {
   type WorktreesView,
   worktreesView,
 } from '../../src/git'
+import { agentSpendText } from '../../src/spend'
 import type { GitSnapshot, SeatPlan } from '../../types'
 import { featuresOf } from './features'
 import { cleanupInputs, gitOf } from './git'
@@ -33,6 +34,7 @@ import { ledgerOf } from './ledger'
 import { refreshGit } from './sync'
 import { copyWithToast } from './ui'
 import { exists, repoFacts, repoRoot, sh } from './repo'
+import { spendBreakdownOf } from './spend'
 
 const REMOVE_ANYWAY = 'Remove anyway'
 
@@ -242,5 +244,7 @@ export async function agentsViewOf(
     integrationBranch: record?.integrationBranch ?? '',
     now: await $.clock.now(),
   })
-  return agentsView({ rows, config, isPaused: ledger.isPaused, note })
+  const spend = await spendBreakdownOf($, flow.feature.key)
+  const priced = rows.map(r => ({ ...r, spend: agentSpendText(spend.tickets[r.ref]) }))
+  return agentsView({ rows: priced, config, isPaused: ledger.isPaused, note })
 }

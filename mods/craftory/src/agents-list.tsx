@@ -115,7 +115,7 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
           <Box flexGrow={1} />
           {row.tokens > 0 && <TokenBar ui={ui} tone={tone} ascii={ascii} row={row} />}
           <Text mono={rich} {...inkOf(tone, 'text2')}>
-            {`${kTokens(row.tokens)} · ${elapsedText(row.elapsedMs)}`}
+            {`${kTokens(row.tokens)}${row.spend ? ` · ${row.spend}` : ''} · ${elapsedText(row.elapsedMs)}`}
           </Text>
         </Box>
       )}

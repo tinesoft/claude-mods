@@ -103,6 +103,8 @@ export type BandArgs = {
   isPickingFeature: boolean
   /** The active Feature's short spend (`$4.12`, `412k`), drawn in the summary; null with none. */
   spend?: string | null
+  /** Each phase's Spend row for its card; a phase that spent nothing is left out. */
+  phaseSpend?: Partial<Record<PhaseId, string>>
   on: BandActions
 }
 
@@ -641,6 +643,7 @@ export function renderBand(args: BandArgs) {
           flow,
           config,
           args.agents,
+          args.phaseSpend?.[phase] ?? null,
         )
   const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
   const mapCard = args.isMapOpen && args.map !== null && open === null

@@ -19,6 +19,7 @@ import type {
   Running,
   SpendFile,
   SpendLedger,
+  SpendPhase,
   SpendRow,
   SpendStep,
   SpendTarget,
@@ -441,3 +442,65 @@ export const rekeyRows = (
   from: FeatureKey,
   to: FeatureKey,
 ): SpendRow[] => rows.map(r => (r.feature === from ? { ...r, feature: to } : r))
+
+export type SpendBreakdown = {
+  total: SpendTotal
+  phases: Partial<Record<SpendPhase, SpendTotal>>
+  tickets: Record<string, SpendTotal>
+}
+
+function groupTotals<K extends string>(
+  rows: readonly SpendRow[],
+  queued: readonly SpendStep[],
+  keyOf: (t: SpendTarget) => K | null,
+): Partial<Record<K, SpendTotal>> {
+  const keys = new Set([...rows, ...queued].flatMap(t => keyOf(t) ?? []))
+  return Object.fromEntries(
+    [...keys].map(k => [
+      k,
+      totalOfRows(
+        rows.filter(r => keyOf(r) === k),
+        queued.filter(q => keyOf(q) === k),
+      ),
+    ]),
+  ) as Partial<Record<K, SpendTotal>>
+}
+
+/** A Feature's spend, in all and by phase and by ticket, this session's and `disk`'s together. */
+export function breakdownOf(
+  ledger: SpendLedger,
+  feature: FeatureKey | null,
+  disk: readonly SpendRow[] = [],
+): SpendBreakdown {
+  const rows = [...Object.values(ledger.rows).filter(r => r.feature === feature), ...disk]
+  const queued = ledger.queue.filter(s => s.feature === feature)
+  return {
+    total: totalOfRows(rows, queued),
+    phases: groupTotals<SpendPhase>(rows, queued, t => t.phase),
+    tickets: groupTotals<string>(rows, queued, t => t.ticket) as Record<string, SpendTotal>,
+  }
+}
+
+/** Said where the host keeps no cost ledger, so no one reads the missing dollars as $0. */
+export const NO_COST_TEXT = '$ unavailable on this surface'
+
+/**
+ * A phase card's Spend row: `$2.14 · 318k fresh · 61% cache`. Without a cost ledger the dollars
+ * give way to a note saying so. Null when the phase has spent nothing.
+ */
+export function phaseSpendText(total: SpendTotal, hasCost: boolean): string | null {
+  if (total.fresh === 0 && total.cacheRead === 0) return null
+  const hit = cacheHit(total.tokens)
+  return [
+    ...(total.usd !== null ? [usdText(total.usd)] : []),
+    `${tokensText(total.fresh)} fresh`,
+    ...(hit === null ? [] : [`${Math.round(hit * 100)}% cache`]),
+    ...(hasCost ? [] : [NO_COST_TEXT]),
+  ].join(' · ')
+}
+
+/** An agent's dollars beside its token bar, `≈` when they were shared with others; else null. */
+export const agentSpendText = (total: SpendTotal | undefined): string | null =>
+  total === undefined || total.usd === null
+    ? null
+    : `${total.isEstimated ? '≈' : ''}${usdText(total.usd)}`

@@ -4,9 +4,9 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `card-model` gets an optional `spend` row; the formatting helpers are shared with the status line
-- [ ] Agent row `≈$`, with `≈` only when the delta was split
-- [ ] Tokens only, plus "$ unavailable on this surface", when `cost` is absent
-- [ ] Band and card tests on the terminal and Desktop surfaces; the VS Code layout is checked against `docs/agents/vscode-surface.md`
+- [x] `card-model` gets an optional `spend` row; the formatting helpers are shared with the status line
+- [x] Agent row `≈$`, with `≈` only when the delta was split
+- [x] Tokens only, plus "$ unavailable on this surface", when `cost` is absent
+- [x] Band and card tests on the terminal and Desktop surfaces; the VS Code layout is checked against `docs/agents/vscode-surface.md`

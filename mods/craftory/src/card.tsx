@@ -173,6 +173,13 @@ export const DetailCard = ({
             <Link key="handoff-link" href={card.handoff} label={card.handoff} />
           </CardRow>
         )}
+        {card.spend !== null && (
+          <CardRow ui={ui} tone={tone} label="Spend">
+            <Text key="spend-text" mono={rich} {...inkOf(tone, 'text2')}>
+              {card.spend}
+            </Text>
+          </CardRow>
+        )}
       </Box>
       {card.artifact !== null && (
         <Box key="artifact" flexDirection="column" paddingX={SPACE.chipPadX} {...withTint(t?.tile)}>

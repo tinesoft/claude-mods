@@ -492,6 +492,8 @@ export type SpendDisk = {
   drafts: Record<string, SpendRow[]>
   /** Other sessions' Outside features rows from the last 30 days, from `$.store`. */
   outside: SpendRow[]
+  /** The host keeps a cost ledger: false where `cost` is absent, so dollars cannot be had. */
+  hasCost: boolean
   /** Spend files that could not be read, by path. */
   skipped: string[]
   /** What this session last wrote, by path, so an unchanged file is not written again. */

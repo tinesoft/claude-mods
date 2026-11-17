@@ -2,11 +2,13 @@ import { atom, type EngineInterface, read, type Timer, update } from 'claude-cod
 import { isoOf } from '../../src/build'
 import { SPEND_DIR } from '../../src/files'
 import {
+  breakdownOf,
   draftOfKey,
   EMPTY_SPEND,
   observe,
   otherRowsOf,
   OUTSIDE_DAYS,
+  phaseSpendText,
   ownRowsOf,
   parseLocalSpend,
   rekeyLedger,
@@ -25,13 +27,15 @@ import {
   sessionSlug,
   specOfKey,
   spendPath,
+  type SpendBreakdown,
   spendSlug,
   spendText,
   type SpendTotal,
   tokensOf,
   totalOf,
 } from '../../src/spend'
-import type { FeatureKey, LocalSpend, SpendDisk, SpendRow, SpendTarget } from '../../types'
+import { PHASE_ORDER } from '../../src/phases'
+import type { FeatureKey, LocalSpend, PhaseId, SpendDisk, SpendRow, SpendTarget } from '../../types'
 import { draftsOf } from './features'
 import { listDir, readText, sh, writableContext, writeRepoFile } from './repo'
 
@@ -44,6 +48,7 @@ const EMPTY_DISK: SpendDisk = {
   others: {},
   drafts: {},
   outside: [],
+  hasCost: false,
   skipped: [],
   written: {},
 }
@@ -148,6 +153,7 @@ export async function startSpend($: EngineInterface) {
     others: files.others,
     drafts: local.drafts,
     outside: local.outside,
+    hasCost: usd !== undefined,
     skipped: files.skipped,
   }))
 }
@@ -280,6 +286,8 @@ export async function noteSpendStep(
 ): Promise<boolean> {
   if (usage === null) return false
   const usd = await costOf($)
+  if (usd !== undefined)
+    await update($, diskState, disk => (disk.hasCost ? disk : { ...disk, hasCost: true }))
   const before = await spendTotalOf($, active)
   await update($, spendState, ledger =>
     observe(ledger, { ...target, model: usage.model, tokens: tokensOf(usage) }, usd),
@@ -305,6 +313,30 @@ export async function spendTotalOf(
 ): Promise<SpendTotal> {
   const [ledger, disk] = await Promise.all([read($, spendState), read($, diskState)])
   return totalOf(ledger, feature, diskRowsOf(disk, feature))
+}
+
+/** A Feature's spend by phase and by ticket, and whether dollars can be had here at all. */
+export async function spendBreakdownOf(
+  $: EngineInterface,
+  feature: FeatureKey | null,
+): Promise<SpendBreakdown & { hasCost: boolean }> {
+  const [ledger, disk] = await Promise.all([read($, spendState), read($, diskState)])
+  return { ...breakdownOf(ledger, feature, diskRowsOf(disk, feature)), hasCost: disk.hasCost }
+}
+
+/** Each phase's Spend row for its card, by phase; a phase that spent nothing is left out. */
+export async function phaseSpendOf(
+  $: EngineInterface,
+  feature: FeatureKey | null,
+): Promise<Partial<Record<PhaseId, string>>> {
+  const { phases, hasCost } = await spendBreakdownOf($, feature)
+  return Object.fromEntries(
+    PHASE_ORDER.flatMap(p => {
+      const total = phases[p]
+      const text = total === undefined ? null : phaseSpendText(total, hasCost)
+      return text === null ? [] : [[p, text]]
+    }),
+  )
 }
 
 /** Other sessions' rows of a Feature key: committed files, a draft's or Outside features' store. */

@@ -1,7 +1,9 @@
 import { expect, test } from 'claude-code/testing'
 import { isWritable } from '../src/files'
 import {
+  agentSpendText,
   attribute,
+  breakdownOf,
   cacheHit,
   draftOfKey,
   EMPTY_LOCAL,
@@ -13,6 +15,7 @@ import {
   ownRowsOf,
   parseLocalSpend,
   parseSpendFile,
+  phaseSpendText,
   QUEUE_MAX,
   reading,
   rekeyLedger,
@@ -27,6 +30,7 @@ import {
   spendText,
   tokensText,
   totalOf,
+  totalOfRows,
   usdText,
   withinDays,
   withSession,
@@ -403,4 +407,46 @@ test('a draft’s spend is charged to its spec once it binds, rows and waiting s
   expect(draftOfKey(DRAFT)).toBe('d1')
   expect(draftOfKey(CSV)).toBeNull()
   expect(rekeyRows(sessionRows(ledger), DRAFT, CSV).every(r => r.feature === CSV)).toBe(true)
+})
+
+test('a breakdown totals a Feature by phase and by ticket, other sessions’ rows included', () => {
+  let ledger = reading(EMPTY_SPEND, 0)
+  ledger = observe(ledger, step({ ...main('build'), ticket: T1, agentId: A1 }, 300), 0)
+  ledger = observe(ledger, step({ ...main('build'), agentId: A2, ticket: 'csv/02' as IssueRef }), 2)
+  ledger = observe(ledger, step(main('align')), 2.5)
+  const theirs = sessionRows(observe(reading(EMPTY_SPEND, 0), step(main('align')), 1))
+  const b = breakdownOf(ledger, CSV, theirs)
+  near(b.total.usd!, 3.5)
+  near(b.phases.build!.usd!, 2)
+  near(b.phases.align!.usd!, 1.5)
+  near(b.tickets[T1]!.usd!, 1.5)
+  expect(b.tickets[T1]!.isEstimated).toBe(true)
+  expect(b.phases.review).toBeUndefined()
+})
+
+test('the card’s Spend row reads dollars, fresh tokens and the cache share', () => {
+  const total = totalOfRows(
+    sessionRows(
+      observe(
+        reading(EMPTY_SPEND, 0),
+        step(main(), 0, { tokens: { input: 100, output: 200, cacheRead: 1_000, cacheWrite: 0 } }),
+        2.14,
+      ),
+    ),
+  )
+  expect(phaseSpendText(total, true)).toBe('$2.14 · 300 fresh · 91% cache')
+  const unpriced = totalOfRows(sessionRows(observe(EMPTY_SPEND, step(main(), 412_000), undefined)))
+  expect(phaseSpendText(unpriced, false)).toBe(
+    '412k fresh · 0% cache · $ unavailable on this surface',
+  )
+  expect(phaseSpendText(unpriced, true)).toBe('412k fresh · 0% cache')
+  expect(phaseSpendText(totalOfRows([]), true)).toBeNull()
+})
+
+test('an agent’s dollars are marked ≈ only when they were shared', () => {
+  const alone = totalOf(observe(reading(EMPTY_SPEND, 0), step(main()), 0.42), CSV)
+  expect(agentSpendText(alone)).toBe('$0.42')
+  expect(agentSpendText({ ...alone, isEstimated: true })).toBe('≈$0.42')
+  expect(agentSpendText({ ...alone, usd: null })).toBeNull()
+  expect(agentSpendText(undefined)).toBeNull()
 })
