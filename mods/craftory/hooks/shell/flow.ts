@@ -42,7 +42,7 @@ import {
   removeNotices,
 } from './notices'
 import { glossaryTerms, pluginOf, repoFacts, sh } from './repo'
-import { spendTotalOf } from './spend'
+import { moveDraftSpend, spendTotalOf } from './spend'
 import { trackerOf } from './tracker'
 
 const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
@@ -333,8 +333,10 @@ export async function bindDrafts($: EngineInterface) {
   if (!tracker?.rich) return
   const { config } = await repoFacts($)
   const moved = await promoteDrafts($, tracker, title => integrationBranchFor(config, title))
-  for (const { from, to } of moved)
+  for (const { from, to } of moved) {
     await update($, runningState, run => (run?.feature === from ? { ...run, feature: to } : run))
+    await moveDraftSpend($, from, to)
+  }
 }
 
 export async function skillStarted($: EngineInterface, skill: string) {

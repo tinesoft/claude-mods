@@ -471,6 +471,16 @@ export type SpendFile = {
   rows: SpendRow[]
 }
 
+/**
+ * Spend kept on this machine only, in `$.store`: a draft's (under `spend:draft:<draftId>`, until
+ * its spec binds) and Outside features' (under `spend:outside`). One entry per session, like the
+ * committed files, so a resumed session takes back its own and never counts it twice.
+ */
+export type LocalSpend = {
+  version: 1
+  sessions: Record<string, { lastAt: IsoTime; rows: SpendRow[] }>
+}
+
 /** Spend on disk: this session's file names, and every other session's rows by Feature slug. */
 export type SpendDisk = {
   /** This session's id, as its files are named; null before session start. */
@@ -478,6 +488,10 @@ export type SpendDisk = {
   user: string | null
   startedAt: IsoTime | null
   others: Record<string, SpendRow[]>
+  /** Other sessions' rows of each draft, by draft id, from `$.store`. */
+  drafts: Record<string, SpendRow[]>
+  /** Other sessions' Outside features rows from the last 30 days, from `$.store`. */
+  outside: SpendRow[]
   /** Spend files that could not be read, by path. */
   skipped: string[]
   /** What this session last wrote, by path, so an unchanged file is not written again. */

@@ -333,13 +333,9 @@ export const register: Register = (on, options) => {
     if (!(await isSupported($))) {
       $.ui.toast(unsupportedText)
     }
-    await Promise.all([
-      loadRepo($),
-      loadFeatures($),
-      detectPlugin($),
-      rearmAutomations($),
-      startSpend($),
-    ])
+    await Promise.all([loadRepo($), loadFeatures($), detectPlugin($), rearmAutomations($)])
+    // After the features load: a draft's spend is found by its id.
+    await startSpend($)
     await stopStaleAgents($)
     await rememberGlossaryAtStart($)
     await offerArchitecture($)

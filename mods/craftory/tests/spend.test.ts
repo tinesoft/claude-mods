@@ -3,12 +3,20 @@ import { isWritable } from '../src/files'
 import {
   attribute,
   cacheHit,
+  draftOfKey,
+  EMPTY_LOCAL,
   EMPTY_SPEND,
   freshOf,
   observe,
+  otherRowsOf,
+  OUTSIDE_DAYS,
+  ownRowsOf,
+  parseLocalSpend,
   parseSpendFile,
   QUEUE_MAX,
   reading,
+  rekeyLedger,
+  rekeyRows,
   rowsBySpec,
   seedRows,
   serialiseSpendFile,
@@ -20,6 +28,8 @@ import {
   tokensText,
   totalOf,
   usdText,
+  withinDays,
+  withSession,
 } from '../src/spend'
 import type { AgentId, FeatureKey, IssueRef, SpendRow, SpendStep, SpendTarget } from '../types'
 
@@ -338,4 +348,59 @@ test('seeding takes back rows a resumed session wrote, adding to any already hel
   near(row!.usd!, 1.5)
   expect(row!.steps).toBe(2)
   expect(row!.tokens.input).toBe(200)
+})
+
+const at = (iso: string) => iso
+
+test('stored spend keeps one entry per session; an empty one is removed', () => {
+  const rows = sessionRows(observe(reading(EMPTY_SPEND, 0), step(main()), 1))
+  let local = withSession(EMPTY_LOCAL, 's1', rows, at('2026-11-17T10:00:00.000Z'))
+  local = withSession(local, 's0', rows, at('2026-11-10T10:00:00.000Z'))
+  expect(Object.keys(local.sessions).sort()).toEqual(['s0', 's1'])
+  expect(ownRowsOf(local, 's1')).toHaveLength(1)
+  expect(otherRowsOf(local, 's1')).toHaveLength(1)
+  expect(Object.keys(withSession(local, 's1', [], at('x')).sessions)).toEqual(['s0'])
+})
+
+test('stored spend reads leniently: anything unreadable is empty, a bad row is dropped', () => {
+  expect(parseLocalSpend(undefined)).toEqual(EMPTY_LOCAL)
+  expect(parseLocalSpend({ version: 2, sessions: {} })).toEqual(EMPTY_LOCAL)
+  const good = sessionRows(observe(reading(EMPTY_SPEND, 0), step(main()), 1))[0]!
+  const parsed = parseLocalSpend({
+    version: 1,
+    sessions: {
+      s1: { lastAt: '2026-11-17T10:00:00.000Z', rows: [good, { model: 'x' }] },
+      s2: { rows: [good] },
+    },
+  })
+  expect(Object.keys(parsed.sessions)).toEqual(['s1'])
+  expect(parsed.sessions.s1!.rows).toHaveLength(1)
+})
+
+test('Outside features keeps the sessions of the last 30 days', () => {
+  const rows = sessionRows(observe(reading(EMPTY_SPEND, 0), step(main(null, null)), 1))
+  const now = Date.parse('2026-11-17T12:00:00.000Z')
+  let local = withSession(EMPTY_LOCAL, 'old', rows, at('2026-10-17T11:59:59.000Z'))
+  local = withSession(local, 'edge', rows, at('2026-10-18T12:00:00.000Z'))
+  local = withSession(local, 'new', rows, at('2026-11-17T11:00:00.000Z'))
+  expect(Object.keys(withinDays(local, now, OUTSIDE_DAYS).sessions).sort()).toEqual(['edge', 'new'])
+})
+
+test('a draft’s spend is charged to its spec once it binds, rows and waiting steps alike', () => {
+  const DRAFT = 'draft:d1' as FeatureKey
+  let ledger = reading(EMPTY_SPEND, 0)
+  ledger = observe(ledger, step(main('align', DRAFT)), 1)
+  ledger = observe(ledger, step(main('align', CSV)), 1.5)
+  ledger = observe(ledger, step(main('spec', DRAFT)), 1.5)
+  const moved = rekeyLedger(ledger, DRAFT, CSV)
+  expect(totalOf(moved, DRAFT).fresh).toBe(0)
+  const total = totalOf(moved, CSV)
+  near(total.usd!, 1.5)
+  expect(total.fresh).toBe(300)
+  const align = Object.values(moved.rows).find(r => r.phase === 'align')!
+  expect(align.steps).toBe(2)
+  expect(moved.queue.every(q => q.feature === CSV)).toBe(true)
+  expect(draftOfKey(DRAFT)).toBe('d1')
+  expect(draftOfKey(CSV)).toBeNull()
+  expect(rekeyRows(sessionRows(ledger), DRAFT, CSV).every(r => r.feature === CSV)).toBe(true)
 })

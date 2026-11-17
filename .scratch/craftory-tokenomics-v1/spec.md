@@ -119,6 +119,13 @@ Craftory records every answered step's tokens and its share of the session's `co
   - A file whose text is unchanged is not written again.
   - Steps still waiting for a price are written as unpriced rows. They are priced in memory later, and the next flush rewrites them.
 - **Reading.** Other sessions' files are read at session start and on every tracker refresh. A file that doesn't parse is skipped, and its path is kept for the Spend tab (ticket 05).
+- **Local spend keeps one entry per session.** `spend:draft:<draftId>` and `spend:outside` each hold `{ version: 1, sessions: { <id>: { lastAt, rows } } }`, the same layout as the committed files. A resumed session takes back its own entry, and the others are only read. Outside features drops sessions whose last step is more than 30 days old, both when it is read and when it is written.
+- **Binding moves every session's draft spend into this session's file.** The next flush commits it all once, in the file of the session that saw the bind. When a draft's spec binds:
+  - this session's rows and waiting steps are charged to the spec;
+  - every other session's stored rows of that draft join them;
+  - the store entry is deleted.
+- **A discarded draft.** Drafts are only removed by binding, so a draft left unbound simply keeps its spend in the store.
+- **Start order.** `startSpend` now runs after `loadFeatures`, since it finds a draft's spend by the draft's id.
 
 ## Further Notes
 

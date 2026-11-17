@@ -12,7 +12,9 @@ import type {
   FeatureKey,
   IsoTime,
   IssueRef,
+  LocalSpend,
   Loaded,
+  Millis,
   PhaseId,
   Running,
   SpendFile,
@@ -358,3 +360,84 @@ export function spendText(total: SpendTotal): string | null {
   if (total.usd !== null) return usdText(total.usd)
   return total.fresh > 0 ? tokensText(total.fresh) : null
 }
+
+/** Outside features is kept for this many days, counted from each session's last step. */
+export const OUTSIDE_DAYS = 30
+
+export const STORE_SPEND_OUTSIDE = 'spend:outside'
+export const storeDraftKey = (draftId: string) => `spend:draft:${draftId}`
+
+/** The draft id a Feature key names; null for a spec or no Feature. */
+export const draftOfKey = (key: FeatureKey | null): string | null =>
+  key !== null && key.startsWith('draft:') ? key.slice('draft:'.length) : null
+
+export const EMPTY_LOCAL: LocalSpend = { version: 1, sessions: {} }
+
+/** Reads a stored entry leniently: anything unreadable is an empty one, a bad row is dropped. */
+export function parseLocalSpend(stored: unknown): LocalSpend {
+  if (!isRecord(stored) || stored.version !== 1 || !isRecord(stored.sessions)) return EMPTY_LOCAL
+  const sessions: LocalSpend['sessions'] = {}
+  for (const [session, entry] of Object.entries(stored.sessions)) {
+    if (!isRecord(entry) || typeof entry.lastAt !== 'string' || !Array.isArray(entry.rows)) continue
+    sessions[session] = {
+      lastAt: entry.lastAt,
+      rows: entry.rows.flatMap(r => parseRow(r) ?? []),
+    }
+  }
+  return { version: 1, sessions }
+}
+
+/** This session's entry set to `rows` at `at`; removed when it has none. */
+export function withSession(
+  local: LocalSpend,
+  session: string,
+  rows: readonly SpendRow[],
+  at: IsoTime,
+): LocalSpend {
+  const rest = Object.fromEntries(Object.entries(local.sessions).filter(([id]) => id !== session))
+  return {
+    version: 1,
+    sessions: rows.length === 0 ? rest : { ...rest, [session]: { lastAt: at, rows: [...rows] } },
+  }
+}
+
+/** Drops the sessions whose last step is more than `days` before `now`. */
+export function withinDays(local: LocalSpend, now: Millis, days: number): LocalSpend {
+  const since = now - days * 24 * 60 * 60 * 1000
+  return {
+    version: 1,
+    sessions: Object.fromEntries(
+      Object.entries(local.sessions).filter(([, e]) => Date.parse(e.lastAt) >= since),
+    ),
+  }
+}
+
+export const ownRowsOf = (local: LocalSpend, session: string): SpendRow[] =>
+  local.sessions[session]?.rows ?? []
+
+export const otherRowsOf = (local: LocalSpend, session: string): SpendRow[] =>
+  Object.entries(local.sessions).flatMap(([id, e]) => (id === session ? [] : e.rows))
+
+/** This session's rows of one Feature key: a draft's, or Outside features' with `null`. */
+export const rowsOfKey = (rows: readonly SpendRow[], key: FeatureKey | null): SpendRow[] =>
+  rows.filter(r => r.feature === key)
+
+/**
+ * Charges everything held under `from` to `to` instead: how a draft's spend follows it once its
+ * spec binds. Rows that meet under the new key are added together.
+ */
+export function rekeyLedger(ledger: SpendLedger, from: FeatureKey, to: FeatureKey): SpendLedger {
+  const moved = Object.values(ledger.rows).map(r =>
+    r.feature === from ? { ...r, feature: to } : r,
+  )
+  return {
+    ...seedRows({ ...ledger, rows: {} }, moved),
+    queue: ledger.queue.map(q => (q.feature === from ? { ...q, feature: to } : q)),
+  }
+}
+
+export const rekeyRows = (
+  rows: readonly SpendRow[],
+  from: FeatureKey,
+  to: FeatureKey,
+): SpendRow[] => rows.map(r => (r.feature === from ? { ...r, feature: to } : r))
