@@ -6,7 +6,7 @@
 
 **Status:** resolved
 
-- [x] Spike first: confirm whether `cost.usd` moves with each `turn.step` answer, subagent steps included, or only at `session.measure`, and note the answer in the spec. Settled from the types, with a design that works either way (see the spec's Decisions made while building). The live check is left for a human (see Comments)
+- [x] Spike first: confirm whether `cost.usd` moves with each `turn.step` answer, subagent steps included, or only at `session.measure`, and note the answer in the spec. Settled from the types and confirmed live: `cost.usd` has already moved when each `turn.step` answers, subagents included. The design works either way (see the spec's Decisions made while building and Comments)
 - [x] `src/spend.ts`: `SpendEntry`, `attribute`, `splitDelta`, `rollup`, with table tests
 - [x] `turn.step` wiring on the main and agent branches; the budget stop path is not charged
 - [x] Between phases and Outside features attribution
@@ -17,3 +17,4 @@
 ## Comments
 
 - 2026-11-17: no authenticated Claude Code session was available, so the cost-timing spike was not run live. To check by hand: in a real session with this branch loaded, run a Build with 2 or more agents and compare the status line total with `/cost`. The two should match to the cent, less any spend from before the first step.
+- 2026-11-17: the cost-timing spike was run live (Claude Code 2.1.326, haiku, headless, a throwaway probe mod, 2 parallel subagents). `cost.usd` had already moved at every `turn.step` answer, subagent steps included, and the last reading matched the session's `total_cost_usd` exactly; `session.measure` only repeated it. This did not exercise the Craftory status line or per-ticket attribution under a real Build, so the manual check above still stands.
