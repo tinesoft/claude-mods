@@ -25,6 +25,8 @@ export const TABS: readonly { id: PaneTab; hotkey: string; title: string }[] = [
   { id: 'worktrees', hotkey: '3', title: 'Worktrees' },
   { id: 'glossary', hotkey: '4', title: 'Glossary' },
   { id: 'settings', hotkey: '5', title: 'Settings' },
+  // Last, so the hotkeys of the first five keep their meaning.
+  { id: 'spend', hotkey: '6', title: 'Spend' },
 ]
 
 export type TabCounts = Partial<Record<PaneTab, string>>
@@ -34,13 +36,16 @@ export function tabCounts(args: {
   tickets: TicketsView
   worktrees: number | null
   terms: number | null
+  /** The active Feature's short spend (`$4.12`); null with none. */
+  spend?: string | null
 }): TabCounts {
-  const { flow, tickets, worktrees, terms } = args
+  const { flow, tickets, worktrees, terms, spend } = args
   return {
     ...(flow !== null && { flow: `${flow.doneCount}/${flow.enabledCount}` }),
     ...(tickets.count > 0 && { tickets: String(tickets.count) }),
     ...(worktrees !== null && { worktrees: String(worktrees) }),
     ...(terms !== null && { glossary: String(terms) }),
+    ...(spend && { spend }),
   }
 }
 

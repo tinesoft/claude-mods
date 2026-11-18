@@ -34,9 +34,28 @@ import {
   tokensOf,
   totalOf,
 } from '../../src/spend'
+import type { Flow } from '../../src/evidence'
+import { draftKey, isArchived, specKey } from '../../src/features'
 import { PHASE_ORDER } from '../../src/phases'
-import type { FeatureKey, LocalSpend, PhaseId, SpendDisk, SpendRow, SpendTarget } from '../../types'
-import { draftsOf } from './features'
+import {
+  parseSpendGroup,
+  type PersonRow,
+  type SpendFeatureInput,
+  type SpendGroup,
+  spendTabView,
+  type SpendTabView,
+  STORE_SPEND_GROUP,
+} from '../../src/spend-view'
+import type {
+  FeatureKey,
+  LocalSpend,
+  PhaseId,
+  SessionSpend,
+  SpendDisk,
+  SpendRow,
+  SpendTarget,
+} from '../../types'
+import { draftsOf, featuresOf } from './features'
 import { listDir, readText, sh, writableContext, writeRepoFile } from './repo'
 
 const spendState = atom({ plugin: 'craftory', key: 'spend' } as const, EMPTY_SPEND)
@@ -74,7 +93,11 @@ async function userOf($: EngineInterface): Promise<string | null> {
   return email === '' ? null : email
 }
 
-type SessionFiles = { others: Record<string, SpendRow[]>; own: SpendRow[]; skipped: string[] }
+type SessionFiles = {
+  others: Record<string, SessionSpend[]>
+  own: SpendRow[]
+  skipped: string[]
+}
 
 /**
  * Every committed spend file: other sessions' rows by Feature slug, this session's own rows (a
@@ -96,7 +119,15 @@ async function readSessionFiles($: EngineInterface, session: string): Promise<Se
         continue
       }
       if (entry.name === `${sessionSlug(session)}.json`) out.own.push(...parsed.value.rows)
-      else out.others[folder.name] = [...(out.others[folder.name] ?? []), ...parsed.value.rows]
+      else
+        out.others[folder.name] = [
+          ...(out.others[folder.name] ?? []),
+          {
+            session: parsed.value.session,
+            user: parsed.value.user ?? null,
+            rows: parsed.value.rows,
+          },
+        ]
     }
   }
   return out
@@ -343,9 +374,60 @@ export async function phaseSpendOf(
 function diskRowsOf(disk: SpendDisk, feature: FeatureKey | null): SpendRow[] {
   if (feature === null) return disk.outside
   const spec = specOfKey(feature)
-  if (spec !== null) return disk.others[spendSlug(spec)] ?? []
+  if (spec !== null) return (disk.others[spendSlug(spec)] ?? []).flatMap(s => s.rows)
   const draft = draftOfKey(feature)
   return draft === null ? [] : (disk.drafts[draft] ?? [])
+}
+
+/** The personal choice of how the Spend tab breaks the active Feature down. */
+export async function spendGroupOf($: EngineInterface): Promise<SpendGroup> {
+  return parseSpendGroup(await $.store.get(STORE_SPEND_GROUP).catch(() => undefined))
+}
+
+export async function setSpendGroup($: EngineInterface, group: SpendGroup) {
+  await $.store.set(STORE_SPEND_GROUP, group)
+  $.ui.invalidate('ui.render')
+}
+
+/** Everything the Spend tab shows, gathered from this session, the committed files and the store. */
+export async function spendTabOf($: EngineInterface, flow: Flow | null): Promise<SpendTabView> {
+  const [ledger, disk, records, drafts, group] = await Promise.all([
+    read($, spendState),
+    read($, diskState),
+    featuresOf($),
+    draftsOf($),
+    spendGroupOf($),
+  ])
+  const mine: PersonRow[] = sessionRows(ledger).map(r => ({ ...r, user: disk.user }))
+  const tag = (rows: readonly SpendRow[], user: string | null): PersonRow[] =>
+    rows.map(r => ({ ...r, user }))
+  const diskRows = (key: FeatureKey): PersonRow[] => {
+    const spec = specOfKey(key)
+    if (spec !== null) return (disk.others[spendSlug(spec)] ?? []).flatMap(s => tag(s.rows, s.user))
+    const draft = draftOfKey(key)
+    return draft === null ? [] : tag(disk.drafts[draft] ?? [], disk.user)
+  }
+  const features: SpendFeatureInput[] = [
+    ...Object.values(records).map(r => ({
+      key: specKey(r.spec),
+      title: r.title || r.spec,
+      isArchived: isArchived(r),
+    })),
+    ...Object.values(drafts).map(d => ({
+      key: draftKey(d.draftId),
+      title: d.title,
+      isArchived: false,
+    })),
+  ].map(f => ({ ...f, rows: [...mine.filter(r => r.feature === f.key), ...diskRows(f.key)] }))
+  return spendTabView({
+    group,
+    hasCost: disk.hasCost,
+    active: flow?.feature.key ?? null,
+    features,
+    titles: Object.fromEntries(flow?.tickets.map(t => [t.issue.ref, t.issue.title]) ?? []),
+    outside: [...mine.filter(r => r.feature === null), ...tag(disk.outside, disk.user)],
+    skipped: disk.skipped,
+  })
 }
 
 /** Spend files that could not be read, for the Spend tab. */

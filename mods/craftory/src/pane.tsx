@@ -3,6 +3,14 @@ import type { IssueRef, PaneTab, Tone } from '../types'
 import type { Flow } from './evidence'
 import { WORKTREE_LABELS, type WorktreeKind, type WorktreeRowView, type WorktreesView } from './git'
 import {
+  OUTSIDE_LABEL,
+  SPEND_GROUP_LABELS,
+  SPEND_GROUPS,
+  type SpendGroup,
+  type SpendLine,
+  type SpendTabView,
+} from './spend-view'
+import {
   flowRows,
   paneHeader,
   type FlowRowView,
@@ -58,6 +66,7 @@ export type PaneActions = {
   closeCard: () => void
   act: (action: Action) => void
   settings: () => void
+  spendGroup: (group: SpendGroup) => void
   close: () => void
 }
 
@@ -84,6 +93,7 @@ export type PaneArgs = {
   glossary: GlossaryView
   query: string
   settings: SettingsData
+  spend: SpendTabView
   on: PaneActions
 }
 
@@ -773,6 +783,132 @@ const TicketsTab = ({
   )
 }
 
+const SpendLineRow = ({
+  ui,
+  tone,
+  line,
+  indent = false,
+}: Pick<PaneArgs, 'ui' | 'tone'> & { line: SpendLine; indent?: boolean }) => {
+  const { Box, Text } = ui
+  const rich = isRich(ui)
+  return (
+    <Box
+      key={line.key}
+      flexDirection="row"
+      flexWrap="wrap"
+      justifyContent="space-between"
+      columnGap={SPACE.rowLabelGap}
+      {...(indent && { paddingLeft: SPACE.agentsPadX })}
+    >
+      <Text {...inkOf(tone, indent ? 'text2' : 'ink')}>{line.label}</Text>
+      <Text mono={rich} {...inkOf(tone, 'text2')}>
+        {line.text}
+      </Text>
+    </Box>
+  )
+}
+
+const SpendTab = ({
+  ui,
+  tone,
+  view,
+  readOnly,
+  on,
+}: Pick<PaneArgs, 'ui' | 'tone' | 'on'> & { view: SpendTabView; readOnly: boolean }) => {
+  const { Box, Text } = ui
+  const heading = (key: string, text: string) => (
+    <Text key={key} bold {...inkOf(tone, 'ink')}>
+      {text}
+    </Text>
+  )
+  const nothing =
+    view.active?.text == null &&
+    view.others.length === 0 &&
+    view.outside === null &&
+    view.skipped.length === 0
+  return (
+    <Box key="spend" flexDirection="column" rowGap={SPACE.paneGap}>
+      {nothing && (
+        <Text key="spend-empty" wrap="wrap" {...inkOf(tone, 'text2')}>
+          Nothing spent yet. Each step Claude answers is counted here, by phase and ticket.
+        </Text>
+      )}
+      {view.active !== null && view.active.text !== null && (
+        <Box key="spend-active" flexDirection="column" rowGap={SPACE.lineGap}>
+          <SpendLineRow
+            ui={ui}
+            tone={tone}
+            line={{ key: 'spend-total', label: view.active.title, text: view.active.text }}
+          />
+          {!readOnly && (
+            <Box key="spend-groups" flexDirection="row" flexWrap="wrap" columnGap={SPACE.chipGap}>
+              {SPEND_GROUPS.map(g => (
+                <CardButton
+                  key={g}
+                  padY
+                  ui={ui}
+                  tone={tone}
+                  id={`spend-group-${g}`}
+                  primary={view.group === g}
+                  label={`${view.group === g ? '▸ ' : ''}${SPEND_GROUP_LABELS[g]}`}
+                  onPress={() => on.spendGroup(g)}
+                />
+              ))}
+            </Box>
+          )}
+          {view.active.lines.map(line => (
+            <Box key={`${line.key}-box`} flexDirection="column" rowGap={SPACE.lineGap}>
+              <SpendLineRow ui={ui} tone={tone} line={line} />
+              {line.children?.map(child => (
+                <SpendLineRow key={child.key} ui={ui} tone={tone} line={child} indent />
+              ))}
+            </Box>
+          ))}
+        </Box>
+      )}
+      {view.others.length > 0 && (
+        <Box key="spend-others" flexDirection="column" rowGap={SPACE.lineGap}>
+          {heading('spend-others-head', 'Other features')}
+          {view.others.map(f => (
+            <SpendLineRow
+              key={f.key}
+              ui={ui}
+              tone={tone}
+              line={{
+                key: `spend-feature-${f.key}`,
+                label: f.isArchived ? `${f.title} · archived` : f.title,
+                text: f.text,
+              }}
+            />
+          ))}
+        </Box>
+      )}
+      {view.outside !== null && (
+        <Box key="spend-outside" flexDirection="column" rowGap={SPACE.lineGap}>
+          <SpendLineRow
+            ui={ui}
+            tone={tone}
+            line={{ key: 'spend-outside-line', label: OUTSIDE_LABEL, text: view.outside }}
+          />
+          <Text wrap="wrap" {...inkOf(tone, 'muted')}>
+            Spend with no feature in flight, over the last 30 days. Kept on this machine only.
+          </Text>
+        </Box>
+      )}
+      {view.skipped.length > 0 && (
+        <Box key="spend-skipped" flexDirection="column" rowGap={SPACE.lineGap}>
+          {heading('spend-skipped-head', 'Not counted: these files could not be read')}
+          {view.skipped.map(path => (
+            <Text key={`skipped-${path}`} mono={isRich(ui)} {...inkOf(tone, 'text2')}>
+              {path}
+            </Text>
+          ))}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
 const GlossaryTab = ({
   ui,
   tone,
@@ -940,6 +1076,15 @@ export function renderPane(args: PaneArgs) {
       )}
       {tab === 'glossary' && (
         <GlossaryTab ui={ui} tone={tone} view={args.glossary} query={args.query} on={on} />
+      )}
+      {tab === 'spend' && (
+        <SpendTab
+          ui={ui}
+          tone={tone}
+          view={args.spend}
+          readOnly={args.surface === 'mobile'}
+          on={on}
+        />
       )}
       {tab === 'settings' && (
         <SettingsTab

@@ -13,10 +13,10 @@ It is read-only on mobile.
 
 **Blocked by:** 02, 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The `TABS` entry, hotkey and tab count; `pane-tab-row` tests updated
-- [ ] Breakdown and the group-by toggle (the toggle is a personal setting in `$.store`)
-- [ ] Archived features listed with their totals
-- [ ] Skipped files named with their path
-- [ ] Pane tests on the terminal, Desktop and mobile
+- [x] The `TABS` entry, hotkey and tab count; `pane-tab-row` tests updated
+- [x] Breakdown and the group-by toggle (the toggle is a personal setting in `$.store`)
+- [x] Archived features listed with their totals
+- [x] Skipped files named with their path
+- [x] Pane tests on the terminal, Desktop and mobile
