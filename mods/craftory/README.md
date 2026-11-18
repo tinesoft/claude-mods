@@ -44,7 +44,8 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 - 🔍 **A card per phase.** Press a phase to see what the phase does, the command that starts it, the skills it uses, what it wrote, and its gate.
 - 🚦 **Soft gates.** Starting a phase whose gated predecessor is not done asks first, with **Run anyway** and **Diagnose**. Nothing is refused unless you turn on a deny rule or **Hard gates**.
 - 🤖 **Build steering.** One git worktree and branch per implementer, at most `maxParallel` at a time, and a token budget per agent with a live Agents list.
-- 📋 **A full pane.** `/craftory` opens Flow, Tickets with a triage Inbox, Worktrees, Glossary and Settings.
+- 📋 **A full pane.** `/craftory` opens Flow, Tickets with a triage Inbox, Worktrees, Glossary, Settings and Spend.
+- 💰 **Spend for every feature.** Every step's tokens and dollars are charged to the feature, phase and ticket, and shown on the status line, the phase cards, the Build agents and a Spend tab. Each session commits its own file, so a feature's spend adds up across sessions and teammates.
 - ⚙️ **Settings that edit the repo's own files.** The tracker, triage labels, docs layout and glossary are written where Matt's skills read them, exactly as `/setup-matt-pocock-skills` writes them.
 - 🗺️ **Wayfinder maps.** A map chip in the rail and a frontier card list the tickets you can take next, with **Take** and **Work next ticket**, and a switcher when several maps are open.
 - 🗄️ **Archiving.** A shipped feature leaves the switcher and the rail, and can be brought back.
@@ -81,7 +82,7 @@ The first time Craftory runs in a repo without `docs/agents/`, the band offers *
 | Claude Desktop app, Code tab          | The same with `Svg` icons, exact colours, hover and clicks, and glossary links and hover cards     |
 | Mobile                                | The pane, whose Flow tab starts with the rail, and glossary links. Settings are read-only. No band |
 | VS Code                               | The band and the pane, drawn in VS Code's theme with no `Svg`. Live-checked on extension 2.1.323   |
-| claude.ai/code cloud, `claude -p`     | Text only: `/craftory` replies with the active feature's phases and the next command to run        |
+| claude.ai/code cloud, `claude -p`     | Text only: `/craftory` replies with the active feature's phases, its spend and the next command    |
 | claude.ai chat                        | Nothing. Mods do not run there                                                                     |
 
 With no feature in flight the text reply says so and points at `/grill-with-docs`. Without mattpocock-skills it names the version to install, and on a Claude Code older than 2.1.299 it asks you to run `claude update`.
@@ -170,15 +171,33 @@ The flag is stored on the feature's record in `.craftory/features/`, so it is sh
 
 Turn on `automation.archiveOnShip` (Settings › Automation) to archive by itself once Ship is done, and once the retro is too when one was offered. It happens once per feature, so unarchiving one is final.
 
+### Spend
+
+Craftory counts what each feature costs. Tracking is always on and never refuses anything.
+
+- **What is counted.** Every step Claude answers, in the main session and in agents: its fresh tokens (input, cache-write and output, the count the agent budget uses), its cache reads, and its share of the session's dollars. The dollars come from the session's own cost total, as `/cost` reports it; Craftory keeps no price table.
+- **Where it is charged.** An implementer's steps go to its ticket under Build. Any other step goes to the phase running in the main session, or to **Between phases** when none is. With no feature in flight it is **Outside features**.
+- **Where it shows.**
+  - The status line and the summary chip end with the feature's total, such as `Export invoices as CSV · Build 2/5 · $4.12`.
+  - Each phase card has a Spend row, such as `$2.14 · 318k fresh · 61% cache`.
+  - Each Build agent shows its ticket's dollars beside its tokens.
+  - The Spend tab of the pane has the full breakdown.
+  - On text surfaces, `/craftory` adds `Spend: $4.12 (318k fresh tokens) across 3 sessions`.
+- **`≈`.** When one cost reading covers steps of several agents at once, the dollars are shared out by tokens and each agent's share is marked `≈`. A phase's dollars are exact: they are the sum of the readings.
+- **Where it is stored.** Each session writes `.craftory/spend/<spec>/<session>.json` when a main turn ends, when the session ends, and within 30 seconds of an agent's step. Only that session writes its file, so two people never conflict. Commit the files with the feature records. A feature's total is the sum of every file in its folder. A file that cannot be read is skipped and named in the Spend tab.
+- **Before a spec exists,** a draft's spend (the grill, and Spec until it binds) is kept on your machine. When the spec binds, it moves into the feature's file. Outside features is kept on your machine for 30 days and never committed.
+- **Without a cost ledger.** Where Claude Code keeps no cost total, Craftory shows tokens only and says "$ unavailable on this surface". It never shows `$0`.
+
 ### The pane
 
-Open it with `/craftory`, the gear, **Open panel** or a card button. The tabs have hotkeys `1` to `5`.
+Open it with `/craftory`, the gear, **Open panel** or a card button. The tabs have hotkeys `1` to `6`.
 
 - **Flow** (`1`). The seven phases with their command and a one-line result. On mobile the tab starts with the rail.
 - **Tickets** (`2`). The tracker header, the **Inbox**, then the spec's tickets with status, blocking edges and `/implement <ticket>` on ready ones, and `/implement-spec <spec> · run all in parallel`. On a Local tracker the argument is the file's path, such as `.scratch/csv/issues/01-button.md`; on GitHub it is `#n`. In the Inbox, a `needs-triage` item offers `/triage <issue>`, a `ready-for-agent` item offers **Start feature**, and so does a `ready-for-agent` spec that no feature points at, which enters at Tickets, and a `ready-for-human` item gets no agent. A started feature enters at the phase set in Settings › Entry points. By default a bug enters at Build and anything else at Align. GitLab and Other trackers show links only.
 - **Worktrees** (`3`). Your checkout, the integration worktree, one per agent and stale ones, each with its branch and sync state. **Diff** shows the change size, **Open terminal** copies `cd '<path>'`, quoted for the shell (a mod cannot open a terminal), **Remove** asks first for a kept worktree, and **Prune** removes stale ones.
 - **Glossary** (`4`). Search, the terms added this session, **Used in last reply**, then every term with its definition and the words to avoid. **Edit** jumps to Settings › Glossary.
 - **Settings** (`5`). See below.
+- **Spend** (`6`). The active feature's total, broken down by **Phase** (tickets under Build and Review), **Model** or **Person** (git's `user.name <user.email>`). Then the other features, archived ones last, then Outside features and any spend file that could not be read. The choice of breakdown is kept on your machine. Read-only on mobile, by phase.
 
 ### Glossary in replies
 
@@ -243,7 +262,7 @@ The mod makes no network calls of its own. The `gh` and `claude` commands below 
 
 **What it reads**
 
-- The events Claude Code raises: the skills that run, typed commands, the Agent, Skill and Bash tool calls, agent spawns and steps (for token use), and the end of each turn. It keeps the skill names, ticket ids, token counts and the last reply's text (to find glossary terms), not the conversation.
+- The events Claude Code raises: the skills that run, typed commands, the Agent, Skill and Bash tool calls, agent spawns and steps (for token use), the session's cost total (`$.session.usage()` and `session.measure`), and the end of each turn and of the session. It keeps the skill names, ticket ids, token counts, the models that answered and the last reply's text (to find glossary terms), not the conversation.
 - The repo files listed below, the files under `.scratch/` of a Local tracker, and `CONTEXT.md` when you import terms from it.
 - The `COLORFGBG` environment variable, to guess whether the terminal is light or dark. No other variable and no credential is read.
 
@@ -258,15 +277,16 @@ Craftory writes only these files, and checks each write against this list:
 | `GLOSSARY.md` (or the glossary file set in Settings)            | `grill-with-docs`, `domain-modeling` |
 | `.gitignore` (the `.claude/worktrees/` line)                    | Your repo                            |
 | `.craftory/config.json`, `.craftory/features/<spec>.json`       | Craftory, committed                  |
+| `.craftory/spend/<spec>/<session>.json`                         | Craftory, committed, one per session |
 | `.craftory/state.json` (the last architecture check)            | Craftory, git-ignored, one per repo  |
 
-It never writes under `.git/`, and the glossary file must end in `.md`. It never writes issue files: Matt's skills do. It never touches content outside the sections it owns. A write to a shared file, or to `.craftory/config.json`, fails and reloads if the file changed since Craftory read it. A setting is applied to `config.json` as it is after you confirm any question, so an edit made while the question was open is kept. Personal settings and pre-spec drafts are saved with `$.store`, on your machine. Feature records are written as soon as they change. Commit them so teammates see the same rail.
+It never writes under `.git/`, and the glossary file must end in `.md`. It never writes issue files: Matt's skills do. It never touches content outside the sections it owns. A write to a shared file, or to `.craftory/config.json`, fails and reloads if the file changed since Craftory read it. A setting is applied to `config.json` as it is after you confirm any question, so an edit made while the question was open is kept. Personal settings, pre-spec drafts and their spend, Outside features spend and the Spend tab's breakdown are saved with `$.store`, on your machine. Feature records are written as soon as they change. Commit them so teammates see the same rail.
 
 **What it runs**
 
 | When                                | Command                                                                                                                                                                                           |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Session start                       | `claude plugin list --json`, to read the `mattpocock-skills` version                                                                                                                              |
+| Session start                       | `claude plugin list --json`, to read the `mattpocock-skills` version, and `git config user.name` and `git config user.email`, to name who ran the session in its spend file                       |
 | A Build implementer's turn ends     | Your `worktrees.test` command in the ticket's worktree, when it is set, stopped after `worktrees.testTimeoutSec`                                                                                  |
 | You press **Install** or **Update** | `claude plugin install mattpocock-skills@claude-plugins-official` (or `update`)                                                                                                                   |
 | A GitHub tracker refresh            | `gh issue list`, `gh api …/sub_issues`, `gh api …/dependencies/blocked_by`, `gh pr view <branch>`                                                                                                 |
@@ -281,7 +301,8 @@ It starts no other program. The `setup` and `test` commands are the ones in `.cr
 - `prompt.submit` drops a gated command, where a band can show **Run anyway**. With `deny.skipGate` or `deny.hardGates` on, it drops a typed gated command on every surface, with the denial. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder. It answers nothing else.
 - `tool.call` on `Agent` gives a Build implementer its name and drops `isolation`, or refuses it when the queue is full, the ticket is blocked, or the ticket is for a human. Other Agent calls pass through.
 - `agent.spawn` points a Build implementer at its worktree with `cwd`.
-- `turn.step` ends an agent's step only after that agent passed its token budget or stopped on a merge conflict.
+- `turn.step` ends an agent's step only after that agent passed its token budget or stopped on a merge conflict. Every step's result is passed through unchanged; Craftory only counts its tokens and cost.
+- `session.measure` and `session.end` pass through unchanged. Craftory reads the cost from the first, and writes the session's spend file at the second.
 - `tool.call` on `Skill` asks before a gated `code-review`, and with `deny.skipGate` or `deny.hardGates` on refuses any gated phase's skill. `tool.call` on `Edit` and `Write` refuses an edit in the main checkout on the integration branch when `deny.editOnIntegrationBranch` is on. `tool.call` on `Bash` refuses `git worktree remove` and `rm` of a kept worktree, best-effort, and with `deny.hardGates` on refuses a ready PR or MR before Review is done.
 - `skill.prompt`, `turn.complete`, the other `tool.call`s and `ui.render` pass their result through unchanged. On Desktop and mobile, `ui.render` on `AssistantMessage` adds glossary links to the drawing only. The stored reply never changes.
 - `/craftory` is the only command the mod registers.
@@ -298,6 +319,7 @@ It starts no other program. The `setup` and `test` commands are the ones in `.cr
 - The `Q6 of ~14` progress of a grill is not visible to a mod. The phase shows Needs you without a count.
 - An agent's TDD step shows only when the agent writes it as `red · test 4 of 5`.
 - The token budget counts input, cache-creation and output tokens. It may differ from Claude Code's own per-agent total.
+- An agent's dollars are an estimate (`≈`) whenever one cost reading covered steps of several agents: the session's cost is a single total, so Craftory shares it out by tokens. Cost from a compaction, or from a mod's own model call before any step, is not charged to a feature.
 - A refused spawn relies on Claude waiting as the reason asks. Claude may try again sooner.
 - Copying files into a worktree uses `cp`, which Windows lacks outside WSL.
 - Glyphs such as `▲`, `◐` and `–` are one cell wide in Claude Code's layout. A terminal that draws them two cells wide misaligns the rail. Turn on `ascii_glyphs`.

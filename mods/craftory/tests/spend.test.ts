@@ -26,6 +26,7 @@ import {
   sessionRows,
   specOfKey,
   spendPath,
+  spendSummaryLine,
   splitDelta,
   spendText,
   tokensText,
@@ -449,4 +450,19 @@ test('an agent’s dollars are marked ≈ only when they were shared', () => {
   expect(agentSpendText({ ...alone, isEstimated: true })).toBe('≈$0.42')
   expect(agentSpendText({ ...alone, usd: null })).toBeNull()
   expect(agentSpendText(undefined)).toBeNull()
+})
+
+test('the text reply’s line gives dollars, fresh tokens and how many sessions spent', () => {
+  const priced = totalOf(observe(reading(EMPTY_SPEND, 0), step(main(), 318_000), 4.12), CSV)
+  expect(spendSummaryLine(priced, 3, true)).toBe(
+    'Spend: $4.12 (318k fresh tokens) across 3 sessions',
+  )
+  expect(spendSummaryLine(priced, 1, true)).toBe(
+    'Spend: $4.12 (318k fresh tokens) across 1 session',
+  )
+  const tokens = totalOf(observe(EMPTY_SPEND, step(main(), 318_000), undefined), CSV)
+  expect(spendSummaryLine(tokens, 1, false)).toBe(
+    'Spend: 318k fresh tokens across 1 session ($ unavailable on this surface)',
+  )
+  expect(spendSummaryLine(totalOf(EMPTY_SPEND, CSV), 0, true)).toBeNull()
 })

@@ -108,6 +108,7 @@ import {
   flushSpend,
   phaseSpendOf,
   setSpendGroup,
+  spendSummaryOf,
   spendTabOf,
   noteSpendReading,
   noteSpendStep,
@@ -350,9 +351,9 @@ export const register: Register = (on, options) => {
   on('command.run', { command: COMMAND }, async $ => {
     if (!(await isSupported($))) return { text: unsupportedText }
     if (!(await drawsAnything($))) {
-      return {
-        text: markdownSummary(await currentFlow($), await pluginOf($)),
-      }
+      const flow = await currentFlow($)
+      const spend = flow === null ? null : await spendSummaryOf($, flow.feature.key)
+      return { text: markdownSummary(flow, await pluginOf($), spend) }
     }
     await openPane($, 'flow')
     return { text: 'Opened the Craftory pane.' }

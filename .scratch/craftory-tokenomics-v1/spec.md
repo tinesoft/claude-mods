@@ -1,6 +1,6 @@
 # Craftory Tokenomics v1: spend visibility and storage
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Source: `docs/design/craftory/tokenomics.md` (decisions 1–8, 18 and slice v1), grilled on 2026-11-17. Slices v2 (budgets and rate limits) and v3 (routing, forecast and retro) get their own specs once this ships.
 
@@ -145,5 +145,6 @@ Craftory records every answered step's tokens and its share of the session's `co
   - (03) draft spend that binds to the spec;
   - (04) the phase card Spend row and the Build agent `≈$`;
   - (05) the Spend tab;
-  - (06) the text surfaces, glossary and README.
+  - (06) the text surfaces, glossary and README;
+  - (07) the README screenshots, re-recorded with spend, and a live check against `/cost` (ready-for-human).
 - Commit scope is `craftory`. Do not edit versions or `CHANGELOG.md` by hand.

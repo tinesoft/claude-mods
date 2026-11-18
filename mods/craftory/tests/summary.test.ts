@@ -43,3 +43,67 @@ test('on a Claude Code older than the floor the reply names the version to updat
   expect(await run($)).toBe('Craftory needs Claude Code 2.1.299 or later. Run claude update.')
   expect(w.opens).toEqual([])
 })
+
+const TOKENS = {
+  input_tokens: 100,
+  output_tokens: 200,
+  cache_creation_input_tokens: 0,
+  cache_read_input_tokens: 1_000,
+}
+
+const mainStep = async ($: Engine) => {
+  const stream = $.turn.step({ turnId: 'm', index: 0, model: 'opus', messageCount: 1 } as never)
+  const iterator = (stream as AsyncIterable<unknown>)[Symbol.asyncIterator]()
+  while (!(await iterator.next()).done) {
+    // drained: the step's result is what counts
+  }
+}
+
+const otherSession = JSON.stringify({
+  version: 1,
+  session: 's0',
+  user: 'Mate <mate@example.com>',
+  startedAt: '2026-11-16T09:00:00.000Z',
+  rows: [
+    {
+      feature: 'spec:csv',
+      phase: 'spec',
+      ticket: null,
+      agentId: null,
+      model: 'claude-opus-5-5',
+      tokens: { input: 1000, output: 0, cacheRead: 0, cacheWrite: 0 },
+      usd: 2,
+      isEstimated: false,
+      steps: 1,
+    },
+  ],
+})
+
+test('where nothing draws, the reply adds the Feature’s spend across sessions before what is next', async ($, on) => {
+  let usd = 0
+  featureWorld(on, {
+    surfaces: [],
+    cost: () => usd,
+    usage: () => TOKENS,
+    files: { '.craftory/spend/csv/s0.json': otherSession },
+  })
+  await startSession($)
+  usd = 0.5
+  await mainStep($)
+  const lines = (await run($))!.split('\n')
+  expect(lines.slice(-4)).toEqual([
+    '',
+    'Spend: $2.50 (1k fresh tokens) across 2 sessions',
+    '',
+    'Next: **Build**, run `/implement-spec .scratch/csv/spec.md`.',
+  ])
+})
+
+test('where the host keeps no cost ledger the reply gives fresh tokens and says why', async ($, on) => {
+  featureWorld(on, { surfaces: [], usage: () => TOKENS })
+  await startSession($)
+  await mainStep($)
+  expect(await run($)).toContain(
+    'Spend: 300 fresh tokens across 1 session ($ unavailable on this surface)',
+  )
+})
