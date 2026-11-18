@@ -21,7 +21,7 @@ export const SPEND_GROUP_LABELS: Record<SpendGroup, string> = {
 export const parseSpendGroup = (v: unknown): SpendGroup =>
   SPEND_GROUPS.includes(v as SpendGroup) ? (v as SpendGroup) : 'phase'
 
-/** A row with who ran the session it came from; null when that session's git had no email. */
+/** A row with who ran the session it came from; null when that session's git had no name or email. */
 export type PersonRow = SpendRow & { user: string | null }
 
 export type SpendFeatureInput = {
@@ -58,7 +58,7 @@ export type SpendTabView = {
 
 export const BETWEEN_LABEL = 'Between phases'
 export const OUTSIDE_LABEL = 'Outside features'
-export const NO_EMAIL_LABEL = 'No git email'
+export const NO_USER_LABEL = 'No git user'
 
 const SPEND_PHASES: readonly SpendPhase[] = [...PHASE_ORDER, 'between']
 
@@ -122,7 +122,7 @@ function lines(
       }
     })
   const keyOf =
-    group === 'model' ? (r: PersonRow) => r.model : (r: PersonRow) => r.user ?? NO_EMAIL_LABEL
+    group === 'model' ? (r: PersonRow) => r.model : (r: PersonRow) => r.user ?? NO_USER_LABEL
   return groupBy(rows, keyOf)
     .map(([label, list]) => ({ label, total: totalOfRows(list) }))
     .sort((a, b) => (b.total.usd ?? 0) - (a.total.usd ?? 0) || b.total.fresh - a.total.fresh)

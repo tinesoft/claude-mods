@@ -57,7 +57,7 @@ Craftory records every answered step's tokens and its share of the session's `co
   - `.craftory/features/` is untouched;
   - the design doc is corrected to match.
 - **Session file shape.** `{ version: 1, session, user?, startedAt, rows: Rollup[] }`.
-  - `user` is `git config user.email`, left out when it is unset.
+  - `user` is git's `user.name <user.email>` (just the one that is set when only one is), left out when neither is.
   - The file is rewritten whole on each flush. Only this session writes it.
 - **Flush points.** On `turn.complete` of the main thread, on `session.end`, and every 30 seconds while Build runs, debounced. A failed write is retried at the next flush point, and the error is not shown to the user unless it persists through `session.end`.
 - **Drafts.** A draft feature has no spec, so its spend stays in `$.store` under `spend:draft:<draftId>`, rolled up the same way.
@@ -132,7 +132,7 @@ Craftory records every answered step's tokens and its share of the session's `co
   - "$ unavailable on this surface" appears only when this session's host has no cost ledger. A row another session left unpriced just shows tokens.
 - **Spend tab.**
   - Grouping by model or by person lists the costliest first.
-  - Spend from a session whose git had no email is grouped as "No git email". This session's rows count under its own email.
+  - Spend from a session whose git had no name or email is grouped as "No git user". This session's rows count under its own user.
   - The group-by choice is kept in `$.store` under `spendGroup`. On mobile the choice is hidden and the tab shows by phase.
   - To group by person, the disk state keeps each committed file's `user` with its rows (`SessionSpend`).
   - The tab's count in the tab row is the active Feature's short spend, the same as on the status line.

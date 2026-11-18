@@ -86,11 +86,20 @@ async function costOf($: EngineInterface): Promise<number | undefined> {
     .catch(() => undefined)
 }
 
-/** `git config user.email`, or null when it is unset or no command can run here. */
+/** One `git config` value, or '' when it is unset or no command can run here. */
+async function gitConfig($: EngineInterface, key: string): Promise<string> {
+  const out = await sh($, ['git', 'config', key])
+  return out?.exitCode === 0 ? out.stdout.trim() : ''
+}
+
+/**
+ * Who ran the session, as git knows them: `Name <email>`, or whichever of the two is set; null
+ * when neither is or no command can run here.
+ */
 async function userOf($: EngineInterface): Promise<string | null> {
-  const out = await sh($, ['git', 'config', 'user.email'])
-  const email = out?.exitCode === 0 ? out.stdout.trim() : ''
-  return email === '' ? null : email
+  const [name, email] = await Promise.all([gitConfig($, 'user.name'), gitConfig($, 'user.email')])
+  if (name !== '' && email !== '') return `${name} <${email}>`
+  return name || email || null
 }
 
 type SessionFiles = {

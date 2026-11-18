@@ -22,13 +22,15 @@ const mainStep = async ($: Engine, index: number) => {
 }
 
 /** A git that knows who the developer is, for the `user` field. */
-const withEmail = (email: string) => {
+const withUser = (config: { name?: string; email?: string }) => {
   const git = fakeGit()
   return {
     shell: (argv: readonly string[], cwd: string | undefined) =>
-      argv[0] === 'git' && argv[1] === 'config' && argv[2] === 'user.email'
-        ? { exitCode: 0, stdout: `${email}\n` }
-        : git.shell(argv, cwd),
+      argv[0] === 'git' && argv[1] === 'config' && argv[2] === 'user.name' && config.name
+        ? { exitCode: 0, stdout: `${config.name}\n` }
+        : argv[0] === 'git' && argv[1] === 'config' && argv[2] === 'user.email' && config.email
+          ? { exitCode: 0, stdout: `${config.email}\n` }
+          : git.shell(argv, cwd),
   }
 }
 
@@ -62,7 +64,7 @@ test('a main turn ending writes this session’s spend to its own file, with who
   const w = featureWorld(on, {
     cost: () => usd,
     usage: () => TOKENS,
-    ...withEmail('dev@example.com'),
+    ...withUser({ name: 'Dev Dev', email: 'dev@example.com' }),
   })
   await startSession($)
   usd = 0.42
@@ -70,13 +72,13 @@ test('a main turn ending writes this session’s spend to its own file, with who
   await turnComplete($)
   const [written] = writesTo(w, OWN)
   const file = JSON.parse(written!.text)
-  expect(file).toMatchObject({ version: 1, session: 's1', user: 'dev@example.com' })
+  expect(file).toMatchObject({ version: 1, session: 's1', user: 'Dev Dev <dev@example.com>' })
   expect(file.rows).toHaveLength(1)
   expect(file.rows[0]).toMatchObject({ phase: 'between', usd: 0.42, steps: 1 })
   expect(w.writes.filter(x => x.path.startsWith('.craftory/spend/'))).toHaveLength(1)
 })
 
-test('with no git email the file leaves user out', async ($, on) => {
+test('with no git name or email the file leaves user out', async ($, on) => {
   let usd = 0
   const w = featureWorld(on, { cost: () => usd, usage: () => TOKENS })
   await startSession($)
@@ -99,7 +101,7 @@ test('a turn with nothing new does not write the file again', async ($, on) => {
 
 test('other sessions’ files are summed into the total and never written', async ($, on) => {
   let usd = 0
-  const theirs = fileOf('s0', [row(3), row(0.5, { phase: 'spec' })], 'mate@example.com')
+  const theirs = fileOf('s0', [row(3), row(0.5, { phase: 'spec' })], 'Mate Mate <mate@example.com>')
   const w = featureWorld(on, {
     cost: () => usd,
     usage: () => TOKENS,

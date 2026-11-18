@@ -1,7 +1,7 @@
 import { type Engine, expect, test } from 'claude-code/testing'
 import { serialiseSpendFile } from '../src/spend'
 import {
-  NO_EMAIL_LABEL,
+  NO_USER_LABEL,
   parseSpendGroup,
   type PersonRow,
   type SpendFeatureInput,
@@ -22,7 +22,7 @@ const row = (usd: number | null, over: Partial<PersonRow> = {}): PersonRow => ({
   usd,
   isEstimated: false,
   steps: 1,
-  user: 'dev@example.com',
+  user: 'Dev Dev <dev@example.com>',
   ...over,
 })
 
@@ -71,18 +71,18 @@ test('by phase: phases in order, Between phases last, tickets under Build with t
   ])
 })
 
-test('by model and by person: the costliest first; a session with no git email is named so', () => {
+test('by model and by person: the costliest first; a session with no git user is named so', () => {
   const rows = [
     row(0.5, { model: 'claude-haiku-5-5', user: null }),
     row(2, { model: 'claude-opus-5-5' }),
-    row(1, { model: 'claude-sonnet-5-5', user: 'mate@example.com' }),
+    row(1, { model: 'claude-sonnet-5-5', user: 'Mate Mate <mate@example.com>' }),
   ]
   expect(
     view({ group: 'model', features: [feature(CSV, rows)] }).active?.lines.map(l => l.label),
   ).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'])
   expect(
     view({ group: 'person', features: [feature(CSV, rows)] }).active?.lines.map(l => l.label),
-  ).toEqual(['dev@example.com', 'mate@example.com', NO_EMAIL_LABEL])
+  ).toEqual(['Dev Dev <dev@example.com>', 'Mate Mate <mate@example.com>', NO_USER_LABEL])
 })
 
 test('other features follow, archived ones last; ones that spent nothing are left out', () => {
@@ -150,7 +150,9 @@ const spendWorld = async (
     usage: () => TOKENS,
     ...options,
     files: {
-      '.craftory/spend/csv/s0.json': fileOf('s0', 'mate@example.com', [row(2, { phase: 'spec' })]),
+      '.craftory/spend/csv/s0.json': fileOf('s0', 'Mate Mate <mate@example.com>', [
+        row(2, { phase: 'spec' }),
+      ]),
       '.craftory/spend/csv/broken.json': '{',
       ...options.files,
     },
@@ -198,8 +200,8 @@ test('choosing a grouping keeps it for next time and redraws by it', async ($, o
   await pane.redraw()
   expect(w.store.get('spendGroup')).toBe('person')
   const words = await texts(pane)
-  expect(words).toContain('mate@example.com')
-  expect(words).toContain(NO_EMAIL_LABEL)
+  expect(words).toContain('Mate Mate <mate@example.com>')
+  expect(words).toContain(NO_USER_LABEL)
 })
 
 test('with nothing spent the tab says what it will count', async ($, on) => {

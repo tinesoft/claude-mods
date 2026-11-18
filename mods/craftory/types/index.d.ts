@@ -465,7 +465,7 @@ export type SpendLedger = {
 export type SpendFile = {
   version: 1
   session: string
-  /** `git config user.email` of whoever ran the session; absent when unset. */
+  /** git's `user.name <user.email>` of whoever ran the session; absent when unset. */
   user?: string
   startedAt: IsoTime
   rows: SpendRow[]
