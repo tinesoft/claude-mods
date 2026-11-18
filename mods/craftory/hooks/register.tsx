@@ -81,7 +81,7 @@ import {
   archiveFeature,
   unarchiveFeature,
 } from './shell/flow'
-import { onSkillStart, skillTurnEnded } from './shell/skill-start'
+import { onSkillStart } from './shell/skill-start'
 import {
   finishHandoff,
   noteHandoffWrite,
@@ -373,7 +373,7 @@ export const register: Register = (on, options) => {
 
   // An organization's security guard may send `skill.prompt` past every mod and print a notice
   // per hook registered for it. A mod cannot detect that, so `hook_events: false` registers none;
-  // the Skill call and the typed command below still report each start.
+  // the Skill call and the typed command report each start instead.
   if (options.hook_events !== false) {
     on('skill.prompt', async ($, e, next) => {
       await onSkillStart($, e.skill)
@@ -384,8 +384,9 @@ export const register: Register = (on, options) => {
   on('prompt.submit', async ($, e, next) => {
     const drop = await gatePrompt($, e, await canAskInBand($))
     if (drop !== undefined) return { drop }
-    // A managed plugin may skip `skill.prompt`, so a typed `/skill` also notes its start here.
-    if (e.command !== undefined) await onSkillStart($, e.command.name)
+    // `skill.prompt` is not registered: a typed `/skill` stands in for it.
+    if (options.hook_events === false && e.command !== undefined)
+      await onSkillStart($, e.command.name)
     const context = await startContext($, e)
     return next(context === undefined ? e : { ...e, context: [...(e.context ?? []), ...context] })
   })
@@ -400,7 +401,6 @@ export const register: Register = (on, options) => {
     await noteTurnEnded($, await finishTurn($, e))
     await noteMainTurnEnd($, e.isAborted === true)
     await finishHandoff($, e.isAborted === true)
-    await skillTurnEnded($)
     scheduleRefresh($)
     // Off the turn: the write waits on nothing the person is waiting for.
     $.clock.after(0, () => void flushSpend($))
@@ -545,11 +545,14 @@ export const register: Register = (on, options) => {
     return answer === DIAGNOSE_FIRST ? { deny: DIAGNOSE_REASON } : next(e)
   })
 
-  // Beneath the gates above, so a denied call starts nothing. See `onSkillStart`.
-  on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
-    await onSkillStart($, e.skill)
-    return next(e)
-  })
+  // `skill.prompt` is not registered: the Skill call stands in for it, beneath the gates above so a
+  // denied call starts nothing.
+  if (options.hook_events === false) {
+    on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
+      await onSkillStart($, e.skill)
+      return next(e)
+    })
+  }
 
   on('tool.call', { tool: 'Edit' }, denyIntegrationEdit)
   on('tool.call', { tool: 'Write' }, denyIntegrationEdit)
