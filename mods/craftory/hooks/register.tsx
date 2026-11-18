@@ -371,10 +371,15 @@ export const register: Register = (on, options) => {
     return { text: 'Opened the Craftory pane.' }
   })
 
-  on('skill.prompt', async ($, e, next) => {
-    await onSkillStart($, e.skill)
-    return next(e)
-  })
+  // An organization's security guard may send `skill.prompt` past every mod and print a notice
+  // per hook registered for it. A mod cannot detect that, so `hook_events: false` registers none;
+  // the Skill call and the typed command below still report each start.
+  if (options.hook_events !== false) {
+    on('skill.prompt', async ($, e, next) => {
+      await onSkillStart($, e.skill)
+      return next(e)
+    })
+  }
 
   on('prompt.submit', async ($, e, next) => {
     const drop = await gatePrompt($, e, await canAskInBand($))

@@ -69,3 +69,29 @@ test('a command that is not a skill starts nothing', async ($, on) => {
   await $.prompt.submit({ text: '/compact', command: { name: 'compact', args: '' } } as never)
   expect(w.writes.length).toBe(before)
 })
+
+test(
+  'with hook_events off, skill.prompt is not registered',
+  { options: { hook_events: false } },
+  async ($, on) => {
+    featureWorld(on)
+    await startSession($)
+    await skillPrompt($, 'handoff')
+    await write($, DOC)
+    await turnComplete($)
+    expect(await cardLinks($)).not.toContain(DOC)
+  },
+)
+
+test(
+  'with hook_events off, the Skill call still starts the run',
+  { options: { hook_events: false } },
+  async ($, on) => {
+    featureWorld(on)
+    await startSession($)
+    await viaTool($, 'handoff')
+    await write($, DOC)
+    await turnComplete($)
+    expect(await cardLinks($)).toContain(DOC)
+  },
+)
