@@ -24,6 +24,7 @@ import {
 import { parentOf } from '../../src/tracker'
 import type {
   AgentRun,
+  BudgetScope,
   FeatureKey,
   FeatureRecord,
   IssueRef,
@@ -189,6 +190,19 @@ export async function recordChange($: EngineInterface, key: FeatureKey, change: 
     [spec]: applyChange(held[spec] ?? feature.record, change),
   }))
   await persistFeature($, spec)
+}
+
+/**
+ * The one writer of a Feature's own dollar budget, for Raise budget and the Flow tab's field:
+ * whole dollars, `0` for none, `null` to drop it so the default applies again.
+ */
+export async function setOwnBudget(
+  $: EngineInterface,
+  key: FeatureKey,
+  scope: BudgetScope,
+  usd: number | null,
+) {
+  await recordChange($, key, { kind: 'budget', target: scope, usd })
 }
 
 /** The agent's ledger run, written onto the feature that owns its ticket. */

@@ -1,5 +1,8 @@
 import type {
   EventNotice,
+  OverBudgetRefusal,
+  SpendBudgetNotice,
+  ThrottleNotice,
   InstallState,
   IssueRef,
   NoticeKey,
@@ -7,11 +10,22 @@ import type {
   RepoSnapshot,
 } from '../types'
 import type { Action } from './action'
+import { overBudgetText } from './budgets'
 import { budgetK } from './build'
 import { driftText, retroText } from './drift'
 import { gateText, hardGateText } from './gates'
 import { PHASES, PLUGIN, SKILLS, TESTED_RANGE } from './phases'
 import type { Role } from './theme'
+
+/**
+ * The held notices the pane shows too, so a surface with no band still sees them: a gate or an
+ * over-budget refusal holding a press, and the warning that Build is throttled.
+ */
+export const PANE_NOTICES: ReadonlySet<EventNotice['kind']> = new Set([
+  'gate',
+  'over-budget-refusal',
+  'throttle',
+])
 
 export type NoticeButton = { id: string; label: string; action: Action; primary?: true }
 
@@ -157,6 +171,96 @@ export type WayfinderOffer = {
   attach: AttachTarget | null
 }
 
+/** `5-hour window at 84% · Build runs 1 implementer at a time until it resets at 18:40`. */
+export function throttleText(n: Omit<ThrottleNotice, 'kind' | 'id'>): string {
+  const implementers = n.parallel === 1 ? '1 implementer' : `${n.parallel} implementers`
+  const until = n.resets === null ? 'until it resets' : `until it resets at ${n.resets}`
+  return `${n.window} window at ${n.percent}% · Build runs ${implementers} at a time ${until}`
+}
+
+/**
+ * The buttons both overrun notices share: Raise budget, only where the Feature has a record to
+ * raise it on, and Diagnose about `about`. Their ids are `<raise>-<scope>` and `<diagnose>-<scope>`.
+ */
+function overrunButtons(
+  notice: SpendBudgetNotice | OverBudgetRefusal,
+  ids: { raise: string; diagnose: string },
+  about: string,
+): { raise: NoticeButton[]; diagnose: NoticeButton } {
+  const { key, scope } = notice
+  return {
+    raise: notice.canRaise
+      ? [
+          {
+            id: `${ids.raise}-${scope}`,
+            label: 'Raise budget',
+            action: { kind: 'raise-spend-budget', key, scope },
+            primary: true,
+          },
+        ]
+      : [],
+    diagnose: {
+      id: `${ids.diagnose}-${scope}`,
+      label: 'Diagnose',
+      action: { kind: 'diagnose', noticeId: notice.id, about },
+    },
+  }
+}
+
+/** `Build is at $12.40 of $12`, with Raise budget (a specced Feature only), Continue and Diagnose. */
+function spendBudgetNotice(notice: SpendBudgetNotice): NoticeView {
+  const text = overBudgetText(notice)
+  const { key, scope } = notice
+  const { raise, diagnose } = overrunButtons(
+    notice,
+    { raise: 'raise-spend-budget', diagnose: 'diagnose-budget' },
+    `${text}: find out why it cost so much`,
+  )
+  return {
+    id: notice.id,
+    role: 'danger',
+    text,
+    replacesRail: false,
+    actions: [
+      ...raise,
+      {
+        id: `continue-budget-${scope}`,
+        label: 'Continue',
+        action: {
+          kind: 'continue-spend-budget',
+          noticeId: notice.id,
+          key,
+          scope,
+          budget: notice.budget,
+        },
+        ...(!notice.canRaise && { primary: true as const }),
+      },
+      diagnose,
+    ],
+  }
+}
+
+/** A press deny.overBudget refused: Raise budget (a specced Feature only), Diagnose and Dismiss. */
+function overBudgetRefusalNotice(notice: OverBudgetRefusal): NoticeView {
+  const over = overBudgetText(notice)
+  const { raise, diagnose } = overrunButtons(
+    notice,
+    { raise: 'raise-refused-budget', diagnose: 'diagnose-over-budget' },
+    `${over}, over its budget`,
+  )
+  return {
+    id: notice.id,
+    role: 'danger',
+    text: `${over} · deny.${notice.via} refuses /${notice.skill}`,
+    replacesRail: false,
+    actions: [
+      ...raise,
+      { ...diagnose, ...(!notice.canRaise && { primary: true as const }) },
+      dismiss(notice.id),
+    ],
+  }
+}
+
 export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): NoticeView | undefined {
   switch (notice.kind) {
     case 'gate':
@@ -198,6 +302,8 @@ export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): Notice
           dismiss(notice.id),
         ],
       }
+    case 'over-budget-refusal':
+      return overBudgetRefusalNotice(notice)
     case 'spec-published':
       return {
         id: notice.id,
@@ -307,6 +413,16 @@ export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): Notice
             action: { kind: 'dismiss-wayfinder', noticeId: notice.id },
           },
         ],
+      }
+    case 'spend-budget':
+      return spendBudgetNotice(notice)
+    case 'throttle':
+      return {
+        id: notice.id,
+        role: 'hook',
+        text: throttleText(notice),
+        replacesRail: false,
+        actions: [dismiss(notice.id)],
       }
     case 'automation':
       return {

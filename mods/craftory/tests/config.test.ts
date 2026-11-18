@@ -193,16 +193,21 @@ test('the deny rules are off by default and a bad value falls back with a note',
     hardGates: false,
     skipGate: false,
     editOnIntegrationBranch: false,
+    overBudget: false,
   })
-  const set = okValue('{"deny":{"skipGate":true,"editOnIntegrationBranch":true}}')
+  const set = okValue('{"deny":{"skipGate":true,"editOnIntegrationBranch":true,"overBudget":true}}')
   expect(set.value.deny).toEqual({
     hardGates: false,
     skipGate: true,
     editOnIntegrationBranch: true,
+    overBudget: true,
   })
   const bad = okValue('{"deny":{"skipGate":"yes"}}')
   expect(bad.value.deny.skipGate).toBe(false)
   expect(bad.problem).toContain('deny.skipGate')
+  const badBudget = okValue('{"deny":{"overBudget":1}}')
+  expect(badBudget.value.deny.overBudget).toBe(false)
+  expect(badBudget.problem).toContain('deny.overBudget')
 })
 
 test('worktrees.test is unset by default, and its timeout defaults to 600 s within 10 to 600', () => {
@@ -216,4 +221,62 @@ test('worktrees.test is unset by default, and its timeout defaults to 600 s with
   expect(bad.value.worktrees).toMatchObject({ test: '', testTimeoutSec: 600 })
   expect(bad.problem).toContain('worktrees.test')
   expect(bad.problem).toContain('worktrees.testTimeoutSec')
+})
+
+test('budgets are off by default: no Feature budget, none per phase, Near budget at 80%', () => {
+  const { budgets } = okValue('{}').value
+  expect(budgets.featureUsd).toBe(0)
+  expect(budgets.warnAtPercent).toBe(80)
+  expect(Object.keys(budgets.phaseUsd)).toEqual(PHASE_ORDER)
+  expect(Object.values(budgets.phaseUsd)).toEqual(PHASE_ORDER.map(() => 0))
+})
+
+test('budgets are whole dollars within their bounds, and a bad one falls back with a note', () => {
+  const loaded = okValue(
+    JSON.stringify({
+      budgets: {
+        featureUsd: 19.6,
+        phaseUsd: { build: 250_000, align: -3, spec: 'lots' },
+        warnAtPercent: 99,
+      },
+    }),
+  )
+  expect(loaded.value.budgets.featureUsd).toBe(20)
+  expect(loaded.value.budgets.phaseUsd.build).toBe(100_000)
+  expect(loaded.value.budgets.phaseUsd.align).toBe(0)
+  expect(loaded.value.budgets.phaseUsd.spec).toBe(0)
+  expect(loaded.value.budgets.warnAtPercent).toBe(95)
+  expect(loaded.problem).toContain('budgets.phaseUsd.spec')
+  expect(okValue('{"budgets":{"warnAtPercent":10}}').value.budgets.warnAtPercent).toBe(50)
+})
+
+test('rateLimits.throttleAt defaults to 80%, is clamped to 50 to 100, and falls back with a note', () => {
+  expect(DEFAULT_CONFIG.rateLimits.throttleAt).toBe(80)
+  expect(okValue('{"rateLimits":{"throttleAt":90}}').value.rateLimits.throttleAt).toBe(90)
+  expect(okValue('{"rateLimits":{"throttleAt":100}}').value.rateLimits.throttleAt).toBe(100)
+  expect(okValue('{"rateLimits":{"throttleAt":150}}').value.rateLimits.throttleAt).toBe(100)
+  expect(okValue('{"rateLimits":{"throttleAt":10}}').value.rateLimits.throttleAt).toBe(50)
+  expect(okValue('{"rateLimits":{"throttleAt":84.6}}').value.rateLimits.throttleAt).toBe(85)
+  const bad = okValue('{"rateLimits":{"throttleAt":"high"}}')
+  expect(bad.value.rateLimits.throttleAt).toBe(80)
+  expect(bad.problem).toContain('rateLimits.throttleAt')
+})
+
+test('rateLimits.throttledParallel defaults to 1, is clamped to 1 to 16, and falls back with a note', () => {
+  expect(DEFAULT_CONFIG.rateLimits.throttledParallel).toBe(1)
+  expect(okValue('{"rateLimits":{"throttledParallel":2}}').value.rateLimits.throttledParallel).toBe(
+    2,
+  )
+  expect(
+    okValue('{"rateLimits":{"throttledParallel":40}}').value.rateLimits.throttledParallel,
+  ).toBe(16)
+  expect(okValue('{"rateLimits":{"throttledParallel":0}}').value.rateLimits.throttledParallel).toBe(
+    1,
+  )
+  expect(
+    okValue('{"rateLimits":{"throttledParallel":2.4}}').value.rateLimits.throttledParallel,
+  ).toBe(2)
+  const bad = okValue('{"rateLimits":{"throttledParallel":"one"}}')
+  expect(bad.value.rateLimits.throttledParallel).toBe(1)
+  expect(bad.problem).toContain('rateLimits.throttledParallel')
 })

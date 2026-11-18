@@ -61,7 +61,7 @@ export type AutomationConfig = {
 /** Opt-in guardrails that deny a tool call. All default off. */
 export type DenyConfig = {
   /**
-   * Hard gates: turns on both rules below, refuses a rail or pane press of a gated phase
+   * Hard gates: turns on every rule below, refuses a rail or pane press of a gated phase
    * (no Run anyway), and refuses `gh pr create` and `glab mr create` until Review is done.
    */
   hardGates: boolean
@@ -69,6 +69,18 @@ export type DenyConfig = {
   skipGate: boolean
   /** Deny Edit and Write in the main checkout while it is on an integration branch. */
   editOnIntegrationBranch: boolean
+  /** Deny a phase's skill, and new Build agents, once that phase or the Feature is over budget. */
+  overBudget: boolean
+}
+
+/** Dollar budgets, whole dollars, `0` for none. All off by default. */
+export type BudgetConfig = {
+  /** The default budget of every Feature. */
+  featureUsd: number
+  /** The default budget of each phase of every Feature. */
+  phaseUsd: Record<PhaseId, number>
+  /** The share of a budget, in percent, at which its figures say Near budget. */
+  warnAtPercent: number
 }
 
 /** Craftory-only tracker extras. The tracker *kind* lives in docs/agents/issue-tracker.md. */
@@ -87,8 +99,17 @@ export type CraftoryConfig = {
   tracker: TrackerExtras
   docs: { research: string }
   worktrees: WorktreeConfig
+  rateLimits: RateLimitConfig
   automation: AutomationConfig
   deny: DenyConfig
+  budgets: BudgetConfig
+}
+
+export type RateLimitConfig = {
+  /** The `percentUsed` of any rate-limit window at which it is Throttled; 100 is off. */
+  throttleAt: number
+  /** How many implementers run at once while a window is Throttled; never above `maxParallel`. */
+  throttledParallel: number
 }
 
 export type ConfigPatch = {
@@ -338,9 +359,32 @@ export type FeatureRecord = {
   archivedAt?: IsoTime
   /** When the Feature was last brought back, by hand or by new activity. */
   unarchivedAt?: IsoTime
+  /** The Feature's own budgets, over the config defaults. Whole dollars; `0` is none. */
+  budgets?: FeatureBudgets
   marks: Partial<Record<PhaseId, PhaseMark>>
   /** Keyed by ticket ref string. The latest attempt per ticket wins. */
   agents: Record<string, AgentRecord>
+}
+
+/** What a dollar budget is of: one phase, or the whole Feature. */
+export type BudgetScope = PhaseId | 'feature'
+
+/** A phase or the Feature at or over its dollar budget: what it is, what it spent, and the budget. */
+export type Overrun = {
+  scope: BudgetScope
+  /** The phase's label or the Feature's title, as a notice names it. */
+  name: string
+  usd: number
+  budget: number
+}
+
+/**
+ * A Feature's own dollar budgets: one for the Feature, and one per phase. `null` is "use the
+ * default", kept so a cleared budget outlasts the merge with an older record on disk.
+ */
+export type FeatureBudgets = {
+  usd?: number | null
+  phases?: Partial<Record<PhaseId, number | null>>
 }
 
 export type DraftFeature = {
@@ -536,13 +580,47 @@ export type EventNotice =
       /** Under deny.hardGates: the notice refuses, with no Run anyway. */
       hard?: boolean
     }
+  | OverBudgetRefusal
   | { kind: 'budget'; id: string; ticket: IssueRef; budget: number }
   | { kind: 'rebase-conflict'; id: string; ticket: IssueRef; worktree: string }
   | { kind: 'drift'; id: string; avoided: string; term: string; count: number }
   | { kind: 'spec-published'; id: string; spec: IssueRef; stories: number | null }
   | { kind: 'retro-ready'; id: string; suggestions: number | null }
   | { kind: 'suggest-wayfinder'; id: string }
+  | ThrottleNotice
+  | SpendBudgetNotice
   | AutomationNotice
+
+/** A rail or pane press that deny.overBudget refused: what is over, its spend and its budget. */
+export type OverBudgetRefusal = Overrun & {
+  kind: 'over-budget-refusal'
+  id: string
+  key: FeatureKey
+  /** A specced Feature has a record to raise the budget on; a draft has the defaults only. */
+  canRaise: boolean
+  skill: SkillName
+  /** The switch that made the rule refuse: `overBudget`, or `hardGates` when that is why. */
+  via: keyof DenyConfig
+}
+
+/** A phase or the Feature reached its dollar budget: what it spent and the budget it reached. */
+export type SpendBudgetNotice = Overrun & {
+  kind: 'spend-budget'
+  id: string
+  key: FeatureKey
+  /** A specced Feature has a record to raise the budget on; a draft has the defaults only. */
+  canRaise: boolean
+}
+
+/** Build was started while a rate-limit window is Throttled: the fullest window and the limit. */
+export type ThrottleNotice = {
+  kind: 'throttle'
+  id: string
+  window: string
+  percent: number
+  resets: string | null
+  parallel: number
+}
 
 /**
  * An opt-in automation's band notice. It shows only while no turn runs, offers at most one
@@ -618,6 +696,8 @@ declare module 'claude-code' {
       build: BuildLedger
       spend: SpendLedger
       spendDisk: SpendDisk
+      /** The last rate-limit reading, at session start or `session.measure`; empty off a subscription. */
+      rateLimits: SessionRateLimit[]
       steeringNote: string | null
       passes: GatePass[]
       notices: EventNotice[]
@@ -649,6 +729,8 @@ declare module 'claude-code' {
       askedFiles: string[]
       glossaryQuery: string
       setupNote: string | null
+      /** Why the last own budget typed in the Flow tab was refused; null once one is taken. */
+      budgetProblem: string | null
       /** Text typed into each settings field since it was drawn, by field key. */
       typed: Record<string, string>
     }

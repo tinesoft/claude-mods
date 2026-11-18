@@ -1,4 +1,5 @@
-import type { DenyConfig, PhaseId } from '../types'
+import type { DenyConfig, Overrun, PhaseId } from '../types'
+import { overBudgetText } from './budgets'
 import type { Flow } from './evidence'
 import { PHASES } from './phases'
 
@@ -7,12 +8,12 @@ const switchText = (rule: keyof DenyConfig) =>
   `This is the deny.${rule} rule; turn it off in Settings › Automation, or set "deny": { "${rule}": false } in .craftory/config.json.`
 
 /**
- * The switch that makes `rule` refuse, or null when it does not. `hardGates` turns on both rules,
+ * The switch that makes `rule` refuse, or null when it does not. `hardGates` turns on every rule,
  * so a refusal that follows from it names `hardGates`: turning the sub-rule off would not help.
  */
 export function ruleVia(
   deny: DenyConfig,
-  rule: 'skipGate' | 'editOnIntegrationBranch',
+  rule: Exclude<keyof DenyConfig, 'hardGates'>,
 ): keyof DenyConfig | null {
   if (deny.hardGates) return 'hardGates'
   return deny[rule] ? rule : null
@@ -29,6 +30,22 @@ export function skipGateDenial(
   if (state?.kind !== 'gated') return null
   const why = state.blockers.join(', ') || `${PHASES[state.by].label} is not done`
   return `Craftory denied ${skill}: ${PHASES[phase].label} is gated until ${PHASES[state.by].label} is done (${why}). ${switchText(via)}`
+}
+
+/** The deny.overBudget reason for running `what` while `overrun` is over its budget. */
+export const overBudgetDenial = (what: string, overrun: Overrun, via: keyof DenyConfig) =>
+  `Craftory denied ${what}: ${overBudgetText(overrun)}, over its budget. ${switchText(via)}`
+
+/** deny.overBudget refusing: what is over, and the switch that makes the rule refuse. */
+export type OverBudgetVerdict = { overrun: Overrun; via: keyof DenyConfig }
+
+/** Whether deny.overBudget refuses a run while `overrun` is over; null lets it through. */
+export function overBudgetVerdict(
+  deny: DenyConfig,
+  overrun: Overrun | null | undefined,
+): OverBudgetVerdict | null {
+  const via = overrun ? ruleVia(deny, 'overBudget') : null
+  return overrun && via !== null ? { overrun, via } : null
 }
 
 /** Resolves `path` against `cwd` and folds `.` and `..`, so a prefix check can be trusted. */

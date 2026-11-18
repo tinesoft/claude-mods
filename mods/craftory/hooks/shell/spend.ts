@@ -1,4 +1,11 @@
 import { atom, type EngineInterface, read, type Timer, update } from 'claude-code'
+import {
+  budgetMarkOf,
+  budgetsOfFeature,
+  type BudgetStanding,
+  overrunOf,
+  type SpendFigure,
+} from '../../src/budgets'
 import { isoOf } from '../../src/build'
 import { SPEND_DIR } from '../../src/files'
 import {
@@ -48,8 +55,11 @@ import {
   STORE_SPEND_GROUP,
 } from '../../src/spend-view'
 import type {
+  BudgetConfig,
+  Feature,
   FeatureKey,
   LocalSpend,
+  Overrun,
   PhaseId,
   SessionSpend,
   SpendDisk,
@@ -58,7 +68,7 @@ import type {
   SpendTarget,
 } from '../../types'
 import { draftsOf, featuresOf } from './features'
-import { listDir, readText, sh, writableContext, writeRepoFile } from './repo'
+import { listDir, readText, repoFacts, sh, writableContext, writeRepoFile } from './repo'
 
 const spendState = atom({ plugin: 'craftory', key: 'spend' } as const, EMPTY_SPEND)
 
@@ -309,10 +319,15 @@ export async function endSpend($: EngineInterface, isCleared: boolean) {
   await update($, diskState, disk => ({ ...disk, written: {}, session }))
 }
 
+/** Whether the active Feature's spend moved: its short text, or its dollars, which budgets read. */
+const hasMoved = (before: SpendTotal, after: SpendTotal) =>
+  spendText(after) !== spendText(before) || after.usd !== before.usd
+
 /**
  * One answered step: rolls its tokens up under `target`, and shares out whatever the session's
- * cost moved by since the last reading. Answers whether the short spend text changed, so the
- * caller redraws the status line only then.
+ * cost moved by since the last reading. Answers whether the spend moved (see `hasMoved`), so the
+ * caller redraws and checks the budgets only then: a priced step can cross a budget while the
+ * status line reads the same.
  */
 export async function noteSpendStep(
   $: EngineInterface,
@@ -334,7 +349,7 @@ export async function noteSpendStep(
   await update($, spendState, ledger =>
     observe(ledger, { ...target, model: usage.model, tokens: tokensOf(usage) }, usd),
   )
-  return spendText(await spendTotalOf($, active)) !== spendText(before)
+  return hasMoved(before, await spendTotalOf($, active))
 }
 
 /** A `session.measure` whose cost grew: prices the steps still waiting for it. */
@@ -345,7 +360,7 @@ export async function noteSpendReading(
 ): Promise<boolean> {
   const before = await spendTotalOf($, active)
   await update($, spendState, ledger => reading(ledger, usd))
-  return spendText(await spendTotalOf($, active)) !== spendText(before)
+  return hasMoved(before, await spendTotalOf($, active))
 }
 
 /** What the Feature has cost: this session's spend and every other session's committed files. */
@@ -390,27 +405,80 @@ async function sessionsOf(
   )
 }
 
-/** The Spend line of `/craftory`'s text reply; null when the Feature spent nothing. */
-export async function spendSummaryOf(
-  $: EngineInterface,
-  feature: FeatureKey,
-): Promise<string | null> {
-  const [ledger, disk] = await Promise.all([read($, spendState), read($, diskState)])
-  const total = totalOf(ledger, feature, diskRowsOf(disk, feature))
-  return spendSummaryLine(total, await sessionsOf($, feature, ledger, disk), disk.hasCost)
+/** The Feature's budgets in force: its own over the config defaults. */
+async function budgetsOf($: EngineInterface, feature: Feature): Promise<BudgetConfig> {
+  return budgetsOfFeature((await repoFacts($)).config.budgets, feature)
 }
 
-/** Each phase's Spend row for its card, by phase; a phase that spent nothing is left out. */
+/** The Spend line of `/craftory`'s text reply, of the Feature's budget; null when it spent nothing. */
+export async function spendSummaryOf($: EngineInterface, feature: Feature): Promise<string | null> {
+  const [ledger, disk, budgets] = await Promise.all([
+    read($, spendState),
+    read($, diskState),
+    budgetsOf($, feature),
+  ])
+  const total = totalOf(ledger, feature.key, diskRowsOf(disk, feature.key))
+  const budget = budgetMarkOf(total.usd, budgets.featureUsd, budgets, disk.hasCost)
+  const sessions = await sessionsOf($, feature.key, ledger, disk)
+  return spendSummaryLine(total, sessions, disk.hasCost, budget)
+}
+
+/** The Feature's short spend, of its budget, for the status line and the summary chip. */
+export async function featureSpendOf(
+  $: EngineInterface,
+  feature: Feature,
+): Promise<SpendFigure | null> {
+  const [total, disk, budgets] = await Promise.all([
+    spendTotalOf($, feature.key),
+    read($, diskState),
+    budgetsOf($, feature),
+  ])
+  const budget = budgetMarkOf(total.usd, budgets.featureUsd, budgets, disk.hasCost)
+  const text = spendText(total, budget)
+  return text === null ? null : { text, level: budget.level }
+}
+
+/** Where the Feature's and each phase's dollars stand against their budgets; none without one. */
+export async function budgetStandingsOf(
+  $: EngineInterface,
+  feature: Feature,
+): Promise<{ feature: BudgetStanding | null; phases: Partial<Record<PhaseId, BudgetStanding>> }> {
+  const [{ phases, hasCost }, total, budgets] = await Promise.all([
+    spendBreakdownOf($, feature.key),
+    spendTotalOf($, feature.key),
+    budgetsOf($, feature),
+  ])
+  const standing = (usd: number | null, budget: number): BudgetStanding | null => {
+    const { level } = budgetMarkOf(usd, budget, budgets, hasCost)
+    return usd === null || level === 'none' ? null : { usd, budget, level }
+  }
+  return {
+    feature: standing(total.usd, budgets.featureUsd),
+    phases: Object.fromEntries(
+      PHASE_ORDER.flatMap(p => {
+        const s = standing(phases[p]?.usd ?? null, budgets.phaseUsd[p])
+        return s === null ? [] : [[p, s]]
+      }),
+    ),
+  }
+}
+
+/** Each phase's Spend row for its card, of its budget; a phase that spent nothing is left out. */
 export async function phaseSpendOf(
   $: EngineInterface,
-  feature: FeatureKey | null,
-): Promise<Partial<Record<PhaseId, string>>> {
-  const { phases, hasCost } = await spendBreakdownOf($, feature)
+  feature: Feature,
+): Promise<Partial<Record<PhaseId, SpendFigure>>> {
+  const [{ phases, hasCost }, budgets] = await Promise.all([
+    spendBreakdownOf($, feature.key),
+    budgetsOf($, feature),
+  ])
   return Object.fromEntries(
     PHASE_ORDER.flatMap(p => {
       const total = phases[p]
-      const text = total === undefined ? null : phaseSpendText(total, hasCost)
-      return text === null ? [] : [[p, text]]
+      if (total === undefined) return []
+      const budget = budgetMarkOf(total.usd, budgets.phaseUsd[p], budgets, hasCost)
+      const text = phaseSpendText(total, hasCost, budget)
+      return text === null ? [] : [[p, { text, level: budget.level }]]
     }),
   )
 }
@@ -436,12 +504,13 @@ export async function setSpendGroup($: EngineInterface, group: SpendGroup) {
 
 /** Everything the Spend tab shows, gathered from this session, the committed files and the store. */
 export async function spendTabOf($: EngineInterface, flow: Flow | null): Promise<SpendTabView> {
-  const [ledger, disk, records, drafts, group] = await Promise.all([
+  const [ledger, disk, records, drafts, group, budgets] = await Promise.all([
     read($, spendState),
     read($, diskState),
     featuresOf($),
     draftsOf($),
     spendGroupOf($),
+    flow === null ? undefined : budgetsOf($, flow.feature),
   ])
   const mine: PersonRow[] = sessionRows(ledger).map(r => ({ ...r, user: disk.user }))
   const tag = (rows: readonly SpendRow[], user: string | null): PersonRow[] =>
@@ -472,7 +541,34 @@ export async function spendTabOf($: EngineInterface, flow: Flow | null): Promise
     titles: Object.fromEntries(flow?.tickets.map(t => [t.issue.ref, t.issue.title]) ?? []),
     outside: [...mine.filter(r => r.feature === null), ...tag(disk.outside, disk.user)],
     skipped: disk.skipped,
+    ...(budgets && { budgets }),
   })
+}
+
+/** What is over budget for a run of `phase` of the flow's Feature: the phase, else the Feature. */
+export async function overrunNow(
+  $: EngineInterface,
+  flow: Flow,
+  phase: PhaseId,
+): Promise<Overrun | null> {
+  const [{ phases, hasCost }, total, budgets] = await Promise.all([
+    spendBreakdownOf($, flow.feature.key),
+    spendTotalOf($, flow.feature.key),
+    budgetsOf($, flow.feature),
+  ])
+  return overrunOf({
+    phase,
+    phaseUsd: phases[phase]?.usd ?? null,
+    featureUsd: total.usd,
+    title: flow.title,
+    budgets,
+    hasCost,
+  })
+}
+
+/** Whether this session's host keeps a cost ledger, so dollar budgets apply. */
+export async function hasCostOf($: EngineInterface): Promise<boolean> {
+  return (await read($, diskState)).hasCost
 }
 
 /** Spend files that could not be read, for the Spend tab. */

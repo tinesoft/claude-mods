@@ -82,6 +82,7 @@ const FACTS: SettingsFacts = {
     steering: 'CLAUDE.md',
   },
   prefs: { rail: true, railLayout: 'row', theme: 'auto', ascii: false, askContext: true },
+  hasCost: true,
 }
 
 for (const row of ALL_ROWS) {
@@ -207,13 +208,22 @@ test('the deny rules appear under Automation, off, and turning one on writes den
     hardGates: false,
     skipGate: true,
     editOnIntegrationBranch: false,
+    overBudget: false,
   })
   await pane.press({ key: 'set-deny-edit-on-integration' })
   expect(JSON.parse(w.files.get('.craftory/config.json')!).deny).toEqual({
     hardGates: false,
     skipGate: true,
     editOnIntegrationBranch: true,
+    overBudget: false,
   })
+})
+
+test('Deny over budget is a switch in Automation, and turning it on writes deny.overBudget', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'automation')
+  expect(await allText(pane)).toContain('Deny phase skills and agents over budget')
+  await pane.press({ key: 'set-deny-over-budget' })
+  expect(JSON.parse(w.files.get('.craftory/config.json')!).deny.overBudget).toBe(true)
 })
 
 test('Hard gates is a switch in Automation, and turning it on writes deny.hardGates', async ($, on) => {
@@ -223,7 +233,7 @@ test('Hard gates is a switch in Automation, and turning it on writes deny.hardGa
   expect(JSON.parse(w.files.get('.craftory/config.json')!).deny.hardGates).toBe(true)
 })
 
-test('with Hard gates on, the two deny rules read on and cannot be turned off', async ($, on) => {
+test('with Hard gates on, the deny rules read on and cannot be turned off', async ($, on) => {
   const { w, pane } = await settings(
     on,
     $,
@@ -235,6 +245,7 @@ test('with Hard gates on, the two deny rules read on and cannot be turned off', 
   expect(await allText(pane)).toContain('On because Hard gates is on.')
   await pane.press({ key: 'set-deny-skip-gate' }).catch(() => undefined)
   await pane.press({ key: 'set-deny-edit-on-integration' }).catch(() => undefined)
+  await pane.press({ key: 'set-deny-over-budget' }).catch(() => undefined)
   expect(JSON.parse(w.files.get('.craftory/config.json')!).deny).toEqual({ hardGates: true })
 })
 
@@ -390,4 +401,89 @@ test('Worktrees › an own value out of bounds is refused with the bounds', asyn
   expect(w.files.get('.craftory/config.json')).toBeUndefined()
   await pane.redraw()
   expect(await allText(pane)).toContain('Token budget per agent: use 10k to 1000k')
+})
+
+const savedBudgets = (w: { files: Map<string, string> }) =>
+  JSON.parse(w.files.get('.craftory/config.json')!).budgets
+
+test('Pipeline › a Feature budget and a phase’s budget are written to the config defaults', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'pipeline')
+  await pane.press({ key: 'set-budget-feature-20' })
+  expect(savedBudgets(w).featureUsd).toBe(20)
+  await pane.redraw()
+  await pane.press({ key: 'set-phase-build-budget-10' })
+  expect(savedBudgets(w).phaseUsd.build).toBe(10)
+  await pane.redraw()
+  await pane.press({ key: 'set-phase-build-budget-0' })
+  expect(savedBudgets(w).phaseUsd.build).toBe(0)
+})
+
+test('Pipeline › a budget of your own is whole dollars, $ or not, and shown among the choices', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'pipeline')
+  await pane.input({ key: 'set-budget-feature-custom', text: '$35' })
+  expect(savedBudgets(w).featureUsd).toBe(35)
+  await pane.input({ key: 'set-phase-spec-budget-custom', text: '3' })
+  expect(savedBudgets(w).phaseUsd.spec).toBe(3)
+  await pane.redraw()
+  expect(await texts(pane)).toContain('$35')
+  await pane.input({ key: 'set-phase-spec-budget-custom', text: '2.5' })
+  await pane.redraw()
+  expect(await allText(pane)).toContain('Spec budget: use Off to $100000')
+})
+
+test('Pipeline › where this session keeps no cost ledger the budget rows say they need one', async ($, on) => {
+  const { pane } = await settings(on, $, 'local', {}, 'terminal', 'pipeline')
+  expect(await allText(pane)).toContain('Needs a cost ledger: budgets do not apply on this surface')
+})
+
+test('Pipeline › with a cost ledger the budget rows carry no such note', async ($, on) => {
+  const { pane } = await settings(on, $, 'local', { cost: () => 0 }, 'terminal', 'pipeline')
+  const text = await allText(pane)
+  expect(text).toContain('Feature budget')
+  expect(text).not.toContain('Needs a cost ledger')
+})
+
+test('Pipeline › Near budget at offers 70%, 80% and 90%, no Off, and writes budgets.warnAtPercent', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'pipeline')
+  expect(await allText(pane)).toContain('Near budget at')
+  expect(await pane.find({ key: 'set-budget-warn-at-70' })).toBeDefined()
+  expect(await pane.find({ key: 'set-budget-warn-at-90' })).toBeDefined()
+  expect(await pane.find({ key: 'set-budget-warn-at-100' })).toBeUndefined()
+  await pane.press({ key: 'set-budget-warn-at-90' })
+  expect(savedBudgets(w).warnAtPercent).toBe(90)
+  await pane.redraw()
+  await pane.input({ key: 'set-budget-warn-at-custom', text: '75%' })
+  expect(savedBudgets(w).warnAtPercent).toBe(75)
+})
+
+test('Near budget at takes an own value within 50% to 95%', () => {
+  const row = choiceRow('budget-warn-at')
+  expect(checkCustom(row, '75%')).toEqual({ value: '75' })
+  expect(checkCustom(row, '96')).toEqual({ problem: 'Near budget at: use 50% to 95%' })
+})
+
+test('Worktrees › Throttle at and While throttled write rateLimits, with 100% as Off', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'worktrees')
+  const text = await allText(pane)
+  expect(text).toContain('Throttle at')
+  expect(text).toContain('While throttled')
+  await pane.press({ key: 'set-rl-throttle-at-90' })
+  await pane.press({ key: 'set-rl-throttled-parallel-2' })
+  expect(JSON.parse(w.files.get('.craftory/config.json')!).rateLimits).toEqual({
+    throttleAt: 90,
+    throttledParallel: 2,
+  })
+  await pane.redraw()
+  await pane.press({ key: 'set-rl-throttle-at-100' })
+  expect(JSON.parse(w.files.get('.craftory/config.json')!).rateLimits.throttleAt).toBe(100)
+})
+
+test('the throttle rows take an own value within the config bounds', () => {
+  const at = choiceRow('rl-throttle-at')
+  const parallel = choiceRow('rl-throttled-parallel')
+  expect(checkCustom(at, '85%')).toEqual({ value: '85' })
+  expect(checkCustom(at, '85')).toEqual({ value: '85' })
+  expect(checkCustom(at, '40')).toEqual({ problem: 'Throttle at: use 50% to 100%' })
+  expect(checkCustom(parallel, '4')).toEqual({ value: '4' })
+  expect(checkCustom(parallel, '0')).toEqual({ problem: 'While throttled: use 1 to 16' })
 })

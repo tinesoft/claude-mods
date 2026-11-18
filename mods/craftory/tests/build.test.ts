@@ -5,6 +5,7 @@ import {
   agentName,
   agentRows,
   agentSummary,
+  agentsView,
   budgetState,
   cleanupPlan,
   decideSpawn,
@@ -528,4 +529,126 @@ test('a run is timed out only when the engine says the child was still running a
   expect(isRunTimeout('craftory: $.process.run(pnpm) failed to start: ENOENT: not found')).toBe(
     false,
   )
+})
+
+/** Wednesday 18 November 2026, 10:00 UTC; the windows' resets read in CET. */
+const WED_10_UTC = Date.parse('2026-11-18T10:00:00Z')
+const FIVE_HOUR_AT = (percentUsed: number) => ({
+  kind: 'five_hour',
+  percentUsed,
+  resetsAt: '2026-11-18T17:40:00Z',
+})
+
+const throttled = (
+  ledger: BuildLedger,
+  limits: { kind: string; percentUsed: number; resetsAt?: string }[],
+  rateLimits: Partial<CraftoryConfig['rateLimits']> = {},
+  maxParallel = 3,
+) =>
+  decideSpawn({
+    call: call({ toolUseId: 'tu-45', description: 'Implement #45' }),
+    ledger,
+    config: {
+      ...DEFAULT_CONFIG,
+      worktrees: { ...DEFAULT_CONFIG.worktrees, maxParallel },
+      rateLimits: { ...DEFAULT_CONFIG.rateLimits, ...rateLimits },
+    },
+    isBuildRunning: true,
+    tickets: TICKETS,
+    integrationBranch: 'feat/csv',
+    windows: { limits, now: WED_10_UTC, offsetMinutes: 60 },
+  })
+
+test('a window under throttleAt leaves the parallel limit at maxParallel', () => {
+  expect(throttled(withRun(EMPTY_LEDGER, 44), [FIVE_HOUR_AT(79.9)]).kind).toBe('steer')
+})
+
+test('at or over throttleAt, at most throttledParallel implementers run, and the reason names the window', () => {
+  for (const percent of [80, 84]) {
+    const decision = throttled(withRun(EMPTY_LEDGER, 44), [FIVE_HOUR_AT(percent)])
+    expect(decision).toMatchObject({ kind: 'deny', ticket: '#45', isQueued: true })
+    expect(decision.kind === 'deny' && decision.reason).toBe(
+      `Craftory holds #45: the 5-hour window is at ${percent}% (resets 18:40), so at most 1 implementer runs at once. ` +
+        'Start it after #44 returns, and do not call Agent for #45 again before then.',
+    )
+  }
+})
+
+test('while throttled, the first implementer still starts', () => {
+  expect(throttled(EMPTY_LEDGER, [FIVE_HOUR_AT(95)]).kind).toBe('steer')
+})
+
+test('the fullest window over the threshold is the one named, and a window without a reset says none', () => {
+  const ledger = withRun(withRun(EMPTY_LEDGER, 44), 48)
+  const decision = throttled(ledger, [FIVE_HOUR_AT(82), { kind: 'seven_day', percentUsed: 91 }], {
+    throttledParallel: 2,
+  })
+  expect(decision.kind === 'deny' && decision.reason).toBe(
+    'Craftory holds #45: the 7-day window is at 91%, so at most 2 implementers run at once. ' +
+      'Start it after one of #44, #48 returns, and do not call Agent for #45 again before then.',
+  )
+})
+
+test('throttleAt 100 is off: a full window throttles nothing', () => {
+  const decision = throttled(withRun(EMPTY_LEDGER, 44), [FIVE_HOUR_AT(100)], { throttleAt: 100 })
+  expect(decision.kind).toBe('steer')
+})
+
+test('throttledParallel above maxParallel never raises the limit', () => {
+  const ledger = withRun(withRun(EMPTY_LEDGER, 44), 48)
+  const decision = throttled(ledger, [FIVE_HOUR_AT(90)], { throttledParallel: 4 }, 2)
+  expect(decision).toMatchObject({ kind: 'deny', isQueued: true })
+  expect(decision.kind === 'deny' && decision.reason).toBe(
+    queueReason(ref(45), [ref(44), ref(48)], 2),
+  )
+})
+
+test('the agents summary says Throttled while throttling is in force', () => {
+  const rows = agentRows({
+    tickets: TICKETS,
+    ledger: withRun(EMPTY_LEDGER, 44),
+    records: {},
+    worktrees: [],
+    config: DEFAULT_CONFIG,
+    integrationBranch: 'feat/csv',
+    now: 1,
+  })
+  expect(
+    agentsView({ rows, config: DEFAULT_CONFIG, isPaused: false, note: null, isThrottled: true })
+      .summary,
+  ).toBe('1 running · 1 merged · 3 queued · 1 for you · Throttled')
+  expect(
+    agentsView({ rows, config: DEFAULT_CONFIG, isPaused: false, note: null, isThrottled: false })
+      .summary,
+  ).not.toContain('Throttled')
+})
+
+const BUILD_OVER = { scope: 'build', name: 'Build', usd: 12.4, budget: 12 } as const
+
+const overBudget = (deny: Partial<CraftoryConfig['deny']>, overrun = BUILD_OVER) =>
+  decideSpawn({
+    call: call(),
+    ledger: EMPTY_LEDGER,
+    config: { ...DEFAULT_CONFIG, deny: { ...DEFAULT_CONFIG.deny, ...deny } },
+    isBuildRunning: true,
+    tickets: TICKETS,
+    integrationBranch: 'feat/csv',
+    overrun,
+  })
+
+test('deny.overBudget refuses a Build spawn over budget, naming the spend, the budget and the switch', () => {
+  expect(overBudget({ overBudget: true })).toEqual({
+    kind: 'deny',
+    ticket: '#44',
+    isQueued: false,
+    reason:
+      'Craftory denied the agent for #44: Build is at $12.40 of $12, over its budget. ' +
+      'This is the deny.overBudget rule; turn it off in Settings › Automation, or set "deny": { "overBudget": false } in .craftory/config.json.',
+  })
+  expect(overBudget({ hardGates: true })).toMatchObject({ kind: 'deny' })
+  expect((overBudget({ hardGates: true }) as { reason: string }).reason).toContain('deny.hardGates')
+})
+
+test('a Build spawn over budget is steered when deny.overBudget is off', () => {
+  expect(overBudget({}).kind).toBe('steer')
 })

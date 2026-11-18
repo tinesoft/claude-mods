@@ -1,5 +1,6 @@
 import type { RenderElement, RenderSurface } from 'claude-code'
 import type { CraftoryConfig, FeatureKey, IssueRef, PhaseId, RailLayout, Tone } from '../types'
+import type { SpendFigure } from './budgets'
 import type { AgentsView } from './build'
 import {
   cardDensity,
@@ -38,6 +39,7 @@ import { NoticeRow } from './notice-row'
 import type { FeatureChoice } from './features'
 import type { NoticeView } from './notices'
 import { PHASES } from './phases'
+import type { WindowView } from './rate-limits'
 import {
   CARET,
   CONNECTOR,
@@ -56,7 +58,18 @@ import {
   RAIL_DIVIDER,
   TOKENS,
 } from './theme'
-import { bareLook, Chip, clip, inkOf, isRich, pillLook, roleInk, stepLook, type Ui } from './ui'
+import {
+  bareLook,
+  Chip,
+  clip,
+  figureInk,
+  inkOf,
+  isRich,
+  pillLook,
+  roleInk,
+  stepLook,
+  type Ui,
+} from './ui'
 
 const glyphOf = (view: PhaseView, frame: number, ascii: boolean) => {
   const look = PHASE_LOOKS[view.state.kind]
@@ -101,10 +114,12 @@ export type BandArgs = {
   /** The active Feature, when it may be archived: the band then draws the Archive button. */
   archivable: FeatureKey | null
   isPickingFeature: boolean
-  /** The active Feature's short spend (`$4.12`, `412k`), drawn in the summary; null with none. */
-  spend?: string | null
+  /** The active Feature's short spend (`$4.12`, `412k`, `$9.80 of $20`), drawn in the summary. */
+  spend?: SpendFigure | null
   /** Each phase's Spend row for its card; a phase that spent nothing is left out. */
-  phaseSpend?: Partial<Record<PhaseId, string>>
+  phaseSpend?: Partial<Record<PhaseId, SpendFigure>>
+  /** The account's rate-limit windows, drawn on the Build card; none off a subscription. */
+  windows?: readonly WindowView[]
   on: BandActions
 }
 
@@ -530,7 +545,7 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
     args.map === null ? 0 : `${mapChipCompactText(args.map, args.ascii)} ${sep}`.length + 1
   const parts = summaryParts(flow)
   const phaseText = `· ${parts.phase}`
-  const spendText = args.spend ? `· ${args.spend}` : null
+  const spendText = args.spend ? `· ${args.spend.text}` : null
   const rest =
     1 +
     phaseText.length +
@@ -595,7 +610,10 @@ const Summary = ({ args, flow }: { args: RailArgs; flow: Flow }) => {
               </Text>
             ))}
           {spendText !== null && (
-            <Text key="summary-spend" {...inkOf(tone, 'muted')}>{` ${spendText}`}</Text>
+            <Text
+              key="summary-spend"
+              {...figureInk(tone, args.spend?.level ?? 'none', 'muted')}
+            >{` ${spendText}`}</Text>
           )}
         </Chip>
       </Box>
@@ -644,6 +662,7 @@ export function renderBand(args: BandArgs) {
           config,
           args.agents,
           args.phaseSpend?.[phase] ?? null,
+          args.windows,
         )
   const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
   const mapCard = args.isMapOpen && args.map !== null && open === null

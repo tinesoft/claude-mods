@@ -21,7 +21,7 @@ import { waitingForTriage } from '../src/evidence'
 import type { RunRequest } from '../src/gates'
 import { removalTargets, worktreeRemoveArgv } from '../src/git'
 import type { Action } from '../src/action'
-import { derivedNotices, eventNotices } from '../src/notices'
+import { derivedNotices, eventNotices, PANE_NOTICES } from '../src/notices'
 import { renderPane } from '../src/pane'
 import { type InboxAction, tabCounts } from '../src/pane-view'
 import { namespaced, recognise, SKILLS } from '../src/phases'
@@ -71,6 +71,7 @@ import {
   finishTurn,
   gatePrompt,
   gateVerdict,
+  overBudgetReason,
   markDone,
   refreshSpend,
   settle,
@@ -94,6 +95,7 @@ import {
   subagentSkillCall,
 } from './shell/automations'
 import { gitOf } from './shell/git'
+import { noteRateLimits, rateWindowsOf, startRateLimits } from './shell/limits'
 import { forgetSeat, markStopDelivered, pendingSeat, runOf } from './shell/ledger'
 import { dismissedOf, dismissNotice, heldNotices } from './shell/notices'
 import {
@@ -105,6 +107,7 @@ import {
 } from './shell/sync'
 import {
   endSpend,
+  featureSpendOf,
   flushSpend,
   phaseSpendOf,
   setSpendGroup,
@@ -116,6 +119,8 @@ import {
   spendTotalOf,
   startSpend,
 } from './shell/spend'
+import { editFeatureBudget, flowBudgetOf } from './shell/budget'
+import { continueSpendBudget, raiseSpendBudget } from './shell/spend-budgets'
 import { mapViewOf, trackerOf, wayfinderOfferOf } from './shell/tracker'
 import {
   detectPlugin,
@@ -218,6 +223,14 @@ async function dispatch($: EngineInterface, action: Action) {
     case 'raise-budget': {
       await raiseBudget($, action.ticket)
       return dropNotices($, n => n.kind === 'budget' && n.ticket === action.ticket)
+    }
+    case 'raise-spend-budget': {
+      await raiseSpendBudget($, action.key, action.scope)
+      return settle($)
+    }
+    case 'continue-spend-budget': {
+      await continueSpendBudget($, action.key, action.scope, action.budget)
+      return settle($)
     }
     case 'resolve': {
       await dropNotice($, action.noticeId)
@@ -340,6 +353,7 @@ export const register: Register = (on, options) => {
     await Promise.all([loadRepo($), loadFeatures($), detectPlugin($), rearmAutomations($)])
     // After the features load: a draft's spend is found by its id.
     await startSpend($)
+    await startRateLimits($)
     await stopStaleAgents($)
     await rememberGlossaryAtStart($)
     await offerArchitecture($)
@@ -352,7 +366,7 @@ export const register: Register = (on, options) => {
     if (!(await isSupported($))) return { text: unsupportedText }
     if (!(await drawsAnything($))) {
       const flow = await currentFlow($)
-      const spend = flow === null ? null : await spendSummaryOf($, flow.feature.key)
+      const spend = flow === null ? null : await spendSummaryOf($, flow.feature)
       return { text: markdownSummary(flow, await pluginOf($), spend) }
     }
     await openPane($, 'flow')
@@ -464,9 +478,10 @@ export const register: Register = (on, options) => {
     return result
   })
 
-  // A cost that grew after the steps it covers prices them here.
+  // A cost that grew after the steps it covers prices them here; the rate-limit windows are kept.
   on('session.measure', async ($, e, next) => {
     const result = await next(e)
+    if (e.changed.includes('rateLimits')) await noteRateLimits($, e.rateLimits)
     if (e.cost !== undefined && e.changed.includes('cost'))
       if (await noteSpendReading($, e.cost.usd, await activeKey($))) await refreshSpend($)
     return result
@@ -514,6 +529,8 @@ export const register: Register = (on, options) => {
       const denial = skipGateDenial(namespaced(found.skill), found.phase, await currentFlow($), via)
       if (denial !== null) return { deny: denial }
     }
+    const overBudget = await overBudgetReason($, namespaced(found.skill), found.phase)
+    if (overBudget !== null) return { deny: overBudget }
     if (found.phase !== 'review') return next(e)
     const req: RunRequest = { skill: found.skill, args: e.args ?? '', phase: 'review' }
     const verdict = await gateVerdict($, req)
@@ -585,8 +602,9 @@ export const register: Register = (on, options) => {
       features: featureChoices(await featuresOf($), await draftsOf($), await activeKey($)),
       archivable: archiveViewOf(flow, await featuresOf($)).archivable,
       isPickingFeature: await isPickingFeatureOf($),
-      spend: flow === null ? null : spendText(await spendTotalOf($, flow.feature.key)),
-      phaseSpend: flow === null ? {} : await phaseSpendOf($, flow.feature.key),
+      spend: flow === null ? null : await featureSpendOf($, flow.feature),
+      phaseSpend: flow === null ? {} : await phaseSpendOf($, flow.feature),
+      windows: await rateWindowsOf($, config.rateLimits),
       on: bandActions($),
     })
   })
@@ -654,11 +672,13 @@ export const register: Register = (on, options) => {
       query: await glossaryQueryOf($),
       settings: await settingsArgs($, options),
       spend: await spendTabOf($, flow),
-      notices: eventNotices((await heldNotices($)).filter(n => n.kind === 'gate')),
+      budget: await flowBudgetOf($, flow),
+      notices: eventNotices((await heldNotices($)).filter(n => PANE_NOTICES.has(n.kind))),
       on: {
         act: actions.act,
         tab: tab => void openPane($, tab),
         spendGroup: group => void setSpendGroup($, group),
+        budget: text => void editFeatureBudget($, text),
         diff: path => void toggleDiff($, path),
         openTerminal: (path, surface) => void copyTerminal($, path, surface),
         remove: path => void removeWorktree($, path),

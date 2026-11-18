@@ -1,8 +1,10 @@
 import type {
   AgentOutcome,
   AgentRecord,
+  BudgetScope,
   DraftFeature,
   Feature,
+  FeatureBudgets,
   FeatureKey,
   FeatureRecord,
   GitSnapshot,
@@ -16,6 +18,7 @@ import type {
   TestRun,
   TrackerSnapshot,
 } from '../types'
+import { BUDGET_MAX_USD } from './config'
 import { isSafeRef } from './git'
 import { PHASE_ORDER } from './phases'
 import { parseIssueRef, parseRef, refSlug } from './tracker/refs'
@@ -77,6 +80,42 @@ const parseSharedFields = (json: Json): SharedFields =>
     wayfinderSuggestDismissed: json.wayfinderSuggestDismissed === true,
     handoff: text(json.handoff),
   })
+
+/** One own budget: whole dollars, `null` for "use the default", undefined when unset or unreadable. */
+type OwnBudget = number | null | undefined
+
+const budgetOf = (v: unknown): OwnBudget => {
+  if (v === null) return null
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0
+    ? Math.min(BUDGET_MAX_USD, Math.round(v))
+    : undefined
+}
+
+/** Budgets with only what is set, phases in phase order; undefined when none is. */
+function budgetsOf(usd: OwnBudget, phases: (p: PhaseId) => OwnBudget) {
+  const own = Object.fromEntries(
+    PHASE_ORDER.flatMap(p => (phases(p) === undefined ? [] : [[p, phases(p)!]])),
+  ) as Partial<Record<PhaseId, number | null>>
+  const budgets: FeatureBudgets = {
+    ...(usd !== undefined && { usd }),
+    ...(Object.keys(own).length > 0 && { phases: own }),
+  }
+  return Object.keys(budgets).length === 0 ? undefined : budgets
+}
+
+const parseBudgets = (v: unknown): FeatureBudgets | undefined =>
+  isRecord(v)
+    ? budgetsOf(budgetOf(v.usd), p => (isRecord(v.phases) ? budgetOf(v.phases[p]) : undefined))
+    : undefined
+
+/** The writer's budget when it set one, a `null` "use the default" included; else the disk's. */
+const mineOr = (disk: OwnBudget, mine: OwnBudget) => (mine === undefined ? disk : mine)
+
+/** Each budget the writer set wins, a cleared one too; one only the disk has is kept. */
+const mergeBudgets = (disk: FeatureBudgets | undefined, mine: FeatureBudgets | undefined) =>
+  budgetsOf(mineOr(disk?.usd, mine?.usd), p => mineOr(disk?.phases?.[p], mine?.phases?.[p]))
+
+const withBudgets = (budgets: FeatureBudgets | undefined) => (budgets ? { budgets } : {})
 
 export function isSkipped(record: Pick<FeatureRecord, 'skips'>, phase: PhaseId): boolean {
   const mark = record.skips[phase]
@@ -231,6 +270,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     ...(stampOf(json.archivedAt) && { archivedAt: stampOf(json.archivedAt)! }),
     ...(stampOf(json.unarchivedAt) && { unarchivedAt: stampOf(json.unarchivedAt)! }),
     ...parseSharedFields(json),
+    ...withBudgets(parseBudgets(json.budgets)),
     marks: parseMarks(json.marks),
     agents,
   }
@@ -295,6 +335,7 @@ export function serialiseFeature(record: FeatureRecord): string {
       ...(record.archivedAt && { archivedAt: record.archivedAt }),
       ...(record.unarchivedAt && { unarchivedAt: record.unarchivedAt }),
       ...sharedFields(record),
+      ...withBudgets(budgetsOf(record.budgets?.usd, p => record.budgets?.phases?.[p])),
       marks,
       agents,
     },
@@ -376,6 +417,7 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
     }),
     ...((mine.retroOffered || disk.retroOffered) && { retroOffered: true as const }),
     ...stamps(max(disk.archivedAt, mine.archivedAt), max(disk.unarchivedAt, mine.unarchivedAt)),
+    ...withBudgets(mergeBudgets(disk.budgets, mine.budgets)),
     marks,
     agents,
   }
@@ -397,6 +439,8 @@ export type FeatureChange =
   | { kind: 'unarchive'; at: IsoTime }
   /** The latest handoff document wins: the card links the one written last. */
   | { kind: 'handoff'; path: string }
+  /** The Feature's own budget for itself or one phase, whole dollars; `0` is none, `null` the default. */
+  | { kind: 'budget'; target: BudgetScope; usd: number | null }
 
 type Marks = Partial<Record<PhaseId, PhaseMark>>
 
@@ -492,6 +536,17 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
       return { ...record, pr: change.pr }
     case 'retro-offered':
       return { ...record, retroOffered: true }
+    case 'budget':
+      return {
+        ...record,
+        budgets:
+          change.target === 'feature'
+            ? { ...record.budgets, usd: change.usd }
+            : {
+                ...record.budgets,
+                phases: { ...record.budgets?.phases, [change.target]: change.usd },
+              },
+      }
     case 'dismiss-wayfinder':
     case 'link-map':
     case 'handoff':
@@ -504,7 +559,9 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
 }
 
 export function applyDraftChange(draft: DraftFeature, change: FeatureChange): DraftFeature {
-  if (change.kind === 'archive' || change.kind === 'unarchive') return draft
+  // A draft has no record to keep a budget on: it gets the defaults only
+  if (change.kind === 'archive' || change.kind === 'unarchive' || change.kind === 'budget')
+    return draft
   if (
     change.kind === 'dismiss-wayfinder' ||
     change.kind === 'link-map' ||
