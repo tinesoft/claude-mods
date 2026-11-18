@@ -706,6 +706,8 @@ declare module 'claude-code' {
       automationsFired: string[]
       /** The architecture check started in the main session and has not reported yet. */
       architectureRun: boolean
+      /** The last skill start noted this turn, so a second source reporting it is ignored. */
+      lastSkillStart: string | null
       /** The phase the last main turn ended in, until the refresh after it checks its Done-when. */
       nudgeEnded: { feature: FeatureKey; phase: PhaseId } | null
       /** A handoff skill run in flight: the Feature it belongs to and the last file it wrote. */

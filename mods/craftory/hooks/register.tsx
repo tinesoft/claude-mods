@@ -75,20 +75,18 @@ import {
   markDone,
   refreshSpend,
   settle,
-  skillStarted,
   spendTarget,
   startContext,
   switchFeature,
   archiveFeature,
   unarchiveFeature,
 } from './shell/flow'
+import { onSkillStart, skillTurnEnded } from './shell/skill-start'
 import {
   finishHandoff,
-  noteHandoffStart,
   noteHandoffWrite,
   noteMainStep,
   noteMainTurnEnd,
-  noteSkillStarted,
   offerArchitecture,
   noteTurnEnded,
   rearmAutomations,
@@ -374,15 +372,15 @@ export const register: Register = (on, options) => {
   })
 
   on('skill.prompt', async ($, e, next) => {
-    await skillStarted($, e.skill)
-    await noteSkillStarted($, e.skill)
-    await noteHandoffStart($, e.skill)
+    await onSkillStart($, e.skill)
     return next(e)
   })
 
   on('prompt.submit', async ($, e, next) => {
     const drop = await gatePrompt($, e, await canAskInBand($))
     if (drop !== undefined) return { drop }
+    // A managed plugin may skip `skill.prompt`, so a typed `/skill` also notes its start here.
+    if (e.command !== undefined) await onSkillStart($, e.command.name)
     const context = await startContext($, e)
     return next(context === undefined ? e : { ...e, context: [...(e.context ?? []), ...context] })
   })
@@ -397,6 +395,7 @@ export const register: Register = (on, options) => {
     await noteTurnEnded($, await finishTurn($, e))
     await noteMainTurnEnd($, e.isAborted === true)
     await finishHandoff($, e.isAborted === true)
+    await skillTurnEnded($)
     scheduleRefresh($)
     // Off the turn: the write waits on nothing the person is waiting for.
     $.clock.after(0, () => void flushSpend($))
@@ -539,6 +538,12 @@ export const register: Register = (on, options) => {
       .ask(verdict.text, [RUN_ANYWAY, DIAGNOSE_FIRST])
       .catch(() => RUN_ANYWAY)
     return answer === DIAGNOSE_FIRST ? { deny: DIAGNOSE_REASON } : next(e)
+  })
+
+  // Beneath the gates above, so a denied call starts nothing. See `onSkillStart`.
+  on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
+    await onSkillStart($, e.skill)
+    return next(e)
   })
 
   on('tool.call', { tool: 'Edit' }, denyIntegrationEdit)
