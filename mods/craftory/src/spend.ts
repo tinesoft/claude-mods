@@ -25,6 +25,7 @@ import type {
   SpendTarget,
   TokenCounts,
 } from '../types'
+import { BUDGET_WORDS, type BudgetMark, budgetText, NO_BUDGET } from './budgets'
 import { SPEND_DIR } from './files'
 import { PHASE_ORDER } from './phases'
 import { refSlug } from './tracker/refs'
@@ -356,9 +357,22 @@ export function tokensText(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M`
 }
 
-/** The short spend for the status line and the summary chip; null when nothing was spent. */
-export function spendText(total: SpendTotal): string | null {
-  if (total.usd !== null) return usdText(total.usd)
+/** Dollars, and the budget they are of once one applies: `$9.80 of $12`. */
+const usdOfBudget = (usd: number, budget: BudgetMark) =>
+  budget.level === 'none' ? usdText(usd) : `${usdText(usd)} of ${budgetText(budget.budget)}`
+
+/** The word a figure ends with near or over its budget, as a list to spread. */
+const budgetWord = (budget: BudgetMark) => {
+  const word = BUDGET_WORDS[budget.level]
+  return word === null ? [] : [word]
+}
+
+/**
+ * The short spend for the status line and the summary chip, `$9.80 of $20 · Near budget` once
+ * the Feature has a budget; null when nothing was spent.
+ */
+export function spendText(total: SpendTotal, budget: BudgetMark = NO_BUDGET): string | null {
+  if (total.usd !== null) return [usdOfBudget(total.usd, budget), ...budgetWord(budget)].join(' · ')
   return total.fresh > 0 ? tokensText(total.fresh) : null
 }
 
@@ -484,18 +498,27 @@ export function breakdownOf(
 /** Said where the host keeps no cost ledger, so no one reads the missing dollars as $0. */
 export const NO_COST_TEXT = '$ unavailable on this surface'
 
+/** Said under every budget, in Settings and the Flow tab, where the host keeps no cost ledger. */
+export const NO_COST_LEDGER_NOTE = 'Needs a cost ledger: budgets do not apply on this surface.'
+
 /**
- * A phase card's Spend row: `$2.14 · 318k fresh · 61% cache`. Without a cost ledger the dollars
+ * A phase card's Spend row: `$2.14 · 318k fresh · 61% cache`, `$2.14 of $12 · …` once the phase
+ * has a budget, ending `Near budget` or `Over budget` near or over it. Without a cost ledger the dollars
  * give way to a note saying so. Null when the phase has spent nothing.
  */
-export function phaseSpendText(total: SpendTotal, hasCost: boolean): string | null {
+export function phaseSpendText(
+  total: SpendTotal,
+  hasCost: boolean,
+  budget: BudgetMark = NO_BUDGET,
+): string | null {
   if (total.fresh === 0 && total.cacheRead === 0) return null
   const hit = cacheHit(total.tokens)
   return [
-    ...(total.usd !== null ? [usdText(total.usd)] : []),
+    ...(total.usd !== null ? [usdOfBudget(total.usd, budget)] : []),
     `${tokensText(total.fresh)} fresh`,
     ...(hit === null ? [] : [`${Math.round(hit * 100)}% cache`]),
     ...(hasCost ? [] : [NO_COST_TEXT]),
+    ...budgetWord(budget),
   ].join(' · ')
 }
 
@@ -513,10 +536,15 @@ export function spendSummaryLine(
   total: SpendTotal,
   sessions: number,
   hasCost: boolean,
+  budget: BudgetMark = NO_BUDGET,
 ): string | null {
   if (total.fresh === 0 && total.cacheRead === 0) return null
   const fresh = `${tokensText(total.fresh)} fresh tokens`
   const across = `across ${sessions} session${sessions === 1 ? '' : 's'}`
-  if (total.usd !== null) return `Spend: ${usdText(total.usd)} (${fresh}) ${across}`
+  if (total.usd !== null)
+    return [
+      `Spend: ${usdOfBudget(total.usd, budget)} (${fresh}) ${across}`,
+      ...budgetWord(budget),
+    ].join(' · ')
   return `Spend: ${fresh} ${across}${hasCost ? '' : ` (${NO_COST_TEXT})`}`
 }

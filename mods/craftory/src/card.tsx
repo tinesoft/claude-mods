@@ -5,7 +5,7 @@ import { CARD_SPACE, type CardDensity, type CardView } from './card-model'
 import type { Acts } from './action'
 import { AgentsList } from './agents-list'
 import { paint, SPACE, TOKENS, TRIPLES } from './theme'
-import { Icon, inkOf, isRich, roleInk, withTint, type Ui } from './ui'
+import { figureInk, Icon, inkOf, isRich, roleInk, withTint, type Ui } from './ui'
 import { CloseButton, HookNote } from './widgets'
 
 const CommandChip = ({ ui, tone, text }: { ui: Ui; tone: Tone | undefined; text: string }) => {
@@ -173,10 +173,25 @@ export const DetailCard = ({
             <Link key="handoff-link" href={card.handoff} label={card.handoff} />
           </CardRow>
         )}
+        {card.windows.length > 0 && (
+          <CardRow ui={ui} tone={tone} label="Limits">
+            <>
+              {card.windows.map(w => (
+                <Text
+                  key={`window-${w.kind}`}
+                  mono={rich}
+                  {...(w.isThrottled ? roleInk('hook', tone) : inkOf(tone, 'text2'))}
+                >
+                  {w.text}
+                </Text>
+              ))}
+            </>
+          </CardRow>
+        )}
         {card.spend !== null && (
           <CardRow ui={ui} tone={tone} label="Spend">
-            <Text key="spend-text" mono={rich} {...inkOf(tone, 'text2')}>
-              {card.spend}
+            <Text key="spend-text" mono={rich} {...figureInk(tone, card.spend.level)}>
+              {card.spend.text}
             </Text>
           </CardRow>
         )}

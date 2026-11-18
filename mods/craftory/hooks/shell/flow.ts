@@ -3,7 +3,13 @@ import { archiveRisks, canArchive, isAutoArchivable, shipFactsOf } from '../../s
 import { integrationContext, isoOf } from '../../src/build'
 import { integrationBranchFor } from '../../src/config'
 import { driftDiffArgv, findDrift, rankedText, retroSuggestions } from '../../src/drift'
-import { ruleVia, skipGateDenial } from '../../src/deny'
+import {
+  overBudgetDenial,
+  overBudgetVerdict,
+  type OverBudgetVerdict,
+  ruleVia,
+  skipGateDenial,
+} from '../../src/deny'
 import { deriveFlow, type Flow } from '../../src/evidence'
 import { draftKey, enteredRecord, featureOf, isArchived, specKey } from '../../src/features'
 import { dropText, type RunRequest } from '../../src/gates'
@@ -12,7 +18,7 @@ import type { InboxAction } from '../../src/pane-view'
 import { namespaced, recognise } from '../../src/phases'
 import { bareIsOurs } from '../../src/plugin'
 import { TOAST_MS, toastText } from '../../src/signals'
-import { attribute, spendText } from '../../src/spend'
+import { attribute } from '../../src/spend'
 import { statusLine } from '../../src/summary'
 import { SPIN_MS } from '../../src/theme'
 import type { AgentId, EventNotice, FeatureKey, PhaseId, Running, SpendTarget } from '../../types'
@@ -30,6 +36,7 @@ import {
   setActive,
 } from './features'
 import { gitOf } from './git'
+import { throttleNow } from './limits'
 import { ledgerOf, runOf } from './ledger'
 import {
   addNotice,
@@ -42,7 +49,8 @@ import {
   removeNotices,
 } from './notices'
 import { glossaryTerms, pluginOf, repoFacts, sh } from './repo'
-import { moveDraftSpend, spendTotalOf } from './spend'
+import { budgetStandingsOf, featureSpendOf, moveDraftSpend, overrunNow } from './spend'
+import { checkSpendBudgets } from './spend-budgets'
 import { trackerOf } from './tracker'
 
 const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
@@ -61,7 +69,8 @@ export async function currentFlow($: EngineInterface): Promise<Flow | null> {
   ])
   const feature = featureOf(active, features, drafts)
   if (feature === null) return null
-  return deriveFlow({ feature, config, tracker, running, build })
+  const budgets = (await budgetStandingsOf($, feature)).phases
+  return deriveFlow({ feature, config, tracker, running, build, budgets })
 }
 
 /** The flow of every Feature and draft, as the rail would show each one active. */
@@ -78,21 +87,28 @@ export async function everyFlow($: EngineInterface): Promise<Flow[]> {
     ...Object.values(features).map(f => specKey(f.spec)),
     ...Object.keys(drafts).map(draftKey),
   ]
-  return keys.flatMap(key => {
-    const feature = featureOf(key, features, drafts)
-    return feature === null ? [] : [deriveFlow({ feature, config, tracker, running, build })]
-  })
+  const flows = await Promise.all(
+    keys.map(async key => {
+      const feature = featureOf(key, features, drafts)
+      if (feature === null) return []
+      const budgets = (await budgetStandingsOf($, feature)).phases
+      return [deriveFlow({ feature, config, tracker, running, build, budgets })]
+    }),
+  )
+  return flows.flat()
 }
 
 /** The status line: the active Feature's summary and, once it has any, what it has cost. */
 async function showStatus($: EngineInterface, flow: Flow | null) {
-  const spend = flow === null ? null : spendText(await spendTotalOf($, flow.feature.key))
-  $.ui.status(statusLine(flow, spend))
+  const spend = flow === null ? null : await featureSpendOf($, flow.feature)
+  $.ui.status(statusLine(flow, spend?.text ?? null))
 }
 
 /** Redraws what shows spend, after a step or a cost reading changed it. */
 export async function refreshSpend($: EngineInterface) {
-  await showStatus($, await currentFlow($))
+  const flow = await currentFlow($)
+  await checkSpendBudgets($, flow)
+  await showStatus($, flow)
   $.ui.invalidate('ui.render')
 }
 
@@ -236,6 +252,60 @@ export async function holdForGate($: EngineInterface, req: RunRequest, flow: Flo
   return verdict
 }
 
+/**
+ * Starting Build while throttling is in force says so in a held notice first, which the band or,
+ * where none is drawn, the pane shows. It never drops or delays the run: the notice only tells the
+ * person Build will run fewer implementers at once.
+ */
+export async function warnBeforeBuild($: EngineInterface, req: RunRequest) {
+  if (req.phase !== 'build') return
+  const throttle = await throttleNow($, (await repoFacts($)).config)
+  if (throttle === null) return
+  const { label, ...rest } = throttle
+  await addNotice($, { kind: 'throttle', id: 'throttle', window: label, ...rest })
+  await settle($)
+}
+
+/** A run deny.overBudget refuses: what is over, the switch, and the Feature it is over on. */
+export type OverBudgetHold = OverBudgetVerdict & { key: FeatureKey; canRaise: boolean }
+
+/**
+ * deny.overBudget for a run of `phase`: what is over, the switch that refuses it and the Feature,
+ * or null to let the run through. Only a positive over refuses.
+ */
+export async function overBudgetCheck(
+  $: EngineInterface,
+  phase: PhaseId | null,
+): Promise<OverBudgetHold | null> {
+  if (phase === null) return null
+  const { config } = await repoFacts($)
+  const flow = await currentFlow($)
+  if (flow === null) return null
+  const verdict = overBudgetVerdict(config.deny, await overrunNow($, flow, phase))
+  return verdict && { ...verdict, key: flow.feature.key, canRaise: flow.feature.kind === 'specced' }
+}
+
+/** The deny.overBudget reason for running `skill` of `phase`, or null to let it through. */
+export async function overBudgetReason($: EngineInterface, skill: string, phase: PhaseId | null) {
+  const over = await overBudgetCheck($, phase)
+  return over === null ? null : overBudgetDenial(skill, over.overrun, over.via)
+}
+
+/** A press that deny.overBudget refuses: the refusal shows in the band, and nothing runs. */
+export async function refuseOverBudget($: EngineInterface, req: RunRequest, over: OverBudgetHold) {
+  const { overrun, via, key, canRaise } = over
+  await addNotice($, {
+    kind: 'over-budget-refusal',
+    id: `over-budget-${overrun.scope}`,
+    key,
+    canRaise,
+    ...overrun,
+    skill: req.skill,
+    via,
+  })
+  await settle($)
+}
+
 export function requestOf(
   name: string | undefined,
   args: string,
@@ -264,10 +334,16 @@ export async function gatePrompt(
       const denial = skipGateDenial(namespaced(req.skill), req.phase, await currentFlow($), via)
       if (denial !== null) return denial
     }
-    if (!canAsk) return undefined
-    const verdict = await holdForGate($, req, await currentFlow($))
-    if (verdict) return dropText(verdict)
-    await consumeGatePass($, req)
+    const overBudget = await overBudgetReason($, namespaced(req.skill), req.phase)
+    if (overBudget !== null) return overBudget
+    // Where no band asks, the gate cannot hold the command, but the warning is still held: the
+    // pane shows it, as it does after a press
+    if (canAsk) {
+      const verdict = await holdForGate($, req, await currentFlow($))
+      if (verdict) return dropText(verdict)
+      await consumeGatePass($, req)
+    }
+    await warnBeforeBuild($, req)
   } else if (typed === undefined) {
     const running = await read($, runningState)
     if (running?.isAwaitingUser) {

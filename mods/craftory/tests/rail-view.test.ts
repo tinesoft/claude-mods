@@ -80,7 +80,7 @@ const STATES: [string, PhaseState, string, string][] = [
   ['failed', { kind: 'failed', meta: '2 tests red' }, '▲ Build 2 tests red', '! Build 2 tests red'],
   [
     'over-budget',
-    { kind: 'over-budget', ticket: '#44' as IssueRef, budget: 80_000 },
+    { kind: 'over-budget', unit: 'tokens', ticket: '#44' as IssueRef, budget: 80_000 },
     '▲ Build #44 · 80k',
     '! Build #44 · 80k',
   ],
@@ -369,7 +369,7 @@ test('Ship offers /pr to rewrite the body once there is a pull request, and it r
 test('a Build that failed or ran out of budget offers diagnosing-bugs instead of moving on', () => {
   for (const state of [
     { kind: 'failed', meta: '#44 failed' },
-    { kind: 'over-budget', ticket: '#44' as IssueRef, budget: 80_000 },
+    { kind: 'over-budget', unit: 'tokens', ticket: '#44' as IssueRef, budget: 80_000 },
   ] as const) {
     calls.length = 0
     const flow = withState(baseFlow(), 'build', state)

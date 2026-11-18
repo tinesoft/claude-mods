@@ -11,6 +11,7 @@ import type {
   TrackerSnapshot,
   TriageRole,
 } from '../types'
+import { ofBudgetText } from './budgets'
 import { budgetK } from './build'
 import { phaseButtons, type CardView } from './card-model'
 import type { Flow, SkipReason, TicketStatus } from './evidence'
@@ -89,7 +90,9 @@ export function flowRows(flow: Flow): FlowRowView[] {
         case 'failed':
           return s.meta
         case 'over-budget':
-          return `${s.ticket} hit its ${budgetK(s.budget)} budget`
+          return s.unit === 'tokens'
+            ? `${s.ticket} hit its ${budgetK(s.budget)} budget`
+            : `Over budget · ${ofBudgetText(s.usd, s.budget)}`
         case 'gated':
           return `Gated · ${s.blockers.join(', ') || `${PHASES[s.by].label} is not done`}`
         case 'skipped':

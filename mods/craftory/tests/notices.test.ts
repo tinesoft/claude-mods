@@ -1,6 +1,13 @@
 import { expect, test } from 'claude-code/testing'
 import { derivedNotices, eventNotice, eventNotices } from '../src/notices'
-import type { InstallState, IssueRef, NoticeKey, PluginStatus, RepoSnapshot } from '../types'
+import type {
+  InstallState,
+  IssueRef,
+  NoticeKey,
+  PluginStatus,
+  RepoSnapshot,
+  SkillName,
+} from '../types'
 
 const PRESENT: PluginStatus = {
   kind: 'present',
@@ -161,4 +168,36 @@ test('a suppressed notice does not take one of the two band slots', () => {
     'b2',
     'b3',
   ])
+})
+
+test('a draft’s budget notice offers Continue and Diagnose, with no record to raise it on', () => {
+  const view = eventNotice({
+    kind: 'spend-budget',
+    id: 'spend-budget-draft:d1-align',
+    key: 'draft:d1',
+    scope: 'align',
+    name: 'Align',
+    usd: 5.2,
+    budget: 5,
+    canRaise: false,
+  })
+  expect(view?.text).toBe('Align is at $5.20 of $5')
+  expect(view?.actions.map(a => a.label)).toEqual(['Continue', 'Diagnose'])
+})
+
+test('a draft’s over-budget refusal offers Diagnose and Dismiss, with no record to raise it on', () => {
+  const view = eventNotice({
+    kind: 'over-budget-refusal',
+    id: 'over-budget-align',
+    key: 'draft:d1',
+    canRaise: false,
+    scope: 'align',
+    name: 'Align',
+    usd: 5.2,
+    budget: 5,
+    skill: 'mattpocock-skills:grill-with-docs' as SkillName,
+    via: 'overBudget',
+  })
+  expect(view?.actions.map(a => a.label)).toEqual(['Diagnose', 'Dismiss'])
+  expect(view?.actions[0]?.primary).toBe(true)
 })

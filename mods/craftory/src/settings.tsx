@@ -66,7 +66,8 @@ export type SettingsData = Omit<
   'ui' | 'tone' | 'readOnly' | 'isTerminal' | 'ascii' | 'pluginLine'
 >
 
-const hintOf = (row: SettingsRow) => row.hint
+const hintOf = (row: SettingsRow, facts: SettingsFacts) =>
+  typeof row.hint === 'function' ? row.hint(facts) : row.hint
 
 const RowView = ({
   ui,
@@ -92,8 +93,8 @@ const RowView = ({
             title={row.label}
             description={
               row.locked?.(facts) === true
-                ? `${hintOf(row)} On because Hard gates is on.`
-                : hintOf(row)
+                ? `${hintOf(row, facts)} On because Hard gates is on.`
+                : hintOf(row, facts)
             }
             isOn={row.read(facts)}
             onChange={
@@ -128,9 +129,9 @@ const RowView = ({
               typed={on.typed}
             />
           )}
-          {row.hint !== undefined && (
+          {hintOf(row, facts) !== undefined && (
             <Text wrap="wrap" {...inkOf(tone, 'text2')}>
-              {row.hint}
+              {hintOf(row, facts)}
             </Text>
           )}
         </Box>
@@ -143,7 +144,9 @@ const RowView = ({
             tone={tone}
             id={row.id}
             label={row.label}
-            hint={readOnly ? undefined : [row.hint, 'Enter saves.'].filter(Boolean).join(' ')}
+            hint={
+              readOnly ? undefined : [hintOf(row, facts), 'Enter saves.'].filter(Boolean).join(' ')
+            }
             value={row.read(facts)}
             {...(row.placeholder !== undefined && { placeholder: row.placeholder })}
             {...(row.rows !== undefined && { rows: row.rows })}

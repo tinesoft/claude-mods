@@ -32,21 +32,26 @@ test('terminal at 115 columns with a map and a long title shows the full rail', 
   expect(await band.find({ key: 'summary' })).toBeUndefined()
 })
 
-test('terminal: whenever the rail shows, each of its lines fits the band', async ($, on) => {
-  featureWorld(on, mixed())
-  await startSession($)
-  let shown = 0
-  for (let columns = 60; columns <= 200; columns += 1) {
-    const rail = await (await mountBand($, 'terminal', columns)).find({ key: 'rail' })
-    if (rail === undefined) continue
-    shown += 1
-    expect({ columns, cells: cells(rail) }).toEqual({
-      columns,
-      cells: Math.min(columns, cells(rail)),
-    })
-  }
-  expect(shown).toBeGreaterThan(80)
-})
+// 141 renders: under a loaded machine that outlasts the default 5 s.
+test(
+  'terminal: whenever the rail shows, each of its lines fits the band',
+  { timeoutMs: 20_000 },
+  async ($, on) => {
+    featureWorld(on, mixed())
+    await startSession($)
+    let shown = 0
+    for (let columns = 60; columns <= 200; columns += 1) {
+      const rail = await (await mountBand($, 'terminal', columns)).find({ key: 'rail' })
+      if (rail === undefined) continue
+      shown += 1
+      expect({ columns, cells: cells(rail) }).toEqual({
+        columns,
+        cells: Math.min(columns, cells(rail)),
+      })
+    }
+    expect(shown).toBeGreaterThan(80)
+  },
+)
 
 test('terminal at 60 columns falls back to the summary', async ($, on) => {
   featureWorld(on, mixed())

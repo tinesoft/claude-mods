@@ -1,5 +1,6 @@
 import type { Color, ElementTable, RenderElement, Space } from 'claude-code'
 import type { Tone } from '../types'
+import { BUDGET_ROLES, type BudgetLevel } from './budgets'
 import { vscodeAccentBox } from './_kit/vscode-accent'
 import { vscodeBox as vscodeFitBox } from './_kit/vscode-fit'
 import { CLEAR, ELLIPSIS, SELECTED, HOVER_MIX, mix, paint, type Role, SPACE, TOKENS } from './theme'
@@ -49,6 +50,16 @@ export const inkOf = (tone: Tone | undefined, key: 'ink' | 'ink2' | 'text2' | 'm
       ? {}
       : { dimColor: true }
     : { color: TOKENS[tone][key] }
+
+/** A spend figure's ink: amber near its budget, red over it, else its usual quiet ink. */
+export const figureInk = (
+  tone: Tone | undefined,
+  level: BudgetLevel,
+  quiet: 'text2' | 'muted' = 'text2',
+) => {
+  const role = BUDGET_ROLES[level]
+  return role === null ? inkOf(tone, quiet) : roleInk(role, tone)
+}
 
 export const withTint = (tint: Color | undefined) =>
   tint === undefined ? {} : { backgroundColor: tint }

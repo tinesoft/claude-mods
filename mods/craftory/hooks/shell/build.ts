@@ -31,6 +31,7 @@ import type { GitSnapshot, SeatPlan } from '../../types'
 import { featuresOf } from './features'
 import { cleanupInputs, gitOf } from './git'
 import { ledgerOf } from './ledger'
+import { throttleNow } from './limits'
 import { refreshGit } from './sync'
 import { copyWithToast } from './ui'
 import { exists, repoFacts, repoRoot, sh } from './repo'
@@ -246,5 +247,6 @@ export async function agentsViewOf(
   })
   const spend = await spendBreakdownOf($, flow.feature.key)
   const priced = rows.map(r => ({ ...r, spend: agentSpendText(spend.tickets[r.ref]) }))
-  return agentsView({ rows: priced, config, isPaused: ledger.isPaused, note })
+  const isThrottled = (await throttleNow($, config)) !== null
+  return agentsView({ rows: priced, config, isPaused: ledger.isPaused, note, isThrottled })
 }

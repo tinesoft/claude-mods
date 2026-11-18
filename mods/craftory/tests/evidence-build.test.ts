@@ -192,7 +192,12 @@ test('an agent that hit its budget makes Build over budget, until its ticket mer
     tracker: tracker([merged(43), issue(44)]),
     running: { phase: 'build' },
   })
-  expect(view(flow, 'build').state).toEqual({ kind: 'over-budget', ticket: '#44', budget: 80_000 })
+  expect(view(flow, 'build').state).toEqual({
+    kind: 'over-budget',
+    unit: 'tokens',
+    ticket: '#44',
+    budget: 80_000,
+  })
   expect(view(flow, 'review').state).toMatchObject({ kind: 'gated', by: 'build' })
   expect(view(flow, 'review').state).toMatchObject({
     blockers: ['#44 hit its 80k token budget'],

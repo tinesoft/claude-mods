@@ -48,6 +48,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     test: '',
     testTimeoutSec: 600,
   },
+  rateLimits: { throttleAt: 80, throttledParallel: 1 },
   automation: {
     suggestNext: true,
     liveAgents: true,
@@ -58,8 +59,16 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     nudgeUnmetDone: false,
     archiveOnShip: false,
   },
-  deny: { hardGates: false, skipGate: false, editOnIntegrationBranch: false },
+  deny: { hardGates: false, skipGate: false, editOnIntegrationBranch: false, overBudget: false },
+  budgets: {
+    featureUsd: 0,
+    phaseUsd: Object.fromEntries(PHASE_ORDER.map(id => [id, 0])) as Record<PhaseId, number>,
+    warnAtPercent: 80,
+  },
 }
+
+/** The most any budget can be, in dollars. */
+export const BUDGET_MAX_USD = 100_000
 
 type Json = Record<string, unknown>
 const isRecord = (v: unknown): v is Json => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -75,6 +84,13 @@ export const RANGES: Record<string, readonly [number, number]> = {
   'worktrees.tokenBudget': [10_000, 1_000_000],
   // the engine kills a child at ten minutes at most
   'worktrees.testTimeoutSec': [10, 600],
+  'budgets.featureUsd': [0, BUDGET_MAX_USD],
+  ...Object.fromEntries(PHASE_ORDER.map(id => [`budgets.phaseUsd.${id}`, [0, BUDGET_MAX_USD]])),
+  'budgets.warnAtPercent': [50, 95],
+  // 100 is off: no window is throttled until it is full
+  'rateLimits.throttleAt': [50, 100],
+  // never above worktrees.maxParallel, whatever it is set to
+  'rateLimits.throttledParallel': [1, 16],
 }
 
 function overlay(defaults: unknown, raw: unknown, path: string, problems: string[]): unknown {

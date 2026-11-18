@@ -12,6 +12,7 @@ import type {
   SkillName,
   TrackerSnapshot,
 } from '../types'
+import type { BudgetStanding } from './budgets'
 import { budgetK, outcomeOf } from './build'
 import { isSkipped } from './features'
 import { PHASE_ORDER, PHASES, predecessor } from './phases'
@@ -24,7 +25,10 @@ export type PhaseState =
   | { kind: 'running'; progress: string | null }
   | { kind: 'needs-you'; meta: string }
   | { kind: 'failed'; meta: string }
-  | { kind: 'over-budget'; ticket: IssueRef; budget: number }
+  /** An implementer ran out of its token budget. */
+  | { kind: 'over-budget'; unit: 'tokens'; ticket: IssueRef; budget: number }
+  /** The phase's dollar spend reached its budget, while it runs, is up next or waits on you. */
+  | { kind: 'over-budget'; unit: 'usd'; usd: number; budget: number }
   | { kind: 'next' }
   | { kind: 'gated'; by: PhaseId; blockers: string[] }
   | { kind: 'skipped'; why: SkipReason }
@@ -64,6 +68,8 @@ export type FlowInput = {
   tracker: TrackerSnapshot | null
   running: Running | null
   build?: BuildLedger | null
+  /** Each phase's dollar spend against its budget; a phase left out has none. */
+  budgets?: Partial<Record<PhaseId, BudgetStanding>>
 }
 
 export type Facts = {
@@ -248,7 +254,7 @@ function buildAttention(f: Facts): PhaseState | undefined {
   const budgetOf = (a: AgentRecord) => Math.max(f.tokenBudget, a.budget)
   const over = open.find(a => a.outcome === 'over-budget' && a.tokens >= budgetOf(a))
   if (over !== undefined)
-    return { kind: 'over-budget', ticket: over.ticket, budget: budgetOf(over) }
+    return { kind: 'over-budget', unit: 'tokens', ticket: over.ticket, budget: budgetOf(over) }
   const failed = open.find(a => outcomeOf(a) === 'failed')
   return failed === undefined ? undefined : { kind: 'failed', meta: `${failed.ticket} failed` }
 }
@@ -296,6 +302,9 @@ const skipReason = (input: FlowInput, phase: PhaseId): SkipReason | undefined =>
 
 const OPEN_FOR_MARK: ReadonlySet<PhaseState['kind']> = new Set(['todo', 'next', 'gated'])
 
+/** The states a phase over its dollar budget gives way to Over budget from. */
+const OVER_BUDGET_SHOWS: ReadonlySet<PhaseState['kind']> = new Set(['running', 'next', 'needs-you'])
+
 export function deriveFlow(input: FlowInput): Flow {
   const { feature, config, running } = input
   const facts = factsOf(input)
@@ -335,7 +344,7 @@ export function deriveFlow(input: FlowInput): Flow {
     const state = states[p]
     if (state.kind === 'running' || state.kind === 'needs-you')
       return [`${PHASES[p].label} is still running`]
-    if (state.kind === 'over-budget')
+    if (state.kind === 'over-budget' && state.unit === 'tokens')
       return [`${state.ticket} hit its ${budgetK(state.budget)} token budget`]
     if (state.kind === 'failed') return [state.meta]
     return e.done ? [] : e.blockers
@@ -356,9 +365,17 @@ export function deriveFlow(input: FlowInput): Flow {
   const spec = facts.spec
   const specRef = feature.kind === 'specced' ? feature.record.spec : ''
   const specArg = spec === null || specRef === '' ? specRef : argFor([spec], specRef as IssueRef)
+  // Over budget is how a live phase looks; where the flow stands (next, current) is unchanged
+  const shownOf = (phase: PhaseId): PhaseState => {
+    const state = states[phase]
+    const budget = input.budgets?.[phase]
+    return budget?.level === 'over' && OVER_BUDGET_SHOWS.has(state.kind)
+      ? { kind: 'over-budget', unit: 'usd', usd: budget.usd, budget: budget.budget }
+      : state
+  }
   const phases = PHASE_ORDER.map((phase): PhaseView => ({
     phase,
-    state: states[phase],
+    state: shownOf(phase),
     command:
       phase === 'build' && isSelfEntry(feature)
         ? PHASES.build.commands[1]
@@ -375,9 +392,9 @@ export function deriveFlow(input: FlowInput): Flow {
       (feature.kind === 'draft' ? feature.draft.title : feature.record.title) ||
       'Untitled feature',
     phases,
-    next: phases.find(s => s.state.kind === 'next')?.phase ?? null,
+    next: PHASE_ORDER.find(p => states[p].kind === 'next') ?? null,
     current:
-      phases.find(s => s.state.kind === 'running' || s.state.kind === 'needs-you')?.phase ?? null,
+      PHASE_ORDER.find(p => states[p].kind === 'running' || states[p].kind === 'needs-you') ?? null,
     doneCount: phases.filter(s => s.state.kind === 'done').length,
     enabledCount: phases.filter(s => s.state.kind !== 'skipped').length,
     spec,

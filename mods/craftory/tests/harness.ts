@@ -1,4 +1,4 @@
-import type { CommandInfo, On, RenderSurface } from 'claude-code'
+import type { CommandInfo, On, RenderSurface, SessionRateLimit } from 'claude-code'
 import { mock } from 'claude-code/testing'
 import type { ElementQuery, Engine, FoundElement } from 'claude-code/testing'
 
@@ -49,6 +49,8 @@ export type WorldOptions = {
   window?: number
   /** The session's `cost.usd` as `$.session.usage()` reports it now; absent, the host keeps no ledger. */
   cost?: () => number
+  /** The rate-limit windows `$.session.usage()` reports now; none unless given, as off a subscription. */
+  rateLimits?: () => SessionRateLimit[]
   racy?: { path: string; onRead: number; text: string }
   /** Commands that answer only after this many milliseconds on the mock clock. */
   stall?: { when: (argv: readonly string[]) => boolean; ms: number | (() => number) }
@@ -161,7 +163,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
     value: {
       startedAt: 0,
       context: { window: options.window ?? 200_000 },
-      rateLimits: [],
+      rateLimits: options.rateLimits?.() ?? [],
       ...(options.cost && { cost: { usd: options.cost() } }),
     },
   }))

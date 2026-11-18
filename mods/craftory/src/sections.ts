@@ -13,10 +13,13 @@ import type {
   TriageRole,
 } from '../types'
 import { DEFAULT_LABELS } from './agents-md'
+import { budgetText, parseBudget } from './budgets'
 import { budgetK } from './build'
 import { RANGES } from './config'
 import { AGENT_DOCS, CONFIG_FILE, normalise, withSlash } from './files'
 import { PHASE_ORDER, PHASES } from './phases'
+import { THROTTLE_OFF } from './rate-limits'
+import { NO_COST_LEDGER_NOTE } from './spend'
 import { otherNote } from './tracker/links'
 
 export type SettingsFile = 'config' | 'tracker' | 'triage' | 'domain' | 'steering' | 'prefs'
@@ -25,6 +28,8 @@ export type SettingsFacts = {
   config: CraftoryConfig
   setup: AgentSetup
   prefs: Prefs
+  /** This session's host keeps a cost ledger, so dollar budgets apply. */
+  hasCost: boolean
 }
 
 export type SettingsChange = {
@@ -38,7 +43,7 @@ export type Choice = readonly [value: string, label: string]
 type RowBase = {
   id: string
   label: string
-  hint?: string
+  hint?: string | ((facts: SettingsFacts) => string)
   file: SettingsFile
   visible?: (facts: SettingsFacts) => boolean
   /** On and not editable: another row decides it. The hint says which. */
@@ -435,13 +440,97 @@ const phaseRows = (phase: PhaseId): SettingsRow[] => {
   return rows
 }
 
-const PIPELINE_ROWS = PHASE_ORDER.flatMap(phaseRows)
+const showUsd = (n: number) => (n === 0 ? 'Off' : budgetText(n))
+
+/** A percent as typed, with or without `%`: `85`, `85%`. */
+const parsePercent = (text: string) => withUnit({ '': 1 })(text.trim().replace(/\s*%$/, ''))
+
+const budgetHint = (what: string) => (f: SettingsFacts) =>
+  [
+    `${what} Near budget at ${f.config.budgets.warnAtPercent}%, Over budget at 100%.`,
+    ...(f.hasCost ? [] : [NO_COST_LEDGER_NOTE]),
+  ].join(' ')
+
+const budgetRow = (args: {
+  id: string
+  label: string
+  what: string
+  steps: readonly number[]
+  path: string
+  read: (c: CraftoryConfig) => number
+  patch: (usd: number) => ConfigPatch
+}): SettingsRow => ({
+  id: args.id,
+  label: args.label,
+  hint: budgetHint(args.what),
+  file: 'config',
+  control: 'choice',
+  options: f => numbers(args.steps, showUsd, args.read(f.config)),
+  custom: {
+    placeholder: 'Other, such as $15',
+    parse: parseBudget,
+    range: rangeOf(args.path),
+    show: showUsd,
+  },
+  read: f => String(args.read(f.config)),
+  write: value => ({ config: args.patch(Number(value)) }),
+})
+
+const FEATURE_BUDGET_ROW = budgetRow({
+  id: 'budget-feature',
+  label: 'Feature budget',
+  what: 'Every Feature’s budget, in dollars, unless its own is set.',
+  steps: [0, 5, 10, 20, 50],
+  path: 'budgets.featureUsd',
+  read: c => c.budgets.featureUsd,
+  patch: usd => ({ budgets: { featureUsd: usd } }),
+})
+
+const phaseBudgetRow = (phase: PhaseId): SettingsRow =>
+  budgetRow({
+    id: `phase-${phase}-budget`,
+    label: `${PHASES[phase].label} budget`,
+    what: `What ${PHASES[phase].label} may cost each Feature, in dollars.`,
+    steps: [0, 1, 5, 10, 25],
+    path: `budgets.phaseUsd.${phase}`,
+    read: c => c.budgets.phaseUsd[phase],
+    patch: usd => {
+      const phaseUsd: Partial<Record<PhaseId, number>> = {}
+      phaseUsd[phase] = usd
+      return { budgets: { phaseUsd } }
+    },
+  })
+
+const WARN_AT_ROW: SettingsRow = {
+  id: 'budget-warn-at',
+  label: 'Near budget at',
+  hint: 'How much of a budget is spent before its figures turn amber and say Near budget. Over budget is always 100%.',
+  file: 'config',
+  control: 'choice',
+  options: f => numbers([70, 80, 90], n => `${n}%`, f.config.budgets.warnAtPercent),
+  custom: {
+    placeholder: 'Other, such as 75%',
+    parse: parsePercent,
+    range: rangeOf('budgets.warnAtPercent'),
+    show: n => `${n}%`,
+  },
+  read: f => String(f.config.budgets.warnAtPercent),
+  write: value => ({ config: { budgets: { warnAtPercent: Number(value) } } }),
+}
+
+const PIPELINE_ROWS = [
+  FEATURE_BUDGET_ROW,
+  WARN_AT_ROW,
+  ...PHASE_ORDER.flatMap(p => [...phaseRows(p), phaseBudgetRow(p)]),
+]
 
 export const HELPERS = PHASE_ORDER.flatMap(p =>
   PHASES[p].helpers.length > 0 ? [{ phase: PHASES[p].label, skills: PHASES[p].helpers }] : [],
 )
 
 const wt = (c: CraftoryConfig) => c.worktrees
+
+const rl = (c: CraftoryConfig) => c.rateLimits
 
 const WORKTREE_ROWS: readonly SettingsRow[] = [
   line(
@@ -486,6 +575,48 @@ const WORKTREE_ROWS: readonly SettingsRow[] = [
     },
     read: f => String(wt(f.config).maxParallel),
     write: value => ({ config: { worktrees: { maxParallel: Number(value) } } }),
+  },
+  {
+    id: 'rl-throttle-at',
+    label: 'Throttle at',
+    hint: 'When any rate-limit window is this full, Build starts fewer agents at once. Off never throttles.',
+    file: 'config',
+    control: 'choice',
+    options: f =>
+      numbers(
+        [70, 80, 90, THROTTLE_OFF],
+        n => (n === THROTTLE_OFF ? 'Off' : `${n}%`),
+        rl(f.config).throttleAt,
+      ),
+    custom: {
+      placeholder: 'Other, such as 85%',
+      parse: parsePercent,
+      range: rangeOf('rateLimits.throttleAt'),
+      show: n => `${n}%`,
+    },
+    read: f => String(rl(f.config).throttleAt),
+    write: value => ({ config: { rateLimits: { throttleAt: Number(value) } } }),
+  },
+  {
+    id: 'rl-throttled-parallel',
+    label: 'While throttled',
+    hint: 'Implementers at once while a window is that full; never more than the parallel limit.',
+    file: 'config',
+    control: 'choice',
+    options: f =>
+      numbers(
+        [1, 2, 3],
+        n => (n === 1 ? '1 (one at a time)' : String(n)),
+        rl(f.config).throttledParallel,
+      ),
+    custom: {
+      placeholder: 'Other, such as 4',
+      parse: withUnit({ '': 1 }),
+      range: rangeOf('rateLimits.throttledParallel'),
+      show: String,
+    },
+    read: f => String(rl(f.config).throttledParallel),
+    write: value => ({ config: { rateLimits: { throttledParallel: Number(value) } } }),
   },
   {
     id: 'wt-token-budget',
@@ -642,7 +773,7 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
   toggle(
     'deny-hard-gates',
     'Hard gates',
-    'Refuses instead of asking, everywhere: a gated phase typed, called by Claude or pressed in the rail or pane (no Run anyway), edits in your checkout on an integration branch, and gh pr create or glab mr create until Review is done. Turns on both rules below. Anything Craftory cannot read lets the call through.',
+    'Refuses instead of asking, everywhere: a gated phase typed, called by Claude or pressed in the rail or pane (no Run anyway), edits in your checkout on an integration branch, and gh pr create or glab mr create until Review is done. Turns on the rules below. Anything Craftory cannot read lets the call through.',
     c => c.deny.hardGates,
     on => ({ deny: { hardGates: on } }),
   ),
@@ -660,6 +791,14 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
     'Refuses Edit and Write in the main checkout while it is on the worktrees.integrationBranch branch, so work stays in worktrees.',
     c => c.deny.hardGates || c.deny.editOnIntegrationBranch,
     on => ({ deny: { editOnIntegrationBranch: on } }),
+    { locked: f => f.config.deny.hardGates },
+  ),
+  toggle(
+    'deny-over-budget',
+    'Deny phase skills and agents over budget',
+    'Refuses a phase’s skill, typed, called by Claude or pressed, once that phase or the Feature is over budget, and new Build agents once Build or the Feature is. Work already running goes on. Without a cost ledger or a budget, nothing is refused. The denial names this switch.',
+    c => c.deny.hardGates || c.deny.overBudget,
+    on => ({ deny: { overBudget: on } }),
     { locked: f => f.config.deny.hardGates },
   ),
 ]

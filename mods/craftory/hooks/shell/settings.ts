@@ -31,6 +31,7 @@ import {
 import type { SettingsData } from '../../src/settings'
 import type { AgentSetup, GlossaryDoc, PluginStatus, RepoSnapshot, TermDraft } from '../../types'
 import { settle } from './flow'
+import { hasCostOf } from './spend'
 import { refreshTracker } from './sync'
 import {
   applyWrites,
@@ -94,16 +95,18 @@ async function settingsFacts(
   $: EngineInterface,
   options: Readonly<Record<string, unknown>>,
 ): Promise<SettingsFacts & { isDraft: boolean }> {
-  const [{ config }, prefs, current] = await Promise.all([
+  const [{ config }, prefs, current, hasCost] = await Promise.all([
     repoFacts($),
     resolvedPrefs($, options),
     currentSetup($),
+    hasCostOf($),
   ])
   return {
     config,
     setup: current.setup,
     isDraft: current.isDraft,
     prefs,
+    hasCost,
   }
 }
 

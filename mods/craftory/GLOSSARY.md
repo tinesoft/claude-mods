@@ -29,11 +29,11 @@ A phase whose evidence exists, such as a Spec on the tracker or every Ticket mer
 A phase whose skill ran, whether or not its evidence exists yet. Align is cleared by Ran, because a grill ends when you move on.
 
 **Gate**:
-A soft check before a phase starts that asks first when the preceding gated phase has not cleared. Done clears it, except for Align, which Ran clears. Nothing is refused unless an opt-in is on: `deny.skipGate` refuses the gated phase's skill, called by Claude or typed, instead of asking, and `deny.hardGates` makes every gate hard (see **Hard gates**).
+A soft check before a phase starts that asks first when the preceding gated phase has not cleared. Done clears it, except for Align, which Ran clears. Nothing is refused unless an opt-in is on: `deny.skipGate` refuses the gated phase's skill, called by Claude or typed, instead of asking, `deny.overBudget` refuses a phase's skill once that phase or the Feature is Over budget, gated or not, and `deny.hardGates` makes every gate hard (see **Hard gates**).
 _Avoid_: Block, guard
 
 **Hard gates**:
-The opt-in `deny.hardGates` switch, repo-wide. It turns the soft gates into refusals: a gated phase typed, called by Claude or pressed is refused with no Run anyway, edits in the main checkout on an integration branch are refused, and a ready PR or MR is refused until Review is done. It refuses only on evidence it can read, and has no per-command override.
+The opt-in `deny.hardGates` switch, repo-wide. It turns the soft gates into refusals: a gated phase typed, called by Claude or pressed is refused with no Run anyway, edits in the main checkout on an integration branch are refused, a phase's skill or a new Implementer is refused once it is Over budget, and a ready PR or MR is refused until Review is done. It refuses only on evidence it can read, and has no per-command override.
 _Avoid_: Strict mode, enforce
 
 ### Work items
@@ -127,9 +127,29 @@ _Avoid_: Cache rate
 Spend from the main session while the active Feature had no phase running, such as chat between `/to-spec` and `/to-tickets`. It counts towards the Feature.
 _Avoid_: Unphased, idle
 
+**Budget**:
+A cap in whole dollars on a Feature's Spend, or on one phase's. The Feature's own budget wins over the default in `.craftory/config.json`, `0` is none, and all are off until set. Applies only where the host keeps a cost ledger. Distinct from an Implementer's token budget.
+_Avoid_: Quota, allowance
+
+**Near budget**:
+A Spend figure at `budgets.warnAtPercent` (80% by default) of its Budget or more, but under it. Shown amber, with the words "Near budget".
+_Avoid_: Almost over
+
+**Over budget**:
+A Spend figure at its Budget or more: shown red with the words "Over budget", raising a band notice once per Budget, and refused by the opt-in `deny.overBudget`. As a Phase state, also an Implementer stopped at its token budget.
+_Avoid_: Overspent, exceeded
+
 **Outside features**:
 Spend with no Feature in flight. Kept on this machine only, for 30 days, and shown only in the Spend tab.
 _Avoid_: Unattributed
+
+**Rate-limit window**:
+One of the account's usage limits that Claude Code reports, such as the 5-hour or 7-day window, with its use and when it resets. Shown on the Build card's Limits row. None off a subscription.
+_Avoid_: Usage cap
+
+**Throttled**:
+A Rate-limit window at or above `rateLimits.throttleAt` (80% by default), and Build while one is: it starts at most `rateLimits.throttledParallel` Implementers at once. `throttleAt` 100 is off.
+_Avoid_: Slowed, rationed
 
 ### Surfaces
 

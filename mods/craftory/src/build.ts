@@ -8,6 +8,7 @@ import type {
   IssueRef,
   IsoTime,
   Millis,
+  Overrun,
   SeatPlan,
   StopCause,
   TestRun,
@@ -15,8 +16,10 @@ import type {
 } from '../types'
 import { slugify, ticketBranchFor } from './config'
 import type { Flow, TicketRow } from './evidence'
+import { overBudgetDenial, overBudgetVerdict } from './deny'
 import { normalise, withSlash } from './files'
 import { byNumber, refSlug } from './tracker/refs'
+import { THROTTLED, type Throttle, throttleInForce, type WindowReading } from './rate-limits'
 
 export const EMPTY_LEDGER: BuildLedger = { pending: {}, runs: {}, queued: [], isPaused: false }
 
@@ -162,6 +165,24 @@ export function queueReason(
   )
 }
 
+/** `the 5-hour window`, `the spend limit window`: a label read mid-sentence. */
+const windowName = (label: string) => `the ${label.charAt(0).toLowerCase()}${label.slice(1)} window`
+
+export function throttleReason(
+  ticket: IssueRef,
+  running: readonly IssueRef[],
+  throttle: Throttle,
+): string {
+  const reset = throttle.resets === null ? '' : ` (resets ${throttle.resets})`
+  const limit =
+    throttle.parallel === 1 ? '1 implementer runs' : `${throttle.parallel} implementers run`
+  const after = running.length === 1 ? running[0]! : `one of ${running.join(', ')}`
+  return (
+    `Craftory holds ${ticket}: ${windowName(throttle.label)} is at ${throttle.percent}%${reset}, so at most ${limit} at once. ` +
+    `Start it after ${after} returns, and do not call Agent for ${ticket} again before then.`
+  )
+}
+
 export const integrationContext = (args: { branch: string; from: string | null; folder: string }) =>
   `Craftory: use \`${args.branch}\` as the integration branch (create it from \`${args.from ?? 'the current branch'}\` if it does not exist); ` +
   `implementer worktrees live under \`${withSlash(args.folder)}\`.`
@@ -192,6 +213,10 @@ export function decideSpawn(args: {
   isBuildRunning: boolean
   tickets: readonly TicketRow[]
   integrationBranch: string
+  /** The rate-limit windows as last read; none off a subscription. */
+  windows?: WindowReading
+  /** Build or the Feature, when over its budget: deny.overBudget then refuses the spawn. */
+  overrun?: Overrun | null
 }): SpawnDecision {
   const { call, ledger, config, isBuildRunning, tickets, integrationBranch } = args
   if (!isBuildRunning || call.isolation !== 'worktree') return { kind: 'pass' }
@@ -207,10 +232,16 @@ export function decideSpawn(args: {
   if (row.status === 'human') return deny(humanReason(ticket))
   if (row.status === 'blocked') return deny(blockedReason(ticket, row.blockedBy))
   if (runningTickets(ledger).includes(ticket)) return deny(duplicateReason(ticket))
+  const overBudget = overBudgetVerdict(config.deny, args.overrun)
+  if (overBudget !== null)
+    return deny(overBudgetDenial(`the agent for ${ticket}`, overBudget.overrun, overBudget.via))
   if (ledger.isPaused) return deny(pausedReason(ticket), true)
   const running = runningTickets(ledger)
-  if (running.length >= config.worktrees.maxParallel)
-    return deny(queueReason(ticket, running, config.worktrees.maxParallel), true)
+  const { maxParallel } = config.worktrees
+  const throttle = args.windows === undefined ? null : throttleInForce(args.windows, config)
+  if (throttle !== null && running.length >= throttle.parallel)
+    return deny(throttleReason(ticket, running, throttle), true)
+  if (running.length >= maxParallel) return deny(queueReason(ticket, running, maxParallel), true)
   const taken = new Set([
     ...Object.values(ledger.runs).map(run => run.name),
     ...Object.values(ledger.pending).map(seat => seat.plan.name),
@@ -754,10 +785,13 @@ export function agentsView(args: {
   config: CraftoryConfig
   isPaused: boolean
   note: string | null
+  /** Throttling is in force: the summary says so, so the lower parallelism is no mystery. */
+  isThrottled?: boolean
 }): AgentsView {
   const { rows, config, isPaused, note } = args
+  const summary = agentSummary(rows)
   return {
-    summary: agentSummary(rows),
+    summary: args.isThrottled === true ? [summary, THROTTLED].filter(Boolean).join(' · ') : summary,
     tokens: `${kTokens(rows.reduce((sum, r) => sum + r.tokens, 0))} tokens`,
     rows: rows.slice(0, MAX_AGENT_ROWS),
     more: Math.max(0, rows.length - MAX_AGENT_ROWS),

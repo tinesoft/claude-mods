@@ -24,7 +24,14 @@ import { resolveTone, type Tone } from '../../src/theme'
 import { TRACKERS } from '../../src/tracker'
 import type { IssueRef, PaneTab, PhaseId, PrefOverrides, SkillName } from '../../types'
 import { featuresOf } from './features'
-import { currentFlow, holdForGate, requestOf } from './flow'
+import {
+  currentFlow,
+  holdForGate,
+  overBudgetCheck,
+  refuseOverBudget,
+  requestOf,
+  warnBeforeBuild,
+} from './flow'
 import { glossaryTerms, repoFacts } from './repo'
 import { readContext, refreshFiles, refreshGit, refreshTracker } from './sync'
 import { trackerKindOf, trackerOf } from './tracker'
@@ -160,7 +167,10 @@ async function closeCards($: EngineInterface) {
 
 export async function requestRun($: EngineInterface, skill: SkillName, args: string) {
   const req = requestOf(namespaced(skill), args) ?? { skill, args, phase: null }
+  const overBudget = await overBudgetCheck($, req.phase)
+  if (overBudget !== null) return refuseOverBudget($, req, overBudget)
   if (await holdForGate($, req, await currentFlow($))) return
+  await warnBeforeBuild($, req)
   await closeCards($)
   await $.command.run({ command: namespaced(skill), args })
 }

@@ -23,6 +23,7 @@ import {
   type TicketsView,
 } from './pane-view'
 import type { Action } from './action'
+import type { FlowBudgetView } from './flow-budget'
 import { FrontierCard, MapChip, MapTicketsCard } from './map-card'
 import type { MapView } from './map-view'
 import type { NoticeView } from './notices'
@@ -42,9 +43,9 @@ import {
   TOKENS,
   type Role,
 } from './theme'
-import { Chip, Icon, inkOf, isRich, padRowsOf, roleInk, type Ui } from './ui'
+import { Chip, figureInk, Icon, inkOf, isRich, padRowsOf, roleInk, type Ui } from './ui'
 import type { ArchiveView } from './archive'
-import { Badge, CardButton } from './widgets'
+import { Badge, CardButton, Entry } from './widgets'
 
 export type PaneActions = {
   tab: (tab: PaneTab) => void
@@ -67,6 +68,8 @@ export type PaneActions = {
   act: (action: Action) => void
   settings: () => void
   spendGroup: (group: SpendGroup) => void
+  /** The active Feature's own budget, as typed in the Flow tab's Budget row. */
+  budget: (text: string) => void
   close: () => void
 }
 
@@ -94,6 +97,8 @@ export type PaneArgs = {
   query: string
   settings: SettingsData
   spend: SpendTabView
+  /** The active Feature's Budget row, and why the last edit was refused; null with no Feature. */
+  budget: { view: FlowBudgetView; problem: string | null } | null
   on: PaneActions
 }
 
@@ -385,6 +390,58 @@ const FlowMark = ({
   )
 }
 
+/** The active Feature's spend of its budget, with a field for its own on a specced Feature. */
+const BudgetRow = ({
+  ui,
+  tone,
+  view,
+  problem,
+  readOnly,
+  typed,
+  on,
+}: Pick<PaneArgs, 'ui' | 'tone' | 'on'> &
+  NonNullable<PaneArgs['budget']> & {
+    readOnly: boolean
+    typed: SettingsData['on']['typed']
+  }) => {
+  const { Box, Text } = ui
+  const rich = isRich(ui) && tone !== undefined
+  return (
+    <Box key="flow-budget" flexDirection="column" rowGap={SPACE.rowTextGap}>
+      <Box flexDirection="row" columnGap={SPACE.rowLabelGap} flexWrap="wrap">
+        <Text bold {...inkOf(tone, 'ink')}>
+          Budget
+        </Text>
+        <Text mono={rich} {...figureInk(tone, view.level)}>
+          {view.text}
+        </Text>
+      </Box>
+      {view.note !== null && (
+        <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+          {view.note}
+        </Text>
+      )}
+      {view.isEditable && !readOnly && (
+        <Entry
+          ui={ui}
+          tone={tone}
+          id="flow-budget-edit"
+          value=""
+          placeholder="This Feature’s own, such as $20; empty or 0 for none"
+          submitLabel="Set"
+          onSubmit={text => on.budget(text)}
+          typed={typed}
+        />
+      )}
+      {problem !== null && (
+        <Text wrap="wrap" {...roleInk('danger', tone)}>
+          {problem}
+        </Text>
+      )}
+    </Box>
+  )
+}
+
 const FlowTab = ({
   ui,
   tone,
@@ -397,6 +454,8 @@ const FlowTab = ({
   isMapOpen,
   waiting,
   notices,
+  budget,
+  settings,
   on,
 }: Pick<
   PaneArgs,
@@ -411,6 +470,8 @@ const FlowTab = ({
   | 'isMapOpen'
   | 'waiting'
   | 'notices'
+  | 'budget'
+  | 'settings'
   | 'on'
 >) => {
   const { Box, Text } = ui
@@ -480,6 +541,16 @@ const FlowTab = ({
       <Text {...inkOf(tone, 'text2')}>
         {`${flow.title} · ${flow.doneCount} of ${flow.enabledCount} phases done`}
       </Text>
+      {budget !== null && (
+        <BudgetRow
+          ui={ui}
+          tone={tone}
+          {...budget}
+          readOnly={isBandless}
+          typed={settings.on.typed}
+          on={on}
+        />
+      )}
       {archive.archivable !== null && !isBandless && (
         <Box key="archive-feature" flexDirection="row" flexWrap="wrap" columnGap={SPACE.buttonsGap}>
           <CardButton
@@ -801,7 +872,7 @@ const SpendLineRow = ({
       {...(indent && { paddingLeft: SPACE.agentsPadX })}
     >
       <Text {...inkOf(tone, indent ? 'text2' : 'ink')}>{line.label}</Text>
-      <Text mono={rich} {...inkOf(tone, 'text2')}>
+      <Text mono={rich} {...figureInk(tone, line.level ?? 'none')}>
         {line.text}
       </Text>
     </Box>
@@ -838,7 +909,12 @@ const SpendTab = ({
           <SpendLineRow
             ui={ui}
             tone={tone}
-            line={{ key: 'spend-total', label: view.active.title, text: view.active.text }}
+            line={{
+              key: 'spend-total',
+              label: view.active.title,
+              text: view.active.text,
+              level: view.active.level,
+            }}
           />
           {!readOnly && (
             <Box key="spend-groups" flexDirection="row" flexWrap="wrap" columnGap={SPACE.chipGap}>

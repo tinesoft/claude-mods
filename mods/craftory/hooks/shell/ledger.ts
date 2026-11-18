@@ -1,4 +1,5 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
+import type { Overrun } from '../../types'
 import {
   addPending,
   addQueued,
@@ -18,6 +19,7 @@ import {
   type SpawnDecision,
 } from '../../src/build'
 import type { Flow } from '../../src/evidence'
+import type { WindowReading } from '../../src/rate-limits'
 import type { AgentId, AgentRun, BuildLedger, CraftoryConfig, IssueRef, Millis } from '../../types'
 
 const buildState = atom({ plugin: 'craftory', key: 'build' } as const, EMPTY_LEDGER)
@@ -77,9 +79,11 @@ export async function bookSpawn(
     config: CraftoryConfig
     integrationBranch: string
     at: Millis
+    windows: WindowReading
+    overrun: Overrun | null
   },
 ): Promise<SpawnDecision> {
-  const { call, flow, config, integrationBranch, at } = args
+  const { call, flow, config, integrationBranch, at, windows, overrun } = args
   return updateWith<SpawnDecision>($, { kind: 'pass' }, ledger => {
     const decision = decideSpawn({
       call,
@@ -88,6 +92,8 @@ export async function bookSpawn(
       isBuildRunning: isBuilding(flow),
       tickets: flow.tickets,
       integrationBranch,
+      windows,
+      overrun,
     })
     if (decision.kind === 'steer')
       return [addPending(ledger, call.toolUseId, decision.plan, at), decision]

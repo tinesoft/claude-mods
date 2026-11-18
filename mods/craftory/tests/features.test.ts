@@ -457,3 +457,26 @@ test('a map link is set once, kept on a draft, carried by promote and never rewr
   const parsed = parseFeature(serialiseFeature(record))
   expect(parsed.state === 'ok' && parsed.value.map).toBe(ref(7))
 })
+
+test('a record keeps its own budgets: written, read back, and a bad one dropped', () => {
+  const own: FeatureRecord = { ...B, budgets: { usd: 30, phases: { build: 18, align: 0 } } }
+  const loaded = parseFeature(serialiseFeature(own))
+  expect(loaded.state === 'ok' && loaded.value).toEqual(own)
+  const damaged = parseFeature(
+    JSON.stringify({
+      ...JSON.parse(serialiseFeature(base)),
+      budgets: { usd: 'lots', phases: { build: 12.4, bogus: 3, spec: -1 } },
+    }),
+  )
+  expect(damaged.state === 'ok' && damaged.value.budgets).toEqual({ phases: { build: 12 } })
+  const none = parseFeature(serialiseFeature(base))
+  expect(none.state === 'ok' && 'budgets' in none.value).toBe(false)
+})
+
+test('merging keeps a budget either writer set, the writer’s own winning', () => {
+  const disk: FeatureRecord = { ...base, budgets: { usd: 20, phases: { build: 12, spec: 5 } } }
+  const mine: FeatureRecord = { ...base, budgets: { phases: { build: 18 } } }
+  expect(mergeFeature(disk, mine).budgets).toEqual({ usd: 20, phases: { spec: 5, build: 18 } })
+  expect(mergeFeature(disk, base).budgets).toEqual(disk.budgets)
+  expect('budgets' in mergeFeature(base, base)).toBe(false)
+})

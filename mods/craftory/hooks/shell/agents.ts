@@ -18,6 +18,7 @@ import { specKey } from '../../src/features'
 import type { AgentId, AgentRun, IssueRef, SeatPlan } from '../../types'
 import { activeRecord, featureOfTicket, featuresOf, recordChange, recordRun } from './features'
 import { currentFlow, settle } from './flow'
+import { overrunNow } from './spend'
 import {
   bookSpawn,
   countTokens,
@@ -28,6 +29,7 @@ import {
   seatRun,
   setPaused,
 } from './ledger'
+import { windowReadingOf } from './limits'
 import { addNotice } from './notices'
 import { repoFacts, repoPath } from './repo'
 import { refreshGit, scheduleGit, scheduleRefresh } from './sync'
@@ -66,6 +68,8 @@ export async function planSpawn($: EngineInterface, call: AgentCall): Promise<Sp
     config,
     integrationBranch: record.integrationBranch,
     at: await $.clock.now(),
+    windows: await windowReadingOf($),
+    overrun: await overrunNow($, flow, 'build'),
   })
   if (decision.kind === 'deny') await settle($)
   return decision

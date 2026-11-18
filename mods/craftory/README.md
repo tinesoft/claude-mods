@@ -46,6 +46,8 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 - 🤖 **Build steering.** One git worktree and branch per implementer, at most `maxParallel` at a time, and a token budget per agent with a live Agents list.
 - 📋 **A full pane.** `/craftory` opens Flow, Tickets with a triage Inbox, Worktrees, Glossary, Settings and Spend.
 - 💰 **Spend for every feature.** Every step's tokens and dollars are charged to the feature, phase and ticket, and shown on the status line, the phase cards, the Build agents and a Spend tab. Each session commits its own file, so a feature's spend adds up across sessions and teammates.
+- 🎯 **Budgets.** Optional dollar budgets for a feature and for each phase, off until set. A figure turns amber at **Near budget** and red at **Over budget**, and a band notice offers **Raise budget**, **Continue** and **Diagnose**. Nothing is refused unless you turn on `deny.overBudget`.
+- ⏱️ **Rate-limit windows.** The Build card shows the account's windows and when they reset, and Build starts fewer agents at once while one is nearly full.
 - ⚙️ **Settings that edit the repo's own files.** The tracker, triage labels, docs layout and glossary are written where Matt's skills read them, exactly as `/setup-matt-pocock-skills` writes them.
 - 🗺️ **Wayfinder maps.** A map chip in the rail and a frontier card list the tickets you can take next, with **Take** and **Work next ticket**, and a switcher when several maps are open.
 - 🗄️ **Archiving.** A shipped feature leaves the switcher and the rail, and can be brought back.
@@ -117,8 +119,10 @@ A spec is an issue with `type: spec` in its front matter, or a body with the `to
 | Needs you   | `?`      | A grill waits for your answer, or a ticket is ready for a human                           |
 | Gated       | `⊘`      | The gate is on and the phase before is not done. It runs after you confirm                |
 | Failed      | `▲`      | Its card offers `diagnosing-bugs` instead of moving on                                    |
-| Over budget | `▲`      | An agent reached its token budget and was stopped. Its worktree is kept                   |
+| Over budget | `▲`      | An agent reached its token budget and was stopped, or the phase spent its dollar budget   |
 | Skipped     | `–`      | Off in Settings, skipped for this feature, or before the phase a triaged issue entered at |
+
+An agent's Over budget keeps its worktree. A dollar Over budget shows only on a phase that is running, up next or needs you, with a meta such as `$12.4 / $12`; done, skipped and gated phases keep their state, and the phase's command and gate are unchanged (see Budgets).
 
 With `ascii_glyphs` on, the rail uses `>`, `x`, `!`, `v` and `|/-\` instead.
 
@@ -132,12 +136,13 @@ A gate is soft. When you start a phase whose gated predecessor is not done, Craf
 
 Craftory asks in the band, so it gates a typed command only where a band is drawn: the terminal and Claude Desktop. On mobile and in VS Code a typed command always runs. On mobile, a gated button in the pane shows the same question, with **Run anyway** and **Diagnose**, at the top of the Flow tab. Align gates the next phase only until it has run. A grill ends when you move on, so typing `/to-spec` after a grill that ran is not gated, and Spec stays gated if no grill ran.
 
-Hard gates and two deny rules, off by default, turn a soft check into a refusal. Each denial names its rule and the switch that turns it off (Settings › Automation, or `"deny"` in `.craftory/config.json`).
+Hard gates and three deny rules, off by default, turn a soft check into a refusal. Each denial names its rule and the switch that turns it off (Settings › Automation, or `"deny"` in `.craftory/config.json`).
 
-- `deny.hardGates` is the one switch for a team that wants the order enforced. It turns on both rules below, whatever their own values (they show on and locked in Settings), removes **Run anyway** so a press in the rail or the pane is refused like a typed command (**Diagnose** stays), and refuses `gh pr create`, `gh pr ready`, `glab mr create` and `glab mr update --ready` until Review is done. A draft is let through, since Build opens one. There is no per-command override: the denial names `deny.hardGates` and the one switch that turns it off. It refuses only when Craftory can see that the phase before is not done; an unreadable tracker, an invalid `config.json`, no feature or Review turned off lets the call through. The check reads the command through `rtk`, `sudo`, `env` and `VAR=value` prefixes and across `&&`, `;` and pipes; it does not follow quoted text, `gh api` or `glab api` calls, or any host other than GitHub and GitLab. It is a guard for people and agents in Claude Code, not a security boundary: branch protection and required reviews on the host are.
+- `deny.hardGates` is the one switch for a team that wants the order enforced. It turns on the three rules below, whatever their own values (they show on and locked in Settings), removes **Run anyway** so a press in the rail or the pane is refused like a typed command (**Diagnose** stays), and refuses `gh pr create`, `gh pr ready`, `glab mr create` and `glab mr update --ready` until Review is done. A draft is let through, since Build opens one. There is no per-command override: the denial names `deny.hardGates` and the one switch that turns it off. It refuses only when Craftory can see that the phase before is not done; an unreadable tracker, an invalid `config.json`, no feature or Review turned off lets the call through. The check reads the command through `rtk`, `sudo`, `env` and `VAR=value` prefixes and across `&&`, `;` and pipes; it does not follow quoted text, `gh api` or `glab api` calls, or any host other than GitHub and GitLab. It is a guard for people and agents in Claude Code, not a security boundary: branch protection and required reviews on the host are.
 
 - `deny.skipGate` refuses a gated phase's skill until the phase before it is done: Claude's `Skill` call for it, and a slash command you type for it, on every surface. A press in the rail or the pane still asks, and its **Run anyway** still runs, unless `deny.hardGates` is on.
 - `deny.editOnIntegrationBranch` refuses `Edit` and `Write` in the main checkout while it is on the integration branch (`worktrees.integrationBranch`, `feat/{spec-slug}` by default). Ticket worktrees and files outside the repo are left alone.
+- `deny.overBudget` refuses a phase's skill once that phase or the feature is Over budget (see Budgets): Claude's `Skill` call and a typed command on every surface, and a press in the rail or the pane, whether or not the phase is gated. It also refuses a new Build implementer once Build or the feature is Over budget. The phase is checked before the feature. A denial reads `Craftory denied mattpocock-skills:implement-spec: Build is at $12.40 of $12, over its budget.`, then names the switch. A refused press shows `Build is at $12.40 of $12 · deny.overBudget refuses /implement-spec` in the band, with **Raise budget** (not for a draft) and **Diagnose**. It refuses only on a positive Over budget: no cost ledger, no budget or an invalid `config.json` lets the call through. Work already running goes on; an agent is stopped only by its own token budget.
 
 ### Build
 
@@ -145,12 +150,17 @@ Hard gates and two deny rules, off by default, turn a soft check into a refusal.
 
 - It gives the implementer its own worktree, `.claude/worktrees/<ticket>-<slug>` (the `folder` setting, which must be a relative path inside the repo), on the branch `craftory/<ticket>-<slug>`, cut from the integration branch. When you start Build with a typed or rail command, Craftory tells Claude which branch to integrate on and where the worktrees live. If that branch does not exist when the first implementer starts, Craftory creates it from your checkout's `HEAD`. It copies the files listed in `copy` and runs the `setup` command there. `copy` takes relative paths inside the repo and never `.git`. Craftory skips any other entry and says so on the card. The first time a `setup` command other than the built-in `pnpm install --frozen-lockfile` is about to run on your machine, Craftory asks **Run** or **Skip**, and remembers a **Run**. After a **Skip**, or when nobody can answer, the agent starts without the setup and the card says so.
 - At most `maxParallel` implementers run at once. Craftory refuses an extra spawn with a reason that names the running tickets and asks Claude to start the ticket after one of them returns.
+- **Throttled.** While any of the account's rate-limit windows is at or above `rateLimits.throttleAt` (80% by default), at most `rateLimits.throttledParallel` implementers run (1 by default, never more than `maxParallel`). A held spawn's reason names the fullest window, its use and its reset: `Craftory holds csv/03: the 5-hour window is at 84% (resets 18:40), so at most 1 implementer runs at once. Start it after csv/01 returns, and do not call Agent for csv/03 again before then.` `throttleAt` 100 turns throttling off. With `throttledParallel` at or above `maxParallel` throttling is not in force: the plain queue reason stands, and neither the agents summary nor the warning says Throttled, though the window on the Limits row still does. Throttling never stops a running agent and never waits for a reset itself.
+- Starting `/implement-spec` or `/implement` while a window is Throttled shows a notice first, such as `5-hour window at 84% · Build runs 1 implementer at a time until it resets at 18:40`, with **Dismiss**. It never drops or delays the command. It is raised from a rail or pane press and from a typed command, on every surface: the band shows it, and so does the pane, which is where it shows where no band is drawn.
+- With Build or the feature Over budget and `deny.overBudget` on, a new implementer is refused, not queued (see Gates).
 - Tickets that are blocked or ready for a human never get an agent.
 - Each agent has a token budget, 80k by default, counted as input, cache-creation and output tokens. The bar turns amber at 80%. At 100% Craftory stops the agent and ends its turn with a note: the agent's next step is answered without a request, and the note goes to Claude as the Agent result, saying the ticket ran out of budget, that its worktree is kept, and not to restart it. The ticket is marked over budget. An agent that finishes by itself on the step that crossed the budget is marked done. The card offers **Raise budget** and **Diagnose**.
 - When the integration branch moves, Craftory tells the running agents to merge it. It never rebases a worktree under an agent. A merge conflict stops the agent the same way, with a note about the conflict, and the band offers **Resolve**.
 - An agent recorded as running by a session that has since ended is marked stopped when the next session starts, so its worktree is kept as stopped work and not defended as a running agent.
 - With `worktrees.test` set, Craftory runs that command in the ticket's worktree after the implementer's turn ends with its answer, off the turn, once per turn end. The command is split into words (quotes group them) and run without a shell. A non-zero exit marks the ticket Failed with the tail of the output on the card. A run still going after `worktrees.testTimeoutSec` (600 by default, at most 600) is stopped and the ticket is Failed, timed out. A later turn of that implementer runs it again and clears Failed when it passes. With `worktrees.test` empty, the default, nothing runs: Craftory never guesses a command.
 - Craftory refuses a `git worktree remove` or an `rm` of a worktree it keeps (running, failed, stopped or over budget). The check reads the command's words and is best-effort. It does not follow variables, globs or a preceding `cd`.
+
+The Build card has a **Limits** row with each rate-limit window, such as `5-hour 72% · resets 18:40`, `7-day 31% · resets Mon 09:00` or `Spend limit 40%`. Use is rounded down to a whole percent, times are local and 24-hour, with a weekday when the reset is not today, and a Throttled window is amber and ends with `· Throttled`. Off a subscription the account reports no windows, so there is no row and nothing is throttled. While throttling is in force the agents summary ends with `· Throttled`.
 
 The Build card lists every agent with its ticket, status, TDD step when the agent reports one, token bar, time, worktree, branch, `+added −removed` lines and commits. **Pause all** stops new spawns and sends the running agents a message to finish their current step, commit and report. **Open panel** opens the Worktrees tab.
 
@@ -173,7 +183,7 @@ Turn on `automation.archiveOnShip` (Settings › Automation) to archive by itsel
 
 ### Spend
 
-Craftory counts what each feature costs. Tracking is always on and never refuses anything.
+Craftory counts what each feature costs. Tracking is always on and never refuses anything; budgets, below, can.
 
 - **What is counted.** Every step Claude answers, in the main session and in agents: its fresh tokens (input, cache-write and output, the count the agent budget uses), its cache reads, and its share of the session's dollars. The dollars come from the session's own cost total, as `/cost` reports it; Craftory keeps no price table.
 - **Where it is charged.** An implementer's steps go to its ticket under Build. Any other step goes to the phase running in the main session, or to **Between phases** when none is. With no feature in flight it is **Outside features**.
@@ -188,11 +198,29 @@ Craftory counts what each feature costs. Tracking is always on and never refuses
 - **Before a spec exists,** a draft's spend (the grill, and Spec until it binds) is kept on your machine. When the spec binds, it moves into the feature's file. Outside features is kept on your machine for 30 days and never committed.
 - **Without a cost ledger.** Where Claude Code keeps no cost total, Craftory shows tokens only and says "$ unavailable on this surface". It never shows `$0`.
 
+### Budgets
+
+A feature and each of its phases can have a budget in dollars. All are off until set, and they apply only where Claude Code keeps a cost ledger.
+
+- **Where a budget comes from.** The feature's budget is its own, set in the Flow tab or by **Raise budget**, else `budgets.featureUsd` from Settings › Pipeline. A phase's budget is the feature's own for that phase, set by **Raise budget**, else `budgets.phaseUsd.<phase>`. Budgets are whole dollars, and `0` is none at every level. A draft has no record, so it gets the defaults only. The feature's own budgets are kept on its record in `.craftory/features/`, so the team shares them.
+- **Levels.** A figure under `budgets.warnAtPercent` (80% by default) of its budget is plain. From there it is amber and ends with `· Near budget`, and from 100% it is red and ends with `· Over budget`, so a level is never told by colour alone.
+- **Where it shows.**
+  - A phase card's Spend row reads `$9.80 of $12 · 318k fresh · 61% cache` once the phase has a budget.
+  - The status line and the summary chip read `Export invoices as CSV · Build 2/5 · $9.80 of $20` once the feature has one.
+  - The Spend tab's feature total and phase lines, and the text reply's `Spend: $9.80 of $20 (318k fresh tokens) across 3 sessions`, follow the same rule.
+  - A phase that is running, up next or needs you and is Over budget shows **Over budget** with `▲` on the rail (see Phase states).
+- **The notice.** When a phase or the feature reaches its budget, the band says `Build is at $12.40 of $12` or `Export invoices as CSV is at $20.10 of $20`.
+  - **Raise budget** sets the feature's own budget for that phase, or for the feature, to half again its current one, rounded up to a whole dollar, writes the record and drops the notice. A draft's notice has no **Raise budget**.
+  - **Continue** drops the notice and keeps, on your machine, the budget it was pressed at. That budget never raises it again.
+  - **Diagnose** submits `/diagnosing-bugs` with the notice's text.
+  - It is raised once per budget per feature, across sessions (kept in `$.store`), and again only after the budget changes and is reached again. It is checked after every step that moved the feature's dollars.
+- **Refusals.** Only `deny.overBudget` refuses anything (see Gates). Without it, an Over budget phase still runs.
+
 ### The pane
 
 Open it with `/craftory`, the gear, **Open panel** or a card button. The tabs have hotkeys `1` to `6`.
 
-- **Flow** (`1`). The seven phases with their command and a one-line result. On mobile the tab starts with the rail.
+- **Flow** (`1`). The seven phases with their command and a one-line result. On mobile the tab starts with the rail. A **Budget** row shows the active feature's spend of its budget, such as `$9.80 of $20`, and says where the budget comes from. Its field, with **Set**, writes the feature's own budget in whole dollars; `0` gives the feature no budget, even over a default, and an empty field drops its own budget, so the default applies again. A draft shows the default and "set once the spec binds".
 - **Tickets** (`2`). The tracker header, the **Inbox**, then the spec's tickets with status, blocking edges and `/implement <ticket>` on ready ones, and `/implement-spec <spec> · run all in parallel`. On a Local tracker the argument is the file's path, such as `.scratch/csv/issues/01-button.md`; on GitHub it is `#n`. In the Inbox, a `needs-triage` item offers `/triage <issue>`, a `ready-for-agent` item offers **Start feature**, and so does a `ready-for-agent` spec that no feature points at, which enters at Tickets, and a `ready-for-human` item gets no agent. A started feature enters at the phase set in Settings › Entry points. By default a bug enters at Build and anything else at Align. GitLab and Other trackers show links only.
 - **Worktrees** (`3`). Your checkout, the integration worktree, one per agent and stale ones, each with its branch and sync state. **Diff** shows the change size, **Open terminal** copies `cd '<path>'`, quoted for the shell (a mod cannot open a terminal), **Remove** asks first for a kept worktree, and **Prune** removes stale ones.
 - **Glossary** (`4`). Search, the terms added this session, **Used in last reply**, then every term with its definition and the words to avoid. **Edit** jumps to Settings › Glossary.
@@ -211,33 +239,39 @@ When Review or Ship starts, Craftory scans the lines the integration branch adds
 
 The Settings tab writes each value where it belongs and saves as you go. The first change to a file that Matt's skills or your teammates also edit asks first and shows what changes. **Reset to defaults** resets `.craftory/config.json` and your personal settings only. **Re-run /setup-matt-pocock-skills** runs Matt's setup skill.
 
-| Section       | Values                                                                                                                                             | Written to                                                              |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Entry points  | Triage on or off and the phase a ready-for-agent item enters at, the wayfinder suggestion, which fires after `afterQuestions` (12) Align questions | `.craftory/config.json`                                                 |
-| Issue tracker | Local Markdown, GitHub, GitLab or Other with their fields, and the label for each triage role                                                      | `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`          |
-| Docs layout   | Glossary file, ADR folder, research notes, steering file (`CLAUDE.md` by default, or `AGENTS.md`)                                                  | `docs/agents/domain.md` and the steering file's `## Agent skills` block |
-| Glossary      | Add, edit and delete terms, and import terms from `CONTEXT.md`                                                                                     | `GLOSSARY.md`                                                           |
-| Pipeline      | Each phase on or off, its command and its gate. Helper skills are shown, not edited                                                                | `.craftory/config.json`                                                 |
-| Worktrees     | Folder, integration branch, ticket branch, parallel limit, token budget, setup command, files to copy, test command and timeout, and four switches | `.craftory/config.json`                                                 |
-| Automation    | Suggest the next phase, live agents, underline glossary terms, the four automations, and the two deny rules                                        | `.craftory/config.json`                                                 |
-| Personal      | The options below                                                                                                                                  | `$.store`, on your machine                                              |
+| Section       | Values                                                                                                                                                                           | Written to                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Entry points  | Triage on or off and the phase a ready-for-agent item enters at, the wayfinder suggestion, which fires after `afterQuestions` (12) Align questions                               | `.craftory/config.json`                                                 |
+| Issue tracker | Local Markdown, GitHub, GitLab or Other with their fields, and the label for each triage role                                                                                    | `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`          |
+| Docs layout   | Glossary file, ADR folder, research notes, steering file (`CLAUDE.md` by default, or `AGENTS.md`)                                                                                | `docs/agents/domain.md` and the steering file's `## Agent skills` block |
+| Glossary      | Add, edit and delete terms, and import terms from `CONTEXT.md`                                                                                                                   | `GLOSSARY.md`                                                           |
+| Pipeline      | Feature budget, Near budget at, then each phase on or off, its command, its gate and its budget. Helper skills are shown, not edited                                             | `.craftory/config.json`                                                 |
+| Worktrees     | Folder, integration branch, ticket branch, parallel limit, Throttle at, While throttled, token budget, setup command, files to copy, test command and timeout, and four switches | `.craftory/config.json`                                                 |
+| Automation    | Suggest the next phase, live agents, underline glossary terms, the four automations, Hard gates and the three deny rules                                                         | `.craftory/config.json`                                                 |
+| Personal      | The options below                                                                                                                                                                | `$.store`, on your machine                                              |
 
-The parallel limit, token budget and test timeout each have a field under their choices for a value of your own, such as `12`, `250k` or `90 s`. It is checked against the bounds the file is clamped to.
+The budgets offer Off, $5, $10, $20 or $50 for the feature and Off, $1, $5, $10 or $25 per phase. Near budget at offers 70%, 80% or 90%, with no Off. Throttle at offers 70%, 80%, 90% or Off, and While throttled 1, 2 or 3. These, the parallel limit, token budget and test timeout each have a field under their choices for a value of your own, such as `$15`, `85%`, `12`, `250k` or `90 s`. It is checked against the bounds the file is clamped to. Where this session has no cost ledger, each budget row says "Needs a cost ledger: budgets do not apply on this surface."
 
-These `.craftory/config.json` keys sit behind the Worktrees and Automation rows. Each is also editable in the file.
+These `.craftory/config.json` keys sit behind the Pipeline, Worktrees and Automation rows. Each is also editable in the file.
 
-| Key                             | Default | Effect                                                                                       |
-| ------------------------------- | ------- | -------------------------------------------------------------------------------------------- |
-| `worktrees.test`                | `""`    | Test command run in a ticket's worktree after its implementer's turn. Empty runs nothing     |
-| `worktrees.testTimeoutSec`      | `600`   | Seconds before a test run is stopped and the ticket is Failed, timed out (10 to 600)         |
-| `automation.handoffAt80`        | `false` | Offer `/handoff` at 80% context                                                              |
-| `automation.retroOnPr`          | `false` | Offer `/retro` when the feature's PR merges                                                  |
-| `automation.weeklyArchitecture` | `false` | Offer `/improve-codebase-architecture` when the last run is over 7 days old                  |
-| `automation.nudgeUnmetDone`     | `false` | Say what is missing when a turn ends in a running phase whose Done when is not met           |
-| `automation.archiveOnShip`      | `false` | Archive a feature by itself once its Ship is done (see Archiving features)                   |
-| `deny.hardGates`                | `false` | Hard gates: both rules below, no Run anyway, and no ready PR or MR before Review (see Gates) |
-| `deny.skipGate`                 | `false` | Refuse a gated phase's skill until the phase before it is done (see Gates)                   |
-| `deny.editOnIntegrationBranch`  | `false` | Refuse `Edit` and `Write` in the main checkout on the integration branch (see Gates)         |
+| Key                             | Default | Effect                                                                                      |
+| ------------------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `budgets.featureUsd`            | `0`     | Every feature's budget in dollars unless its own is set. `0` is none (0 to 100000)          |
+| `budgets.phaseUsd.<phase>`      | `0`     | That phase's budget in dollars for every feature unless its own is set. `0` is none         |
+| `budgets.warnAtPercent`         | `80`    | Share of a budget at which its figure turns amber and says Near budget (50 to 95)           |
+| `rateLimits.throttleAt`         | `80`    | Use of any rate-limit window at which Build is Throttled (50 to 100). `100` is off          |
+| `rateLimits.throttledParallel`  | `1`     | Implementers at once while Throttled (1 to 16), never more than `worktrees.maxParallel`     |
+| `worktrees.test`                | `""`    | Test command run in a ticket's worktree after its implementer's turn. Empty runs nothing    |
+| `worktrees.testTimeoutSec`      | `600`   | Seconds before a test run is stopped and the ticket is Failed, timed out (10 to 600)        |
+| `automation.handoffAt80`        | `false` | Offer `/handoff` at 80% context                                                             |
+| `automation.retroOnPr`          | `false` | Offer `/retro` when the feature's PR merges                                                 |
+| `automation.weeklyArchitecture` | `false` | Offer `/improve-codebase-architecture` when the last run is over 7 days old                 |
+| `automation.nudgeUnmetDone`     | `false` | Say what is missing when a turn ends in a running phase whose Done when is not met          |
+| `automation.archiveOnShip`      | `false` | Archive a feature by itself once its Ship is done (see Archiving features)                  |
+| `deny.hardGates`                | `false` | Hard gates: the rules below, no Run anyway, and no ready PR or MR before Review (see Gates) |
+| `deny.skipGate`                 | `false` | Refuse a gated phase's skill until the phase before it is done (see Gates)                  |
+| `deny.editOnIntegrationBranch`  | `false` | Refuse `Edit` and `Write` in the main checkout on the integration branch (see Gates)        |
+| `deny.overBudget`               | `false` | Refuse phase skills and new Build agents once over budget (see Gates)                       |
 
 The Local Markdown tracker keeps its files under `.scratch/` by default, the same place `/setup-matt-pocock-skills` puts local issues. It reads the layout Matt's skills write, in place: `.scratch/<feature>/spec.md` and `.scratch/<feature>/issues/NN-*.md`, with `Status:` and `Blocked by:` lines. A feature is its folder name (`csv`) and a ticket is `csv/01`; a bare number in `Blocked by:` names a ticket of the same feature and `other/02` one of another. An issue file in a folder with no `spec.md` is a standalone issue for the Inbox, and a folder with a `map.md` and no `spec.md` is a wayfinder map, not a feature. A spec counts as created when its file last changed, which is how a draft finds it. Setup writes Matt's own Local tracker doc.
 
@@ -262,7 +296,7 @@ The mod makes no network calls of its own. The `gh` and `claude` commands below 
 
 **What it reads**
 
-- The events Claude Code raises: the skills that run, typed commands, the Agent, Skill and Bash tool calls, agent spawns and steps (for token use), the session's cost total (`$.session.usage()` and `session.measure`), and the end of each turn and of the session. It keeps the skill names, ticket ids, token counts, the models that answered and the last reply's text (to find glossary terms), not the conversation.
+- The events Claude Code raises: the skills that run, typed commands, the Agent, Skill and Bash tool calls, agent spawns and steps (for token use), the session's cost total and the account's rate-limit windows (`$.session.usage()` at session start and `session.measure`), and the end of each turn and of the session. It keeps the skill names, ticket ids, token counts, the last rate-limit reading (each window's kind, use and reset time, in memory only), the models that answered and the last reply's text (to find glossary terms), not the conversation.
 - The repo files listed below, the files under `.scratch/` of a Local tracker, and `CONTEXT.md` when you import terms from it.
 - The `COLORFGBG` environment variable, to guess whether the terminal is light or dark. No other variable and no credential is read.
 
@@ -270,17 +304,17 @@ The mod makes no network calls of its own. The `gh` and `claude` commands below 
 
 Craftory writes only these files, and checks each write against this list:
 
-| Path                                                            | Shared with                          |
-| --------------------------------------------------------------- | ------------------------------------ |
-| `docs/agents/issue-tracker.md`, `triage-labels.md`, `domain.md` | `/setup-matt-pocock-skills`          |
-| The `## Agent skills` block of `CLAUDE.md` or `AGENTS.md`       | `/setup-matt-pocock-skills`          |
-| `GLOSSARY.md` (or the glossary file set in Settings)            | `grill-with-docs`, `domain-modeling` |
-| `.gitignore` (the `.claude/worktrees/` line)                    | Your repo                            |
-| `.craftory/config.json`, `.craftory/features/<spec>.json`       | Craftory, committed                  |
-| `.craftory/spend/<spec>/<session>.json`                         | Craftory, committed, one per session |
-| `.craftory/state.json` (the last architecture check)            | Craftory, git-ignored, one per repo  |
+| Path                                                                                     | Shared with                          |
+| ---------------------------------------------------------------------------------------- | ------------------------------------ |
+| `docs/agents/issue-tracker.md`, `triage-labels.md`, `domain.md`                          | `/setup-matt-pocock-skills`          |
+| The `## Agent skills` block of `CLAUDE.md` or `AGENTS.md`                                | `/setup-matt-pocock-skills`          |
+| `GLOSSARY.md` (or the glossary file set in Settings)                                     | `grill-with-docs`, `domain-modeling` |
+| `.gitignore` (the `.claude/worktrees/` line)                                             | Your repo                            |
+| `.craftory/config.json`, `.craftory/features/<spec>.json` (with a feature's own budgets) | Craftory, committed                  |
+| `.craftory/spend/<spec>/<session>.json`                                                  | Craftory, committed, one per session |
+| `.craftory/state.json` (the last architecture check)                                     | Craftory, git-ignored, one per repo  |
 
-It never writes under `.git/`, and the glossary file must end in `.md`. It never writes issue files: Matt's skills do. It never touches content outside the sections it owns. A write to a shared file, or to `.craftory/config.json`, fails and reloads if the file changed since Craftory read it. A setting is applied to `config.json` as it is after you confirm any question, so an edit made while the question was open is kept. Personal settings, pre-spec drafts and their spend, Outside features spend and the Spend tab's breakdown are saved with `$.store`, on your machine. Feature records are written as soon as they change. Commit them so teammates see the same rail.
+It never writes under `.git/`, and the glossary file must end in `.md`. It never writes issue files: Matt's skills do. It never touches content outside the sections it owns. A write to a shared file, or to `.craftory/config.json`, fails and reloads if the file changed since Craftory read it. A setting is applied to `config.json` as it is after you confirm any question, so an edit made while the question was open is kept. Personal settings, pre-spec drafts and their spend, Outside features spend, the Spend tab's breakdown and the budgets **Continue** was pressed at are saved with `$.store`, on your machine. Feature records are written as soon as they change. Commit them so teammates see the same rail.
 
 **What it runs**
 
@@ -298,12 +332,12 @@ It starts no other program. The `setup` and `test` commands are the ones in `.cr
 
 **What its hooks decide**
 
-- `prompt.submit` drops a gated command, where a band can show **Run anyway**. With `deny.skipGate` or `deny.hardGates` on, it drops a typed gated command on every surface, with the denial. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder. It answers nothing else.
-- `tool.call` on `Agent` gives a Build implementer its name and drops `isolation`, or refuses it when the queue is full, the ticket is blocked, or the ticket is for a human. Other Agent calls pass through.
+- `prompt.submit` drops a gated command, where a band can show **Run anyway**. With `deny.skipGate` or `deny.hardGates` on, it drops a typed gated command on every surface, with the denial, and with `deny.overBudget` on it drops a typed phase command whose phase or feature is Over budget. For a typed or rail `/implement-spec` or `/implement` it adds a line of context naming the integration branch and the worktree folder, and on every surface it raises the Throttled notice. It answers nothing else.
+- `tool.call` on `Agent` gives a Build implementer its name and drops `isolation`, or refuses it when the queue is full, a rate-limit window is Throttled and the throttled limit is reached, the ticket is blocked, the ticket is for a human, or, with `deny.overBudget` on, Build or the feature is Over budget. Other Agent calls pass through.
 - `agent.spawn` points a Build implementer at its worktree with `cwd`.
 - `turn.step` ends an agent's step only after that agent passed its token budget or stopped on a merge conflict. Every step's result is passed through unchanged; Craftory only counts its tokens and cost.
-- `session.measure` and `session.end` pass through unchanged. Craftory reads the cost from the first, and writes the session's spend file at the second.
-- `tool.call` on `Skill` asks before a gated `code-review`, and with `deny.skipGate` or `deny.hardGates` on refuses any gated phase's skill. `tool.call` on `Edit` and `Write` refuses an edit in the main checkout on the integration branch when `deny.editOnIntegrationBranch` is on. `tool.call` on `Bash` refuses `git worktree remove` and `rm` of a kept worktree, best-effort, and with `deny.hardGates` on refuses a ready PR or MR before Review is done.
+- `session.measure` and `session.end` pass through unchanged. Craftory reads the cost and the rate-limit windows from the first, and writes the session's spend file at the second.
+- `tool.call` on `Skill` asks before a gated `code-review`, with `deny.skipGate` or `deny.hardGates` on refuses any gated phase's skill, and with `deny.overBudget` on refuses any phase's skill whose phase or feature is Over budget. `tool.call` on `Edit` and `Write` refuses an edit in the main checkout on the integration branch when `deny.editOnIntegrationBranch` is on. `tool.call` on `Bash` refuses `git worktree remove` and `rm` of a kept worktree, best-effort, and with `deny.hardGates` on refuses a ready PR or MR before Review is done.
 - `skill.prompt`, `turn.complete`, the other `tool.call`s and `ui.render` pass their result through unchanged. On Desktop and mobile, `ui.render` on `AssistantMessage` adds glossary links to the drawing only. The stored reply never changes.
 - `/craftory` is the only command the mod registers.
 
@@ -321,6 +355,9 @@ It starts no other program. The `setup` and `test` commands are the ones in `.cr
 - The token budget counts input, cache-creation and output tokens. It may differ from Claude Code's own per-agent total.
 - An agent's dollars are an estimate (`≈`) whenever one cost reading covered steps of several agents: the session's cost is a single total, so Craftory shares it out by tokens. Cost from a compaction, or from a mod's own model call before any step, is not charged to a feature.
 - A refused spawn relies on Claude waiting as the reason asks. Claude may try again sooner.
+- Budgets and `deny.overBudget` are a check inside Claude Code, not an account spend limit. They refuse new phase skills and new agents, never work already running, and do nothing where Claude Code keeps no cost ledger.
+- The budget notice is checked when the status line's spend text changes, so a phase that crosses its budget while the feature's total text stands still is noticed at the next change.
+- The rate-limit windows are read at session start and whenever Claude Code reports a new reading, so the Limits row and throttling can lag the account by a step. Craftory never waits for a window to reset.
 - Copying files into a worktree uses `cp`, which Windows lacks outside WSL.
 - Glyphs such as `▲`, `◐` and `–` are one cell wide in Claude Code's layout. A terminal that draws them two cells wide misaligns the rail. Turn on `ascii_glyphs`.
 - GitLab and Other trackers show links only, so their Spec, Tickets and Build states come from the skills that ran and from **Mark done**.

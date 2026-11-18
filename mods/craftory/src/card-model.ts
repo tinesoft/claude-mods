@@ -1,10 +1,13 @@
 import type { Space } from 'claude-code'
 import type { CraftoryConfig, PhaseId, SkillName } from '../types'
 import type { Action } from './action'
+import { budgetText, type SpendFigure } from './budgets'
 import { budgetK, type AgentsView } from './build'
 import type { Flow, PhaseView } from './evidence'
 import { handoffOf } from './features'
 import { PHASE_ORDER, PHASES, type PhaseSpec } from './phases'
+import type { WindowView } from './rate-limits'
+import { usdText } from './spend'
 import { across, type Role, SPACE, PHASE_LOOKS } from './theme'
 import { clip } from './ui'
 
@@ -25,7 +28,9 @@ export function phaseMeta(view: PhaseView, flow: Flow): string | null {
     case 'failed':
       return s.meta
     case 'over-budget':
-      return `${s.ticket} · ${budgetK(s.budget)}`
+      return s.unit === 'tokens'
+        ? `${s.ticket} · ${budgetK(s.budget)}`
+        : `${usdText(s.usd)} / ${budgetText(s.budget)}`
     case 'next':
       return flow.feature.kind === 'specced' &&
         flow.feature.record.entry === view.phase &&
@@ -181,8 +186,10 @@ export type CardView = {
   agents: AgentsView | null
   /** The Feature's latest handoff document, linked from every phase card; null without one. */
   handoff: string | null
-  /** What the phase has cost (`$2.14 · 318k fresh · 61% cache`); null when it spent nothing. */
-  spend: string | null
+  /** What the phase has cost (`$2.14 of $12 · 318k fresh · 61% cache`); null when it spent nothing. */
+  spend: SpendFigure | null
+  /** The account's rate-limit windows, on the Build card only; empty off a subscription. */
+  windows: readonly WindowView[]
 }
 
 const TRIAGE_WHY =
@@ -205,6 +212,7 @@ export function triageCard(waiting: number): CardView {
     agents: null,
     handoff: null,
     spend: null,
+    windows: [],
   }
 }
 
@@ -216,7 +224,8 @@ function secondaryOf(view: PhaseView, specRef: string | null, isDone: boolean): 
     return [{ id: 'open-spec', label: `Open ${specRef}`, action: { kind: 'open-tickets' } }]
   if (view.phase === 'tickets' && isDone)
     return [{ id: 'open-tickets', label: 'Open in panel', action: { kind: 'open-tickets' } }]
-  if (view.phase === 'build' && (kind === 'failed' || kind === 'over-budget'))
+  const isAgentOver = view.state.kind === 'over-budget' && view.state.unit === 'tokens'
+  if (view.phase === 'build' && (kind === 'failed' || isAgentOver))
     return [
       {
         id: 'diagnose',
@@ -259,7 +268,8 @@ export function phaseCard(
   flow: Flow,
   config: CraftoryConfig,
   agents: AgentsView | null = null,
-  spend: string | null = null,
+  spend: SpendFigure | null = null,
+  windows: readonly WindowView[] = [],
 ): CardView {
   const spec: PhaseSpec = PHASES[view.phase]
   const look = PHASE_LOOKS[view.state.kind]
@@ -291,5 +301,6 @@ export function phaseCard(
     agents: view.phase === 'build' ? agents : null,
     handoff: handoffOf(flow.feature),
     spend,
+    windows: view.phase === 'build' ? windows : [],
   }
 }
