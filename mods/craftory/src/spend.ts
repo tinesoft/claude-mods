@@ -504,3 +504,19 @@ export const agentSpendText = (total: SpendTotal | undefined): string | null =>
   total === undefined || total.usd === null
     ? null
     : `${total.isEstimated ? '≈' : ''}${usdText(total.usd)}`
+
+/**
+ * The line `/craftory`'s text reply adds: `Spend: $4.12 (318k fresh tokens) across 3 sessions`.
+ * Tokens alone, with a note, where the host keeps no cost ledger; null when nothing was spent.
+ */
+export function spendSummaryLine(
+  total: SpendTotal,
+  sessions: number,
+  hasCost: boolean,
+): string | null {
+  if (total.fresh === 0 && total.cacheRead === 0) return null
+  const fresh = `${tokensText(total.fresh)} fresh tokens`
+  const across = `across ${sessions} session${sessions === 1 ? '' : 's'}`
+  if (total.usd !== null) return `Spend: ${usdText(total.usd)} (${fresh}) ${across}`
+  return `Spend: ${fresh} ${across}${hasCost ? '' : ` (${NO_COST_TEXT})`}`
+}

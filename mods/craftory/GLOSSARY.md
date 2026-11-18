@@ -109,6 +109,28 @@ The branch an Implementer works on, cut from the integration branch.
 **Worktree**:
 The checkout folder where an Implementer works on its Ticket branch. Craftory keeps it while the Implementer is running, failed, stopped or over budget.
 
+### Spend
+
+**Spend**:
+What a Feature has cost: the tokens of every step Claude answered for it, and their share of the session's dollars. Charged to a phase, and to a ticket for an Implementer's steps. Committed per session under `.craftory/spend/`, so a Feature's Spend adds up across sessions and people.
+_Avoid_: Burn
+
+**Fresh tokens**:
+Input, cache-write and output tokens: the count the per-agent token budget uses. Cache reads are counted apart.
+_Avoid_: Billed tokens
+
+**Cache-hit %**:
+Of the input the model read, the share the prompt cache served. Shown on a phase card's Spend row, such as `61% cache`.
+_Avoid_: Cache rate
+
+**Between phases**:
+Spend from the main session while the active Feature had no phase running, such as chat between `/to-spec` and `/to-tickets`. It counts towards the Feature.
+_Avoid_: Unphased, idle
+
+**Outside features**:
+Spend with no Feature in flight. Kept on this machine only, for 30 days, and shown only in the Spend tab.
+_Avoid_: Unattributed
+
 ### Surfaces
 
 **Rail**:
@@ -124,11 +146,11 @@ The detail view of one phase, opened from the rail: what it does, its command, i
 _Avoid_: Popover, panel
 
 **Pane**:
-The `/craftory` view with the tabs Flow, Tickets, Worktrees, Glossary and Settings.
+The `/craftory` view with the tabs Flow, Tickets, Worktrees, Glossary, Settings and Spend.
 _Avoid_: Dashboard, panel
 
 **Status line**:
-The one-line summary under the prompt, such as `Export invoices as CSV · Build 2/5`. A surface of its own, not part of the band.
+The one-line summary under the prompt, such as `Export invoices as CSV · Build 2/5 · $4.12`, ending with the Feature's Spend once it has any. A surface of its own, not part of the band.
 
 ### Glossary
 

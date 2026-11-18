@@ -9,6 +9,7 @@ import {
   otherRowsOf,
   OUTSIDE_DAYS,
   phaseSpendText,
+  spendSummaryLine,
   ownRowsOf,
   parseLocalSpend,
   rekeyLedger,
@@ -52,6 +53,7 @@ import type {
   PhaseId,
   SessionSpend,
   SpendDisk,
+  SpendLedger,
   SpendRow,
   SpendTarget,
 } from '../../types'
@@ -362,6 +364,40 @@ export async function spendBreakdownOf(
 ): Promise<SpendBreakdown & { hasCost: boolean }> {
   const [ledger, disk] = await Promise.all([read($, spendState), read($, diskState)])
   return { ...breakdownOf(ledger, feature, diskRowsOf(disk, feature)), hasCost: disk.hasCost }
+}
+
+/**
+ * How many sessions spent on the Feature: this one if it did, and every other session whose
+ * committed file (or, for a draft, stored entry) has rows for it.
+ */
+async function sessionsOf(
+  $: EngineInterface,
+  feature: FeatureKey,
+  ledger: SpendLedger,
+  disk: SpendDisk,
+): Promise<number> {
+  const mine = sessionRows(ledger).some(r => r.feature === feature) ? 1 : 0
+  const spec = specOfKey(feature)
+  if (spec !== null)
+    return mine + (disk.others[spendSlug(spec)] ?? []).filter(s => s.rows.length > 0).length
+  const draft = draftOfKey(feature)
+  if (draft === null || disk.session === null) return mine
+  const local = await localOf($, storeDraftKey(draft))
+  return (
+    mine +
+    Object.entries(local.sessions).filter(([id, e]) => id !== disk.session && e.rows.length > 0)
+      .length
+  )
+}
+
+/** The Spend line of `/craftory`'s text reply; null when the Feature spent nothing. */
+export async function spendSummaryOf(
+  $: EngineInterface,
+  feature: FeatureKey,
+): Promise<string | null> {
+  const [ledger, disk] = await Promise.all([read($, spendState), read($, diskState)])
+  const total = totalOf(ledger, feature, diskRowsOf(disk, feature))
+  return spendSummaryLine(total, await sessionsOf($, feature, ledger, disk), disk.hasCost)
 }
 
 /** Each phase's Spend row for its card, by phase; a phase that spent nothing is left out. */

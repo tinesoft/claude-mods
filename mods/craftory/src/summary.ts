@@ -19,7 +19,12 @@ export function nextAction(flow: Flow): string | null {
   return `Next: **${PHASES[view.phase].label}**, run \`${command}\`.`
 }
 
-export function markdownSummary(flow: Flow | null, plugin: PluginStatus): string {
+/** The reply where nothing draws: the phases, the Feature's spend line when it has one, what's next. */
+export function markdownSummary(
+  flow: Flow | null,
+  plugin: PluginStatus,
+  spend: string | null = null,
+): string {
   if (plugin.kind === 'missing') return `Craftory needs ${PLUGIN} ${TESTED_RANGE.label}.`
   if (flow === null) return 'No feature in flight. Start one with /grill-with-docs.'
   const rows = flow.phases.map(view => {
@@ -28,5 +33,10 @@ export function markdownSummary(flow: Flow | null, plugin: PluginStatus): string
     return `${PHASES[view.phase].n}. **${PHASES[view.phase].label}** · ${state}${meta ? ` · ${meta}` : ''}`
   })
   const next = nextAction(flow)
-  return [`## ${flow.title}`, ...rows, ...(next === null ? [] : ['', next])].join('\n')
+  return [
+    `## ${flow.title}`,
+    ...rows,
+    ...(spend === null ? [] : ['', spend]),
+    ...(next === null ? [] : ['', next]),
+  ].join('\n')
 }

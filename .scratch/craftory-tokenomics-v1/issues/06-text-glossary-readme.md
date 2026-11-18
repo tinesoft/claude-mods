@@ -8,8 +8,8 @@
 
 **Blocked by:** 04, 05
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `markdownSummary` line, with tests for dollars, tokens only and no spend
-- [ ] Glossary entries with their _Avoid_ lines (for example, avoid "cost" for tokens)
-- [ ] README updated; the screenshots are left for `/screen-recording` (ready-for-human)
+- [x] `markdownSummary` line, with tests for dollars, tokens only and no spend
+- [x] Glossary entries with their _Avoid_ lines. "Cost" is not one of them: glossary drift would flag every `cost.usd` in a diff
+- [x] README updated; the screenshots are left for `/screen-recording` (ticket 07, ready-for-human)
