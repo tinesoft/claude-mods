@@ -31,7 +31,7 @@ const session = async (
 }
 
 for (const surface of ['terminal', 'desktop', 'mobile'] as const) {
-  test(`${surface}: the tab row names the five tabs with their counts and hotkeys 1 to 5`, async ($, on) => {
+  test(`${surface}: the tab row names the six tabs with their counts and hotkeys 1 to 6`, async ($, on) => {
     await session(on, $, surface)
     const pane = await mountPane($, surface)
     const tabs = await pane.findAll({ type: 'Button' })
@@ -42,9 +42,10 @@ for (const surface of ['terminal', 'desktop', 'mobile'] as const) {
       ['tab-worktrees', '3'],
       ['tab-glossary', '4'],
       ['tab-settings', '5'],
+      ['tab-spend', '6'],
     ])
     const words = await allText(pane)
-    for (const title of ['Flow', 'Tickets', 'Worktrees', 'Glossary', 'Settings'])
+    for (const title of ['Flow', 'Tickets', 'Worktrees', 'Glossary', 'Settings', 'Spend'])
       expect(words).toContain(title)
     expect(words).toContain('3/7')
     expect(words).toContain('3')

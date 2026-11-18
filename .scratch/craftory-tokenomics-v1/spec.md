@@ -130,6 +130,12 @@ Craftory records every answered step's tokens and its share of the session's `co
   - A phase's dollars on its card carry no `≈`: the phase sum is the exact sum of the cost deltas.
   - An agent's `≈$` is per ticket, so it covers every run of that ticket in every session, the same way the agent list's tokens do.
   - "$ unavailable on this surface" appears only when this session's host has no cost ledger. A row another session left unpriced just shows tokens.
+- **Spend tab.**
+  - Grouping by model or by person lists the costliest first.
+  - Spend from a session whose git had no email is grouped as "No git email". This session's rows count under its own email.
+  - The group-by choice is kept in `$.store` under `spendGroup`. On mobile the choice is hidden and the tab shows by phase.
+  - To group by person, the disk state keeps each committed file's `user` with its rows (`SessionSpend`).
+  - The tab's count in the tab row is the active Feature's short spend, the same as on the status line.
 
 ## Further Notes
 

@@ -481,13 +481,16 @@ export type LocalSpend = {
   sessions: Record<string, { lastAt: IsoTime; rows: SpendRow[] }>
 }
 
+/** Another session's rows of one Feature, with who ran it (`user` of its file). */
+export type SessionSpend = { session: string; user: string | null; rows: SpendRow[] }
+
 /** Spend on disk: this session's file names, and every other session's rows by Feature slug. */
 export type SpendDisk = {
   /** This session's id, as its files are named; null before session start. */
   session: string | null
   user: string | null
   startedAt: IsoTime | null
-  others: Record<string, SpendRow[]>
+  others: Record<string, SessionSpend[]>
   /** Other sessions' rows of each draft, by draft id, from `$.store`. */
   drafts: Record<string, SpendRow[]>
   /** Other sessions' Outside features rows from the last 30 days, from `$.store`. */
@@ -578,7 +581,7 @@ export type SignalBasis = {
 
 export type NoticeKey = EventNotice['kind'] | 'plugin' | 'first-run' | 'no-feature' | 'duplicates'
 
-export type PaneTab = 'flow' | 'tickets' | 'worktrees' | 'glossary' | 'settings'
+export type PaneTab = 'flow' | 'tickets' | 'worktrees' | 'glossary' | 'settings' | 'spend'
 
 export type SettingsSection =
   'entry' | 'tracker' | 'docs' | 'glossary' | 'pipeline' | 'worktrees' | 'automation' | 'personal'
