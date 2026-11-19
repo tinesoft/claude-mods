@@ -61,7 +61,8 @@ export function isWritable(path: string, ctx: WritableContext): boolean {
   if (clean.startsWith(FEATURES_DIR))
     return /^[A-Za-z0-9-]+\.json$/.test(clean.slice(FEATURES_DIR.length))
   if (clean.startsWith(SPEND_DIR))
-    return /^[A-Za-z0-9-]+\/[A-Za-z0-9-]+\.json$/.test(clean.slice(SPEND_DIR.length))
+    // A session's spend file, or the Feature's spend summary written once it is through
+    return /^[A-Za-z0-9-]+\/(?:[A-Za-z0-9-]+\.json|spend\.md)$/.test(clean.slice(SPEND_DIR.length))
   return false
 }
 

@@ -63,6 +63,7 @@ import {
   recordChange,
 } from './shell/features'
 import { buildForecastTextOf, forecastNow } from './shell/forecast'
+import { retroSummaryRowsOf } from './shell/spend-summary'
 import {
   allowGate,
   currentFlow,
@@ -643,6 +644,7 @@ export const register: Register = (on, options) => {
       phaseSpend: flow === null ? {} : await phaseSpendOf($, flow.feature),
       windows: await rateWindowsOf($, config.rateLimits),
       forecast: await buildForecastTextOf($, flow),
+      retroSummary: await retroSummaryRowsOf($, flow),
       on: bandActions($),
     })
   })

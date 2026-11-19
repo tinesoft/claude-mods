@@ -137,7 +137,7 @@ export function buildForecastOf(forecast: Forecast, tickets: number): BuildForec
 const forecastUsdText = (usd: number) => (usd < 10 ? usdText(usd) : `$${Math.round(usd)}`)
 
 /** `$9.20 (p90 $14)`, or `410k fresh (p90 620k)` in tokens. */
-function spreadText(spread: Spread, unit: ForecastUnit): string {
+export function spreadText(spread: Spread, unit: ForecastUnit): string {
   return unit === 'usd'
     ? `${forecastUsdText(spread.median)} (p90 ${forecastUsdText(spread.p90)})`
     : `${tokensText(Math.round(spread.median))} fresh (p90 ${tokensText(Math.round(spread.p90))})`

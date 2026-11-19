@@ -202,6 +202,13 @@ export const DetailCard = ({
             </Text>
           </CardRow>
         )}
+        {card.summary.map(row => (
+          <CardRow key={`summary-${row.label}`} ui={ui} tone={tone} label={row.label}>
+            <Text key={`summary-${row.label}-text`} mono={rich} {...inkOf(tone, 'text2')}>
+              {row.text}
+            </Text>
+          </CardRow>
+        ))}
         {card.spend !== null && (
           <CardRow ui={ui} tone={tone} label="Spend">
             <Text key="spend-text" mono={rich} {...figureInk(tone, card.spend.level)}>
