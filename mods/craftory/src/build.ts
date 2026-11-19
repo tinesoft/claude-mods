@@ -18,6 +18,7 @@ import { slugify, ticketBranchFor } from './config'
 import type { Flow, TicketRow } from './evidence'
 import { overBudgetDenial, overBudgetVerdict } from './deny'
 import { normalise, withSlash } from './files'
+import { retryModel } from './routing'
 import { byNumber, refSlug } from './tracker/refs'
 import { THROTTLED, type Throttle, throttleInForce, type WindowReading } from './rate-limits'
 
@@ -217,6 +218,8 @@ export function decideSpawn(args: {
   windows?: WindowReading
   /** Build or the Feature, when over its budget: deny.overBudget then refuses the spawn. */
   overrun?: Overrun | null
+  /** Tickets retried on a stronger model: seated in the worktree and branch their last agent kept. */
+  kept?: Readonly<Record<IssueRef, Pick<AgentRecord, 'worktree' | 'branch'>>>
 }): SpawnDecision {
   const { call, ledger, config, isBuildRunning, tickets, integrationBranch } = args
   if (!isBuildRunning || call.isolation !== 'worktree') return { kind: 'pass' }
@@ -247,10 +250,12 @@ export function decideSpawn(args: {
     ...Object.values(ledger.pending).map(seat => seat.plan.name),
   ])
   const name = agentName(ticket, row.issue.title, taken)
+  const plan = seatPlan({ config, ref: ticket, title: row.issue.title, name, integrationBranch })
+  const kept = args.kept?.[ticket]
   return {
     kind: 'steer',
     name,
-    plan: seatPlan({ config, ref: ticket, title: row.issue.title, name, integrationBranch }),
+    plan: kept === undefined ? plan : { ...plan, path: kept.worktree, branch: kept.branch },
   }
 }
 
@@ -281,6 +286,8 @@ export function seated(
   agentId: AgentId,
   budget: number,
   at: Millis,
+  /** What the agent runs on, as its spawn answered. */
+  model?: string,
 ): BuildLedger {
   const seat = ledger.pending[toolUseId]
   if (seat === undefined) return ledger
@@ -299,6 +306,7 @@ export function seated(
     tddStep: null,
     startedAt: at,
     lastAt: at,
+    ...(model !== undefined && { model }),
   }
   const dropped = dropPending(ledger, toolUseId)
   return {
@@ -400,6 +408,7 @@ export function recordOf(run: AgentRun): AgentRecord {
     outcome: isOver ? 'over-budget' : run.status,
     startedAt: isoOf(run.startedAt),
     ...(run.status !== 'running' && { endedAt: isoOf(run.lastAt) }),
+    ...(run.model !== undefined && { model: run.model }),
   }
 }
 
@@ -599,6 +608,8 @@ export type AgentRow = {
   note: string | null
   /** The ticket's dollars beside its token bar, `≈` when shared with other agents. */
   spend?: string | null
+  /** The model **Retry on …** offers this Failed or Over budget ticket; null for none. */
+  retryOn: string | null
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
@@ -641,6 +652,7 @@ export function agentRows(args: {
         deleted: null,
         commits: null,
         note: null,
+        retryOn: null,
       }
       const withGit = (path: string): Partial<AgentRow> => {
         const w = worktrees.find(x => samePath(x.path, path))
@@ -686,9 +698,15 @@ export function agentRows(args: {
         }
       }
       if (record !== undefined) {
+        const status = recordRowStatus(record)
         return {
           ...base,
-          status: recordRowStatus(record),
+          status,
+          retryOn: retryModel({
+            status,
+            escalateTo: config.routing.escalateTo,
+            lastModel: record.model,
+          }),
           tokens: record.tokens,
           elapsedMs: elapsedOf(record),
           worktree: record.worktree,

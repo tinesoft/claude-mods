@@ -57,7 +57,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     testTimeoutSec: 600,
   },
   rateLimits: { throttleAt: 80, throttledParallel: 1 },
-  routing: { mainThread: false },
+  routing: { mainThread: false, escalateTo: 'opus' },
   automation: {
     suggestNext: true,
     liveAgents: true,
@@ -160,6 +160,10 @@ export function parseConfig(raw: string | null): Loaded<CraftoryConfig> {
       model: isModelId(model) ? model : SESSION,
       effort,
     }
+  }
+  if (!isModelId(value.routing.escalateTo)) {
+    problems.push(`routing.escalateTo: not a model id, using ${DEFAULT_CONFIG.routing.escalateTo}`)
+    value.routing.escalateTo = DEFAULT_CONFIG.routing.escalateTo
   }
   const templates = [
     ['integrationBranch', value.worktrees.integrationBranch, { '{spec-slug}': 'spec' }],
