@@ -39,13 +39,17 @@ const ticketRow = (
 const spendFile = (session: string, rows: SpendRow[]) =>
   serialiseSpendFile({ version: 1, session, startedAt: AT, rows })
 
-/** An older Feature's record: shipped (Ship marked done), archived, or still in flight. */
-const oldFeature = (spec: string, state: 'shipped' | 'archived' | 'in-flight') =>
+/**
+ * An older Feature's record: shipped (Ship marked done), shipped by a merged PR (seen while it was
+ * active), archived, or still in flight.
+ */
+const oldFeature = (spec: string, state: 'shipped' | 'pr-merged' | 'archived' | 'in-flight') =>
   featureJson({
     spec,
     title: spec,
     integrationBranch: `feat/${spec}`,
     ...(state === 'archived' && { archivedAt: AT }),
+    ...(state === 'pr-merged' && { shippedAt: AT }),
     marks: {
       align: { ranAt: AT },
       ...(state === 'shipped' && { ship: { markedDoneAt: AT } }),
@@ -110,6 +114,14 @@ test('with fewer than 2 finished Features the card says no forecast yet; work in
   expect(text).not.toContain('Build ≈')
 })
 
+test('a Feature shipped by a merged PR, with Retro off and not archived, is counted', async ($, on) => {
+  const text = await open(on, $, {
+    cost: () => 0,
+    files: { ...HISTORY, '.craftory/features/old-two.json': oldFeature('old-two', 'pr-merged') },
+  })
+  expect(text).toContain('Build ≈ $8.00 (p90 $11) for 4 tickets')
+})
+
 test('the Spend tab shows each phase’s forecast beside its spend', async ($, on) => {
   // Build cost $4 on old-one and $2 on old-two: median $3, p90 $3.80.
   featureWorld(on, {
@@ -137,6 +149,15 @@ test('when Build starts the forecast is saved on the Feature record', async ($, 
   const w = featureWorld(on, { cost: () => 0, files: { ...TICKETS, ...HISTORY } })
   await startSession($)
   await skillPrompt($, 'implement-spec')
+  expect(savedForecast(w)).toEqual({ build: BUILD, at: expect.any(String) })
+})
+
+test('a Build started by a rail press saves the forecast on the Feature record', async ($, on) => {
+  const w = featureWorld(on, { cost: () => 0, files: { ...TICKETS, ...HISTORY } })
+  await startSession($)
+  await (await mountBand($, 'terminal', 200, 60)).press({ key: 'phase-build' })
+  await (await mountBand($, 'terminal', 200, 60)).press({ key: 'primary' })
+  expect(w.commandsRun.at(-1)?.command).toBe('mattpocock-skills:implement-spec')
   expect(savedForecast(w)).toEqual({ build: BUILD, at: expect.any(String) })
 })
 

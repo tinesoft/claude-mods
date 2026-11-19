@@ -83,7 +83,9 @@ import {
   switchFeature,
   archiveFeature,
   unarchiveFeature,
+  commandRunContext,
 } from './shell/flow'
+import { forgetContextGiven } from './shell/context-once'
 import { pendingEscalations } from './shell/escalation'
 import { mainRouteOf, rememberRoute, routeOfAgent, routeSpawn } from './shell/routing'
 import { onSkillStart } from './shell/skill-start'
@@ -367,6 +369,18 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // A pressed or automated command carries its context here too, in case the host raises no
+  // `prompt.submit` for a plugin's `$.command.run`; each line still reaches the model once.
+  on('command.run', async ($, e, next) => {
+    const result = await next(e)
+    // A test or an older host may leave the origin out: such a run is not a plugin's
+    if ((e.origin as Partial<typeof e.origin> | undefined)?.kind !== 'plugin') return result
+    const lines = await commandRunContext($, e)
+    return lines.length === 0
+      ? result
+      : { ...result, context: [...(result.context ?? []), ...lines] }
+  })
+
   on('command.run', { command: COMMAND }, async $ => {
     if (!(await isSupported($))) return { text: unsupportedText }
     if (!(await drawsAnything($))) {
@@ -404,6 +418,7 @@ export const register: Register = (on, options) => {
       await finishAgent($, e.agentId as AgentId, e.reason)
       return result
     }
+    await forgetContextGiven($)
     await noteReplyTerms($, e.answer)
     await noteTurnEnded($, await finishTurn($, e))
     await noteMainTurnEnd($, e.isAborted === true)
@@ -458,7 +473,8 @@ export const register: Register = (on, options) => {
   })
 
   // A routed spawn gets its phase's model here, once; its steps never change it, so its cache holds.
-  // An implementer whose ticket was pressed Retry on gets the escalation model over any other.
+  // An implementer whose ticket was pressed Retry on gets the escalation model over any other,
+  // unless it forks or resumes a run: those keep their model, as routing leaves them.
   on('agent.spawn', async ($, e, next) => {
     const seat = await pendingSeat($, e.tool_use_id)
     const routing = await routeSpawn($, {
@@ -475,7 +491,8 @@ export const register: Register = (on, options) => {
     }
     const { plan } = seat
     const escalation = (await pendingEscalations($))[plan.ticket]
-    const spawned = escalation === undefined ? routed : { ...e, model: escalation }
+    const keepsModel = e.fork || e.resume !== undefined
+    const spawned = escalation === undefined || keepsModel ? routed : { ...e, model: escalation }
     const placed = await seatWorktree($, plan)
     if (!placed.ok) {
       const note = `Craftory could not make ${plan.path}: ${placed.reason}`

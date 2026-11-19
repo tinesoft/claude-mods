@@ -131,3 +131,46 @@ for (const [why, over] of [
     expect(await allText(card)).toContain('[Failed]')
     expect(await card.find({ key: RETRY })).toBeUndefined()
   })
+
+/** The engine runs `/implement <args>` as a plugin's `$.command.run` does: the chain's answer. */
+const pluginRun = ($: Engine, command: string, args: string) =>
+  $.command.run({ command, args, origin: { kind: 'plugin', name: 'craftory' } } as never)
+
+const RETRY_LINE = 'Retry on opus for csv/03. Start one implementer for csv/03 again'
+
+test('a pressed Retry’s /implement carries the retry line on command.run, and prompt.submit does not add it again', async ($, on) => {
+  const { w } = await failed(on, $)
+  expect((await pluginRun($, IMPLEMENT, 'csv/03')).context).toBeUndefined()
+  await (await openCard($)).press({ key: RETRY })
+  const ran = await pluginRun($, IMPLEMENT, 'csv/03')
+  expect(ran.text).toBe('ran')
+  expect(ran.context).toEqual([expect.stringContaining(RETRY_LINE)])
+  await commandPrompt($, 'csv/03')
+  const context = w.submitted.at(-1)!.context ?? []
+  expect(context).not.toContainEqual(expect.stringContaining(RETRY_LINE))
+  // the integration line, which only prompt.submit adds, is still there
+  expect(context).toContainEqual(expect.stringContaining('integration branch'))
+})
+
+for (const [how, spawn] of [
+  ['a fork', { fork: true }],
+  ['a resumed run', { fork: false, resume: 'agent-tu45' }],
+] as const)
+  test(`${how} for a retried ticket gets no escalation model`, async ($, on) => {
+    const { w } = await failed(on, $)
+    await (await openCard($)).press({ key: RETRY })
+    const called = await call($, agentCall(45, 'Date filter', { tool_use_id: 'tu45f' }))
+    expect(called.deny).toBeUndefined()
+    await $.agent.spawn({
+      tool_use_id: 'tu45f',
+      prompt: 'p',
+      description: 'Implement csv/03',
+      subagentType: 'general-purpose',
+      provider: { plugin: 'engine', tier: 'core' },
+      parentModel: 'sonnet',
+      background: true,
+      ...spawn,
+    } as never)
+    expect(w.spawns.at(-1)).toMatchObject({ tool_use_id: 'tu45f' })
+    expect(w.spawns.at(-1)!.model).toBeUndefined()
+  })

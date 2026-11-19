@@ -25,7 +25,7 @@ export type PhaseConfig = {
   /** Gate *after* this phase: starting the next enabled phase while this one is not done asks. */
   gate: boolean
   /** The model the phase's subagents spawn on: `session` (none set), an alias or a full id. */
-  model: string
+  model: ModelId
   /** The effort of every step of the phase's subagents; `session` sets none. */
   effort: PhaseEffort
 }
@@ -33,8 +33,14 @@ export type PhaseConfig = {
 /** An effort level a phase can route to, or `session` for the session's own. */
 export type PhaseEffort = 'session' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
+/**
+ * A model as config, a spawn or a record names it: an alias (`session`, `haiku`, `sonnet`, `opus`)
+ * or a full model id such as `claude-opus-4-1-20250805`.
+ */
+export type ModelId = string
+
 /** What a routed subagent runs on; a key is left out where its phase says `session`. */
-export type Route = { model?: string; effort?: Exclude<PhaseEffort, 'session'> }
+export type Route = { model?: ModelId; effort?: Exclude<PhaseEffort, 'session'> }
 
 /** The phase a subagent belonged to as it spawned, and the route it got there. */
 export type AgentRoute = { phase: PhaseId; route: Route }
@@ -124,7 +130,7 @@ export type RoutingConfig = {
   /** Also give the main session's steps the running phase's model and effort. */
   mainThread: boolean
   /** The model a stuck ticket's **Retry on …** starts it on: an alias or a full id; `session` hides it. */
-  escalateTo: string
+  escalateTo: ModelId
 }
 
 export type RateLimitConfig = {
@@ -342,8 +348,11 @@ export type AgentRecord = {
   /** The latest `worktrees.test` run in this attempt's worktree. */
   test?: TestRun
   /** What this attempt's agent ran on, as its spawn answered (an alias or an id). */
-  model?: string
+  model?: ModelId
 }
+
+/** The worktree and branch a ticket's last attempt kept, where **Retry on …** seats the next one. */
+export type KeptWorktree = Pick<AgentRecord, 'worktree' | 'branch'>
 
 /** One run of `worktrees.test`. A failed run makes a done attempt Failed until a later run passes. */
 export type TestRun = {
@@ -379,6 +388,11 @@ export type FeatureRecord = {
   retroOffered?: true
   /** The latest handoff document the handoff skill wrote, as the skill named it. */
   handoff?: string
+  /**
+   * When the Feature's pull request was first seen merged on its integration branch. The tracker
+   * reads only the active Feature's PR, so this keeps it Shipped once another Feature is active.
+   */
+  shippedAt?: IsoTime
   /** When the Feature was archived. It is archived while this is later than `unarchivedAt`. */
   archivedAt?: IsoTime
   /** When the Feature was last brought back, by hand or by new activity. */
@@ -625,7 +639,7 @@ export type EventNotice =
   | { kind: 'retro-ready'; id: string; suggestions: number | null }
   | { kind: 'suggest-wayfinder'; id: string }
   | ThrottleNotice
-  | WindowForecastNotice
+  | ForecastWindowNotice
   | SpendBudgetNotice
   | AutomationNotice
 
@@ -675,7 +689,7 @@ export type WindowUse = Readonly<
  * Build was started while its forecast p90 would likely use more of a rate-limit window than is
  * left: the p90 in dollars, the window, the points it would use, what is left and its reset.
  */
-export type WindowForecastNotice = {
+export type ForecastWindowNotice = {
   kind: 'forecast-window'
   id: string
   usd: number
@@ -741,6 +755,9 @@ export type RepoSnapshot = {
   at: Millis
 }
 
+/** Context lines given to one run of a command (`<name> <args>`), and the hook that gave them. */
+export type ContextGiven = { run: string; by: 'command.run' | 'prompt.submit'; lines: string[] }
+
 declare module 'claude-code' {
   interface PluginState {
     craftory: {
@@ -760,7 +777,12 @@ declare module 'claude-code' {
       /** What each subagent of this session was routed to as it spawned, by agent id. */
       routes: Record<string, AgentRoute>
       /** Tickets whose **Retry on …** was pressed, and the model their next spawn gets; cleared once used. */
-      escalations: Record<IssueRef, string>
+      escalations: Record<IssueRef, ModelId>
+      /**
+       * The context one run of a command was last given, by its `command.run` or its
+       * `prompt.submit`, so the other hook does not add the same lines; cleared as the main turn ends.
+       */
+      contextGiven: ContextGiven | null
       spend: SpendLedger
       spendDisk: SpendDisk
       /** The last rate-limit reading, at session start or `session.measure`; empty off a subscription. */

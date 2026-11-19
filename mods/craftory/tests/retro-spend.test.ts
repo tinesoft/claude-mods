@@ -86,7 +86,7 @@ test('the Retro card shows the spend summary as rows', async ($, on) => {
   for (const part of [
     'Total',
     '$16.0 · 500k fresh',
-    '$10.0 against a forecast of $8.00 (p90 $12)',
+    '$10 against a forecast of $8.00 (p90 $12)',
     'Tickets',
     'csv/01 $6.00 · csv/02 $3.00 · csv/03 $1.00',
     'Phases',
@@ -120,7 +120,7 @@ test('a typed /retro is given the summary as Markdown context', async ($, on) =>
   expect(context).toContain('# Spend: Export invoices as CSV')
   expect(context).toContain('- **Costliest tickets:** csv/01 $6.00 · csv/02 $3.00 · csv/03 $1.00')
   expect(context).toContain(
-    '- **Build against its forecast:** $10.0 against a forecast of $8.00 (p90 $12)',
+    '- **Build against its forecast:** $10 against a forecast of $8.00 (p90 $12)',
   )
 })
 
@@ -185,4 +185,25 @@ test('with Retro turned off, Ship done writes the summary', async ($, on) => {
   })
   await startSession($)
   expect(summaryWrites(w)).toHaveLength(1)
+})
+
+test('a plugin’s run of /retro carries the summary on command.run too, and prompt.submit does not add it again', async ($, on) => {
+  retroWorld(on)
+  await startSession($)
+  const command = `${MATT}:retro`
+  const ran = await $.command.run({
+    command,
+    args: '',
+    origin: { kind: 'plugin', name: 'craftory' },
+  } as never)
+  expect(ran.context).toHaveLength(1)
+  expect(ran.context![0]!.startsWith(CONTEXT_HEAD)).toBe(true)
+  const result = await $.prompt.submit({
+    text: `/${command}`,
+    command: { name: command, args: '' },
+  } as never)
+  expect(result.context).toBeUndefined()
+  // the next /retro, a turn later, is given it again
+  await turnComplete($)
+  expect((await submit($, `/${command}`)).context?.[0]?.startsWith(CONTEXT_HEAD)).toBe(true)
 })

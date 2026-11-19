@@ -1,7 +1,7 @@
 import type { EngineInterface } from 'claude-code'
 import { isoOf } from '../../src/build'
 import type { Flow } from '../../src/evidence'
-import { isFinished, specKey } from '../../src/features'
+import { agentTicketsOf, isFinished, specKey } from '../../src/features'
 import {
   type BuildForecast,
   buildForecastOf,
@@ -31,9 +31,6 @@ export async function forecastNow(
   const rows = await Promise.all(finished.map(key => featureRowsOf($, key)))
   return forecastOf(samplesOf(rows, hasCost ? 'usd' : 'tokens'))
 }
-
-/** The tickets of the flow meant for an agent: every one not ready-for-human. */
-export const agentTicketsOf = (flow: Flow) => flow.tickets.filter(t => t.status !== 'human').length
 
 /** Build's forecast for the flow's Feature; null until there is enough history. */
 export async function buildForecastNow(
