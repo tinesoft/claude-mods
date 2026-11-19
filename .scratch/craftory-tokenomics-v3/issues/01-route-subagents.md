@@ -9,11 +9,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Config keys with defaults, the effort values as one constant, and fallback with a problem line; config tests
-- [ ] A pure function for which phase a subagent belongs to, remembered per agent id in the shell; table tests
-- [ ] `agent.spawn` passes the model on for an implementer and for another subagent, and leaves a named model alone; fake-world tests asserting the spawn's `model`
-- [ ] `turn.step` gives each of a routed agent's steps the effort, and never a model; fake-world tests asserting the step's `effort` and `model`
-- [ ] Phase card row `Runs on …`; card tests
-- [ ] Settings › Pipeline rows per phase; settings tests
+- [x] Config keys with defaults, the effort values as one constant, and fallback with a problem line; config tests
+- [x] A pure function for which phase a subagent belongs to, remembered per agent id in the shell; table tests
+- [x] `agent.spawn` passes the model on for an implementer and for another subagent, and leaves a named model alone; fake-world tests asserting the spawn's `model`
+- [x] `turn.step` gives each of a routed agent's steps the effort, and never a model; fake-world tests asserting the step's `effort` and `model`
+- [x] Phase card row `Runs on …`; card tests
+- [x] Settings › Pipeline rows per phase; settings tests

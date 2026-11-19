@@ -2,6 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import { DEFAULT_LABELS } from '../src/agents-md'
 import { DEFAULT_CONFIG } from '../src/config'
+import { EFFORTS } from '../src/routing'
 import { TOKENS } from '../src/theme'
 import {
   ALL_ROWS,
@@ -486,4 +487,52 @@ test('the throttle rows take an own value within the config bounds', () => {
   expect(checkCustom(at, '40')).toEqual({ problem: 'Throttle at: use 50% to 100%' })
   expect(checkCustom(parallel, '4')).toEqual({ value: '4' })
   expect(checkCustom(parallel, '0')).toEqual({ problem: 'While throttled: use 1 to 16' })
+})
+
+const savedPhases = (w: { files: Map<string, string> }) =>
+  JSON.parse(w.files.get('.craftory/config.json')!).phases
+
+test('Pipeline › each phase has a model and an effort row, both on session', async ($, on) => {
+  const { pane } = await settings(on, $, 'local', {}, 'terminal', 'pipeline')
+  const text = await allText(pane)
+  for (const label of ['Build model', 'Build effort', 'Review model', 'Align effort'])
+    expect(text).toContain(label)
+  for (const key of ['set-phase-build-model-session', 'set-phase-build-effort-session'])
+    expect(await pane.find({ key })).toBeDefined()
+  for (const level of EFFORTS)
+    expect(await pane.find({ key: `set-phase-review-effort-${level}` })).toBeDefined()
+})
+
+test('Pipeline › picking a model and an effort writes phases.<phase>.model and .effort', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'pipeline')
+  await pane.press({ key: 'set-phase-build-model-sonnet' })
+  expect(savedPhases(w).build.model).toBe('sonnet')
+  await pane.redraw()
+  await pane.press({ key: 'set-phase-build-effort-medium' })
+  expect(savedPhases(w).build).toMatchObject({ model: 'sonnet', effort: 'medium' })
+  await pane.redraw()
+  await pane.press({ key: 'set-phase-build-model-session' })
+  expect(savedPhases(w).build.model).toBe('session')
+})
+
+test('Pipeline › a model id of your own is saved and shown among the choices', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'pipeline')
+  await pane.input({ key: 'set-phase-review-model-custom', text: ' claude-opus-4-1-20250805 ' })
+  expect(savedPhases(w).review.model).toBe('claude-opus-4-1-20250805')
+  await pane.redraw()
+  expect(await pane.find({ key: 'set-phase-review-model-claude-opus-4-1-20250805' })).toBeDefined()
+})
+
+test('Pipeline › a model of your own that is no model id is refused and nothing is written', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'pipeline')
+  await pane.input({ key: 'set-phase-review-model-custom', text: 'my best model' })
+  expect(w.files.get('.craftory/config.json')).toBeUndefined()
+  await pane.redraw()
+  expect(await allText(pane)).toContain('Review model: type an alias or a full model id')
+})
+
+test('the model rows read an own id typed in as one value', () => {
+  const row = choiceRow('phase-build-model')
+  expect(checkCustom(row, 'claude-sonnet-4-5[1m]')).toEqual({ value: 'claude-sonnet-4-5[1m]' })
+  expect(checkCustom(row, '')).toHaveProperty('problem')
 })

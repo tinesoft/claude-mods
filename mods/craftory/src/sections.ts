@@ -19,6 +19,7 @@ import { RANGES } from './config'
 import { AGENT_DOCS, CONFIG_FILE, normalise, withSlash } from './files'
 import { PHASE_ORDER, PHASES } from './phases'
 import { THROTTLE_OFF } from './rate-limits'
+import { EFFORTS, isModelId, MODEL_ALIASES, SESSION } from './routing'
 import { NO_COST_LEDGER_NOTE } from './spend'
 import { otherNote } from './tracker/links'
 
@@ -65,8 +66,8 @@ export type SettingsRow = RowBase &
         options: (facts: SettingsFacts) => readonly Choice[]
         read: (facts: SettingsFacts) => string
         write: (value: string) => SettingsChange
-        /** A field under the choices for a number of the person's own. */
-        custom?: CustomNumber
+        /** A field under the choices for a value of the person's own. */
+        custom?: CustomNumber | CustomText
       }
     | {
         control: 'text'
@@ -78,6 +79,14 @@ export type SettingsRow = RowBase &
         check?: (text: string) => string | null
       }
   )
+
+/** An own-value field for text: the value it reads typed text as, null when it is none. */
+export type CustomText = {
+  placeholder: string
+  read: (text: string) => string | null
+  /** What the refusal says the field takes. */
+  takes: string
+}
 
 /** An own-value field: what it reads typed text as, and the bounds config.json clamps it to. */
 export type CustomNumber = {
@@ -159,13 +168,17 @@ const rangeOf = (path: string) => RANGES[path]!
 
 const showSeconds = (n: number) => (n % 60 === 0 ? `${n / 60} min` : `${n} s`)
 
-/** The number typed in a choice row's own-value field, or why it is not one. */
+/** The value typed in a choice row's own-value field, or why it is not one. */
 export function checkCustom(
   row: SettingsRow & { control: 'choice' },
   text: string,
 ): { value: string } | { problem: string } {
   const custom = row.custom
   if (custom === undefined) return { problem: `${row.label} takes one of its choices` }
+  if ('read' in custom) {
+    const value = custom.read(text)
+    return value === null ? { problem: `${row.label}: ${custom.takes}` } : { value }
+  }
   const [min, max] = custom.range
   const n = custom.parse(text)
   if (n === null || n < min || n > max)
@@ -436,6 +449,43 @@ const phaseRows = (phase: PhaseId): SettingsRow[] => {
       c => c.phases[phase].gate,
       on => phasePatch(phase, { gate: on }),
     ),
+    {
+      id: `phase-${phase}-model`,
+      label: `${spec.label} model`,
+      hint:
+        phase === 'build'
+          ? 'What every implementer spawns on, unless Claude names a model. Session leaves it to the session.'
+          : `What subagents started during ${spec.label} spawn on, unless Claude names a model. Session leaves it to the session.`,
+      file: 'config',
+      control: 'choice',
+      options: f => {
+        const own = f.config.phases[phase].model
+        const aliases: readonly string[] = MODEL_ALIASES
+        return [...aliases, ...(aliases.includes(own) ? [] : [own])].map((m): Choice => [
+          m,
+          m === SESSION ? 'Session' : m,
+        ])
+      },
+      custom: {
+        placeholder: 'Other, such as claude-sonnet-4-5',
+        read: text => (isModelId(text.trim()) ? text.trim() : null),
+        takes: 'type an alias or a full model id',
+      },
+      read: f => f.config.phases[phase].model,
+      write: value => ({ config: phasePatch(phase, { model: value }) }),
+    },
+    {
+      id: `phase-${phase}-effort`,
+      label: `${spec.label} effort`,
+      hint: `How hard ${phase === 'build' ? 'every implementer thinks' : `subagents started during ${spec.label} think`}, on each step. Session leaves it to the session.`,
+      file: 'config',
+      control: 'choice',
+      options: () => EFFORTS.map((e): Choice => [e, e === SESSION ? 'Session' : e]),
+      read: f => f.config.phases[phase].effort,
+      write: value => ({
+        config: phasePatch(phase, { effort: EFFORTS.find(e => e === value) ?? SESSION }),
+      }),
+    },
   )
   return rows
 }

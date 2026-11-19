@@ -89,7 +89,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   const ranIn: { argv: string[]; cwd: string | undefined }[] = []
   const calls: Record<string, unknown>[] = []
   const spawns: Record<string, unknown>[] = []
-  const steps: { agentId?: string; index: number }[] = []
+  const steps: { agentId?: string; index: number; model: string; effort?: string | number }[] = []
   const sent: { to: unknown; text: string }[] = []
   const submitted: { text: string; context?: readonly string[] }[] = []
   const copied: { text: string; surface?: string }[] = []
@@ -183,7 +183,12 @@ export const world = (on: On, options: WorldOptions = {}) => {
   })
   on('turn.step', async function* (_$, e) {
     yield* []
-    steps.push({ ...(e.agentId && { agentId: e.agentId }), index: e.index })
+    steps.push({
+      ...(e.agentId && { agentId: e.agentId }),
+      index: e.index,
+      model: e.model,
+      ...(e.effort !== undefined && { effort: e.effort }),
+    })
     const usage = options.usage?.(e) ?? null
     return {
       turnId: e.turnId,

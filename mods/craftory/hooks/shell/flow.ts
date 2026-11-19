@@ -57,6 +57,11 @@ const runningState = atom({ plugin: 'craftory', key: 'running' } as const, null)
 
 let spinner: Timer | undefined
 
+/** What runs in the main session now: a phase's or an entry's skill, or nothing. */
+export async function runningOf($: EngineInterface): Promise<Running | null> {
+  return read($, runningState)
+}
+
 export async function currentFlow($: EngineInterface): Promise<Flow | null> {
   const [{ config }, features, drafts, active, tracker, running, build] = await Promise.all([
     repoFacts($),

@@ -166,7 +166,7 @@ test("at 100% the agent's next step is answered without a request, and the answe
   const first = await step($, 'agent-tu44', 0)
   expect(first.result.usage).not.toBeNull()
   const second = await step($, 'agent-tu44', 1)
-  expect(w.steps).toEqual([{ agentId: 'agent-tu44', index: 0 }])
+  expect(w.steps).toEqual([{ agentId: 'agent-tu44', index: 0, model: 'sonnet' }])
   expect(second.result.answer).toBe(
     'Stopped by Craftory: csv/02 reached its 80k token budget and was ended before it finished. ' +
       'Its worktree .claude/worktrees/csv-02-ledger-tax is kept with what it committed. ' +
