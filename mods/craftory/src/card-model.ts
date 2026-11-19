@@ -190,6 +190,8 @@ export type CardView = {
   spend: SpendFigure | null
   /** The account's rate-limit windows, on the Build card only; empty off a subscription. */
   windows: readonly WindowView[]
+  /** Build's forecast (`Build ≈ $9.20 (p90 $14) for 5 tickets`), on the Tickets card only. */
+  forecast: string | null
 }
 
 const TRIAGE_WHY =
@@ -213,6 +215,7 @@ export function triageCard(waiting: number): CardView {
     handoff: null,
     spend: null,
     windows: [],
+    forecast: null,
   }
 }
 
@@ -270,6 +273,7 @@ export function phaseCard(
   agents: AgentsView | null = null,
   spend: SpendFigure | null = null,
   windows: readonly WindowView[] = [],
+  forecast: string | null = null,
 ): CardView {
   const spec: PhaseSpec = PHASES[view.phase]
   const look = PHASE_LOOKS[view.state.kind]
@@ -302,5 +306,6 @@ export function phaseCard(
     handoff: handoffOf(flow.feature),
     spend,
     windows: view.phase === 'build' ? windows : [],
+    forecast: view.phase === 'tickets' ? forecast : null,
   }
 }

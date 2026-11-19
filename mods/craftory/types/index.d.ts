@@ -361,9 +361,20 @@ export type FeatureRecord = {
   unarchivedAt?: IsoTime
   /** The Feature's own budgets, over the config defaults. Whole dollars; `0` is none. */
   budgets?: FeatureBudgets
+  /** Build's forecast, saved once when Build started and never overwritten. */
+  forecast?: FeatureForecast
   marks: Partial<Record<PhaseId, PhaseMark>>
   /** Keyed by ticket ref string. The latest attempt per ticket wins. */
   agents: Record<string, AgentRecord>
+}
+
+/** A forecast's unit: dollars where the host keeps a cost ledger, fresh tokens where it keeps none. */
+export type ForecastUnit = 'usd' | 'tokens'
+
+/** Build's forecast as the Feature keeps it: the median and p90 for its tickets meant for an agent. */
+export type FeatureForecast = {
+  build: { median: number; p90: number; tickets: number; unit: ForecastUnit }
+  at: IsoTime
 }
 
 /** What a dollar budget is of: one phase, or the whole Feature. */

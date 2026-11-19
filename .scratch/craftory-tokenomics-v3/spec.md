@@ -137,6 +137,10 @@ Craftory gains four things, all off or neutral until set:
 - Rewriting `spend.md` after it is written, or a Spend report per session.
 - Changing what `/retro` does with the summary. Matt's skill decides.
 
+## Decisions made while building
+
+- (04) The forecast lives in `src/forecast.ts` (`samplesOf`, `forecastOf`, `spreadOf`, `buildForecastOf`, the texts) and `hooks/shell/forecast.ts` (`forecastNow`, `buildForecastNow`, `saveForecast`). The p90 (and median) is linear between the closest ranks. "2 finished Features" counts, per forecast, the finished Features that gave it a sample: a Build ticket for the per-ticket forecast, spend on that phase for a phase's. The Feature being forecast is never one of its own samples. From a record alone, Ship counts as done when Ship was marked done or Retro ran (only the active Feature's PR state is known); archived means archived now. Dollar samples skip a ticket or phase no row was priced for. At or above $10 the forecast shows whole dollars (`$14`), below as `usdText`. The Tickets card's Forecast row is left out while a forecast has no agent tickets to scale by. With no forecast at Build start nothing is saved, and a later Build start or first implementer spawn saves one once there is; a merge keeps the earliest saved.
+
 ## Further Notes
 
 - Tickets, in vertical slices:
