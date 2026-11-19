@@ -24,7 +24,20 @@ export type PhaseConfig = {
   command?: SkillName
   /** Gate *after* this phase: starting the next enabled phase while this one is not done asks. */
   gate: boolean
+  /** The model the phase's subagents spawn on: `session` (none set), an alias or a full id. */
+  model: string
+  /** The effort of every step of the phase's subagents; `session` sets none. */
+  effort: PhaseEffort
 }
+
+/** An effort level a phase can route to, or `session` for the session's own. */
+export type PhaseEffort = 'session' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+
+/** What a routed subagent runs on; a key is left out where its phase says `session`. */
+export type Route = { model?: string; effort?: Exclude<PhaseEffort, 'session'> }
+
+/** The phase a subagent belonged to as it spawned, and the route it got there. */
+export type AgentRoute = { phase: PhaseId; route: Route }
 
 export type WorktreeConfig = {
   folder: string
@@ -694,6 +707,8 @@ declare module 'claude-code' {
       active: FeatureKey | null
       running: Running | null
       build: BuildLedger
+      /** What each subagent of this session was routed to as it spawned, by agent id. */
+      routes: Record<string, AgentRoute>
       spend: SpendLedger
       spendDisk: SpendDisk
       /** The last rate-limit reading, at session start or `session.measure`; empty off a subscription. */

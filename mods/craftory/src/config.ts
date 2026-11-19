@@ -11,6 +11,7 @@ import type {
 import { type FileWrite, normalise } from './files'
 import { isSafeRef } from './git'
 import { PHASE_ORDER, PHASES } from './phases'
+import { EFFORTS, isModelId, SESSION } from './routing'
 import { refSlug, SPEC_LABEL, TICKET_LABEL } from './tracker/refs'
 
 export const CONFIG_PATH = '.craftory/config.json'
@@ -25,7 +26,14 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
   phases: Object.fromEntries(
     PHASE_ORDER.map((id): [PhaseId, PhaseConfig] => {
       const command = PHASES[id].commands[0]
-      return [id, { enabled: true, gate: PHASES[id].defaultGate, ...(command && { command }) }]
+      const phase: PhaseConfig = {
+        enabled: true,
+        gate: PHASES[id].defaultGate,
+        ...(command && { command }),
+        model: SESSION,
+        effort: SESSION,
+      }
+      return [id, phase]
     }),
   ) as Record<PhaseId, PhaseConfig>,
   tracker: {
@@ -76,6 +84,7 @@ const isRecord = (v: unknown): v is Json => typeof v === 'object' && v !== null 
 const ENUMS: Record<string, readonly string[]> = {
   'entry.triage.enterAt': ['align', 'bugs-build-else-align', 'tickets'],
   'entry.wayfinder.suggest': ['long-grill', 'off'],
+  ...Object.fromEntries(PHASE_ORDER.map(id => [`phases.${id}.effort`, EFFORTS])),
 }
 /** The bounds a number in config.json is clamped to; the Settings tab's own-value fields use them too. */
 export const RANGES: Record<string, readonly [number, number]> = {
@@ -141,10 +150,14 @@ export function parseConfig(raw: string | null): Loaded<CraftoryConfig> {
       problems.push(`phases.${id}.command: not one of ${commands.join(', ') || 'none'}`)
     }
     const command = commands.includes(chosen as string) ? chosen : commands[0]
+    const { enabled, gate, model, effort } = value.phases[id]
+    if (!isModelId(model)) problems.push(`phases.${id}.model: not a model id, using session`)
     value.phases[id] = {
-      enabled: value.phases[id].enabled,
-      gate: value.phases[id].gate,
+      enabled,
+      gate,
       ...(command !== undefined && { command: command as PhaseConfig['command'] }),
+      model: isModelId(model) ? model : SESSION,
+      effort,
     }
   }
   const templates = [
