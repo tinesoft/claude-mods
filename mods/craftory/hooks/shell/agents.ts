@@ -15,6 +15,7 @@ import {
   testRunOf,
 } from '../../src/build'
 import { specKey } from '../../src/features'
+import { SKILLS } from '../../src/phases'
 import type { AgentId, AgentRun, IssueRef, SeatPlan } from '../../types'
 import { activeRecord, featureOfTicket, featuresOf, recordChange, recordRun } from './features'
 import { saveForecast } from './forecast'
@@ -32,8 +33,10 @@ import {
 } from './ledger'
 import { windowReadingOf } from './limits'
 import { addNotice } from './notices'
+import { clearEscalation, escalate, pendingEscalations } from './escalation'
 import { repoFacts, repoPath } from './repo'
 import { refreshGit, scheduleGit, scheduleRefresh } from './sync'
+import { requestRun } from './ui'
 
 /**
  * A record still marked running with no live run in this session belongs to a session that
@@ -63,6 +66,15 @@ export async function planSpawn($: EngineInterface, call: AgentCall): Promise<Sp
     activeRecord($),
   ])
   if (flow === null || record === null) return { kind: 'pass' }
+  const retried = Object.keys(await pendingEscalations($)) as IssueRef[]
+  const kept = Object.fromEntries(
+    retried.flatMap(ticket => {
+      const agent = record.agents[ticket]
+      return agent === undefined
+        ? []
+        : [[ticket, { worktree: agent.worktree, branch: agent.branch }] as const]
+    }),
+  )
   const decision = await bookSpawn($, {
     call,
     flow,
@@ -71,6 +83,7 @@ export async function planSpawn($: EngineInterface, call: AgentCall): Promise<Sp
     at: await $.clock.now(),
     windows: await windowReadingOf($),
     overrun: await overrunNow($, flow, 'build'),
+    kept,
   })
   if (decision.kind === 'deny') await settle($)
   return decision
@@ -81,11 +94,13 @@ export async function seatAgent(
   toolUseId: string,
   plan: SeatPlan,
   agentId: AgentId,
+  model: string,
 ) {
   const { config } = await repoFacts($)
   const old = (await featureOfTicket($, plan.ticket))?.agents[plan.ticket]
   const budget = budgetFor(config, old)
-  const run = await seatRun($, { toolUseId, agentId, budget, at: await $.clock.now() })
+  const run = await seatRun($, { toolUseId, agentId, budget, at: await $.clock.now(), model })
+  await clearEscalation($, plan.ticket)
   if (run !== undefined) await recordRun($, run)
   const flow = await currentFlow($)
   if (flow !== null) await saveForecast($, flow)
@@ -184,4 +199,13 @@ export async function raiseBudget($: EngineInterface, ticket: IssueRef) {
   await recordChange($, specKey(record.spec), { kind: 'agent', record: { ...old, budget } })
   await raiseBudgetOf($, ticket, budget)
   $.ui.toast(`Budget for ${ticket} raised to ${budgetK(budget)} · run it again to continue`)
+}
+
+/**
+ * **Retry on …**: the ticket's next spawn gets `model` in its kept worktree and branch, and
+ * `/implement <ticket>` runs, its `prompt.submit` carrying the retry context (`startContext`).
+ */
+export async function retryTicket($: EngineInterface, ticket: IssueRef, model: string) {
+  await escalate($, ticket, model)
+  await requestRun($, SKILLS.implement, ticket)
 }

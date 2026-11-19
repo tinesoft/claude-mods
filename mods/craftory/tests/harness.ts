@@ -179,7 +179,7 @@ export const world = (on: On, options: WorldOptions = {}) => {
   on('agent.spawn', (_$, e) => {
     spawns.push({ ...e })
     const answer = options.spawn?.(e) ?? { agentId: `agent-${e.tool_use_id}` }
-    return 'deny' in answer ? answer : { model: 'sonnet', agentId: answer.agentId }
+    return 'deny' in answer ? answer : { model: e.model ?? 'sonnet', agentId: answer.agentId }
   })
   on('turn.step', async function* (_$, e) {
     yield* []

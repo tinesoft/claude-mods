@@ -38,6 +38,7 @@ import type {
   CraftoryConfig,
   Issue,
   IssueRef,
+  SeatPlan,
   Worktree,
 } from '../types'
 
@@ -651,4 +652,35 @@ test('deny.overBudget refuses a Build spawn over budget, naming the spend, the b
 
 test('a Build spawn over budget is steered when deny.overBudget is off', () => {
   expect(overBudget({}).kind).toBe('steer')
+})
+
+test('a ticket retried on a stronger model is seated in its kept worktree and branch', () => {
+  const kept = { '#44': { worktree: '.claude/worktrees/44-old-name', branch: 'craftory/44-old' } }
+  const decision = decideSpawn({
+    call: call(),
+    ledger: EMPTY_LEDGER,
+    config: DEFAULT_CONFIG,
+    isBuildRunning: true,
+    tickets: TICKETS,
+    integrationBranch: 'feat/csv',
+    kept,
+  })
+  expect(decision).toMatchObject({
+    kind: 'steer',
+    plan: { ticket: '#44', path: '.claude/worktrees/44-old-name', branch: 'craftory/44-old' },
+  })
+  const other = decide(EMPTY_LEDGER, { toolUseId: 'tu2', description: 'Implement #45' })
+  expect(other).toMatchObject({ plan: { path: '.claude/worktrees/45-filter-export-by-date' } })
+})
+
+test('the record of an attempt keeps the model its agent ran on', () => {
+  const ledger = seated(
+    addPending(EMPTY_LEDGER, 'tu-44', (decide() as { plan: SeatPlan }).plan, 1),
+    'tu-44',
+    agent(44),
+    80_000,
+    1,
+    'haiku',
+  )
+  expect(recordOf(ledger.runs[agent(44)]!)).toMatchObject({ ticket: '#44', model: 'haiku' })
 })
