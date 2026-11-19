@@ -35,6 +35,7 @@ import {
   reselectActive,
   setActive,
 } from './features'
+import { saveForecast } from './forecast'
 import { gitOf } from './git'
 import { throttleNow } from './limits'
 import { ledgerOf, runOf } from './ledger'
@@ -442,6 +443,10 @@ export async function skillStarted($: EngineInterface, skill: string) {
   }))
   if (key !== null && phase !== null)
     await recordChange($, key, { kind: 'ran', phase, at: isoOf(now) })
+  if (phase === 'build') {
+    const flow = await currentFlow($)
+    if (flow !== null) await saveForecast($, flow)
+  }
   await settle($)
   if (phase === 'review' || phase === 'ship') await scanDrift($)
 }

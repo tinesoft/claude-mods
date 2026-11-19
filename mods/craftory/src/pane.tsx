@@ -875,6 +875,11 @@ const SpendLineRow = ({
       <Text mono={rich} {...figureInk(tone, line.level ?? 'none')}>
         {line.text}
       </Text>
+      {line.forecast !== undefined && (
+        <Text key={`${line.key}-forecast`} mono={rich} {...inkOf(tone, 'muted')}>
+          {line.forecast}
+        </Text>
+      )}
     </Box>
   )
 }
