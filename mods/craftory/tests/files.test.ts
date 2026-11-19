@@ -17,6 +17,8 @@ test('only the files Craftory owns or shares are writable', () => {
     'GLOSSARY.md',
     '.gitignore',
     './docs/agents//domain.md',
+    '.craftory/spend/csv/s1.json',
+    '.craftory/spend/csv/spend.md',
   ]) {
     expect(isWritable(path, ctx), path).toBe(true)
   }
@@ -32,6 +34,9 @@ test('everything else is refused, including paths that leave the repo', () => {
     'docs/issues/12-x.txt',
     '.craftory/features/../config.json',
     '.craftory/features/a/b.json',
+    '.craftory/spend/csv/notes.md',
+    '.craftory/spend/spend.md',
+    '.craftory/spend/csv/a/spend.md',
     '../outside.md',
     '/etc/passwd',
     'docs\\agents\\domain.md',

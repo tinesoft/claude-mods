@@ -40,6 +40,7 @@ import type { FeatureChoice } from './features'
 import type { NoticeView } from './notices'
 import { PHASES } from './phases'
 import type { WindowView } from './rate-limits'
+import type { SummaryRow } from './spend-summary'
 import {
   CARET,
   CONNECTOR,
@@ -122,6 +123,8 @@ export type BandArgs = {
   windows?: readonly WindowView[]
   /** Build's forecast, drawn on the Tickets card; null with no flow. */
   forecast?: string | null
+  /** The Feature's spend summary, drawn on the Retro card; none with no spend. */
+  retroSummary?: readonly SummaryRow[]
   on: BandActions
 }
 
@@ -666,6 +669,7 @@ export function renderBand(args: BandArgs) {
           args.phaseSpend?.[phase] ?? null,
           args.windows,
           args.forecast ?? null,
+          args.retroSummary ?? [],
         )
   const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
   const mapCard = args.isMapOpen && args.map !== null && open === null

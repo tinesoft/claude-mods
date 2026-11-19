@@ -739,6 +739,8 @@ declare module 'claude-code' {
       spendDisk: SpendDisk
       /** The last rate-limit reading, at session start or `session.measure`; empty off a subscription. */
       rateLimits: SessionRateLimit[]
+      /** The `spend.md` files this session wrote or found written, so each is checked once. */
+      spendSummaries: string[]
       steeringNote: string | null
       passes: GatePass[]
       notices: EventNotice[]
