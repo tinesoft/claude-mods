@@ -20,7 +20,15 @@ import {
 } from '../../src/build'
 import type { Flow } from '../../src/evidence'
 import type { WindowReading } from '../../src/rate-limits'
-import type { AgentId, AgentRun, BuildLedger, CraftoryConfig, IssueRef, Millis } from '../../types'
+import type {
+  AgentId,
+  AgentRecord,
+  AgentRun,
+  BuildLedger,
+  CraftoryConfig,
+  IssueRef,
+  Millis,
+} from '../../types'
 
 const buildState = atom({ plugin: 'craftory', key: 'build' } as const, EMPTY_LEDGER)
 
@@ -81,9 +89,10 @@ export async function bookSpawn(
     at: Millis
     windows: WindowReading
     overrun: Overrun | null
+    kept: Readonly<Record<IssueRef, Pick<AgentRecord, 'worktree' | 'branch'>>>
   },
 ): Promise<SpawnDecision> {
-  const { call, flow, config, integrationBranch, at, windows, overrun } = args
+  const { call, flow, config, integrationBranch, at, windows, overrun, kept } = args
   return updateWith<SpawnDecision>($, { kind: 'pass' }, ledger => {
     const decision = decideSpawn({
       call,
@@ -94,6 +103,7 @@ export async function bookSpawn(
       integrationBranch,
       windows,
       overrun,
+      kept,
     })
     if (decision.kind === 'steer')
       return [addPending(ledger, call.toolUseId, decision.plan, at), decision]
@@ -105,10 +115,10 @@ export async function bookSpawn(
 
 export async function seatRun(
   $: EngineInterface,
-  seat: { toolUseId: string; agentId: AgentId; budget: number; at: Millis },
+  seat: { toolUseId: string; agentId: AgentId; budget: number; at: Millis; model?: string },
 ): Promise<AgentRun | undefined> {
-  const { toolUseId, agentId, budget, at } = seat
-  await update($, buildState, ledger => seated(ledger, toolUseId, agentId, budget, at))
+  const { toolUseId, agentId, budget, at, model } = seat
+  await update($, buildState, ledger => seated(ledger, toolUseId, agentId, budget, at, model))
   return (await read($, buildState)).runs[agentId]
 }
 

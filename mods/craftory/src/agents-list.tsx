@@ -60,6 +60,7 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
   const { Box, Text } = ui
   const rich = isRich(ui) && tone !== undefined
   const t = tone === undefined ? undefined : TOKENS[tone]
+  const { retryOn } = row
   const stepInk =
     row.status === 'over' || row.status === 'failed'
       ? roleInk('danger', tone)
@@ -85,6 +86,15 @@ const AgentRowView = ({ ui, tone, ascii, on, row }: AgentArgs & { row: AgentRow 
               id={`agent-raise-${row.ref}`}
               label="Raise budget"
               onPress={() => on.act({ kind: 'raise-budget', ticket: row.ref })}
+            />
+          )}
+          {retryOn !== null && (
+            <CardButton
+              ui={ui}
+              tone={tone}
+              id={`agent-retry-${row.ref}`}
+              label={`Retry on ${retryOn}`}
+              onPress={() => on.act({ kind: 'retry', ticket: row.ref, model: retryOn })}
             />
           )}
           {row.status === 'failed' && (

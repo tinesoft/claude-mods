@@ -50,6 +50,7 @@ import {
   finishAgent,
   planSpawn,
   raiseBudget,
+  retryTicket,
   seatAgent,
   stopStaleAgents,
   togglePause,
@@ -82,6 +83,7 @@ import {
   archiveFeature,
   unarchiveFeature,
 } from './shell/flow'
+import { pendingEscalations } from './shell/escalation'
 import { mainRouteOf, rememberRoute, routeOfAgent, routeSpawn } from './shell/routing'
 import { onSkillStart } from './shell/skill-start'
 import {
@@ -220,6 +222,8 @@ async function dispatch($: EngineInterface, action: Action) {
       const args = await diagnoseArgs($, action.about)
       return args === null ? undefined : requestRun($, SKILLS.diagnosingBugs, args)
     }
+    case 'retry':
+      return retryTicket($, action.ticket, action.model)
     case 'raise-budget': {
       await raiseBudget($, action.ticket)
       return dropNotices($, n => n.kind === 'budget' && n.ticket === action.ticket)
@@ -453,6 +457,7 @@ export const register: Register = (on, options) => {
   })
 
   // A routed spawn gets its phase's model here, once; its steps never change it, so its cache holds.
+  // An implementer whose ticket was pressed Retry on gets the escalation model over any other.
   on('agent.spawn', async ($, e, next) => {
     const seat = await pendingSeat($, e.tool_use_id)
     const routing = await routeSpawn($, {
@@ -468,6 +473,8 @@ export const register: Register = (on, options) => {
       return result
     }
     const { plan } = seat
+    const escalation = (await pendingEscalations($))[plan.ticket]
+    const spawned = escalation === undefined ? routed : { ...e, model: escalation }
     const placed = await seatWorktree($, plan)
     if (!placed.ok) {
       const note = `Craftory could not make ${plan.path}: ${placed.reason}`
@@ -483,7 +490,7 @@ export const register: Register = (on, options) => {
     }
     let result
     try {
-      result = await next({ ...routed, cwd: placed.path })
+      result = await next({ ...spawned, cwd: placed.path })
     } catch (error) {
       await undo()
       throw error
@@ -493,7 +500,7 @@ export const register: Register = (on, options) => {
       return result
     }
     await rememberRoute($, result.agentId, routing)
-    await seatAgent($, e.tool_use_id, plan, result.agentId as AgentId)
+    await seatAgent($, e.tool_use_id, plan, result.agentId as AgentId, result.model)
     return result
   })
 

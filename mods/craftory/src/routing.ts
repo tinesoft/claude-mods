@@ -53,6 +53,50 @@ export function routeText(route: Route): string | null {
   return route.effort === undefined ? null : `${route.effort} effort`
 }
 
+/** The model family an alias or a full id names (`claude-opus-4-5` is opus), or null. */
+const familyOf = (model: string): string | null => {
+  const aliases: readonly string[] = MODEL_ALIASES
+  if (aliases.includes(model)) return model
+  return /(?:^|-)(haiku|sonnet|opus)(?=-|\[|$)/.exec(model)?.[1] ?? null
+}
+
+/** Whether two models are one: the same text, or an alias and an id of its family. */
+const isSameModel = (a: string, b: string) => {
+  if (a === b) return true
+  const aliases: readonly string[] = MODEL_ALIASES
+  if (!aliases.includes(a) && !aliases.includes(b)) return false
+  return familyOf(a) !== null && familyOf(a) === familyOf(b)
+}
+
+/** The ticket states that offer a retry on a stronger model: Failed, or Over budget. */
+export const RETRY_STATUSES = ['failed', 'over'] as const
+
+/**
+ * The model **Retry on …** offers a stuck ticket: `escalateTo`, unless it is `session` or the
+ * model the ticket's last agent ran on. A record from before the model was kept is offered it.
+ */
+export function retryModel(row: {
+  status: string
+  escalateTo: string
+  lastModel: string | undefined
+}): string | null {
+  const { status, escalateTo, lastModel } = row
+  const statuses: readonly string[] = RETRY_STATUSES
+  if (!statuses.includes(status) || escalateTo === SESSION) return null
+  return lastModel !== undefined && isSameModel(escalateTo, lastModel) ? null : escalateTo
+}
+
+/** The context line `/implement <ticket>` carries after a press of **Retry on …**. */
+export const retryContext = (args: {
+  ticket: string
+  model: string
+  worktree: string
+  branch: string
+}) =>
+  `Craftory: the user pressed Retry on ${args.model} for ${args.ticket}. Start one implementer for ${args.ticket} again, as before; ` +
+  `Craftory runs it on ${args.model} in its kept worktree \`${args.worktree}\` on branch \`${args.branch}\`, ` +
+  'so it carries on from what is committed there. Start no other ticket.'
+
 /**
  * What the main session's steps run on now: the running phase's route, with `routing.mainThread`
  * on and the phase routing something. Between phases, and in an entry point, none.

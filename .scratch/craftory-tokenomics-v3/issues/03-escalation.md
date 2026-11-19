@@ -4,9 +4,9 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `routing.escalateTo` config key; Settings row; config and settings tests
-- [ ] The agent record keeps the model it spawned on
-- [ ] Button rule (state, escalateTo, last model); table tests
-- [ ] The press submits `/implement <ticket>` with the context; the next spawn gets the model and reuses the kept worktree and branch; fake-world tests
+- [x] `routing.escalateTo` config key; Settings row; config and settings tests
+- [x] The agent record keeps the model it spawned on
+- [x] Button rule (state, escalateTo, last model); table tests
+- [x] The press submits `/implement <ticket>` with the context; the next spawn gets the model and reuses the kept worktree and branch; fake-world tests

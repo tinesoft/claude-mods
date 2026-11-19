@@ -21,7 +21,16 @@ import { TOAST_MS, toastText } from '../../src/signals'
 import { attribute } from '../../src/spend'
 import { statusLine } from '../../src/summary'
 import { SPIN_MS } from '../../src/theme'
-import type { AgentId, EventNotice, FeatureKey, PhaseId, Running, SpendTarget } from '../../types'
+import { retryContext } from '../../src/routing'
+import type {
+  AgentId,
+  EventNotice,
+  FeatureKey,
+  IssueRef,
+  PhaseId,
+  Running,
+  SpendTarget,
+} from '../../types'
 import {
   activeKey,
   activeRecord,
@@ -35,6 +44,7 @@ import {
   reselectActive,
   setActive,
 } from './features'
+import { pendingEscalations } from './escalation'
 import { saveForecast } from './forecast'
 import { gitOf } from './git'
 import { throttleNow } from './limits'
@@ -369,12 +379,18 @@ export async function startContext(
   if (req?.phase !== 'build') return undefined
   const [record, git, { config }] = await Promise.all([activeRecord($), gitOf($), repoFacts($)])
   if (record === null || record.integrationBranch === '') return undefined
+  const ticket = req.args.trim() as IssueRef
+  const model = (await pendingEscalations($))[ticket]
+  const kept = record.agents[ticket]
   return [
     integrationContext({
       branch: record.integrationBranch,
       from: git?.branch ?? null,
       folder: config.worktrees.folder,
     }),
+    ...(model !== undefined && kept !== undefined
+      ? [retryContext({ ticket, model, worktree: kept.worktree, branch: kept.branch })]
+      : []),
   ]
 }
 
