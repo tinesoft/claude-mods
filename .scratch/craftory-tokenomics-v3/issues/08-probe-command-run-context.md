@@ -18,9 +18,19 @@ The probe is a throwaway mod with a band button that calls `$.command.run` for a
 
 **Blocked by:** none
 
-**Status:** ready-for-human
+**Status:** resolved
 
-- [ ] Answers 1 to 5, with the Claude Code version (and whether it is newer than the pinned 2.1.325), the date and the log lines, in the Comments below
-- [ ] The answers recorded in the spec's "Decisions made while building", and decisions (03) and (06) corrected if they are wrong
-- [ ] If neither hook reaches the turn, a follow-up ticket for a path that does (`skill.prompt`, the command's args, or another), and the README's "Data, programs and permissions" corrected
-- [ ] The probe is not committed
+- [x] Answers 1 to 5 (5 inferred, not run), with the Claude Code version (and whether it is newer than the pinned 2.1.325), the date and the log lines, in the Comments below
+- [x] The answers recorded in the spec's "Decisions made while building", and decisions (03) and (06) corrected if they are wrong
+- [x] `prompt.submit` reaches the turn, so no new path is needed; the README's "Data, programs and permissions" is corrected, and ticket 09 removes the `command.run` fallback
+- [x] The probe is not committed
+
+## Comments
+
+- 2026-11-19: probe run headless, Claude Code 2.1.328 (newer than the pinned 2.1.325), haiku, one run each. Plugin `pa` presses `$.command.run({ command: 'pa:echo' })` from a `turn.complete` hook (from `prompt.submit` the host refuses: "called from a prompt.submit hook, it would wait on the turn this hook is holding; run it from a later event (turn.complete)"). `pa:echo` is a skill that lists any hidden note containing `PROBE-CTX`. A second plugin `pb` only hooks. The probe lives in the session scratchpad and is not committed.
+  1. A plugin's `$.command.run` of a skill command raises `prompt.submit` with `origin {kind:'plugin',name:'pa'}` and `command {name:'pa:echo',args:''}`. The calling plugin's own `prompt.submit` hook runs for it, and so does `pb`'s.
+  2. The calling plugin's own `command.run` hook runs for its own `$.command.run`, against the contract text. `pb`'s sees it too, with the same plugin origin.
+  3. A `context` entry a `command.run` hook adds after `next(e)` does not reach a skill command's turn (`pa` alone, and `pa` with `pb`: the model answered `NONE`; `$.command.run` resolved to `{}`). A `context` entry added on the way down in `prompt.submit` (`next({ ...e, context: [...(e.context ?? []), line] })`) does: the model listed `PROBE-CTX-SUBMIT-A-4417` with `pa`, and both `A` and `B` with `pa` and `pb`.
+  4. `skill.prompt` did not fire for the pressed skill, for either plugin.
+  5. Not run (it needs Craftory in a demo repo). `/implement-spec` is a skill command run the same way, and `startContext` adds its integration context in `prompt.submit` with `command`, the path 3 shows reaching the turn. Confirm it on a real pressed `/implement-spec` when convenient.
+  - Log lines: `PROBE {"tag":"A","ev":"prompt.submit","text":"/pa:echo","origin":{"kind":"plugin","name":"pa"},"command":{"name":"pa:echo","args":""}}`, `PROBE {"tag":"A","ev":"command.run","command":"pa:echo","origin":{"kind":"plugin","name":"pa"}}`, `PROBE {"tag":"A","ev":"run.done","r":{}}`.
