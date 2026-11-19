@@ -8,6 +8,7 @@ import {
   ticketBranchFor,
   integrationBranchFor,
 } from '../src/config'
+import { EFFORTS } from '../src/routing'
 import { PHASE_ORDER, PHASES, namespaced, predecessor, recognise } from '../src/phases'
 
 const okValue = (raw: string | null) => {
@@ -50,7 +51,13 @@ test('bad values fall back to their defaults and are named in the problem', () =
   expect(loaded.value.worktrees.tokenBudget).toBe(10_000)
   expect(loaded.value.worktrees.copy).toEqual(DEFAULT_CONFIG.worktrees.copy)
   expect(loaded.value.entry.triage.enterAt).toBe('bugs-build-else-align')
-  expect(loaded.value.phases.spec).toEqual({ enabled: true, gate: false, command: 'to-spec' })
+  expect(loaded.value.phases.spec).toEqual({
+    enabled: true,
+    gate: false,
+    command: 'to-spec',
+    model: 'session',
+    effort: 'session',
+  })
   for (const named of [
     'worktrees.maxParallel',
     'worktrees.copy',
@@ -279,4 +286,43 @@ test('rateLimits.throttledParallel defaults to 1, is clamped to 1 to 16, and fal
   const bad = okValue('{"rateLimits":{"throttledParallel":"one"}}')
   expect(bad.value.rateLimits.throttledParallel).toBe(1)
   expect(bad.problem).toContain('rateLimits.throttledParallel')
+})
+
+test('every phase runs its subagents on the session model and effort by default', () => {
+  for (const id of PHASE_ORDER)
+    expect(DEFAULT_CONFIG.phases[id]).toMatchObject({ model: 'session', effort: 'session' })
+  expect(okValue('{}').problem).toBeUndefined()
+})
+
+test('a phase keeps a model alias or a full id, and any effort level', () => {
+  const loaded = okValue(
+    JSON.stringify({
+      phases: {
+        build: { model: 'sonnet', effort: 'medium' },
+        review: { model: 'claude-opus-4-1-20250805', effort: 'max' },
+      },
+    }),
+  )
+  expect(loaded.value.phases.build).toMatchObject({ model: 'sonnet', effort: 'medium' })
+  expect(loaded.value.phases.review).toMatchObject({
+    model: 'claude-opus-4-1-20250805',
+    effort: 'max',
+  })
+  expect(loaded.problem).toBeUndefined()
+  for (const effort of EFFORTS)
+    expect(okValue(JSON.stringify({ phases: { ship: { effort } } })).value.phases.ship.effort).toBe(
+      effort,
+    )
+})
+
+test('an unknown effort or a model that is no id falls back to session with a note', () => {
+  const loaded = okValue(
+    JSON.stringify({
+      phases: { build: { effort: 'extreme' }, align: { model: 'my model; rm -rf' } },
+    }),
+  )
+  expect(loaded.value.phases.build.effort).toBe('session')
+  expect(loaded.value.phases.align.model).toBe('session')
+  expect(loaded.problem).toContain('phases.build.effort')
+  expect(loaded.problem).toContain('phases.align.model')
 })

@@ -7,6 +7,7 @@ import type { Flow, PhaseView } from './evidence'
 import { handoffOf } from './features'
 import { PHASE_ORDER, PHASES, type PhaseSpec } from './phases'
 import type { WindowView } from './rate-limits'
+import { routeOf, routeText } from './routing'
 import { usdText } from './spend'
 import { across, type Role, SPACE, PHASE_LOOKS } from './theme'
 import { clip } from './ui'
@@ -192,6 +193,8 @@ export type CardView = {
   windows: readonly WindowView[]
   /** Build's forecast (`Build ≈ $9.20 (p90 $14) for 5 tickets`), on the Tickets card only. */
   forecast: string | null
+  /** What the phase's subagents run on (`sonnet · medium`); null while both are on session. */
+  runsOn: string | null
 }
 
 const TRIAGE_WHY =
@@ -216,6 +219,7 @@ export function triageCard(waiting: number): CardView {
     spend: null,
     windows: [],
     forecast: null,
+    runsOn: null,
   }
 }
 
@@ -307,5 +311,6 @@ export function phaseCard(
     spend,
     windows: view.phase === 'build' ? windows : [],
     forecast: view.phase === 'tickets' ? forecast : null,
+    runsOn: routeText(routeOf(config, view.phase)),
   }
 }

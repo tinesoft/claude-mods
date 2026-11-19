@@ -168,6 +168,13 @@ export const DetailCard = ({
             <HelpersLine ui={ui} tone={tone} helpers={card.helpers} />
           </CardRow>
         )}
+        {card.runsOn !== null && (
+          <CardRow ui={ui} tone={tone} label="Runs on">
+            <Text key="runs-on" {...inkOf(tone, 'text2')}>
+              {card.runsOn}
+            </Text>
+          </CardRow>
+        )}
         {card.handoff !== null && (
           <CardRow ui={ui} tone={tone} label="Handoff">
             <Link key="handoff-link" href={card.handoff} label={card.handoff} />

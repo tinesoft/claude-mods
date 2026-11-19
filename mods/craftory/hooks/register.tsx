@@ -82,6 +82,7 @@ import {
   archiveFeature,
   unarchiveFeature,
 } from './shell/flow'
+import { rememberRoute, routeOfAgent, routeSpawn } from './shell/routing'
 import { onSkillStart } from './shell/skill-start'
 import {
   finishHandoff,
@@ -451,9 +452,21 @@ export const register: Register = (on, options) => {
     }
   })
 
+  // A routed spawn gets its phase's model here, once; its steps never change it, so its cache holds.
   on('agent.spawn', async ($, e, next) => {
     const seat = await pendingSeat($, e.tool_use_id)
-    if (seat === undefined) return next(e)
+    const routing = await routeSpawn($, {
+      isImplementer: seat !== undefined,
+      ...(e.model !== undefined && { model: e.model }),
+      fork: e.fork,
+      isResumed: e.resume !== undefined,
+    })
+    const routed = routing.model === undefined ? e : { ...e, model: routing.model }
+    if (seat === undefined) {
+      const result = await next(routed)
+      if (result.deny === undefined) await rememberRoute($, result.agentId, routing)
+      return result
+    }
     const { plan } = seat
     const placed = await seatWorktree($, plan)
     if (!placed.ok) {
@@ -470,7 +483,7 @@ export const register: Register = (on, options) => {
     }
     let result
     try {
-      result = await next({ ...e, cwd: placed.path })
+      result = await next({ ...routed, cwd: placed.path })
     } catch (error) {
       await undo()
       throw error
@@ -479,6 +492,7 @@ export const register: Register = (on, options) => {
       await undo()
       return result
     }
+    await rememberRoute($, result.agentId, routing)
     await seatAgent($, e.tool_use_id, plan, result.agentId as AgentId)
     return result
   })
@@ -494,7 +508,8 @@ export const register: Register = (on, options) => {
 
   // Yielding a text chunk and returning without `next` sends no request and ends the subagent at
   // once; its Agent call then returns that text. This is the hard stop at the budget. Every step
-  // is then charged to whoever it was for; a stopped one carries no usage and is not.
+  // is then charged to whoever it was for; a stopped one carries no usage and is not. A routed
+  // subagent's every step carries the effort it spawned with, and never a model.
   on('turn.step', async function* ($, e, next) {
     const agentId = e.agentId as AgentId | undefined
     const answer = async function* () {
@@ -503,14 +518,16 @@ export const register: Register = (on, options) => {
         await noteMainStep($, result.usage)
         return result
       }
+      const { effort } = await routeOfAgent($, agentId)
+      const routed = effort === undefined ? e : { ...e, effort }
       const run = await runOf($, agentId)
-      if (run === undefined || run.status !== 'running') return yield* next(e)
+      if (run === undefined || run.status !== 'running') return yield* next(routed)
       if (run.stop !== null) {
         await markStopDelivered($, agentId)
         yield { kind: 'text' as const, index: 0, text: stoppedAnswer(run) }
         return stoppedStep(e.turnId, e.index, run)
       }
-      const result = yield* next(e)
+      const result = yield* next(routed)
       await countStep($, agentId, result)
       return result
     }
