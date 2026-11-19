@@ -47,6 +47,7 @@ import {
 } from './features'
 import { pendingEscalations } from './escalation'
 import { buildForecastNow, saveForecast } from './forecast'
+import { retroContextOf, writeSpendSummary } from './spend-summary'
 import { gitOf } from './git'
 import { pointsPerDollarNow, throttleNow, windowReadingOf } from './limits'
 import { ledgerOf, runOf } from './ledger'
@@ -157,6 +158,7 @@ export async function spendTarget(
 export async function settle($: EngineInterface) {
   await autoArchive($)
   const flow = await currentFlow($)
+  await writeSpendSummary($, flow)
   await showStatus($, flow)
   const isRunning = flow?.phases.some(s => s.state.kind === 'running') === true
   if (isRunning && spinner === undefined) {
@@ -198,6 +200,8 @@ async function autoArchive($: EngineInterface) {
     const { record, key } = flow.feature
     const facts = shipFactsOf(flow)
     if (!isAutoArchivable(record, facts)) continue
+    // Written before the Feature is archived, while it is still the one through
+    await writeSpendSummary($, flow)
     await recordChange($, key, { kind: 'archive', at })
     if (key === active) await reselectActive($)
   }
@@ -393,6 +397,11 @@ export async function startContext(
 ): Promise<string[] | undefined> {
   const typed = typedCommand(e)
   const req = typed && requestOf(typed.name, typed.args, bareIsOurs(await pluginOf($)))
+  if (req?.phase === 'retro') {
+    const flow = await currentFlow($)
+    const context = flow === null ? null : await retroContextOf($, flow)
+    return context === null ? undefined : [context]
+  }
   if (req?.phase !== 'build') return undefined
   const [record, git, { config }] = await Promise.all([activeRecord($), gitOf($), repoFacts($)])
   if (record === null || record.integrationBranch === '') return undefined

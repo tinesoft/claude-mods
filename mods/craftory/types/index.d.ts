@@ -767,6 +767,8 @@ declare module 'claude-code' {
       rateLimits: SessionRateLimit[]
       /** This session's readings of the cost against each window, at session start and `session.measure`. */
       windowUse: WindowUse
+      /** The `spend.md` files this session wrote or found written, so each is checked once. */
+      spendSummaries: string[]
       steeringNote: string | null
       passes: GatePass[]
       notices: EventNotice[]
