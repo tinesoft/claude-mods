@@ -12,8 +12,16 @@ To settle:
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** resolved
 
-- [ ] The three questions answered, with the store contents and the log lines
-- [ ] A test where `lastActive` names another Feature or a draft, and the Feature on the branch is the active one
-- [ ] `pnpm nx affected -t lint typecheck validate test` passes
+- [x] The three questions answered, with the store contents and the log lines
+- [x] A test where `lastActive` names another Feature or a draft, and the Feature on the branch is the active one
+- [x] `pnpm nx affected -t lint typecheck validate test` passes
+
+## Comments
+
+- 2026-11-19, answers:
+  1. No. Nothing picked the Feature on the branch once the session started: `pickActive` was only ever called with `git: null`, so its on-branch rule never applied. A stale `lastActive` stayed active until the person switched.
+  2. Yes. The store is the plugin's own (`~/.claude/plugins/store/craftory_inline-*.json` for an inline run) and holds `drafts` and `lastActive` with no repo in them, so a key chosen in one repo was read in every other.
+  3. Fixed. `loadFeatures` now reads the checked-out branch (`git branch --show-current`) and passes it to `pickActive`, so the Feature whose integration branch is checked out wins. `lastActive` is stored as `{ root, key }` and read back only in the repo it was chosen in; a bare key from an older version still stands for any repo. Tests: `tests/last-active.test.ts` (on-branch beats a remembered draft, another repo's entry is ignored, this repo's is kept when no branch matches) and `lastActiveOf` in `tests/features.test.ts`.
+  - Not changed: `drafts` is still one list for every repo, so another repo's draft can still be picked when this repo has no Feature and no remembered one.

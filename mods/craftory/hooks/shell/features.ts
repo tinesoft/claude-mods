@@ -9,7 +9,8 @@ import {
   featureOf,
   featurePath,
   FEATURES_DIR,
-  isFeatureKey,
+  lastActiveEntry,
+  lastActiveOf,
   mergeFeature,
   newDraft,
   parseDrafts,
@@ -31,7 +32,7 @@ import type {
   PhaseId,
   TrackerSnapshot,
 } from '../../types'
-import { listDir, readText, writableContext, writeRepoFile } from './repo'
+import { listDir, readText, repoRoot, sh, writableContext, writeRepoFile } from './repo'
 import { trackerOf } from './tracker'
 
 const MAX_SAVES = 5
@@ -76,12 +77,23 @@ export async function reloadFeatures($: EngineInterface) {
 export async function loadFeatures($: EngineInterface) {
   const features = await readFeatures($)
   const drafts = parseDrafts(await $.store.get(STORE_DRAFTS))
-  const last = await $.store.get(STORE_LAST_ACTIVE)
+  const [root, branch, last] = await Promise.all([
+    repoRoot($),
+    currentBranch($),
+    $.store.get(STORE_LAST_ACTIVE),
+  ])
   await update($, featuresState, () => features)
   await update($, draftsState, () => drafts)
   await update($, activeState, () =>
-    pickActive({ features, drafts, git: null, lastActive: isFeatureKey(last) ? last : null }),
+    pickActive({ features, drafts, git: { branch }, lastActive: lastActiveOf(last, root) }),
   )
+}
+
+/** The branch checked out now, or null when git cannot say (no repo, a detached HEAD). */
+async function currentBranch($: EngineInterface): Promise<string | null> {
+  const shown = await sh($, ['git', 'branch', '--show-current'])
+  const name = shown?.exitCode === 0 ? shown.stdout.trim() : ''
+  return name === '' ? null : name
 }
 
 /**
@@ -92,7 +104,7 @@ export async function loadFeatures($: EngineInterface) {
 export async function setActive($: EngineInterface, key: FeatureKey | null) {
   await update($, activeState, () => key)
   if (key === null) await $.store.delete(STORE_LAST_ACTIVE)
-  else await $.store.set(STORE_LAST_ACTIVE, key)
+  else await $.store.set(STORE_LAST_ACTIVE, lastActiveEntry(await repoRoot($), key))
 }
 
 /** The Feature to show after the active one is archived: the newest unarchived one, or none. */
