@@ -57,6 +57,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     testTimeoutSec: 600,
   },
   rateLimits: { throttleAt: 80, throttledParallel: 1 },
+  routing: { mainThread: false, escalateTo: 'opus' },
   automation: {
     suggestNext: true,
     liveAgents: true,
@@ -73,7 +74,6 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     phaseUsd: Object.fromEntries(PHASE_ORDER.map(id => [id, 0])) as Record<PhaseId, number>,
     warnAtPercent: 80,
   },
-  routing: { escalateTo: 'opus' },
 }
 
 /** The most any budget can be, in dollars. */

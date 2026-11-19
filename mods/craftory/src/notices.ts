@@ -1,4 +1,5 @@
 import type {
+  AgentRoute,
   EventNotice,
   OverBudgetRefusal,
   SpendBudgetNotice,
@@ -15,6 +16,7 @@ import { budgetK } from './build'
 import { driftText, retroText } from './drift'
 import { gateText, hardGateText } from './gates'
 import { PHASES, PLUGIN, SKILLS, TESTED_RANGE } from './phases'
+import { mainRouteText } from './routing'
 import type { Role } from './theme'
 
 /**
@@ -160,6 +162,20 @@ const dismiss = (id: string): NoticeButton => ({
   label: 'Dismiss',
   action: { kind: 'dismiss', noticeId: id },
 })
+
+/** The band's note while the main session runs on its phase's route; none otherwise. */
+export const mainRouteNotices = (route: AgentRoute | null): NoticeView[] =>
+  route === null
+    ? []
+    : [
+        {
+          id: 'main-route',
+          role: 'neutral',
+          text: mainRouteText(route),
+          replacesRail: false,
+          actions: [],
+        },
+      ]
 
 /** An open map the Feature can join: its name, its ref to store, and the argument `/wayfinder` takes. */
 export type AttachTarget = { name: string; ref: IssueRef; arg: string }

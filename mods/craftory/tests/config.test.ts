@@ -340,3 +340,13 @@ test('an escalation model that is no id falls back to opus with a note', () => {
   expect(loaded.value.routing.escalateTo).toBe('opus')
   expect(loaded.problem).toContain('routing.escalateTo: not a model id, using opus')
 })
+
+test('routing.mainThread is off by default, keeps a boolean, and falls back on anything else', () => {
+  expect(DEFAULT_CONFIG.routing).toEqual({ mainThread: false, escalateTo: 'opus' })
+  expect(okValue(JSON.stringify({ routing: { mainThread: true } })).value.routing.mainThread).toBe(
+    true,
+  )
+  const bad = okValue(JSON.stringify({ routing: { mainThread: 'yes' } }))
+  expect(bad.value.routing.mainThread).toBe(false)
+  expect(bad.problem).toContain('routing.mainThread')
+})

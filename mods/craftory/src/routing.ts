@@ -1,4 +1,5 @@
-import type { CraftoryConfig, PhaseEffort, PhaseId, Route, Running } from '../types'
+import type { AgentRoute, CraftoryConfig, PhaseEffort, PhaseId, Route, Running } from '../types'
+import { PHASES } from './phases'
 
 /** What a phase's model or effort says when it routes nothing. */
 export const SESSION = 'session'
@@ -95,3 +96,21 @@ export const retryContext = (args: {
   `Craftory: the user pressed Retry on ${args.model} for ${args.ticket}. Start one implementer for ${args.ticket} again, as before; ` +
   `Craftory runs it on ${args.model} in its kept worktree \`${args.worktree}\` on branch \`${args.branch}\`, ` +
   'so it carries on from what is committed there. Start no other ticket.'
+
+/**
+ * What the main session's steps run on now: the running phase's route, with `routing.mainThread`
+ * on and the phase routing something. Between phases, and in an entry point, none.
+ */
+export function mainRoute(
+  config: CraftoryConfig,
+  running: Pick<Running, 'phase'> | null,
+): AgentRoute | null {
+  const phase = running?.phase ?? null
+  if (!config.routing.mainThread || phase === null) return null
+  const route = routeOf(config, phase)
+  return routeText(route) === null ? null : { phase, route }
+}
+
+/** The band note while the main session is routed: `Align runs on opus · high`. */
+export const mainRouteText = ({ phase, route }: AgentRoute) =>
+  `${PHASES[phase].label} runs on ${routeText(route)}`

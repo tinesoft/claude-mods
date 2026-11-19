@@ -113,14 +113,16 @@ export type CraftoryConfig = {
   docs: { research: string }
   worktrees: WorktreeConfig
   rateLimits: RateLimitConfig
+  routing: RoutingConfig
   automation: AutomationConfig
   deny: DenyConfig
   budgets: BudgetConfig
-  routing: RoutingConfig
 }
 
 /** Routing beyond each phase's own model and effort. */
 export type RoutingConfig = {
+  /** Also give the main session's steps the running phase's model and effort. */
+  mainThread: boolean
   /** The model a stuck ticket's **Retry on …** starts it on: an alias or a full id; `session` hides it. */
   escalateTo: string
 }

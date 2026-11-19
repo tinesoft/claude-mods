@@ -559,3 +559,14 @@ test('the Retry on row refuses text that is no model id', () => {
   expect(checkCustom(row, 'claude-opus-4-1')).toEqual({ value: 'claude-opus-4-1' })
   expect(checkCustom(row, 'my best model')).toHaveProperty('problem')
 })
+
+test('Automation › routing the main session is off, warns of the re-read, and writes routing.mainThread', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'automation')
+  const text = await allText(pane)
+  expect(text).toContain('Route the main session by phase')
+  expect(text).toContain('re-reads the context once')
+  await pane.press({ key: 'set-routing-main-thread' })
+  expect(JSON.parse(w.files.get('.craftory/config.json')!).routing).toMatchObject({
+    mainThread: true,
+  })
+})

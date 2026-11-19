@@ -3,6 +3,8 @@ import { DEFAULT_CONFIG } from '../src/config'
 import {
   retryContext,
   retryModel,
+  mainRoute,
+  mainRouteText,
   routeOf,
   routeText,
   spawnModel,
@@ -89,5 +91,38 @@ test('the retry context names the ticket, the model, and the kept worktree and b
     'Craftory: the user pressed Retry on opus for csv/03. Start one implementer for csv/03 again, as before; ' +
       'Craftory runs it on opus in its kept worktree `.claude/worktrees/csv-03-date-filter` on branch `craftory/csv-03-date-filter`, ' +
       'so it carries on from what is committed there. Start no other ticket.',
+  )
+})
+
+test('the main session is routed only with mainThread on, while a phase with a route runs', () => {
+  const config = routed({ align: { model: 'opus', effort: 'high' }, build: { effort: 'low' } })
+  const on = { ...config, routing: { ...config.routing, mainThread: true } }
+  const rows = [
+    {
+      config: on,
+      running: { phase: 'align' },
+      route: { phase: 'align', route: { model: 'opus', effort: 'high' } },
+    },
+    {
+      config: on,
+      running: { phase: 'build' },
+      route: { phase: 'build', route: { effort: 'low' } },
+    },
+    // between phases, an entry point, and a phase left on session
+    { config: on, running: null, route: null },
+    { config: on, running: { phase: null }, route: null },
+    { config: on, running: { phase: 'review' }, route: null },
+    // off by default
+    { config, running: { phase: 'align' }, route: null },
+  ] as const
+  for (const { config: c, running, route } of rows) expect(mainRoute(c, running)).toEqual(route)
+})
+
+test('the band note says what the running phase runs on', () => {
+  expect(mainRouteText({ phase: 'align', route: { model: 'opus', effort: 'high' } })).toBe(
+    'Align runs on opus · high',
+  )
+  expect(mainRouteText({ phase: 'build', route: { effort: 'low' } })).toBe(
+    'Build runs on low effort',
   )
 })
