@@ -46,7 +46,6 @@ import {
   reselectActive,
   setActive,
 } from './features'
-import { contextOnce, runKey } from './context-once'
 import { pendingEscalations } from './escalation'
 import { buildForecastNow, saveForecast } from './forecast'
 import { retroContextOf, writeSpendSummary } from './spend-summary'
@@ -416,7 +415,7 @@ async function retryLines(
   return [retryContext({ ticket, model, worktree: kept.worktree, branch: kept.branch })]
 }
 
-/** What `prompt.submit` adds to a typed or submitted phase command, each line once per run. */
+/** What `prompt.submit` adds to a typed or submitted phase command, one run of a command gets each line once. */
 export async function startContext(
   $: EngineInterface,
   e: { text: string; command?: { name: string; args: string } },
@@ -425,8 +424,7 @@ export async function startContext(
   const req = typed && requestOf(typed.name, typed.args, bareIsOurs(await pluginOf($)))
   if (typed === undefined || req === undefined) return undefined
   const lines = await phaseContext($, req)
-  const fresh = await contextOnce($, runKey(typed.name, typed.args), 'prompt.submit', lines)
-  return fresh.length === 0 ? undefined : fresh
+  return lines.length === 0 ? undefined : lines
 }
 
 async function phaseContext($: EngineInterface, req: RunRequest): Promise<string[]> {
@@ -442,27 +440,6 @@ async function phaseContext($: EngineInterface, req: RunRequest): Promise<string
     }),
     ...(await retryLines($, record, req.args)),
   ]
-}
-
-/**
- * What a pressed or automated command carries on its own `command.run`, in case the host raises no
- * `prompt.submit` for it: `/retro`'s summary, and the retry line of `/implement <ticket>`. Each
- * line is given once per run, whichever of the two hooks comes first.
- */
-export async function commandRunContext(
-  $: EngineInterface,
-  e: { command: string; args: string },
-): Promise<string[]> {
-  const req = requestOf(e.command, e.args, bareIsOurs(await pluginOf($)))
-  if (req === undefined) return []
-  const record = req.phase === 'build' ? await activeRecord($) : null
-  const lines =
-    req.phase === 'retro'
-      ? await retroLines($)
-      : record === null
-        ? []
-        : await retryLines($, record, req.args)
-  return contextOnce($, runKey(e.command, e.args), 'command.run', lines)
 }
 
 export async function switchFeature($: EngineInterface, key: FeatureKey) {

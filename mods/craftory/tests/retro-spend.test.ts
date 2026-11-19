@@ -187,7 +187,7 @@ test('with Retro turned off, Ship done writes the summary', async ($, on) => {
   expect(summaryWrites(w)).toHaveLength(1)
 })
 
-test('a plugin’s run of /retro carries the summary on command.run too, and prompt.submit does not add it again', async ($, on) => {
+test('a plugin’s run of /retro carries the summary once, on prompt.submit', async ($, on) => {
   retroWorld(on)
   await startSession($)
   const command = `${MATT}:retro`
@@ -196,13 +196,14 @@ test('a plugin’s run of /retro carries the summary on command.run too, and pro
     args: '',
     origin: { kind: 'plugin', name: 'craftory' },
   } as never)
-  expect(ran.context).toHaveLength(1)
-  expect(ran.context![0]!.startsWith(CONTEXT_HEAD)).toBe(true)
+  // command.run adds nothing: a skill command's turn does not read its context
+  expect(ran.context).toBeUndefined()
   const result = await $.prompt.submit({
     text: `/${command}`,
     command: { name: command, args: '' },
   } as never)
-  expect(result.context).toBeUndefined()
+  expect(result.context).toHaveLength(1)
+  expect(result.context![0]!.startsWith(CONTEXT_HEAD)).toBe(true)
   // the next /retro, a turn later, is given it again
   await turnComplete($)
   expect((await submit($, `/${command}`)).context?.[0]?.startsWith(CONTEXT_HEAD)).toBe(true)

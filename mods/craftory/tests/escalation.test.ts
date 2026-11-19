@@ -138,17 +138,16 @@ const pluginRun = ($: Engine, command: string, args: string) =>
 
 const RETRY_LINE = 'Retry on opus for csv/03. Start one implementer for csv/03 again'
 
-test('a pressed Retry’s /implement carries the retry line on command.run, and prompt.submit does not add it again', async ($, on) => {
+test('a pressed Retry’s /implement carries the retry line once, on prompt.submit', async ($, on) => {
   const { w } = await failed(on, $)
-  expect((await pluginRun($, IMPLEMENT, 'csv/03')).context).toBeUndefined()
   await (await openCard($)).press({ key: RETRY })
   const ran = await pluginRun($, IMPLEMENT, 'csv/03')
   expect(ran.text).toBe('ran')
-  expect(ran.context).toEqual([expect.stringContaining(RETRY_LINE)])
+  // command.run adds nothing: a skill command's turn does not read its context
+  expect(ran.context).toBeUndefined()
   await commandPrompt($, 'csv/03')
   const context = w.submitted.at(-1)!.context ?? []
-  expect(context).not.toContainEqual(expect.stringContaining(RETRY_LINE))
-  // the integration line, which only prompt.submit adds, is still there
+  expect(context.filter(line => line.includes(RETRY_LINE))).toHaveLength(1)
   expect(context).toContainEqual(expect.stringContaining('integration branch'))
 })
 

@@ -83,9 +83,7 @@ import {
   switchFeature,
   archiveFeature,
   unarchiveFeature,
-  commandRunContext,
 } from './shell/flow'
-import { forgetContextGiven } from './shell/context-once'
 import { pendingEscalations } from './shell/escalation'
 import { mainRouteOf, rememberRoute, routeOfAgent, routeSpawn } from './shell/routing'
 import { onSkillStart } from './shell/skill-start'
@@ -369,18 +367,6 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // A pressed or automated command carries its context here too, in case the host raises no
-  // `prompt.submit` for a plugin's `$.command.run`; each line still reaches the model once.
-  on('command.run', async ($, e, next) => {
-    const result = await next(e)
-    // A test or an older host may leave the origin out: such a run is not a plugin's
-    if ((e.origin as Partial<typeof e.origin> | undefined)?.kind !== 'plugin') return result
-    const lines = await commandRunContext($, e)
-    return lines.length === 0
-      ? result
-      : { ...result, context: [...(result.context ?? []), ...lines] }
-  })
-
   on('command.run', { command: COMMAND }, async $ => {
     if (!(await isSupported($))) return { text: unsupportedText }
     if (!(await drawsAnything($))) {
@@ -418,7 +404,6 @@ export const register: Register = (on, options) => {
       await finishAgent($, e.agentId as AgentId, e.reason)
       return result
     }
-    await forgetContextGiven($)
     await noteReplyTerms($, e.answer)
     await noteTurnEnded($, await finishTurn($, e))
     await noteMainTurnEnd($, e.isAborted === true)
