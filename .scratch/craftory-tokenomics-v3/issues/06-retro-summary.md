@@ -18,9 +18,9 @@ Without a cost ledger it is in tokens.
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Pure summary (top 3, ties, no forecast, no cost ledger) rendered as rows and as Markdown; table tests
-- [ ] Retro card rows; card tests
-- [ ] `/retro` context on every way it starts; fake-world tests
-- [ ] `spend.md` written once at Retro done, or at Ship done when Retro is off; `isWritable` path; fake-world and files tests
+- [x] Pure summary (top 3, ties, no forecast, no cost ledger) rendered as rows and as Markdown; table tests
+- [x] Retro card rows; card tests
+- [x] `/retro` context on every way it starts; fake-world tests
+- [x] `spend.md` written once at Retro done, or at Ship done when Retro is off; `isWritable` path; fake-world and files tests

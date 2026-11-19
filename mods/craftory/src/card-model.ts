@@ -9,6 +9,7 @@ import { PHASE_ORDER, PHASES, type PhaseSpec } from './phases'
 import type { WindowView } from './rate-limits'
 import { routeOf, routeText } from './routing'
 import { usdText } from './spend'
+import type { SummaryRow } from './spend-summary'
 import { across, type Role, SPACE, PHASE_LOOKS } from './theme'
 import { clip } from './ui'
 
@@ -195,6 +196,8 @@ export type CardView = {
   forecast: string | null
   /** What the phase's subagents run on (`sonnet · medium`); null while both are on session. */
   runsOn: string | null
+  /** The Feature's spend summary as label and text rows, on the Retro card only. */
+  summary: readonly SummaryRow[]
 }
 
 const TRIAGE_WHY =
@@ -220,6 +223,7 @@ export function triageCard(waiting: number): CardView {
     windows: [],
     forecast: null,
     runsOn: null,
+    summary: [],
   }
 }
 
@@ -278,6 +282,7 @@ export function phaseCard(
   spend: SpendFigure | null = null,
   windows: readonly WindowView[] = [],
   forecast: string | null = null,
+  summary: readonly SummaryRow[] = [],
 ): CardView {
   const spec: PhaseSpec = PHASES[view.phase]
   const look = PHASE_LOOKS[view.state.kind]
@@ -311,6 +316,7 @@ export function phaseCard(
     spend,
     windows: view.phase === 'build' ? windows : [],
     forecast: view.phase === 'tickets' ? forecast : null,
+    summary: view.phase === 'retro' ? summary : [],
     runsOn: routeText(routeOf(config, view.phase)),
   }
 }
