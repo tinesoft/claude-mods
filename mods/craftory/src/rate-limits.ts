@@ -24,7 +24,7 @@ export const THROTTLE_OFF = 100
 export const isThrottled = (limit: SessionRateLimit, throttleAt: number) =>
   throttleAt < THROTTLE_OFF && limit.percentUsed >= throttleAt
 
-const labelOf = (kind: string) => {
+export const labelOf = (kind: string) => {
   const known = RATE_LIMIT_LABELS[kind]
   if (known !== undefined) return known
   const words = kind.replaceAll('_', ' ')
@@ -37,7 +37,7 @@ const pad = (n: number) => String(n).padStart(2, '0')
  * `18:40` when the reset falls on today's local date, `Mon 09:00` otherwise; null when the time
  * cannot be read. `offsetMinutes` is the local zone's offset east of UTC.
  */
-function resetText(resetsAt: string, now: number, offsetMinutes: number): string | null {
+export function resetText(resetsAt: string, now: number, offsetMinutes: number): string | null {
   const at = Date.parse(resetsAt)
   if (Number.isNaN(at)) return null
   const local = new Date(at + offsetMinutes * MINUTE_MS)

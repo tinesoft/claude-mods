@@ -22,6 +22,7 @@ import { attribute } from '../../src/spend'
 import { statusLine } from '../../src/summary'
 import { SPIN_MS } from '../../src/theme'
 import { retryContext } from '../../src/routing'
+import { type WindowWarning, windowWarningOf } from '../../src/window-use'
 import type {
   AgentId,
   EventNotice,
@@ -45,9 +46,9 @@ import {
   setActive,
 } from './features'
 import { pendingEscalations } from './escalation'
-import { saveForecast } from './forecast'
+import { buildForecastNow, saveForecast } from './forecast'
 import { gitOf } from './git'
-import { throttleNow } from './limits'
+import { pointsPerDollarNow, throttleNow, windowReadingOf } from './limits'
 import { ledgerOf, runOf } from './ledger'
 import {
   addNotice,
@@ -270,16 +271,32 @@ export async function holdForGate($: EngineInterface, req: RunRequest, flow: Flo
 
 /**
  * Starting Build while throttling is in force says so in a held notice first, which the band or,
- * where none is drawn, the pane shows. It never drops or delays the run: the notice only tells the
- * person Build will run fewer implementers at once.
+ * where none is drawn, the pane shows; so does starting it when its forecast p90 would likely use
+ * more of a rate-limit window than is left. Neither drops or delays the run: the notices only
+ * tell the person what Build is likely to meet.
  */
 export async function warnBeforeBuild($: EngineInterface, req: RunRequest) {
   if (req.phase !== 'build') return
   const throttle = await throttleNow($, (await repoFacts($)).config)
-  if (throttle === null) return
-  const { label, ...rest } = throttle
-  await addNotice($, { kind: 'throttle', id: 'throttle', window: label, ...rest })
-  await settle($)
+  if (throttle !== null) {
+    const { label, ...rest } = throttle
+    await addNotice($, { kind: 'throttle', id: 'throttle', window: label, ...rest })
+  }
+  const warning = await windowWarningNow($)
+  if (warning !== null)
+    await addNotice($, { kind: 'forecast-window', id: 'forecast-window', ...warning })
+  if (throttle !== null || warning !== null) await settle($)
+}
+
+/** Build's forecast against the windows, with no estimate or no forecast none: see `windowWarningOf`. */
+async function windowWarningNow($: EngineInterface): Promise<WindowWarning | null> {
+  const rates = await pointsPerDollarNow($)
+  if (Object.keys(rates).length === 0) return null
+  const flow = await currentFlow($)
+  if (flow === null) return null
+  const build = await buildForecastNow($, flow)
+  if (build === null) return null
+  return windowWarningOf(build, await windowReadingOf($), rates)
 }
 
 /** A run deny.overBudget refuses: what is over, the switch, and the Feature it is over on. */

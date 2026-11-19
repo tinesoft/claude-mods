@@ -17,16 +17,19 @@ import { driftText, retroText } from './drift'
 import { gateText, hardGateText } from './gates'
 import { PHASES, PLUGIN, SKILLS, TESTED_RANGE } from './phases'
 import { mainRouteText } from './routing'
+import { windowWarningText } from './window-use'
 import type { Role } from './theme'
 
 /**
  * The held notices the pane shows too, so a surface with no band still sees them: a gate or an
- * over-budget refusal holding a press, and the warning that Build is throttled.
+ * over-budget refusal holding a press, the warning that Build is throttled, and the one that its
+ * forecast would use up a rate-limit window.
  */
 export const PANE_NOTICES: ReadonlySet<EventNotice['kind']> = new Set([
   'gate',
   'over-budget-refusal',
   'throttle',
+  'forecast-window',
 ])
 
 export type NoticeButton = { id: string; label: string; action: Action; primary?: true }
@@ -437,6 +440,14 @@ export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): Notice
         id: notice.id,
         role: 'hook',
         text: throttleText(notice),
+        replacesRail: false,
+        actions: [dismiss(notice.id)],
+      }
+    case 'forecast-window':
+      return {
+        id: notice.id,
+        role: 'hook',
+        text: windowWarningText(notice),
         replacesRail: false,
         actions: [dismiss(notice.id)],
       }

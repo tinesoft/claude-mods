@@ -97,7 +97,7 @@ import {
   subagentSkillCall,
 } from './shell/automations'
 import { gitOf } from './shell/git'
-import { noteRateLimits, rateWindowsOf, startRateLimits } from './shell/limits'
+import { noteRateLimits, noteUseReading, rateWindowsOf, startRateLimits } from './shell/limits'
 import { forgetSeat, markStopDelivered, pendingSeat, runOf } from './shell/ledger'
 import { dismissedOf, dismissNotice, heldNotices } from './shell/notices'
 import {
@@ -504,10 +504,12 @@ export const register: Register = (on, options) => {
     return result
   })
 
-  // A cost that grew after the steps it covers prices them here; the rate-limit windows are kept.
+  // A cost that grew after the steps it covers prices them here; the rate-limit windows are kept,
+  // and the cost read against them, to tell how much of a window a dollar uses.
   on('session.measure', async ($, e, next) => {
     const result = await next(e)
     if (e.changed.includes('rateLimits')) await noteRateLimits($, e.rateLimits)
+    if (e.cost !== undefined) await noteUseReading($, e.cost.usd, e.rateLimits)
     if (e.cost !== undefined && e.changed.includes('cost'))
       if (await noteSpendReading($, e.cost.usd, await activeKey($))) await refreshSpend($)
     return result

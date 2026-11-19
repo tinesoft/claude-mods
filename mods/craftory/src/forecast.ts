@@ -134,7 +134,7 @@ export function buildForecastOf(forecast: Forecast, tickets: number): BuildForec
 }
 
 /** Dollars as a forecast reads them: cents below $10, as `usdText`, then whole dollars. */
-const forecastUsdText = (usd: number) => (usd < 10 ? usdText(usd) : `$${Math.round(usd)}`)
+export const forecastUsdText = (usd: number) => (usd < 10 ? usdText(usd) : `$${Math.round(usd)}`)
 
 /** `$9.20 (p90 $14)`, or `410k fresh (p90 620k)` in tokens. */
 function spreadText(spread: Spread, unit: ForecastUnit): string {
