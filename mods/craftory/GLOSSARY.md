@@ -106,13 +106,21 @@ The branch of a Feature that every Ticket merges into and that the PR is made fr
 **Ticket branch**:
 The branch an Implementer works on, cut from the integration branch.
 
+**Routing**:
+The model and effort a phase's subagents run on, set per phase and `session` (none) by default. An Implementer belongs to Build, and any other subagent to the phase running in the main session when it spawns. The model is set only at spawn, never on a later step, and a call that names its own model is left alone. The main session is routed too only with the opt-in `routing.mainThread`.
+_Avoid_: Tiering
+
+**Escalation**:
+Starting a Failed or Over budget Ticket again on a stronger model, the `routing.escalateTo` one, by a press of **Retry on opus**, in its kept Worktree and branch. Offered only when that model differs from the one its last Implementer ran on, and never done by itself.
+_Avoid_: Upgrade, upshift
+
 **Worktree**:
 The checkout folder where an Implementer works on its Ticket branch. Craftory keeps it while the Implementer is running, failed, stopped or over budget.
 
 ### Spend
 
 **Spend**:
-What a Feature has cost: the tokens of every step Claude answered for it, and their share of the session's dollars. Charged to a phase, and to a ticket for an Implementer's steps. Committed per session under `.craftory/spend/`, so a Feature's Spend adds up across sessions and people.
+What a Feature has cost: the tokens of every step Claude answered for it, and their share of the session's dollars. Charged to a phase, and to a ticket for an Implementer's steps. Committed per session under `.craftory/spend/`, so a Feature's Spend adds up across sessions and people. Once the Feature is through (Retro done, or Ship done with Retro skipped), its summary is written once to `.craftory/spend/<spec>/spend.md` and never rewritten: the total, Build against its Forecast, the costliest tickets and phases, the Cache-hit % and the Spend by model. The Retro card shows it, and `/retro` is given it as context.
 _Avoid_: Burn
 
 **Fresh tokens**:
@@ -146,6 +154,10 @@ _Avoid_: Unattributed
 **Rate-limit window**:
 One of the account's usage limits that Claude Code reports, such as the 5-hour or 7-day window, with its use and when it resets. Shown on the Build card's Limits row. None off a subscription.
 _Avoid_: Usage cap
+
+**Forecast**:
+What a Build ticket, and each phase, usually costs in this repo: the median and the p90 of the Spend of finished Features (Ship done, or archived), shown once 2 have given a sample. Build's is the per-ticket Forecast times the Tickets meant for an agent, as `Build ≈ $9.20 (p90 $14) for 5 tickets`, and is saved on the Feature when Build starts. In fresh tokens where the host keeps no cost ledger.
+_Avoid_: Projection, prediction
 
 **Throttled**:
 A Rate-limit window at or above `rateLimits.throttleAt` (80% by default), and Build while one is: it starts at most `rateLimits.throttledParallel` Implementers at once. `throttleAt` 100 is off.
