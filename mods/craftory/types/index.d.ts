@@ -113,9 +113,15 @@ export type CraftoryConfig = {
   docs: { research: string }
   worktrees: WorktreeConfig
   rateLimits: RateLimitConfig
+  routing: RoutingConfig
   automation: AutomationConfig
   deny: DenyConfig
   budgets: BudgetConfig
+}
+
+export type RoutingConfig = {
+  /** Also give the main session's steps the running phase's model and effort. */
+  mainThread: boolean
 }
 
 export type RateLimitConfig = {

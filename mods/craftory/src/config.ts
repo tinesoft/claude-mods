@@ -57,6 +57,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     testTimeoutSec: 600,
   },
   rateLimits: { throttleAt: 80, throttledParallel: 1 },
+  routing: { mainThread: false },
   automation: {
     suggestNext: true,
     liveAgents: true,

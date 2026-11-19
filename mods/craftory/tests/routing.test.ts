@@ -1,6 +1,13 @@
 import { expect, test } from 'claude-code/testing'
 import { DEFAULT_CONFIG } from '../src/config'
-import { routeOf, routeText, spawnModel, subagentPhase } from '../src/routing'
+import {
+  mainRoute,
+  mainRouteText,
+  routeOf,
+  routeText,
+  spawnModel,
+  subagentPhase,
+} from '../src/routing'
 import type { CraftoryConfig, PhaseConfig, PhaseId } from '../types'
 
 const routed = (phases: Partial<Record<PhaseId, Partial<PhaseConfig>>>): CraftoryConfig => {
@@ -49,4 +56,37 @@ test('the card text names the model, the effort, or both', () => {
   expect(routeText({ model: 'claude-opus-4-1-20250805' })).toBe('claude-opus-4-1-20250805')
   expect(routeText({ effort: 'high' })).toBe('high effort')
   expect(routeText({})).toBeNull()
+})
+
+test('the main session is routed only with mainThread on, while a phase with a route runs', () => {
+  const config = routed({ align: { model: 'opus', effort: 'high' }, build: { effort: 'low' } })
+  const on = { ...config, routing: { mainThread: true } }
+  const rows = [
+    {
+      config: on,
+      running: { phase: 'align' },
+      route: { phase: 'align', route: { model: 'opus', effort: 'high' } },
+    },
+    {
+      config: on,
+      running: { phase: 'build' },
+      route: { phase: 'build', route: { effort: 'low' } },
+    },
+    // between phases, an entry point, and a phase left on session
+    { config: on, running: null, route: null },
+    { config: on, running: { phase: null }, route: null },
+    { config: on, running: { phase: 'review' }, route: null },
+    // off by default
+    { config, running: { phase: 'align' }, route: null },
+  ] as const
+  for (const { config: c, running, route } of rows) expect(mainRoute(c, running)).toEqual(route)
+})
+
+test('the band note says what the running phase runs on', () => {
+  expect(mainRouteText({ phase: 'align', route: { model: 'opus', effort: 'high' } })).toBe(
+    'Align runs on opus · high',
+  )
+  expect(mainRouteText({ phase: 'build', route: { effort: 'low' } })).toBe(
+    'Build runs on low effort',
+  )
 })

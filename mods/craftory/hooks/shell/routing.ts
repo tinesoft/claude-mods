@@ -1,5 +1,5 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
-import { routeOf, spawnModel, subagentPhase } from '../../src/routing'
+import { mainRoute, routeOf, spawnModel, subagentPhase } from '../../src/routing'
 import type { AgentId, AgentRoute, Route } from '../../types'
 import { runningOf } from './flow'
 import { repoFacts } from './repo'
@@ -39,4 +39,10 @@ export async function rememberRoute(
 /** The route a subagent spawned with; its every step runs at that effort. */
 export async function routeOfAgent($: EngineInterface, agentId: AgentId): Promise<Route> {
   return (await read($, routesState))[agentId]?.route ?? {}
+}
+
+/** What the main session runs on now, with `routing.mainThread` on and a routed phase running. */
+export async function mainRouteOf($: EngineInterface): Promise<AgentRoute | null> {
+  const [running, { config }] = await Promise.all([runningOf($), repoFacts($)])
+  return mainRoute(config, running)
 }

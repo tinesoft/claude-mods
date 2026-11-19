@@ -326,3 +326,13 @@ test('an unknown effort or a model that is no id falls back to session with a no
   expect(loaded.problem).toContain('phases.build.effort')
   expect(loaded.problem).toContain('phases.align.model')
 })
+
+test('routing.mainThread is off by default, keeps a boolean, and falls back on anything else', () => {
+  expect(DEFAULT_CONFIG.routing).toEqual({ mainThread: false })
+  expect(okValue(JSON.stringify({ routing: { mainThread: true } })).value.routing.mainThread).toBe(
+    true,
+  )
+  const bad = okValue(JSON.stringify({ routing: { mainThread: 'yes' } }))
+  expect(bad.value.routing.mainThread).toBe(false)
+  expect(bad.problem).toContain('routing.mainThread')
+})

@@ -21,7 +21,7 @@ import { waitingForTriage } from '../src/evidence'
 import type { RunRequest } from '../src/gates'
 import { removalTargets, worktreeRemoveArgv } from '../src/git'
 import type { Action } from '../src/action'
-import { derivedNotices, eventNotices, PANE_NOTICES } from '../src/notices'
+import { derivedNotices, eventNotices, mainRouteNotices, PANE_NOTICES } from '../src/notices'
 import { renderPane } from '../src/pane'
 import { type InboxAction, tabCounts } from '../src/pane-view'
 import { namespaced, recognise, SKILLS } from '../src/phases'
@@ -82,7 +82,7 @@ import {
   archiveFeature,
   unarchiveFeature,
 } from './shell/flow'
-import { rememberRoute, routeOfAgent, routeSpawn } from './shell/routing'
+import { mainRouteOf, rememberRoute, routeOfAgent, routeSpawn } from './shell/routing'
 import { onSkillStart } from './shell/skill-start'
 import {
   finishHandoff,
@@ -509,12 +509,15 @@ export const register: Register = (on, options) => {
   // Yielding a text chunk and returning without `next` sends no request and ends the subagent at
   // once; its Agent call then returns that text. This is the hard stop at the budget. Every step
   // is then charged to whoever it was for; a stopped one carries no usage and is not. A routed
-  // subagent's every step carries the effort it spawned with, and never a model.
+  // subagent's every step carries the effort it spawned with, and never a model. With
+  // routing.mainThread on, a main step while a phase runs gets that phase's model and effort; one
+  // between phases is left alone, so the session's own model comes back by itself.
   on('turn.step', async function* ($, e, next) {
     const agentId = e.agentId as AgentId | undefined
     const answer = async function* () {
       if (agentId === undefined) {
-        const result = yield* next(e)
+        const route = (await mainRouteOf($))?.route ?? {}
+        const result = yield* next({ ...e, ...route })
         await noteMainStep($, result.usage)
         return result
       }
@@ -608,10 +611,13 @@ export const register: Register = (on, options) => {
     })
     const events = derived.some(n => n.replacesRail)
       ? []
-      : eventNotices(
-          whileIdle(await heldNotices($), e.props.isWorking),
-          await wayfinderOfferOf($, config.entry.wayfinder.suggest),
-        )
+      : [
+          ...eventNotices(
+            whileIdle(await heldNotices($), e.props.isWorking),
+            await wayfinderOfferOf($, config.entry.wayfinder.suggest),
+          ),
+          ...mainRouteNotices(await mainRouteOf($)),
+        ]
     if (flow === null && derived.length === 0 && events.length === 0) return below
     return renderBand({
       ui: uiFor($, e),
@@ -709,7 +715,10 @@ export const register: Register = (on, options) => {
         flow === null ? undefined : await forecastNow($, flow.feature.key),
       ),
       budget: await flowBudgetOf($, flow),
-      notices: eventNotices((await heldNotices($)).filter(n => PANE_NOTICES.has(n.kind))),
+      notices: [
+        ...eventNotices((await heldNotices($)).filter(n => PANE_NOTICES.has(n.kind))),
+        ...mainRouteNotices(await mainRouteOf($)),
+      ],
       on: {
         act: actions.act,
         tab: tab => void openPane($, tab),

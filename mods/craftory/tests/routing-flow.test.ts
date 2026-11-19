@@ -1,9 +1,23 @@
 import { type Engine, expect, test } from 'claude-code/testing'
 import { building, start, step } from './build-harness'
-import { allText, featureWorld, mountBand, skillPrompt, startSession } from './harness'
+import {
+  allText,
+  featureWorld,
+  mountBand,
+  mountPane,
+  skillPrompt,
+  startSession,
+  turnComplete,
+} from './harness'
 
-const routing = (phases: Record<string, { model?: string; effort?: string }>) => ({
-  '.craftory/config.json': JSON.stringify({ phases }),
+const routing = (
+  phases: Record<string, { model?: string; effort?: string }>,
+  mainThread?: boolean,
+) => ({
+  '.craftory/config.json': JSON.stringify({
+    phases,
+    ...(mainThread !== undefined && { routing: { mainThread } }),
+  }),
 })
 
 /** A subagent that is no implementer, such as a code-review agent, spawned from the main session. */
@@ -20,8 +34,8 @@ const helper = ($: Engine, id: string, extra: Record<string, unknown> = {}) =>
     ...extra,
   } as never) as Promise<{ agentId?: string }>
 
-const mainStep = async ($: Engine, index: number) => {
-  const stream = $.turn.step({ turnId: 'm', index, model: 'opus', messageCount: 1 } as never)
+const mainStep = async ($: Engine, index: number, model = 'opus') => {
+  const stream = $.turn.step({ turnId: 'm', index, model, messageCount: 1 } as never)
   const iterator = (stream as AsyncIterable<unknown>)[Symbol.asyncIterator]()
   while (!(await iterator.next()).done) {
     // drained
@@ -130,3 +144,87 @@ for (const surface of ['terminal', 'desktop', 'vscode'] as const)
     expect(await openCard($, surface, 'align')).toContain('Runs on high effort')
     expect(await openCard($, surface, 'spec')).not.toContain('Runs on')
   })
+
+const mainSteps = (w: { steps: { agentId?: string }[] }) => w.steps.filter(s => !s.agentId)
+
+test('with mainThread on, every main step while a phase runs gets its model and effort', async ($, on) => {
+  const w = featureWorld(on, {
+    files: routing({ spec: { model: 'opus', effort: 'high' } }, true),
+  })
+  await startSession($)
+  await skillPrompt($, 'to-spec')
+  await mainStep($, 0, 'sonnet')
+  await mainStep($, 1, 'sonnet')
+  expect(mainSteps(w)).toEqual([
+    { index: 0, model: 'opus', effort: 'high' },
+    { index: 1, model: 'opus', effort: 'high' },
+  ])
+})
+
+test('with mainThread off, which is the default, main steps are left alone', async ($, on) => {
+  const w = featureWorld(on, { files: routing({ spec: { model: 'opus', effort: 'high' } }) })
+  await startSession($)
+  await skillPrompt($, 'to-spec')
+  await mainStep($, 0, 'sonnet')
+  expect(mainSteps(w)).toEqual([{ index: 0, model: 'sonnet' }])
+})
+
+test('main steps before a phase and after it ends keep the session model', async ($, on) => {
+  const w = featureWorld(on, {
+    files: routing({ spec: { model: 'opus', effort: 'high' } }, true),
+  })
+  await startSession($)
+  await mainStep($, 0, 'sonnet')
+  await skillPrompt($, 'to-spec')
+  await mainStep($, 1, 'sonnet')
+  await turnComplete($)
+  await mainStep($, 2, 'sonnet')
+  expect(mainSteps(w)).toEqual([
+    { index: 0, model: 'sonnet' },
+    { index: 1, model: 'opus', effort: 'high' },
+    { index: 2, model: 'sonnet' },
+  ])
+})
+
+test('a phase on session leaves main steps alone; one with only an effort sets just that', async ($, on) => {
+  const w = featureWorld(on, { files: routing({ review: { effort: 'low' } }, true) })
+  await startSession($)
+  await skillPrompt($, 'to-spec')
+  await mainStep($, 0, 'sonnet')
+  await turnComplete($)
+  await skillPrompt($, 'code-review')
+  await mainStep($, 1, 'sonnet')
+  expect(mainSteps(w)).toEqual([
+    { index: 0, model: 'sonnet' },
+    { index: 1, model: 'sonnet', effort: 'low' },
+  ])
+})
+
+const NOTE = 'Spec runs on opus · high'
+
+test('the band says what the phase runs on while main-session routing applies, and only then', async ($, on) => {
+  featureWorld(on, { files: routing({ spec: { model: 'opus', effort: 'high' } }, true) })
+  await startSession($)
+  expect(await allText(await mountBand($, 'terminal', 200))).not.toContain(NOTE)
+  await skillPrompt($, 'to-spec')
+  expect(await allText(await mountBand($, 'terminal', 200))).toContain(NOTE)
+  await turnComplete($)
+  expect(await allText(await mountBand($, 'terminal', 200))).not.toContain('runs on')
+})
+
+test('with mainThread off the band has no note, though the phase card still says Runs on', async ($, on) => {
+  featureWorld(on, { files: routing({ spec: { model: 'opus', effort: 'high' } }) })
+  await startSession($)
+  await skillPrompt($, 'to-spec')
+  expect(await allText(await mountBand($, 'terminal', 200))).not.toContain(NOTE)
+})
+
+test('where no band is drawn, the pane shows the note', async ($, on) => {
+  featureWorld(on, {
+    surfaces: ['mobile'],
+    files: routing({ spec: { model: 'opus', effort: 'high' } }, true),
+  })
+  await startSession($, 'mobile')
+  await skillPrompt($, 'to-spec')
+  expect(await allText(await mountPane($, 'mobile'))).toContain(NOTE)
+})

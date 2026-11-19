@@ -821,6 +821,13 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
     on => ({ automation: { nudgeUnmetDone: on } }),
   ),
   toggle(
+    'routing-main-thread',
+    'Route the main session by phase',
+    'While a phase runs, the main session’s steps run on that phase’s model and effort, and the band says so; between phases they go back to the session’s own. Switching the main model re-reads the context once, so the first step after each switch costs more.',
+    c => c.routing.mainThread,
+    on => ({ routing: { mainThread: on } }),
+  ),
+  toggle(
     'deny-hard-gates',
     'Hard gates',
     'Refuses instead of asking, everywhere: a gated phase typed, called by Claude or pressed in the rail or pane (no Run anyway), edits in your checkout on an integration branch, and gh pr create or glab mr create until Review is done. Turns on the rules below. Anything Craftory cannot read lets the call through.',
