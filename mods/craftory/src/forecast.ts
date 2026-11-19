@@ -9,7 +9,7 @@
  */
 import type { FeatureForecast, ForecastUnit, PhaseId, SpendRow } from '../types'
 import { PHASE_ORDER } from './phases'
-import { tokensText, totalOfRows, usdText } from './spend'
+import { freshText, tokensText, totalOfRows, usdText } from './spend'
 
 /** Finished Features a forecast needs before it is shown: one would be a guess. */
 export const MIN_FINISHED = 2
@@ -133,14 +133,17 @@ export function buildForecastOf(forecast: Forecast, tickets: number): BuildForec
   return { median: per.median * tickets, p90: per.p90 * tickets, tickets, unit: forecast.unit }
 }
 
-/** Dollars as a forecast reads them: cents below $10, as `usdText`, then whole dollars. */
+/**
+ * The forecast's dollar format: cents below $10, as `usdText`, then whole dollars. A figure shown
+ * beside a forecast (Build's actual on the Retro summary) takes it too, so the two read alike.
+ */
 export const forecastUsdText = (usd: number) => (usd < 10 ? usdText(usd) : `$${Math.round(usd)}`)
 
 /** `$9.20 (p90 $14)`, or `410k fresh (p90 620k)` in tokens. */
 export function spreadText(spread: Spread, unit: ForecastUnit): string {
   return unit === 'usd'
     ? `${forecastUsdText(spread.median)} (p90 ${forecastUsdText(spread.p90)})`
-    : `${tokensText(Math.round(spread.median))} fresh (p90 ${tokensText(Math.round(spread.p90))})`
+    : `${freshText(Math.round(spread.median))} (p90 ${tokensText(Math.round(spread.p90))})`
 }
 
 /** The Tickets card's Forecast row: `Build ≈ $9.20 (p90 $14) for 5 tickets`, or why there is none. */

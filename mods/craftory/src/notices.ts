@@ -17,7 +17,7 @@ import { driftText, retroText } from './drift'
 import { gateText, hardGateText } from './gates'
 import { PHASES, PLUGIN, SKILLS, TESTED_RANGE } from './phases'
 import { mainRouteText } from './routing'
-import { windowWarningText } from './window-use'
+import { forecastWindowText } from './window-use'
 import type { Role } from './theme'
 
 /**
@@ -436,18 +436,11 @@ export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): Notice
     case 'spend-budget':
       return spendBudgetNotice(notice)
     case 'throttle':
-      return {
-        id: notice.id,
-        role: 'hook',
-        text: throttleText(notice),
-        replacesRail: false,
-        actions: [dismiss(notice.id)],
-      }
     case 'forecast-window':
       return {
         id: notice.id,
         role: 'hook',
-        text: windowWarningText(notice),
+        text: notice.kind === 'throttle' ? throttleText(notice) : forecastWindowText(notice),
         replacesRail: false,
         actions: [dismiss(notice.id)],
       }

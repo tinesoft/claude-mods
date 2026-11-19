@@ -189,3 +189,39 @@ test('a cancelled retro leaves the phase unmet', async ($, on) => {
   expect(record.marks.retro.artifacts).toBeUndefined()
   expect(record.marks.retro.unparsedAt).toBe(record.marks.retro.endedAt)
 })
+
+test('a PR seen merged marks the Feature shipped on its record, with Retro and the switch off', async ($, on) => {
+  const w = featureWorld(on, {
+    files: {
+      'docs/agents/issue-tracker.md': '# Issue tracker: GitHub\n',
+      '.craftory/config.json': JSON.stringify({ phases: { retro: { enabled: false } } }),
+      '.craftory/features/csv.json': featureJson({ spec: '#42' }),
+    },
+    gh: argv =>
+      argv[1] === 'pr'
+        ? {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              number: 50,
+              url: 'https://github.com/acme/app/pull/50',
+              headRefName: 'feat/csv',
+              baseRefName: 'main',
+              isDraft: false,
+              state: 'MERGED',
+            }),
+          }
+        : { exitCode: 0, stdout: '[]' },
+  })
+  await startSession($)
+  const first = stored(w).shippedAt
+  expect(first).toEqual(expect.any(String))
+  await w.clock.advance(60_000)
+  await startSession($)
+  expect(stored(w).shippedAt).toBe(first)
+})
+
+test('an open PR does not mark the Feature shipped', async ($, on) => {
+  const w = github(on, { state: 'OPEN' }, { on: false })
+  await startSession($)
+  expect(w.writes.some(x => x.text.includes('shippedAt'))).toBe(false)
+})

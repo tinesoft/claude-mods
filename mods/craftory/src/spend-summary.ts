@@ -8,14 +8,14 @@
  */
 import type { FeatureForecast, IssueRef, PhaseId, SpendRow } from '../types'
 import { SPEND_DIR } from './files'
-import { spreadText } from './forecast'
+import { forecastUsdText, spreadText } from './forecast'
 import { PHASE_ORDER, PHASES } from './phases'
 import {
   cacheHit,
+  freshText,
   NO_COST_TEXT,
   spendSlug,
   type SpendTotal,
-  tokensText,
   totalOfRows,
   usdText,
 } from './spend'
@@ -121,9 +121,13 @@ export function spendSummaryOf(args: {
 
 /** A figure in dollars where it was priced and the host keeps a ledger, else in fresh tokens. */
 const amountText = (t: SpendTotal, hasCost: boolean) =>
-  hasCost && t.usd !== null ? usdText(t.usd) : `${tokensText(t.fresh)} fresh`
+  hasCost && t.usd !== null ? usdText(t.usd) : freshText(t.fresh)
 
-/** Build's spend in the forecast's own unit, so the two compare. */
+/**
+ * Build's spend in the forecast's own unit, so the two compare. Beside a forecast the dollars are
+ * rounded as the forecast's are (`forecastUsdText`), so both figures of the line read alike; a
+ * spend with no forecast keeps its cents.
+ */
 function buildText(s: SpendSummary): string | null {
   const { actual, forecast } = s.build
   if (forecast === null)
@@ -131,14 +135,14 @@ function buildText(s: SpendSummary): string | null {
   const forecastText = spreadText(forecast, forecast.unit)
   // A forecast in dollars has nothing to compare with where Build's steps were never priced
   if (forecast.unit === 'usd' && actual !== null && (actual.usd === null || !s.hasCost))
-    return `${tokensText(actual.fresh)} fresh · the forecast of ${forecastText} is in dollars`
+    return `${freshText(actual.fresh)} · the forecast of ${forecastText} is in dollars`
   const value = actual === null ? 0 : forecast.unit === 'usd' ? actual.usd! : actual.fresh
   const spent =
     actual === null
       ? 'Nothing spent'
       : forecast.unit === 'usd'
-        ? usdText(value)
-        : `${tokensText(value)} fresh`
+        ? forecastUsdText(value)
+        : freshText(value)
   const above = value > forecast.p90 ? ' · above the p90' : ''
   return `${spent} against a forecast of ${forecastText}${above}`
 }
@@ -159,7 +163,7 @@ export function spendSummaryRows(s: SpendSummary): SummaryRow[] {
       'Total',
       [
         ...(s.hasCost && s.total.usd !== null ? [usdText(s.total.usd)] : []),
-        `${tokensText(s.total.fresh)} fresh`,
+        freshText(s.total.fresh),
         ...(s.hasCost ? [] : [NO_COST_TEXT]),
       ].join(' · '),
     ),

@@ -139,6 +139,11 @@ for (const [name, r, finished] of [
   ],
   ['archived', record({ archivedAt: '2026-11-01T00:00:00Z' }), true],
   [
+    'its PR seen merged, with Retro off and not archived',
+    record({ shippedAt: '2026-11-01T00:00:00Z' }),
+    true,
+  ],
+  [
     'brought back after its archive',
     record({ archivedAt: '2026-11-01T00:00:00Z', unarchivedAt: '2026-11-02T00:00:00Z' }),
     false,

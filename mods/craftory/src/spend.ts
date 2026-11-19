@@ -357,6 +357,9 @@ export function tokensText(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M`
 }
 
+/** Fresh tokens as every spend line names them: `318k fresh`. */
+export const freshText = (n: number) => `${tokensText(n)} fresh`
+
 /** Dollars, and the budget they are of once one applies: `$9.80 of $12`. */
 const usdOfBudget = (usd: number, budget: BudgetMark) =>
   budget.level === 'none' ? usdText(usd) : `${usdText(usd)} of ${budgetText(budget.budget)}`
@@ -515,7 +518,7 @@ export function phaseSpendText(
   const hit = cacheHit(total.tokens)
   return [
     ...(total.usd !== null ? [usdOfBudget(total.usd, budget)] : []),
-    `${tokensText(total.fresh)} fresh`,
+    freshText(total.fresh),
     ...(hit === null ? [] : [`${Math.round(hit * 100)}% cache`]),
     ...(hasCost ? [] : [NO_COST_TEXT]),
     ...budgetWord(budget),

@@ -17,6 +17,7 @@ import type {
   TrackerKind,
 } from '../types'
 import type { Flow } from './evidence'
+import { isMergedPrOf } from './features'
 import { isMattSkill, PHASES, SKILLS } from './phases'
 
 /** A scope fired with this prefix re-arms when a new session starts. */
@@ -65,10 +66,7 @@ export const retroScope = (key: FeatureKey) => `${RETRO_SCOPE}${key}`
 
 /** The Feature's own PR has merged, the retro has not run, and it has not been offered yet. */
 export const isRetroDue = (record: FeatureRecord, pr: PullRequest | null) =>
-  pr !== null &&
-  pr.state === 'merged' &&
-  record.integrationBranch !== '' &&
-  pr.branch === record.integrationBranch &&
+  isMergedPrOf(record, pr) &&
   record.retroOffered !== true &&
   record.marks.retro?.ranAt === undefined
 

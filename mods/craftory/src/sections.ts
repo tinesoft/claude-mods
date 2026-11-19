@@ -3,6 +3,7 @@ import type {
   ConfigPatch,
   CraftoryConfig,
   EnterAt,
+  ModelId,
   PhaseConfig,
   PhaseId,
   PrefOverrides,
@@ -19,7 +20,7 @@ import { RANGES } from './config'
 import { AGENT_DOCS, CONFIG_FILE, normalise, withSlash } from './files'
 import { PHASE_ORDER, PHASES } from './phases'
 import { THROTTLE_OFF } from './rate-limits'
-import { EFFORTS, isModelId, MODEL_ALIASES, SESSION } from './routing'
+import { EFFORTS, isAlias, isModelId, MODEL_ALIASES, SESSION } from './routing'
 import { NO_COST_LEDGER_NOTE } from './spend'
 import { otherNote } from './tracker/links'
 
@@ -418,13 +419,11 @@ const phasePatch = (phase: PhaseId, change: Partial<PhaseConfig>): ConfigPatch =
 }
 
 /** The model aliases, `session` shown as `sessionLabel`, plus a model id of the person's own. */
-const modelChoices = (own: string, sessionLabel: string): Choice[] => {
-  const aliases: readonly string[] = MODEL_ALIASES
-  return [...aliases, ...(aliases.includes(own) ? [] : [own])].map((m): Choice => [
+const modelChoices = (own: ModelId, sessionLabel: string): Choice[] =>
+  [...MODEL_ALIASES, ...(isAlias(own) ? [] : [own])].map((m): Choice => [
     m,
     m === SESSION ? sessionLabel : m,
   ])
-}
 
 const modelField = (example: string): CustomText => ({
   placeholder: `Other, such as ${example}`,
