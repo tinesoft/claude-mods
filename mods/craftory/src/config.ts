@@ -200,8 +200,16 @@ export function patchConfig(raw: string | null, patch: ConfigPatch): string {
 export const configWrite = (raw: string | null): FileWrite[] =>
   raw === null ? [{ path: CONFIG_PATH, before: null, after: patchConfig(null, {}) }] : []
 
-export const configOf = (loaded: Loaded<CraftoryConfig> | undefined): CraftoryConfig =>
-  loaded?.state === 'ok' ? loaded.value : DEFAULT_CONFIG
+/**
+ * A snapshot held in memory from before an upgrade can lack the keys the new code reads
+ * (`routing` came in v3), so a value missing one is parsed again from its raw text.
+ */
+export function configOf(loaded: Loaded<CraftoryConfig> | undefined): CraftoryConfig {
+  if (loaded?.state !== 'ok') return DEFAULT_CONFIG
+  if ((loaded.value as Partial<CraftoryConfig>).routing !== undefined) return loaded.value
+  const again = parseConfig(loaded.raw)
+  return again.state === 'ok' ? again.value : DEFAULT_CONFIG
+}
 
 export const isPhaseOn = (config: CraftoryConfig, skipped: readonly PhaseId[], phase: PhaseId) =>
   config.phases[phase].enabled && !skipped.includes(phase)
