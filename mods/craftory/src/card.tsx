@@ -195,6 +195,13 @@ export const DetailCard = ({
             </>
           </CardRow>
         )}
+        {card.forecast !== null && (
+          <CardRow ui={ui} tone={tone} label="Forecast">
+            <Text key="forecast-text" mono={rich} {...inkOf(tone, 'text2')}>
+              {card.forecast}
+            </Text>
+          </CardRow>
+        )}
         {card.spend !== null && (
           <CardRow ui={ui} tone={tone} label="Spend">
             <Text key="spend-text" mono={rich} {...figureInk(tone, card.spend.level)}>

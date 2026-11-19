@@ -71,6 +71,23 @@ test('by phase: phases in order, Between phases last, tickets under Build with t
   ])
 })
 
+test('by phase: each phase with a forecast shows it beside its spend', () => {
+  const v = view({
+    features: [feature(CSV, [row(1), row(2, { phase: 'build', ticket: 'csv/01' as IssueRef })])],
+    forecast: { unit: 'usd', perTicket: null, phases: { build: { median: 3, p90: 3.8 } } },
+  })
+  expect(v.active?.lines.map(l => [l.label, l.forecast])).toEqual([
+    ['Align', undefined],
+    ['Build', 'forecast ≈ $3.00 (p90 $3.80)'],
+  ])
+  const byModel = view({
+    group: 'model',
+    features: [feature(CSV, [row(1)])],
+    forecast: { unit: 'usd', perTicket: null, phases: { align: { median: 3, p90: 3.8 } } },
+  })
+  expect(byModel.active?.lines[0]?.forecast).toBeUndefined()
+})
+
 test('by model and by person: the costliest first; a session with no git user is named so', () => {
   const rows = [
     row(0.5, { model: 'claude-haiku-5-5', user: null }),

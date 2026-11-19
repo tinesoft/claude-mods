@@ -5,6 +5,7 @@ import type {
   DraftFeature,
   Feature,
   FeatureBudgets,
+  FeatureForecast,
   FeatureKey,
   FeatureRecord,
   GitSnapshot,
@@ -19,6 +20,7 @@ import type {
   TrackerSnapshot,
 } from '../types'
 import { BUDGET_MAX_USD } from './config'
+import { parseForecast } from './forecast'
 import { isSafeRef } from './git'
 import { PHASE_ORDER } from './phases'
 import { parseIssueRef, parseRef, refSlug } from './tracker/refs'
@@ -117,6 +119,12 @@ const mergeBudgets = (disk: FeatureBudgets | undefined, mine: FeatureBudgets | u
 
 const withBudgets = (budgets: FeatureBudgets | undefined) => (budgets ? { budgets } : {})
 
+const withForecast = (forecast: FeatureForecast | undefined) => (forecast ? { forecast } : {})
+
+/** The forecast saved first wins: one is written once and never overwritten. */
+const firstForecast = (a: FeatureForecast | undefined, b: FeatureForecast | undefined) =>
+  a === undefined || (b !== undefined && Date.parse(b.at) < Date.parse(a.at)) ? b : a
+
 export function isSkipped(record: Pick<FeatureRecord, 'skips'>, phase: PhaseId): boolean {
   const mark = record.skips[phase]
   if (mark?.skippedAt === undefined) return false
@@ -127,6 +135,17 @@ export function isSkipped(record: Pick<FeatureRecord, 'skips'>, phase: PhaseId):
 export const isArchived = (record: Pick<FeatureRecord, 'archivedAt' | 'unarchivedAt'>): boolean =>
   record.archivedAt !== undefined &&
   Date.parse(record.archivedAt) > Date.parse(record.unarchivedAt ?? '1970-01-01T00:00:00.000Z')
+
+/**
+ * A Feature is finished once Ship is done or it is archived. From its record alone Ship counts as
+ * done when it was marked done, or when Retro ran, which only runs after Ship.
+ */
+export const isFinished = (
+  record: Pick<FeatureRecord, 'marks' | 'archivedAt' | 'unarchivedAt'>,
+): boolean =>
+  isArchived(record) ||
+  record.marks.ship?.markedDoneAt !== undefined ||
+  record.marks.retro?.ranAt !== undefined
 
 const mergeSkip = (a: SkipMark = {}, b: SkipMark = {}): SkipMark => {
   const skippedAt = max(a.skippedAt, b.skippedAt)
@@ -271,6 +290,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     ...(stampOf(json.unarchivedAt) && { unarchivedAt: stampOf(json.unarchivedAt)! }),
     ...parseSharedFields(json),
     ...withBudgets(parseBudgets(json.budgets)),
+    ...withForecast(parseForecast(json.forecast)),
     marks: parseMarks(json.marks),
     agents,
   }
@@ -336,6 +356,7 @@ export function serialiseFeature(record: FeatureRecord): string {
       ...(record.unarchivedAt && { unarchivedAt: record.unarchivedAt }),
       ...sharedFields(record),
       ...withBudgets(budgetsOf(record.budgets?.usd, p => record.budgets?.phases?.[p])),
+      ...withForecast(record.forecast),
       marks,
       agents,
     },
@@ -418,6 +439,7 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
     ...((mine.retroOffered || disk.retroOffered) && { retroOffered: true as const }),
     ...stamps(max(disk.archivedAt, mine.archivedAt), max(disk.unarchivedAt, mine.unarchivedAt)),
     ...withBudgets(mergeBudgets(disk.budgets, mine.budgets)),
+    ...withForecast(firstForecast(disk.forecast, mine.forecast)),
     marks,
     agents,
   }
@@ -441,6 +463,8 @@ export type FeatureChange =
   | { kind: 'handoff'; path: string }
   /** The Feature's own budget for itself or one phase, whole dollars; `0` is none, `null` the default. */
   | { kind: 'budget'; target: BudgetScope; usd: number | null }
+  /** Build's forecast as Build starts; kept once saved. */
+  | { kind: 'forecast'; forecast: FeatureForecast }
 
 type Marks = Partial<Record<PhaseId, PhaseMark>>
 
@@ -534,6 +558,8 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
     }
     case 'pr':
       return { ...record, pr: change.pr }
+    case 'forecast':
+      return record.forecast === undefined ? { ...record, forecast: change.forecast } : record
     case 'retro-offered':
       return { ...record, retroOffered: true }
     case 'budget':
@@ -560,7 +586,13 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
 
 export function applyDraftChange(draft: DraftFeature, change: FeatureChange): DraftFeature {
   // A draft has no record to keep a budget on: it gets the defaults only
-  if (change.kind === 'archive' || change.kind === 'unarchive' || change.kind === 'budget')
+  // nor a forecast: Build starts only once there is a spec
+  if (
+    change.kind === 'archive' ||
+    change.kind === 'unarchive' ||
+    change.kind === 'budget' ||
+    change.kind === 'forecast'
+  )
     return draft
   if (
     change.kind === 'dismiss-wayfinder' ||

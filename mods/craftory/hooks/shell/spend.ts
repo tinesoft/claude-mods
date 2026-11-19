@@ -43,6 +43,7 @@ import {
   totalOf,
 } from '../../src/spend'
 import type { Flow } from '../../src/evidence'
+import type { Forecast } from '../../src/forecast'
 import { draftKey, isArchived, specKey } from '../../src/features'
 import { PHASE_ORDER } from '../../src/phases'
 import {
@@ -503,7 +504,11 @@ export async function setSpendGroup($: EngineInterface, group: SpendGroup) {
 }
 
 /** Everything the Spend tab shows, gathered from this session, the committed files and the store. */
-export async function spendTabOf($: EngineInterface, flow: Flow | null): Promise<SpendTabView> {
+export async function spendTabOf(
+  $: EngineInterface,
+  flow: Flow | null,
+  forecast?: Forecast,
+): Promise<SpendTabView> {
   const [ledger, disk, records, drafts, group, budgets] = await Promise.all([
     read($, spendState),
     read($, diskState),
@@ -542,6 +547,7 @@ export async function spendTabOf($: EngineInterface, flow: Flow | null): Promise
     outside: [...mine.filter(r => r.feature === null), ...tag(disk.outside, disk.user)],
     skipped: disk.skipped,
     ...(budgets && { budgets }),
+    ...(forecast && { forecast }),
   })
 }
 
@@ -564,6 +570,12 @@ export async function overrunNow(
     budgets,
     hasCost,
   })
+}
+
+/** Every row of a Feature: this session's, waiting steps rolled up unpriced, and every other session's. */
+export async function featureRowsOf($: EngineInterface, feature: FeatureKey): Promise<SpendRow[]> {
+  const [ledger, disk] = await Promise.all([read($, spendState), read($, diskState)])
+  return [...sessionRows(ledger).filter(r => r.feature === feature), ...diskRowsOf(disk, feature)]
 }
 
 /** Whether this session's host keeps a cost ledger, so dollar budgets apply. */

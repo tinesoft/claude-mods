@@ -480,3 +480,35 @@ test('merging keeps a budget either writer set, the writer’s own winning', () 
   expect(mergeFeature(disk, base).budgets).toEqual(disk.budgets)
   expect('budgets' in mergeFeature(base, base)).toBe(false)
 })
+
+const FORECAST: NonNullable<FeatureRecord['forecast']> = {
+  build: { median: 10, p90: 14, tickets: 5, unit: 'usd' },
+  at: '2026-10-24T10:00:00.000Z',
+}
+
+test('a record keeps the forecast saved when Build started: written, read back, and a bad one dropped', () => {
+  const saved: FeatureRecord = { ...B, forecast: FORECAST }
+  const loaded = parseFeature(serialiseFeature(saved))
+  expect(loaded.state === 'ok' && loaded.value).toEqual(saved)
+  const damaged = parseFeature(
+    JSON.stringify({
+      ...JSON.parse(serialiseFeature(base)),
+      forecast: { build: { median: 'lots', p90: 14, tickets: 5, unit: 'usd' }, at: FORECAST.at },
+    }),
+  )
+  expect(damaged.state === 'ok' && 'forecast' in damaged.value).toBe(false)
+})
+
+test('the forecast is saved once and never overwritten, by a change or a merge', () => {
+  const later = {
+    build: { ...FORECAST.build, median: 99 },
+    at: '2026-10-25T10:00:00.000Z' as const,
+  }
+  const saved = applyChange(base, { kind: 'forecast', forecast: FORECAST })
+  expect(saved.forecast).toEqual(FORECAST)
+  expect(applyChange(saved, { kind: 'forecast', forecast: later }).forecast).toEqual(FORECAST)
+  const other = { ...base, forecast: later }
+  expect(mergeFeature(other, saved).forecast).toEqual(FORECAST)
+  expect(mergeFeature(saved, other).forecast).toEqual(FORECAST)
+  expect('forecast' in mergeFeature(base, base)).toBe(false)
+})

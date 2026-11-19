@@ -62,6 +62,7 @@ import {
   loadFeatures,
   recordChange,
 } from './shell/features'
+import { buildForecastTextOf, forecastNow } from './shell/forecast'
 import {
   allowGate,
   currentFlow,
@@ -641,6 +642,7 @@ export const register: Register = (on, options) => {
       spend: flow === null ? null : await featureSpendOf($, flow.feature),
       phaseSpend: flow === null ? {} : await phaseSpendOf($, flow.feature),
       windows: await rateWindowsOf($, config.rateLimits),
+      forecast: await buildForecastTextOf($, flow),
       on: bandActions($),
     })
   })
@@ -707,7 +709,11 @@ export const register: Register = (on, options) => {
       glossary,
       query: await glossaryQueryOf($),
       settings: await settingsArgs($, options),
-      spend: await spendTabOf($, flow),
+      spend: await spendTabOf(
+        $,
+        flow,
+        flow === null ? undefined : await forecastNow($, flow.feature.key),
+      ),
       budget: await flowBudgetOf($, flow),
       notices: [
         ...eventNotices((await heldNotices($)).filter(n => PANE_NOTICES.has(n.kind))),
