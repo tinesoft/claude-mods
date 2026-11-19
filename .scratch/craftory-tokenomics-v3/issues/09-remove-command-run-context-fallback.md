@@ -4,9 +4,9 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] No `command.run` hook adds context; `prompt.submit` still gives the retry line, the spend summary and the integration line once per run
-- [ ] A test shows a pressed `/retro` and a pressed Retry on … get their line once, from `prompt.submit`
-- [ ] README matches the code
-- [ ] `pnpm nx affected -t lint typecheck validate test` passes
+- [x] No `command.run` hook adds context; `prompt.submit` still gives the retry line, the spend summary and the integration line once per run
+- [x] A test shows a pressed `/retro` and a pressed Retry on … get their line once, from `prompt.submit`
+- [x] README matches the code
+- [x] `pnpm nx affected -t lint typecheck validate test` passes

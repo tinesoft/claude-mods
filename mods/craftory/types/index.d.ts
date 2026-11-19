@@ -755,9 +755,6 @@ export type RepoSnapshot = {
   at: Millis
 }
 
-/** Context lines given to one run of a command (`<name> <args>`), and the hook that gave them. */
-export type ContextGiven = { run: string; by: 'command.run' | 'prompt.submit'; lines: string[] }
-
 declare module 'claude-code' {
   interface PluginState {
     craftory: {
@@ -778,11 +775,6 @@ declare module 'claude-code' {
       routes: Record<string, AgentRoute>
       /** Tickets whose **Retry on …** was pressed, and the model their next spawn gets; cleared once used. */
       escalations: Record<IssueRef, ModelId>
-      /**
-       * The context one run of a command was last given, by its `command.run` or its
-       * `prompt.submit`, so the other hook does not add the same lines; cleared as the main turn ends.
-       */
-      contextGiven: ContextGiven | null
       spend: SpendLedger
       spendDisk: SpendDisk
       /** The last rate-limit reading, at session start or `session.measure`; empty off a subscription. */
