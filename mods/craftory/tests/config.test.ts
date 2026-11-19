@@ -1,5 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import {
+  configOf,
   DEFAULT_CONFIG,
   parseConfig,
   parsePrefOverrides,
@@ -349,4 +350,13 @@ test('routing.mainThread is off by default, keeps a boolean, and falls back on a
   const bad = okValue(JSON.stringify({ routing: { mainThread: 'yes' } }))
   expect(bad.value.routing.mainThread).toBe(false)
   expect(bad.problem).toContain('routing.mainThread')
+})
+
+test('configOf rebuilds a value held in memory from before routing existed', () => {
+  const loaded = parseConfig('{}')
+  if (loaded.state !== 'ok') throw new Error('expected ok')
+  const stale: Partial<typeof loaded.value> = { ...loaded.value }
+  delete stale.routing
+  const config = configOf({ ...loaded, value: stale as typeof loaded.value })
+  expect(config.routing).toEqual(DEFAULT_CONFIG.routing)
 })
