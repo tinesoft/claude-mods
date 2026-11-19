@@ -1,6 +1,6 @@
 # Craftory Tokenomics v3: routing, forecast and retro
 
-Status: ready-for-agent
+Status: resolved
 
 Source: `docs/design/craftory/tokenomics.md` (decisions 13–17 and slice v3), grilled on 2026-11-17. Builds on v1 (`.scratch/craftory-tokenomics-v1/`, **Spend** tracked by phase and ticket) and v2 (`.scratch/craftory-tokenomics-v2/`, budgets and rate-limit windows). The "Decisions made while building" sections of both record how that code actually works.
 

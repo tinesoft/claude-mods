@@ -7,8 +7,8 @@
 
 **Blocked by:** 01, 02, 03, 04, 05, 06
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] README sections and tables match the code, read from the code
-- [ ] Glossary entries with _Avoid_ words that appear nowhere in the code or README
-- [ ] `prettier --check` passes
+- [x] README sections and tables match the code, read from the code
+- [x] Glossary entries with _Avoid_ words that appear nowhere in the code or README
+- [x] `prettier --check` passes
