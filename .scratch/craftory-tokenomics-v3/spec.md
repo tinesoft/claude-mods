@@ -151,7 +151,7 @@ Craftory gains four things, all off or neutral until set:
 
 - (review) A Feature shipped by PR is counted (story 19). The tracker reads only the active Feature's PR, and `everyFlow` gives every Feature that one PR, so the forecast does not read Ship from the flows. Instead, after each tracker read, the active Feature's record gains `shippedAt` (the earliest sighting is kept in a merge) once its PR is seen merged on its integration branch, whatever `automation.retroOnPr` and Retro say. `isFinished` counts it. A Feature whose PR merged before this was built gains it the next time it is active.
 - (review) Beside a forecast, the Retro summary's Build line rounds the actual as the forecast is rounded (`forecastUsdText`: cents below $10, whole dollars from there), so `$10 against a forecast of $8.00 (p90 $12)`. Spend shown on its own (the total, the costliest lists, a Build line with no saved forecast) keeps `usdText`.
-- (review) Context for a command Craftory runs. Craftory now has an unmatched `command.run` hook. For a run whose origin is a plugin, it adds the retry line (a pending escalation for `/implement <ticket>`) or `/retro`'s summary to `CommandRunResult.context` after `next(e)`. The 2.1.325 types give `command.run` that `context`. Each line reaches the model once per run: the session-only `contextGiven` atom holds what one hook gave a run (`<command> <args>`), the other hook leaves those lines out, and the atom is cleared when the main turn ends. It does not depend on `hook_events`. But the same contract skips the calling plugin's own hooks on every op, and the fake world does too, so this hook cannot see Craftory's own `$.command.run`. It serves a run by another plugin only. Whether Craftory's own pressed commands get their context (03, 06, and v1's integration line) is the question of ticket (08), so this spec is `ready-for-human` until (08) answers it.
+- (review) Context for a command Craftory runs (probe 08, 2026-11-19, Claude Code 2.1.328, newer than the pinned 2.1.325). A plugin's `$.command.run` of a skill command raises `prompt.submit` with `command` and a plugin origin, for the calling plugin's hooks too, and a `context` entry added there on the way down reaches the model's turn. So `startContext` serves a pressed or automated command (03's retry line, 06's summary and v1's integration line, the last inferred, not run). The `command.run` hook added by the review is not needed: a `context` it adds after `next(e)` does not reach a skill command's turn. The calling plugin's own `command.run` hook does run, against the contract text, and `skill.prompt` did not fire for the pressed skill. Decisions (03) and (06) stand. Ticket (09) removes the fallback.
 - (review) A pressed Build saves the forecast as a typed one does: `warnBeforeBuild`, which both paths run, saves it before it checks the windows.
 
 ## Further Notes
@@ -164,7 +164,8 @@ Craftory gains four things, all off or neutral until set:
   - (05) the forecast warning against the window;
   - (06) the Retro summary, `/retro` context and `spend.md`;
   - (07) the README and the glossary;
-  - (08) a probe of whether a pressed command's context reaches its turn (from the review, ready-for-human).
+  - (08) a probe of whether a pressed command's context reaches its turn (from the review, resolved);
+  - (09) remove the `command.run` context fallback the probe showed is not needed.
 - Blocking:
   - 02 and 03 are blocked by 01;
   - 05 and 06 by 04;
