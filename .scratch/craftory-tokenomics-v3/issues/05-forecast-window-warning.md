@@ -4,8 +4,8 @@
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Pure estimate from readings, with its minimums; table tests
-- [ ] Warning rule and text; table tests
-- [ ] The notice from a typed command, a press and the pane; fake-world tests (warn, no estimate, enough room)
+- [x] Pure estimate from readings, with its minimums; table tests
+- [x] Warning rule and text; table tests
+- [x] The notice from a typed command, a press and the pane; fake-world tests (warn, no estimate, enough room)

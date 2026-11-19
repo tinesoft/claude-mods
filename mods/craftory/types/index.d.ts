@@ -625,6 +625,7 @@ export type EventNotice =
   | { kind: 'retro-ready'; id: string; suggestions: number | null }
   | { kind: 'suggest-wayfinder'; id: string }
   | ThrottleNotice
+  | WindowForecastNotice
   | SpendBudgetNotice
   | AutomationNotice
 
@@ -657,6 +658,31 @@ export type ThrottleNotice = {
   percent: number
   resets: string | null
   parallel: number
+}
+
+/** A window's use in dollars and in points (percent) at one reading. */
+export type WindowUsePoint = { usd: number; percent: number }
+
+/**
+ * Per rate-limit window kind, this session's first reading since the window last reset (or was
+ * first seen) and its latest. A window the latest reading lacks is forgotten.
+ */
+export type WindowUse = Readonly<
+  Record<string, { resetsAt: string | null; from: WindowUsePoint; to: WindowUsePoint }>
+>
+
+/**
+ * Build was started while its forecast p90 would likely use more of a rate-limit window than is
+ * left: the p90 in dollars, the window, the points it would use, what is left and its reset.
+ */
+export type WindowForecastNotice = {
+  kind: 'forecast-window'
+  id: string
+  usd: number
+  window: string
+  points: number
+  left: number
+  resets: string | null
 }
 
 /**
@@ -739,6 +765,8 @@ declare module 'claude-code' {
       spendDisk: SpendDisk
       /** The last rate-limit reading, at session start or `session.measure`; empty off a subscription. */
       rateLimits: SessionRateLimit[]
+      /** This session's readings of the cost against each window, at session start and `session.measure`. */
+      windowUse: WindowUse
       /** The `spend.md` files this session wrote or found written, so each is checked once. */
       spendSummaries: string[]
       steeringNote: string | null
