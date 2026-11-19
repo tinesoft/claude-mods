@@ -417,6 +417,21 @@ const phasePatch = (phase: PhaseId, change: Partial<PhaseConfig>): ConfigPatch =
   return { phases }
 }
 
+/** The model aliases, `session` shown as `sessionLabel`, plus a model id of the person's own. */
+const modelChoices = (own: string, sessionLabel: string): Choice[] => {
+  const aliases: readonly string[] = MODEL_ALIASES
+  return [...aliases, ...(aliases.includes(own) ? [] : [own])].map((m): Choice => [
+    m,
+    m === SESSION ? sessionLabel : m,
+  ])
+}
+
+const modelField = (example: string): CustomText => ({
+  placeholder: `Other, such as ${example}`,
+  read: text => (isModelId(text.trim()) ? text.trim() : null),
+  takes: 'type an alias or a full model id',
+})
+
 const phaseRows = (phase: PhaseId): SettingsRow[] => {
   const spec = PHASES[phase]
   const rows: SettingsRow[] = [
@@ -458,19 +473,8 @@ const phaseRows = (phase: PhaseId): SettingsRow[] => {
           : `What subagents started during ${spec.label} spawn on, unless Claude names a model. Session leaves it to the session.`,
       file: 'config',
       control: 'choice',
-      options: f => {
-        const own = f.config.phases[phase].model
-        const aliases: readonly string[] = MODEL_ALIASES
-        return [...aliases, ...(aliases.includes(own) ? [] : [own])].map((m): Choice => [
-          m,
-          m === SESSION ? 'Session' : m,
-        ])
-      },
-      custom: {
-        placeholder: 'Other, such as claude-sonnet-4-5',
-        read: text => (isModelId(text.trim()) ? text.trim() : null),
-        takes: 'type an alias or a full model id',
-      },
+      options: f => modelChoices(f.config.phases[phase].model, 'Session'),
+      custom: modelField('claude-sonnet-4-5'),
       read: f => f.config.phases[phase].model,
       write: value => ({ config: phasePatch(phase, { model: value }) }),
     },
@@ -568,10 +572,23 @@ const WARN_AT_ROW: SettingsRow = {
   write: value => ({ config: { budgets: { warnAtPercent: Number(value) } } }),
 }
 
+const ESCALATE_ROW: SettingsRow = {
+  id: 'routing-escalate-to',
+  label: 'Retry stuck tickets on',
+  hint: 'A Failed or Over budget ticket offers Retry on this model, in its kept worktree. Session hides the button.',
+  file: 'config',
+  control: 'choice',
+  options: f => modelChoices(f.config.routing.escalateTo, 'Off'),
+  custom: modelField('claude-opus-4-5'),
+  read: f => f.config.routing.escalateTo,
+  write: value => ({ config: { routing: { escalateTo: value } } }),
+}
+
 const PIPELINE_ROWS = [
   FEATURE_BUDGET_ROW,
   WARN_AT_ROW,
   ...PHASE_ORDER.flatMap(p => [...phaseRows(p), phaseBudgetRow(p)]),
+  ESCALATE_ROW,
 ]
 
 export const HELPERS = PHASE_ORDER.flatMap(p =>

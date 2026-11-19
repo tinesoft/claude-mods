@@ -73,6 +73,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     phaseUsd: Object.fromEntries(PHASE_ORDER.map(id => [id, 0])) as Record<PhaseId, number>,
     warnAtPercent: 80,
   },
+  routing: { escalateTo: 'opus' },
 }
 
 /** The most any budget can be, in dollars. */
@@ -159,6 +160,10 @@ export function parseConfig(raw: string | null): Loaded<CraftoryConfig> {
       model: isModelId(model) ? model : SESSION,
       effort,
     }
+  }
+  if (!isModelId(value.routing.escalateTo)) {
+    problems.push(`routing.escalateTo: not a model id, using ${DEFAULT_CONFIG.routing.escalateTo}`)
+    value.routing.escalateTo = DEFAULT_CONFIG.routing.escalateTo
   }
   const templates = [
     ['integrationBranch', value.worktrees.integrationBranch, { '{spec-slug}': 'spec' }],

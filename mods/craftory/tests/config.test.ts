@@ -326,3 +326,17 @@ test('an unknown effort or a model that is no id falls back to session with a no
   expect(loaded.problem).toContain('phases.build.effort')
   expect(loaded.problem).toContain('phases.align.model')
 })
+
+test('Retry escalates to opus by default, and keeps an alias, a full id or session', () => {
+  expect(DEFAULT_CONFIG.routing.escalateTo).toBe('opus')
+  for (const escalateTo of ['sonnet', 'claude-opus-4-1-20250805', 'session'])
+    expect(okValue(JSON.stringify({ routing: { escalateTo } })).value.routing.escalateTo).toBe(
+      escalateTo,
+    )
+})
+
+test('an escalation model that is no id falls back to opus with a note', () => {
+  const loaded = okValue(JSON.stringify({ routing: { escalateTo: 'the best one' } }))
+  expect(loaded.value.routing.escalateTo).toBe('opus')
+  expect(loaded.problem).toContain('routing.escalateTo: not a model id, using opus')
+})

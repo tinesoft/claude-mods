@@ -116,6 +116,13 @@ export type CraftoryConfig = {
   automation: AutomationConfig
   deny: DenyConfig
   budgets: BudgetConfig
+  routing: RoutingConfig
+}
+
+/** Routing beyond each phase's own model and effort. */
+export type RoutingConfig = {
+  /** The model a stuck ticket's **Retry on …** starts it on: an alias or a full id; `session` hides it. */
+  escalateTo: string
 }
 
 export type RateLimitConfig = {
@@ -332,6 +339,8 @@ export type AgentRecord = {
   endedAt?: IsoTime
   /** The latest `worktrees.test` run in this attempt's worktree. */
   test?: TestRun
+  /** What this attempt's agent ran on, as its spawn answered (an alias or an id). */
+  model?: string
 }
 
 /** One run of `worktrees.test`. A failed run makes a done attempt Failed until a later run passes. */
@@ -479,6 +488,8 @@ export type AgentRun = {
   tddStep: string | null
   startedAt: Millis
   lastAt: Millis
+  /** What the agent runs on, as its spawn answered. */
+  model?: string
 }
 
 export type BuildLedger = {
@@ -720,6 +731,8 @@ declare module 'claude-code' {
       build: BuildLedger
       /** What each subagent of this session was routed to as it spawned, by agent id. */
       routes: Record<string, AgentRoute>
+      /** Tickets whose **Retry on …** was pressed, and the model their next spawn gets; cleared once used. */
+      escalations: Record<IssueRef, string>
       spend: SpendLedger
       spendDisk: SpendDisk
       /** The last rate-limit reading, at session start or `session.measure`; empty off a subscription. */

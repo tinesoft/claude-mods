@@ -247,6 +247,7 @@ function parseAgent(key: string, value: unknown): AgentRecord | undefined {
     startedAt: text(value.startedAt)!,
     ...(text(value.endedAt) && { endedAt: text(value.endedAt)! }),
     ...(test && { test }),
+    ...(text(value.model) && { model: text(value.model)! }),
   }
 }
 
@@ -336,6 +337,7 @@ export function serialiseFeature(record: FeatureRecord): string {
             startedAt: a.startedAt,
             ...(a.endedAt && { endedAt: a.endedAt }),
             ...(a.test && { test: a.test }),
+            ...(a.model && { model: a.model }),
           },
         ]
       }),
@@ -390,12 +392,14 @@ function mergeAgent(a: AgentRecord, b: AgentRecord): AgentRecord {
   // the latest test run of the attempt wins, so a passing re-run clears a failed one
   const tests = [a.test, b.test].filter(t => t !== undefined)
   const test = tests.sort((x, y) => (x.at < y.at ? 1 : x.at > y.at ? -1 : 0))[0]
+  const model = first.model ?? second.model
   return {
     ...first,
     tokens: Math.max(a.tokens, b.tokens),
     budget: Math.max(a.budget, b.budget),
     ...(endedAt && { endedAt }),
     ...(test && { test }),
+    ...(model && { model }),
   }
 }
 

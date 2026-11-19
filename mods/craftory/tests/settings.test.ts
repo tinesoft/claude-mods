@@ -536,3 +536,26 @@ test('the model rows read an own id typed in as one value', () => {
   expect(checkCustom(row, 'claude-sonnet-4-5[1m]')).toEqual({ value: 'claude-sonnet-4-5[1m]' })
   expect(checkCustom(row, '')).toHaveProperty('problem')
 })
+
+const savedRouting = (w: { files: Map<string, string> }) =>
+  JSON.parse(w.files.get('.craftory/config.json')!).routing
+
+test('Pipeline › Retry on offers opus by default and writes routing.escalateTo', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'pipeline')
+  expect(await allText(pane)).toContain('Retry stuck tickets on')
+  expect(await pane.find({ key: 'set-routing-escalate-to-opus' })).toBeDefined()
+  await pane.press({ key: 'set-routing-escalate-to-sonnet' })
+  expect(savedRouting(w).escalateTo).toBe('sonnet')
+  await pane.redraw()
+  await pane.press({ key: 'set-routing-escalate-to-session' })
+  expect(savedRouting(w).escalateTo).toBe('session')
+  await pane.redraw()
+  await pane.input({ key: 'set-routing-escalate-to-custom', text: 'claude-opus-4-1-20250805' })
+  expect(savedRouting(w).escalateTo).toBe('claude-opus-4-1-20250805')
+})
+
+test('the Retry on row refuses text that is no model id', () => {
+  const row = choiceRow('routing-escalate-to')
+  expect(checkCustom(row, 'claude-opus-4-1')).toEqual({ value: 'claude-opus-4-1' })
+  expect(checkCustom(row, 'my best model')).toHaveProperty('problem')
+})

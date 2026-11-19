@@ -18,6 +18,8 @@ export type Action =
    * which raises a Feature's or a phase's dollar budget.
    */
   | { kind: 'raise-budget'; ticket: IssueRef }
+  /** Starts a Failed or Over budget ticket again on `model`, in its kept worktree and branch. */
+  | { kind: 'retry'; ticket: IssueRef; model: string }
   /**
    * Sets the Feature's own dollar budget for the scope to 1.5× its budget in force, rounded up.
    * Not `raise-budget`, which raises one implementer's token budget.
