@@ -4,8 +4,8 @@ import {
   EMPTY_WINDOW_USE,
   noteWindowUse,
   pointsPerDollarOf,
-  windowWarningOf,
-  windowWarningText,
+  forecastWindowOf,
+  forecastWindowText,
 } from '../src/window-use'
 import type { WindowUse } from '../types'
 
@@ -123,13 +123,13 @@ const warn = (
   limits: SessionRateLimit[],
   rates: Record<string, number>,
   unit: 'usd' | 'tokens' = 'usd',
-) => windowWarningOf(build(p90, unit), { limits, ...CLOCK }, rates)
+) => forecastWindowOf(build(p90, unit), { limits, ...CLOCK }, rates)
 
 test('Build forecast past what a window has left warns, naming the window, the points and the reset', () => {
   // $14 at 2.5 points per dollar: 35 points, with 22 left.
   const warning = warn(14, [five(78)], { five_hour: 2.5 })
   expect(warning).toEqual({ usd: 14, window: '5-hour', points: 35, left: 22, resets: '18:40' })
-  expect(windowWarningText(warning!)).toBe(
+  expect(forecastWindowText(warning!)).toBe(
     'Build is forecast at up to $14, about 35% of the 5-hour window · 22% is left, resets 18:40',
   )
 })
@@ -160,7 +160,7 @@ test('a tighter window with room to spare does not hide a looser one that would 
 test('left is read off the whole percent the card shows, and a reset it cannot read is left out', () => {
   const warning = warn(5, [{ kind: 'five_hour', percentUsed: 77.5 }], { five_hour: 10 })
   expect(warning).toEqual({ usd: 5, window: '5-hour', points: 50, left: 23, resets: null })
-  expect(windowWarningText(warning!)).toBe(
+  expect(forecastWindowText(warning!)).toBe(
     'Build is forecast at up to $5.00, about 50% of the 5-hour window · 23% is left',
   )
 })

@@ -15,11 +15,13 @@ import type {
   Loaded,
   PhaseId,
   PhaseMark,
+  PullRequest,
   SkipMark,
   TestRun,
   TrackerSnapshot,
 } from '../types'
 import { BUDGET_MAX_USD } from './config'
+import { type Flow, TICKET_STATUS } from './evidence'
 import { parseForecast } from './forecast'
 import { isSafeRef } from './git'
 import { PHASE_ORDER } from './phases'
@@ -136,16 +138,43 @@ export const isArchived = (record: Pick<FeatureRecord, 'archivedAt' | 'unarchive
   record.archivedAt !== undefined &&
   Date.parse(record.archivedAt) > Date.parse(record.unarchivedAt ?? '1970-01-01T00:00:00.000Z')
 
+/** The tracker's pull request is this Feature's, from its integration branch, and has merged. */
+export const isMergedPrOf = (
+  record: Pick<FeatureRecord, 'integrationBranch'>,
+  pr: PullRequest | null,
+): boolean =>
+  pr !== null &&
+  pr.state === 'merged' &&
+  record.integrationBranch !== '' &&
+  pr.branch === record.integrationBranch
+
 /**
- * A Feature is finished once Ship is done or it is archived. From its record alone Ship counts as
- * done when it was marked done, or when Retro ran, which only runs after Ship.
+ * A Feature is finished once Ship is done or it is archived: what the forecast counts. From its
+ * record alone Ship counts as done when it was marked done, when its PR was seen merged
+ * (`shippedAt`), or when Retro ran, which only runs after Ship.
  */
 export const isFinished = (
-  record: Pick<FeatureRecord, 'marks' | 'archivedAt' | 'unarchivedAt'>,
+  record: Pick<FeatureRecord, 'marks' | 'archivedAt' | 'unarchivedAt' | 'shippedAt'>,
 ): boolean =>
   isArchived(record) ||
+  record.shippedAt !== undefined ||
   record.marks.ship?.markedDoneAt !== undefined ||
   record.marks.retro?.ranAt !== undefined
+
+/**
+ * A Feature is through once Retro is done, or Ship is done with Retro turned off: when its
+ * `spend.md` is written. Unlike `isFinished` it reads the live flow, not the record, and an
+ * archive alone does not make a Feature through.
+ */
+export function isThrough(flow: Flow): boolean {
+  const state = (phase: 'ship' | 'retro') => flow.phases.find(p => p.phase === phase)?.state
+  const retro = state('retro')
+  return retro?.kind === 'done' || (retro?.kind === 'skipped' && state('ship')?.kind === 'done')
+}
+
+/** The tickets of the flow meant for an agent: every one not ready-for-human. */
+export const agentTicketsOf = (flow: Pick<Flow, 'tickets'>): number =>
+  flow.tickets.filter(t => t.status !== TICKET_STATUS.human).length
 
 const mergeSkip = (a: SkipMark = {}, b: SkipMark = {}): SkipMark => {
   const skippedAt = max(a.skippedAt, b.skippedAt)
@@ -287,6 +316,7 @@ export function parseFeature(raw: string): Loaded<FeatureRecord> {
     integrationBranch: branch,
     pr: parseIssueRef(text(json.pr) ?? '') ?? null,
     ...(json.retroOffered === true && { retroOffered: true as const }),
+    ...(stampOf(json.shippedAt) && { shippedAt: stampOf(json.shippedAt)! }),
     ...(stampOf(json.archivedAt) && { archivedAt: stampOf(json.archivedAt)! }),
     ...(stampOf(json.unarchivedAt) && { unarchivedAt: stampOf(json.unarchivedAt)! }),
     ...parseSharedFields(json),
@@ -354,6 +384,7 @@ export function serialiseFeature(record: FeatureRecord): string {
       integrationBranch: record.integrationBranch,
       pr: record.pr,
       ...(record.retroOffered && { retroOffered: true }),
+      ...(record.shippedAt && { shippedAt: record.shippedAt }),
       ...(record.archivedAt && { archivedAt: record.archivedAt }),
       ...(record.unarchivedAt && { unarchivedAt: record.unarchivedAt }),
       ...sharedFields(record),
@@ -409,6 +440,8 @@ const mergeSkips = (a: FeatureRecord['skips'], b: FeatureRecord['skips']): Featu
 const earlierPhase = (a: PhaseId, b: PhaseId) =>
   PHASE_ORDER.indexOf(a) <= PHASE_ORDER.indexOf(b) ? a : b
 
+const withShipped = (shippedAt: IsoTime | undefined) => (shippedAt ? { shippedAt } : {})
+
 const stamps = (archivedAt: IsoTime | undefined, unarchivedAt: IsoTime | undefined) => ({
   ...(archivedAt && { archivedAt }),
   ...(unarchivedAt && { unarchivedAt }),
@@ -441,6 +474,7 @@ export function mergeFeature(disk: FeatureRecord | null, mine: FeatureRecord): F
       handoff: mine.handoff ?? disk.handoff,
     }),
     ...((mine.retroOffered || disk.retroOffered) && { retroOffered: true as const }),
+    ...withShipped(min(disk.shippedAt, mine.shippedAt)),
     ...stamps(max(disk.archivedAt, mine.archivedAt), max(disk.unarchivedAt, mine.unarchivedAt)),
     ...withBudgets(mergeBudgets(disk.budgets, mine.budgets)),
     ...withForecast(firstForecast(disk.forecast, mine.forecast)),
@@ -462,6 +496,8 @@ export type FeatureChange =
   | { kind: 'link-map'; map: IssueRef }
   | { kind: 'retro-offered' }
   | { kind: 'archive'; at: IsoTime }
+  /** The Feature's PR was seen merged: the earliest sighting is kept. */
+  | { kind: 'shipped'; at: IsoTime }
   | { kind: 'unarchive'; at: IsoTime }
   /** The latest handoff document wins: the card links the one written last. */
   | { kind: 'handoff'; path: string }
@@ -529,6 +565,8 @@ export function applyChange(record: FeatureRecord, change: FeatureChange): Featu
       return { ...record, marks: changeMarks(record.marks, change) }
     case 'archive':
       return { ...record, archivedAt: max(record.archivedAt, change.at)! }
+    case 'shipped':
+      return { ...record, shippedAt: min(record.shippedAt, change.at)! }
     case 'unarchive':
       return { ...record, unarchivedAt: max(record.unarchivedAt, change.at)! }
     case 'skip':
@@ -594,6 +632,7 @@ export function applyDraftChange(draft: DraftFeature, change: FeatureChange): Dr
   if (
     change.kind === 'archive' ||
     change.kind === 'unarchive' ||
+    change.kind === 'shipped' ||
     change.kind === 'budget' ||
     change.kind === 'forecast'
   )

@@ -22,11 +22,12 @@ import { attribute } from '../../src/spend'
 import { statusLine } from '../../src/summary'
 import { SPIN_MS } from '../../src/theme'
 import { retryContext } from '../../src/routing'
-import { type WindowWarning, windowWarningOf } from '../../src/window-use'
+import { type ForecastWindow, forecastWindowOf } from '../../src/window-use'
 import type {
   AgentId,
   EventNotice,
   FeatureKey,
+  FeatureRecord,
   IssueRef,
   PhaseId,
   Running,
@@ -45,6 +46,7 @@ import {
   reselectActive,
   setActive,
 } from './features'
+import { contextOnce, runKey } from './context-once'
 import { pendingEscalations } from './escalation'
 import { buildForecastNow, saveForecast } from './forecast'
 import { retroContextOf, writeSpendSummary } from './spend-summary'
@@ -274,33 +276,36 @@ export async function holdForGate($: EngineInterface, req: RunRequest, flow: Flo
 }
 
 /**
- * Starting Build while throttling is in force says so in a held notice first, which the band or,
- * where none is drawn, the pane shows; so does starting it when its forecast p90 would likely use
- * more of a rate-limit window than is left. Neither drops or delays the run: the notices only
- * tell the person what Build is likely to meet.
+ * Build starts, typed or pressed: its forecast is saved on the Feature (once), and starting it
+ * while throttling is in force says so in a held notice first, which the band or, where none is
+ * drawn, the pane shows; so does starting it when its forecast p90 would likely use more of a
+ * rate-limit window than is left. Neither drops or delays the run: the notices only tell the
+ * person what Build is likely to meet.
  */
 export async function warnBeforeBuild($: EngineInterface, req: RunRequest) {
   if (req.phase !== 'build') return
+  const flow = await currentFlow($)
+  if (flow !== null) await saveForecast($, flow)
   const throttle = await throttleNow($, (await repoFacts($)).config)
   if (throttle !== null) {
     const { label, ...rest } = throttle
     await addNotice($, { kind: 'throttle', id: 'throttle', window: label, ...rest })
   }
-  const warning = await windowWarningNow($)
+  const warning = await forecastWindowNow($)
   if (warning !== null)
     await addNotice($, { kind: 'forecast-window', id: 'forecast-window', ...warning })
   if (throttle !== null || warning !== null) await settle($)
 }
 
-/** Build's forecast against the windows, with no estimate or no forecast none: see `windowWarningOf`. */
-async function windowWarningNow($: EngineInterface): Promise<WindowWarning | null> {
+/** Build's forecast against the windows, with no estimate or no forecast none: see `forecastWindowOf`. */
+async function forecastWindowNow($: EngineInterface): Promise<ForecastWindow | null> {
   const rates = await pointsPerDollarNow($)
   if (Object.keys(rates).length === 0) return null
   const flow = await currentFlow($)
   if (flow === null) return null
   const build = await buildForecastNow($, flow)
   if (build === null) return null
-  return windowWarningOf(build, await windowReadingOf($), rates)
+  return forecastWindowOf(build, await windowReadingOf($), rates)
 }
 
 /** A run deny.overBudget refuses: what is over, the switch, and the Feature it is over on. */
@@ -391,33 +396,73 @@ export async function gatePrompt(
   return undefined
 }
 
+/** `/retro`'s spend summary, while the Feature has spent anything. */
+async function retroLines($: EngineInterface): Promise<string[]> {
+  const flow = await currentFlow($)
+  const context = flow === null ? null : await retroContextOf($, flow)
+  return context === null ? [] : [context]
+}
+
+/** The retry line of `/implement <ticket>` while a press of **Retry on …** is pending for it. */
+async function retryLines(
+  $: EngineInterface,
+  record: FeatureRecord,
+  args: string,
+): Promise<string[]> {
+  const ticket = args.trim() as IssueRef
+  const model = (await pendingEscalations($))[ticket]
+  const kept = record.agents[ticket]
+  if (model === undefined || kept === undefined) return []
+  return [retryContext({ ticket, model, worktree: kept.worktree, branch: kept.branch })]
+}
+
+/** What `prompt.submit` adds to a typed or submitted phase command, each line once per run. */
 export async function startContext(
   $: EngineInterface,
   e: { text: string; command?: { name: string; args: string } },
 ): Promise<string[] | undefined> {
   const typed = typedCommand(e)
   const req = typed && requestOf(typed.name, typed.args, bareIsOurs(await pluginOf($)))
-  if (req?.phase === 'retro') {
-    const flow = await currentFlow($)
-    const context = flow === null ? null : await retroContextOf($, flow)
-    return context === null ? undefined : [context]
-  }
-  if (req?.phase !== 'build') return undefined
+  if (typed === undefined || req === undefined) return undefined
+  const lines = await phaseContext($, req)
+  const fresh = await contextOnce($, runKey(typed.name, typed.args), 'prompt.submit', lines)
+  return fresh.length === 0 ? undefined : fresh
+}
+
+async function phaseContext($: EngineInterface, req: RunRequest): Promise<string[]> {
+  if (req.phase === 'retro') return retroLines($)
+  if (req.phase !== 'build') return []
   const [record, git, { config }] = await Promise.all([activeRecord($), gitOf($), repoFacts($)])
-  if (record === null || record.integrationBranch === '') return undefined
-  const ticket = req.args.trim() as IssueRef
-  const model = (await pendingEscalations($))[ticket]
-  const kept = record.agents[ticket]
+  if (record === null || record.integrationBranch === '') return []
   return [
     integrationContext({
       branch: record.integrationBranch,
       from: git?.branch ?? null,
       folder: config.worktrees.folder,
     }),
-    ...(model !== undefined && kept !== undefined
-      ? [retryContext({ ticket, model, worktree: kept.worktree, branch: kept.branch })]
-      : []),
+    ...(await retryLines($, record, req.args)),
   ]
+}
+
+/**
+ * What a pressed or automated command carries on its own `command.run`, in case the host raises no
+ * `prompt.submit` for it: `/retro`'s summary, and the retry line of `/implement <ticket>`. Each
+ * line is given once per run, whichever of the two hooks comes first.
+ */
+export async function commandRunContext(
+  $: EngineInterface,
+  e: { command: string; args: string },
+): Promise<string[]> {
+  const req = requestOf(e.command, e.args, bareIsOurs(await pluginOf($)))
+  if (req === undefined) return []
+  const record = req.phase === 'build' ? await activeRecord($) : null
+  const lines =
+    req.phase === 'retro'
+      ? await retroLines($)
+      : record === null
+        ? []
+        : await retryLines($, record, req.args)
+  return contextOnce($, runKey(e.command, e.args), 'command.run', lines)
 }
 
 export async function switchFeature($: EngineInterface, key: FeatureKey) {

@@ -11,7 +11,7 @@ import type {
 import { type FileWrite, normalise } from './files'
 import { isSafeRef } from './git'
 import { PHASE_ORDER, PHASES } from './phases'
-import { EFFORTS, isModelId, SESSION } from './routing'
+import { DEFAULT_ESCALATION, EFFORTS, isModelId, SESSION } from './routing'
 import { refSlug, SPEC_LABEL, TICKET_LABEL } from './tracker/refs'
 
 export const CONFIG_PATH = '.craftory/config.json'
@@ -57,7 +57,7 @@ export const DEFAULT_CONFIG: CraftoryConfig = {
     testTimeoutSec: 600,
   },
   rateLimits: { throttleAt: 80, throttledParallel: 1 },
-  routing: { mainThread: false, escalateTo: 'opus' },
+  routing: { mainThread: false, escalateTo: DEFAULT_ESCALATION },
   automation: {
     suggestNext: true,
     liveAgents: true,

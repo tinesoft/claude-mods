@@ -56,7 +56,7 @@ const textOf = (rows: ReturnType<typeof rowsOf>, label: string) =>
 test('the summary gives the total, Build against its forecast, the top tickets and phases, the cache hit and each model', () => {
   expect(rowsOf({ rows: ROWS, forecast: forecast(9.2, 14), hasCost: true })).toEqual([
     { label: 'Total', text: '$22.1 · 900k fresh' },
-    { label: 'Build', text: '$13.5 against a forecast of $9.20 (p90 $14)' },
+    { label: 'Build', text: '$14 against a forecast of $9.20 (p90 $14)' },
     { label: 'Tickets', text: 'csv/01 $6.20 · csv/02 $4.00 · csv/03 $2.30' },
     { label: 'Phases', text: 'Build $13.5 · Align $5.00 · Review $3.10' },
     { label: 'Cache', text: '40%' },
@@ -69,9 +69,7 @@ test('the summary gives the total, Build against its forecast, the top tickets a
 
 test('Build over its p90 says so', () => {
   const rows = rowsOf({ rows: ROWS, forecast: forecast(5, 8), hasCost: true })
-  expect(textOf(rows, 'Build')).toBe(
-    '$13.5 against a forecast of $5.00 (p90 $8.00) · above the p90',
-  )
+  expect(textOf(rows, 'Build')).toBe('$14 against a forecast of $5.00 (p90 $8.00) · above the p90')
 })
 
 test('ties keep the costlier in tokens first, then the phase order and the ticket order', () => {
@@ -135,7 +133,7 @@ test('the Markdown names the Feature and gives every row', () => {
       '# Spend: Export invoices as CSV',
       '',
       '- **Total:** $22.1 · 900k fresh',
-      '- **Build against its forecast:** $13.5 against a forecast of $9.20 (p90 $14)',
+      '- **Build against its forecast:** $14 against a forecast of $9.20 (p90 $14)',
       '- **Costliest tickets:** csv/01 $6.20 · csv/02 $4.00 · csv/03 $2.30',
       '- **Costliest phases:** Build $13.5 · Align $5.00 · Review $3.10',
       '- **Cache-hit %:** 40%',

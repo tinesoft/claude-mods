@@ -1,5 +1,6 @@
 import { atom, type EngineInterface, read, update } from 'claude-code'
 import type { Flow } from '../../src/evidence'
+import { isThrough } from '../../src/features'
 import {
   type SpendSummary,
   spendSummaryMarkdown,
@@ -35,13 +36,6 @@ export async function retroContextOf($: EngineInterface, flow: Flow): Promise<st
   const summary = await summaryOf($, flow)
   if (summary === null) return null
   return `Craftory: this Feature’s spend, to weigh cost-saving suggestions against.\n\n${spendSummaryMarkdown(summary, flow.title)}`
-}
-
-/** Whether the Feature is through: Retro done, or Ship done with Retro turned off. */
-const isThrough = (flow: Flow) => {
-  const state = (phase: 'ship' | 'retro') => flow.phases.find(p => p.phase === phase)?.state
-  const retro = state('retro')
-  return retro?.kind === 'done' || (retro?.kind === 'skipped' && state('ship')?.kind === 'done')
 }
 
 /**

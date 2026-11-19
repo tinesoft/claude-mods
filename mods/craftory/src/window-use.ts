@@ -6,7 +6,7 @@
 import type { SessionRateLimit } from 'claude-code'
 import type { BuildForecast } from './forecast'
 import { forecastUsdText } from './forecast'
-import type { WindowUse, WindowUsePoint } from '../types'
+import type { ForecastWindowNotice, WindowUse, WindowUsePoint } from '../types'
 import { labelOf, resetText, type WindowReading } from './rate-limits'
 
 /** Dollars that must have moved before an estimate is made: less would be noise. */
@@ -48,14 +48,8 @@ export function pointsPerDollarOf(use: WindowUse): Record<string, number> {
   )
 }
 
-/** Build's forecast would use up a window: its p90, the window, the points it would use, and what is left. */
-export type WindowWarning = {
-  usd: number
-  window: string
-  points: number
-  left: number
-  resets: string | null
-}
+/** Build's forecast would use up a window: the notice's fields, held as `forecast-window`. */
+export type ForecastWindow = Omit<ForecastWindowNotice, 'kind' | 'id'>
 
 /**
  * The warning when Build's p90 times a window's points per dollar is more than that window has
@@ -63,11 +57,11 @@ export type WindowWarning = {
  * estimate, or with a forecast in tokens. What is left is read off the whole percent the Build
  * card shows.
  */
-export function windowWarningOf(
+export function forecastWindowOf(
   build: BuildForecast,
   reading: WindowReading,
   rates: Readonly<Record<string, number>>,
-): WindowWarning | null {
+): ForecastWindow | null {
   if (build.unit !== 'usd') return null
   const over = reading.limits.flatMap(limit => {
     const rate = rates[limit.kind]
@@ -95,7 +89,7 @@ export function windowWarningOf(
 }
 
 /** `Build is forecast at up to $14, about 35% of the 5-hour window · 22% is left, resets 18:40`. */
-export function windowWarningText(w: WindowWarning): string {
+export function forecastWindowText(w: ForecastWindow): string {
   const resets = w.resets === null ? '' : `, resets ${w.resets}`
   return (
     `Build is forecast at up to ${forecastUsdText(w.usd)}, about ${w.points}% of the ` +

@@ -44,7 +44,16 @@ export type PhaseView = {
   canMarkDone: boolean
 }
 
-export type TicketStatus = 'merged' | 'ready' | 'blocked' | 'human' | 'open'
+/** Where a ticket stands in its Feature's flow; `human` is ready-for-human, for no agent. */
+export const TICKET_STATUS = {
+  merged: 'merged',
+  ready: 'ready',
+  blocked: 'blocked',
+  human: 'human',
+  open: 'open',
+} as const
+
+export type TicketStatus = (typeof TICKET_STATUS)[keyof typeof TICKET_STATUS]
 
 export type TicketRow = { issue: Issue; status: TicketStatus; blockedBy: IssueRef[] }
 

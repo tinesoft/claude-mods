@@ -23,7 +23,7 @@ import {
   withArchitectureRun,
 } from '../../src/automations'
 import { isoOf } from '../../src/build'
-import { markOf } from '../../src/features'
+import { isMergedPrOf, markOf } from '../../src/features'
 import { bareIsOurs } from '../../src/plugin'
 import { STATE_FILE } from '../../src/files'
 import type { AutomationNotice, FeatureKey, PhaseId } from '../../types'
@@ -82,14 +82,17 @@ export async function noteMainStep(
 
 /**
  * After each tracker read (the `tool.call` refresh in the session, and the read at session start
- * for a merge made while away): offers a retro once the active Feature's PR has merged. One notice
- * per Feature: the offer is stored on the Feature as it is raised, answered or not.
+ * for a merge made while away), once the active Feature's PR has merged: the record keeps when it
+ * shipped, so the forecast counts it once another Feature is active, and with
+ * `automation.retroOnPr` on a retro is offered. One notice per Feature: the offer is stored on
+ * the Feature as it is raised, answered or not.
  */
 export async function noteMergedPr($: EngineInterface) {
-  const { config } = await repoFacts($)
-  if (!config.automation.retroOnPr) return
   const [key, record, tracker] = await Promise.all([activeKey($), activeRecord($), trackerOf($)])
-  if (key === null || record === null || !tracker?.rich) return
+  if (key === null || record === null || !tracker?.rich || !isMergedPrOf(record, tracker.pr)) return
+  if (record.shippedAt === undefined)
+    await recordChange($, key, { kind: 'shipped', at: isoOf(await $.clock.now()) })
+  if (!(await repoFacts($)).config.automation.retroOnPr) return
   if (isRetroDue(record, tracker.pr) && (await raiseAutomation($, retroNotice(key))))
     await recordChange($, key, { kind: 'retro-offered' })
 }
