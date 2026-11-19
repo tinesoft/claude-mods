@@ -120,6 +120,8 @@ export type BandArgs = {
   phaseSpend?: Partial<Record<PhaseId, SpendFigure>>
   /** The account's rate-limit windows, drawn on the Build card; none off a subscription. */
   windows?: readonly WindowView[]
+  /** Build's forecast, drawn on the Tickets card; null with no flow. */
+  forecast?: string | null
   on: BandActions
 }
 
@@ -663,6 +665,7 @@ export function renderBand(args: BandArgs) {
           args.agents,
           args.phaseSpend?.[phase] ?? null,
           args.windows,
+          args.forecast ?? null,
         )
   const railArgs: RailArgs = { ...args, flow, titleMax: rail.titleMax }
   const mapCard = args.isMapOpen && args.map !== null && open === null

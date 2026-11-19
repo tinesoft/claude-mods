@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Pure median/p90 and the forecast from samples; table tests (odd, even, one Feature, none)
-- [ ] Samples from finished Features' spend (every session's files); finished means Ship done or archived
-- [ ] Tickets card line, in dollars and in tokens; card tests with spend-file fixtures
-- [ ] Spend tab forecast beside each phase
-- [ ] `forecast` saved on the record when Build starts (typed, pressed or first spawn), never overwritten; features and fake-world tests
+- [x] Pure median/p90 and the forecast from samples; table tests (odd, even, one Feature, none)
+- [x] Samples from finished Features' spend (every session's files); finished means Ship done or archived
+- [x] Tickets card line, in dollars and in tokens; card tests with spend-file fixtures
+- [x] Spend tab forecast beside each phase
+- [x] `forecast` saved on the record when Build starts (typed, pressed or first spawn), never overwritten; features and fake-world tests

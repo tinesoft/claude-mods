@@ -5,6 +5,7 @@
  */
 import type { BudgetConfig, FeatureKey, IssueRef, SpendPhase, SpendRow } from '../types'
 import { type BudgetLevel, type BudgetMark, budgetMarkOf, NO_BUDGET } from './budgets'
+import { type Forecast, phaseForecastText } from './forecast'
 import { PHASE_ORDER, PHASES } from './phases'
 import { agentSpendText, phaseSpendText, spendText, type SpendTotal, totalOfRows } from './spend'
 
@@ -40,6 +41,8 @@ export type SpendLine = {
   level?: BudgetLevel
   /** Tickets under Build and Review, in the phase grouping. */
   children?: SpendLine[]
+  /** What the phase usually costs (`forecast ≈ $2.10 (p90 $3.40)`), in the phase grouping. */
+  forecast?: string
 }
 
 export type SpendFeatureLine = {
@@ -121,6 +124,7 @@ function lines(
   hasCost: boolean,
   titles: Readonly<Record<string, string>>,
   budgets: BudgetConfig | null,
+  forecast: Forecast | null,
 ): SpendLine[] {
   if (group === 'phase')
     return groupBy(
@@ -134,12 +138,14 @@ function lines(
         budgets === null || phase === 'between'
           ? NO_BUDGET
           : budgetMarkOf(total.usd, budgets.phaseUsd[phase], budgets, hasCost)
+      const spread = phase === 'between' ? undefined : forecast?.phases[phase]
       return {
         key: `phase-${phase}`,
         label: phaseLabel(phase),
         text: lineText(total, hasCost, budget),
         ...levelOf(budget),
         ...(tickets.length > 0 && { children: tickets }),
+        ...(spread && forecast && { forecast: phaseForecastText(spread, forecast.unit) }),
       }
     })
   const keyOf =
@@ -165,6 +171,8 @@ export function spendTabView(args: {
   skipped: readonly string[]
   /** The active Feature's budgets in force; absent, none applies. */
   budgets?: BudgetConfig
+  /** What each phase usually costs, from finished Features; absent, no phase shows one. */
+  forecast?: Forecast
 }): SpendTabView {
   const { group, hasCost, features } = args
   const spent = features.filter(f => f.rows.length > 0)
@@ -202,7 +210,14 @@ export function spendTabView(args: {
             title: active.title,
             text: active.rows.length === 0 ? null : lineText(activeTotal, hasCost, budget),
             level: budget.level,
-            lines: lines(active.rows, group, hasCost, args.titles ?? {}, budgets),
+            lines: lines(
+              active.rows,
+              group,
+              hasCost,
+              args.titles ?? {},
+              budgets,
+              args.forecast ?? null,
+            ),
           },
     others,
     outside,

@@ -17,6 +17,7 @@ import {
 import { specKey } from '../../src/features'
 import type { AgentId, AgentRun, IssueRef, SeatPlan } from '../../types'
 import { activeRecord, featureOfTicket, featuresOf, recordChange, recordRun } from './features'
+import { saveForecast } from './forecast'
 import { currentFlow, settle } from './flow'
 import { overrunNow } from './spend'
 import {
@@ -86,6 +87,8 @@ export async function seatAgent(
   const budget = budgetFor(config, old)
   const run = await seatRun($, { toolUseId, agentId, budget, at: await $.clock.now() })
   if (run !== undefined) await recordRun($, run)
+  const flow = await currentFlow($)
+  if (flow !== null) await saveForecast($, flow)
   await refreshGit($)
   await settle($)
 }
