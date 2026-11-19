@@ -4,9 +4,9 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `routing.mainThread` config key; config tests
-- [ ] `turn.step` rewrites main steps only while a phase is running; fake-world tests (on, off, between phases, a phase on `session`)
-- [ ] The band note while it applies, also in the pane where there is no band; band tests
-- [ ] Settings toggle with the cache hint; settings tests
+- [x] `routing.mainThread` config key; config tests
+- [x] `turn.step` rewrites main steps only while a phase is running; fake-world tests (on, off, between phases, a phase on `session`)
+- [x] The band note while it applies, also in the pane where there is no band; band tests
+- [x] Settings toggle with the cache hint; settings tests
