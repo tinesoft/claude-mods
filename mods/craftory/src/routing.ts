@@ -1,4 +1,5 @@
-import type { CraftoryConfig, PhaseEffort, PhaseId, Route, Running } from '../types'
+import type { AgentRoute, CraftoryConfig, PhaseEffort, PhaseId, Route, Running } from '../types'
+import { PHASES } from './phases'
 
 /** What a phase's model or effort says when it routes nothing. */
 export const SESSION = 'session'
@@ -51,3 +52,21 @@ export function routeText(route: Route): string | null {
     return route.effort === undefined ? route.model : `${route.model} · ${route.effort}`
   return route.effort === undefined ? null : `${route.effort} effort`
 }
+
+/**
+ * What the main session's steps run on now: the running phase's route, with `routing.mainThread`
+ * on and the phase routing something. Between phases, and in an entry point, none.
+ */
+export function mainRoute(
+  config: CraftoryConfig,
+  running: Pick<Running, 'phase'> | null,
+): AgentRoute | null {
+  const phase = running?.phase ?? null
+  if (!config.routing.mainThread || phase === null) return null
+  const route = routeOf(config, phase)
+  return routeText(route) === null ? null : { phase, route }
+}
+
+/** The band note while the main session is routed: `Align runs on opus · high`. */
+export const mainRouteText = ({ phase, route }: AgentRoute) =>
+  `${PHASES[phase].label} runs on ${routeText(route)}`

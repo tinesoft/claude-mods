@@ -142,6 +142,7 @@ Craftory gains four things, all off or neutral until set:
 - (01) A spawn is left alone entirely (no model, no effort) when its call names a model, when it is a fork (forks always inherit) or when it resumes a run (its model and cache are kept). A subagent spawned between phases gets no routing.
 - (01) The route a subagent gets is remembered per agent id at spawn, in the session-only `routes` atom, so a config change mid-run never changes a running agent's effort.
 - (01) A model of your own must look like a model id (letters, digits and `.-_:@/[]`, at most 100 characters); config.json with anything else falls back to `session` with a problem line, and the Settings field refuses it. With only an effort set the card row reads `Runs on high effort`.
+- (02) The band note is derived from the running phase, not a held notice, so it has no Dismiss and goes when the phase ends; the pane shows it on every surface, as it does v2's throttle warning. A grill waiting on the user is still running, so its next turn stays routed. With only an effort set it reads `Build runs on low effort`.
 
 ## Further Notes
 
