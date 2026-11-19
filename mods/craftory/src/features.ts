@@ -38,6 +38,24 @@ export const isFeatureKey = (v: unknown): v is FeatureKey =>
   typeof v === 'string' && /^(spec|draft):.+/.test(v)
 export const draftKey = (draftId: string): FeatureKey => `draft:${draftId}`
 
+/**
+ * What the store keeps as the remembered Feature: its key and the repo root it was chosen in. The
+ * store is the plugin's, shared by every repo, so a key chosen in another repo is not this one's.
+ */
+export const lastActiveEntry = (root: string | null, key: FeatureKey): unknown =>
+  root === null ? key : { root, key }
+
+/**
+ * The remembered Feature for the repo at `root`. A bare key is what older versions stored, and
+ * stands for any repo; an entry made in another repo is ignored.
+ */
+export function lastActiveOf(stored: unknown, root: string | null): FeatureKey | null {
+  if (isFeatureKey(stored)) return stored
+  if (typeof stored !== 'object' || stored === null) return null
+  const entry = stored as { root?: unknown; key?: unknown }
+  return isFeatureKey(entry.key) && (root === null || entry.root === root) ? entry.key : null
+}
+
 type Json = Record<string, unknown>
 const isRecord = (v: unknown): v is Json => typeof v === 'object' && v !== null && !Array.isArray(v)
 const text = (v: unknown) => (typeof v === 'string' ? v : undefined)
@@ -737,7 +755,7 @@ const touchedAt = (record: FeatureRecord) =>
 export function pickActive(args: {
   features: Readonly<Record<string, FeatureRecord>>
   drafts: Readonly<Record<string, DraftFeature>>
-  git: GitSnapshot | null
+  git: Pick<GitSnapshot, 'branch'> | null
   lastActive: FeatureKey | null
 }): FeatureKey | null {
   const records = Object.values(args.features)

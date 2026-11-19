@@ -14,6 +14,8 @@ import {
   mergeFeature,
   newDraft,
   parseFeature,
+  lastActiveEntry,
+  lastActiveOf,
   pickActive,
   promote,
   serialiseFeature,
@@ -511,4 +513,13 @@ test('the forecast is saved once and never overwritten, by a change or a merge',
   expect(mergeFeature(other, saved).forecast).toEqual(FORECAST)
   expect(mergeFeature(saved, other).forecast).toEqual(FORECAST)
   expect('forecast' in mergeFeature(base, base)).toBe(false)
+})
+
+test('a remembered Feature from another repo is ignored, and a bare key from an older version stands', () => {
+  expect(lastActiveOf(lastActiveEntry('/a', draftKey('d1')), '/a')).toBe('draft:d1')
+  expect(lastActiveOf(lastActiveEntry('/a', draftKey('d1')), '/b')).toBeNull()
+  expect(lastActiveOf(lastActiveEntry(null, draftKey('d1')), '/b')).toBe('draft:d1')
+  expect(lastActiveOf(draftKey('d1'), '/b')).toBe('draft:d1')
+  expect(lastActiveOf({ root: '/a', key: 'nope' }, '/a')).toBeNull()
+  expect(lastActiveOf(undefined, '/a')).toBeNull()
 })
