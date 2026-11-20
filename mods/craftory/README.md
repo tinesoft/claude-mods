@@ -128,7 +128,7 @@ An agent's Over budget keeps its worktree. A dollar Over budget shows only on a 
 
 With `ascii_glyphs` on, the rail uses `>`, `x`, `!`, `v` and `|/-\` instead.
 
-The rail reads left to right: the triage button (`Inbox 3` when items wait), the seven phases, the feature title (a switcher when several features are in flight), and a gear that opens Settings. Press a phase to open its card above the rail. Press it again, or **Close**, to close it. When the band is narrow, or `rail_layout` is `summary`, the rail becomes one chip such as `Export invoices as CSV · Build 2/5`. The status line under the prompt shows the same text.
+The rail reads left to right: the triage button (`Inbox 3` when items wait), the seven phases, the feature title (a switcher when several features are in flight), and a gear that opens Settings. The active feature is the one whose integration branch is checked out, else the one you last chose in this repo, else the most recently touched. Press a phase to open its card above the rail. Press it again, or **Close**, to close it. When the band is narrow, or `rail_layout` is `summary`, the rail becomes one chip such as `Export invoices as CSV · Build 2/5`. The status line under the prompt shows the same text.
 
 When the plugin is missing, setup has not run, or no feature is in flight, a notice takes the rail's place.
 
@@ -199,7 +199,7 @@ Craftory counts what each feature costs. Tracking is always on and never refuses
   - On text surfaces, `/craftory` adds `Spend: $4.12 (318k fresh tokens) across 3 sessions`.
 - **`≈`.** When one cost reading covers steps of several agents at once, the dollars are shared out by tokens and each agent's share is marked `≈`. A phase's dollars are exact: they are the sum of the readings.
 - **Where it is stored.** Each session writes `.craftory/spend/<spec>/<session>.json` when a main turn ends, when the session ends, and within 30 seconds of an agent's step. Only that session writes its file, so two people never conflict. Commit the files with the feature records. A feature's total is the sum of every file in its folder. A file that cannot be read is skipped and named in the Spend tab.
-- **Before a spec exists,** a draft's spend (the grill, and Spec until it binds) is kept on your machine. When the spec binds, it moves into the feature's file. Outside features is kept on your machine for 30 days and never committed.
+- **Before a spec exists,** a draft's spend (the grill, and Spec until it binds) is kept on your machine, in the repo the draft was started in, so another repo never shows it. When the spec binds, it moves into the feature's file. Outside features is kept on your machine for 30 days and never committed.
 - **Without a cost ledger.** Where Claude Code keeps no cost total, Craftory shows tokens only and says "$ unavailable on this surface". It never shows `$0`.
 
 ### Budgets
