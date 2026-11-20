@@ -44,6 +44,11 @@ jobs:
 
       - run: node tools/check-scratch.mjs
 
+      - name: Check history is linear
+        env:
+          RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+        run: node tools/check-linear.mjs "$RANGE"
+
       - uses: nrwl/nx-set-shas@v4
         with:
           main-branch-name: develop

@@ -7,6 +7,7 @@ One Nx workspace and one plugin marketplace (`tinesoft-mods`). Each mod lives in
 ## Branches and commits
 
 - Branch from `develop` as `feat/...`, `fix/...` or `chore/...`. PRs target `develop`. `main` is release-only.
+- History is linear: rebase, then fast-forward (`git merge --ff-only`). A `pre-merge-commit` hook and a CI check reject merge commits.
 - Conventional Commits, with the scope a project name (`session-activity`) or one of `repo`, `ci`, `deps`, `release`. commitlint rejects anything else.
 - Never edit versions or `CHANGELOG.md` by hand. `nx release` owns `package.json` versions and `tools/sync-plugin-version.mjs` copies them into `.claude-plugin/plugin.json`.
 - Landing a PR (status, CI, rebase merge, branch cleanup): `/land-pr <number>`.
