@@ -166,7 +166,8 @@ Craftory gains four things, all off or neutral until set:
   - (07) the README and the glossary;
   - (08) a probe of whether a pressed command's context reaches its turn (from the review, resolved);
   - (09) remove the `command.run` context fallback the probe showed is not needed;
-  - (10) a stale remembered Feature can hide the Feature on the current branch (from probe 08, needs-triage).
+  - (10) a stale remembered Feature can hide the Feature on the current branch (from probe 08, resolved);
+  - (11) drafts are shared across repos (from ticket 10, needs-triage).
 - Blocking:
   - 02 and 03 are blocked by 01;
   - 05 and 06 by 04;
