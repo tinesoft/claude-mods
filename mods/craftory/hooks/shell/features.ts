@@ -9,6 +9,7 @@ import {
   featureOf,
   featurePath,
   FEATURES_DIR,
+  draftsToStore,
   lastActiveEntry,
   lastActiveOf,
   mergeFeature,
@@ -76,12 +77,13 @@ export async function reloadFeatures($: EngineInterface) {
 
 export async function loadFeatures($: EngineInterface) {
   const features = await readFeatures($)
-  const drafts = parseDrafts(await $.store.get(STORE_DRAFTS))
-  const [root, branch, last] = await Promise.all([
+  const [root, branch, last, storedDrafts] = await Promise.all([
     repoRoot($),
     currentBranch($),
     $.store.get(STORE_LAST_ACTIVE),
+    $.store.get(STORE_DRAFTS),
   ])
+  const drafts = parseDrafts(storedDrafts, root)
   await update($, featuresState, () => features)
   await update($, draftsState, () => drafts)
   await update($, activeState, () =>
@@ -142,7 +144,12 @@ export async function featureOfTicket(
 }
 
 async function persistDrafts($: EngineInterface) {
-  await $.store.set(STORE_DRAFTS, await read($, draftsState))
+  const [root, stored, mine] = await Promise.all([
+    repoRoot($),
+    $.store.get(STORE_DRAFTS),
+    read($, draftsState),
+  ])
+  await $.store.set(STORE_DRAFTS, draftsToStore(stored, mine, root))
 }
 
 async function saveFeature($: EngineInterface, record: FeatureRecord): Promise<FeatureRecord> {
@@ -230,7 +237,7 @@ export async function createDraft(
   from: { title: string; entry: PhaseId; enteredFrom: IssueRef | null },
 ): Promise<FeatureKey> {
   const now = await $.clock.now()
-  const draft = newDraft({ draftId: `d${now}`, ...from, at: isoOf(now) })
+  const draft = newDraft({ draftId: `d${now}`, ...from, at: isoOf(now), root: await repoRoot($) })
   await update($, draftsState, held => ({ ...held, [draft.draftId]: draft }))
   await persistDrafts($)
   const key = draftKey(draft.draftId)

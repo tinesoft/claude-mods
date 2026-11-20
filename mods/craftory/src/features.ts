@@ -664,12 +664,28 @@ export function applyDraftChange(draft: DraftFeature, change: FeatureChange): Dr
   return { ...draft, marks: changeMarks(draft.marks, change) }
 }
 
+/**
+ * What to write back to the store: the drafts of this repo, and the stored ones that belong to
+ * other repos, which this repo never loaded and must not drop.
+ */
+export function draftsToStore(
+  stored: unknown,
+  mine: Readonly<Record<string, DraftFeature>>,
+  root: string | null,
+): Record<string, unknown> {
+  const others = isRecord(stored)
+    ? Object.fromEntries(Object.entries(stored).filter(([, value]) => isOtherRepos(value, root)))
+    : {}
+  return { ...others, ...mine }
+}
+
 export function newDraft(args: {
   draftId: string
   title: string
   entry: PhaseId
   enteredFrom: IssueRef | null
   at: IsoTime
+  root?: string | null
 }): DraftFeature {
   return {
     draftId: args.draftId,
@@ -678,6 +694,7 @@ export function newDraft(args: {
     enteredFrom: args.enteredFrom,
     marks: {},
     startedAt: args.at,
+    ...(args.root ? { root: args.root } : {}),
   }
 }
 
@@ -793,11 +810,23 @@ export const markOf = (feature: Feature, phase: PhaseId): PhaseMark =>
 export const handoffOf = (feature: Feature): string | null =>
   (feature.kind === 'draft' ? feature.draft.handoff : feature.record.handoff) ?? null
 
-export function parseDrafts(stored: unknown): Record<string, DraftFeature> {
+/** Whether a stored draft was started in a repo other than the one at `root`. */
+const isOtherRepos = (value: unknown, root: string | null) =>
+  root !== null && isRecord(value) && text(value.root) !== undefined && value.root !== root
+
+/**
+ * The drafts stored for the repo at `root`: those started there, and those with no root (an older
+ * version made them, and any repo shows them). The store is shared by every repo.
+ */
+export function parseDrafts(
+  stored: unknown,
+  root: string | null = null,
+): Record<string, DraftFeature> {
   if (!isRecord(stored)) return {}
   return Object.fromEntries(
     Object.entries(stored).flatMap(([id, value]) => {
       if (!isRecord(value) || !text(value.title) || !text(value.startedAt)) return []
+      if (isOtherRepos(value, root)) return []
       const draft: DraftFeature = {
         draftId: id,
         title: text(value.title)!,
@@ -805,6 +834,7 @@ export function parseDrafts(stored: unknown): Record<string, DraftFeature> {
         enteredFrom: parseRef(text(value.enteredFrom) ?? '') ?? null,
         marks: parseMarks(value.marks),
         startedAt: text(value.startedAt)!,
+        ...(text(value.root) ? { root: text(value.root)! } : {}),
         ...parseSharedFields(value),
       }
       return [[id, draft]]

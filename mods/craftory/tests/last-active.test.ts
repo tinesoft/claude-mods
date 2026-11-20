@@ -1,6 +1,17 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { featureWorld, MATT, startSession } from './harness'
+import {
+  allText,
+  featureWorld,
+  IN_RANGE,
+  MATT,
+  MATT_SKILLS,
+  mattCommands,
+  mountBand,
+  SETUP_FILES,
+  startSession,
+  world,
+} from './harness'
 
 const IMPLEMENT = `${MATT}:implement-spec`
 
@@ -54,4 +65,59 @@ test('a Feature remembered in this repo is kept when no branch matches', async (
   })
   await startSession($)
   expect(await carried($)).toBe(false)
+})
+
+const stored = (root: string | undefined) => ({
+  d1: { ...draft.d1, ...(root !== undefined && { root }) },
+})
+
+/** A repo with no Feature of its own, whose store holds one draft. */
+const bare = async ($: Engine, on: Parameters<typeof world>[0], root: string | undefined) => {
+  world(on, {
+    commands: mattCommands(...MATT_SKILLS),
+    plugins: IN_RANGE,
+    files: SETUP_FILES,
+    store: { drafts: stored(root) },
+    shell: onBranch('main'),
+  })
+  await startSession($)
+  return allText(await mountBand($, 'terminal', 200, 60))
+}
+
+test('a draft started in another repo is not this repo’s active Feature', async ($, on) => {
+  expect(await bare($, on, '/elsewhere')).not.toContain('Another repo’s idea')
+})
+
+test('a draft started in this repo, or by an older version, is shown', async ($, on) => {
+  expect(await bare($, on, '/repo')).toContain('Another repo’s idea')
+})
+
+test('an older version’s draft with no repo is shown', async ($, on) => {
+  expect(await bare($, on, undefined)).toContain('Another repo’s idea')
+})
+
+test('saving this repo’s drafts keeps the other repos’ in the store', async ($, on) => {
+  const w = world(on, {
+    commands: mattCommands(...MATT_SKILLS),
+    plugins: IN_RANGE,
+    files: SETUP_FILES,
+    store: {
+      drafts: { ...stored('/elsewhere'), d2: { ...draft.d1, draftId: 'd2', root: '/repo' } },
+    },
+    shell: onBranch('main'),
+  })
+  await startSession($)
+  await $.skill.prompt({
+    skill: `${MATT}:grill-with-docs`,
+    text: '',
+    frontmatter: {},
+    source: 'plugin',
+  } as never)
+  const kept = w.store.get('drafts') as Record<
+    string,
+    { root?: string; marks?: Record<string, unknown> }
+  >
+  expect(kept.d2!.marks).toHaveProperty('align')
+  expect(Object.keys(kept).sort()).toContain('d1')
+  expect(kept.d1!.root).toBe('/elsewhere')
 })
