@@ -4,8 +4,8 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A Settings save in a repo with a map keeps the existing multi-context line
-- [ ] A Settings save that writes the block fresh in a repo with a map writes the multi-context line, matching Matt's setup skill text
-- [ ] A single-context repo still gets the single-context line
+- [x] A Settings save in a repo with a map keeps the existing multi-context line
+- [x] A Settings save that writes the block fresh in a repo with a map writes the multi-context line, matching Matt's setup skill text
+- [x] A single-context repo still gets the single-context line

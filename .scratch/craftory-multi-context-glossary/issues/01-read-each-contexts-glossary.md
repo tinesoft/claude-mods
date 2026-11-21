@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] In a repo with a map and two contexts, the Glossary tab lists both contexts' terms, grouped by context, and the filter chips narrow them
-- [ ] Search spans every context
-- [ ] A context whose glossary file does not exist shows "No glossary yet"; one that does not parse shows the existing problem line and stays read-only
-- [ ] A malformed or out-of-repo map line is reported as a problem line and ignored
-- [ ] Settings › Glossary shows the map read-only
-- [ ] The docs layout is detected as multi-context from this repo's own layout file and map
-- [ ] Existing single-context glossary tests pass unchanged
+- [x] In a repo with a map and two contexts, the Glossary tab lists both contexts' terms, grouped by context, and the filter chips narrow them
+- [x] Search spans every context
+- [x] A context whose glossary file does not exist shows "No glossary yet"; one that does not parse shows the existing problem line and stays read-only
+- [x] A malformed or out-of-repo map line is reported as a problem line and ignored
+- [x] Settings › Glossary shows the map read-only
+- [x] The docs layout is detected as multi-context from this repo's own layout file and map
+- [x] Existing single-context glossary tests pass unchanged

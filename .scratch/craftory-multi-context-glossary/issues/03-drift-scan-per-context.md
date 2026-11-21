@@ -4,9 +4,9 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A file under context A is flagged only for A's avoid-words
-- [ ] A root file is flagged for the avoid-words of both contexts
-- [ ] With nested context folders, the deepest one is used
-- [ ] Existing single-context drift tests pass unchanged
+- [x] A file under context A is flagged only for A's avoid-words
+- [x] A root file is flagged for the avoid-words of both contexts
+- [x] With nested context folders, the deepest one is used
+- [x] Existing single-context drift tests pass unchanged

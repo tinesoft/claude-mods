@@ -4,10 +4,10 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Add, edit and delete write only the chosen context's file; every other file and the rest of that file are byte for byte unchanged
-- [ ] **Add term** defaults to the context the Feature's diff touches most; ties and no diff give the first context in the map
-- [ ] **Add term** on a missing glossary creates the file in Matt's format, then adds the term
-- [ ] A glossary file that does not parse is reported and never written
-- [ ] Existing single-context editing tests pass unchanged
+- [x] Add, edit and delete write only the chosen context's file; every other file and the rest of that file are byte for byte unchanged
+- [x] **Add term** defaults to the context the Feature's diff touches most; ties and no diff give the first context in the map
+- [x] **Add term** on a missing glossary creates the file in Matt's format, then adds the term
+- [x] A glossary file that does not parse is reported and never written
+- [x] Existing single-context editing tests pass unchanged

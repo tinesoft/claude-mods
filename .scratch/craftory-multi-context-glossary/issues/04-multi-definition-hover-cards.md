@@ -4,9 +4,9 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A reply term defined in two contexts underlines once and its hover card shows two definitions labelled with their contexts
-- [ ] A term defined in one context shows that context's label
-- [ ] **Used in last reply** and this session's added terms carry context labels
-- [ ] Existing single-context reply tests pass unchanged
+- [x] A reply term defined in two contexts underlines once and its hover card shows two definitions labelled with their contexts
+- [x] A term defined in one context shows that context's label
+- [x] **Used in last reply** and this session's added terms carry context labels
+- [x] Existing single-context reply tests pass unchanged
