@@ -13,7 +13,7 @@ import {
 import { parseColorFgBg, SYSTEM_PROBES } from '../../src/_kit/appearance'
 import { parsePrefOverrides, resolvePrefs, STORE_PREFS } from '../../src/config'
 import type { Flow } from '../../src/evidence'
-import { termKey } from '../../src/glossary'
+import { contextTermKeys } from '../../src/glossary'
 import { glossaryView, ticketsView } from '../../src/pane-view'
 import { namespaced, SKILLS } from '../../src/phases'
 import { vscodeText } from '../../src/_kit/vscode-accent'
@@ -33,7 +33,7 @@ import {
   warnBeforeBuild,
 } from './flow'
 import { GLOSSARY_MAP } from '../../src/glossary-map'
-import { glossaryEntries, glossaryTerms, repoFacts, repoRoot } from './repo'
+import { glossaryEntries, repoFacts, repoRoot, repoSnapshot } from './repo'
 import { readContext, refreshFiles, refreshGit, refreshTracker } from './sync'
 import { trackerKindOf, trackerOf } from './tracker'
 
@@ -244,7 +244,7 @@ export async function searchGlossary($: EngineInterface, text: string) {
 }
 
 export async function rememberGlossaryAtStart($: EngineInterface) {
-  const atStart = (await glossaryTerms($)).map(t => termKey(t.name))
+  const atStart = contextTermKeys((await repoSnapshot($))?.contexts ?? [])
   await update($, glossaryAtStartState, () => atStart)
 }
 

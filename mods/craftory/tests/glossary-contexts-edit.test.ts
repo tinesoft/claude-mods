@@ -88,6 +88,19 @@ test('the same name may live in two contexts', async ($, on) => {
   expect(w.files.get('shipping/GLOSSARY.md')).toContain('**Customer**:\nA definition.\n')
 })
 
+test('a name added to a second context this session is New there and only there', async ($, on) => {
+  const { pane } = await open(on, $)
+  await pane.press({ key: 'gl-context-Shipping' })
+  await fill(pane, 'Customer')
+  await pane.press({ key: 'gl-save' })
+  await pane.press({ key: 'tab-glossary' })
+  await pane.redraw()
+  const all = await allText(pane)
+  expect(all).toContain('1 added this session')
+  expect(all.split('[New]')).toHaveLength(2)
+  expect(all.indexOf('[New]')).toBeGreaterThan(all.indexOf('Shipping Parcel'))
+})
+
 test('Add term with nothing picked goes to the first context in the map when there is no diff', async ($, on) => {
   const { w, pane } = await open(on, $)
   await fill(pane, 'Invoice run')

@@ -1103,7 +1103,13 @@ const GlossaryTab = ({
                     {term.name}
                   </Text>
                   {term.isNew && (
-                    <Badge ui={ui} tone={tone} role="perm" text="New" id={term.name} />
+                    <Badge
+                      ui={ui}
+                      tone={tone}
+                      role="perm"
+                      text="New"
+                      id={group.name === null ? term.name : `${group.name}-${term.name}`}
+                    />
                   )}
                 </Box>
                 <CardButton

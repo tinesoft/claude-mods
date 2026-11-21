@@ -122,6 +122,19 @@ export function mergedTerms(
   return [...byKey.values()]
 }
 
+/** A term's key within its context: the same name in two contexts is two terms. */
+export const contextTermKey = (context: string, name: string) => `${context}\0${termKey(name)}`
+
+/** Every term of the contexts, keyed by context and name. */
+export const contextTermKeys = (
+  contexts: readonly { name: string; glossary: Loaded<GlossaryDoc> }[],
+): string[] =>
+  contexts.flatMap(c =>
+    c.glossary.state === 'ok'
+      ? termsOf(c.glossary.value).map(t => contextTermKey(c.name, t.name))
+      : [],
+  )
+
 export const relationshipsOf = (doc: GlossaryDoc) =>
   doc.slices.flatMap(s => (s.kind === 'relationship' ? [s.text] : []))
 

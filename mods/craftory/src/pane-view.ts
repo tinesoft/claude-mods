@@ -16,7 +16,7 @@ import { budgetK } from './build'
 import { phaseButtons, type CardView } from './card-model'
 import type { Flow, SkipReason, TicketStatus } from './evidence'
 import { PHASES } from './phases'
-import { mergedTerms, termKey, termsOf } from './glossary'
+import { contextTermKey, contextTermKeys, mergedTerms, termKey, termsOf } from './glossary'
 import { argFor, byNumber } from './tracker/refs'
 import type { Term } from '../types'
 
@@ -319,17 +319,20 @@ export function glossaryView(args: {
 }): GlossaryView {
   const { contexts = [], map, mapPath, path, query, used, atStart } = args
   const all = contexts.flatMap(c => (c.glossary.state === 'ok' ? termsOf(c.glossary.value) : []))
-  const known = new Set(atStart ?? all.map(t => termKey(t.name)))
-  const added = all.filter(t => !known.has(termKey(t.name))).length
+  const known = new Set(atStart ?? contextTermKeys(contexts))
+  const added = contextTermKeys(contexts).filter(k => !known.has(k)).length
   const needle = query.trim().toLowerCase()
-  const withNew = (terms: Term[]) =>
-    terms.filter(t => matches(t, needle)).map(t => ({ ...t, isNew: !known.has(termKey(t.name)) }))
+  const withNew = (c: ContextSnapshot, terms: Term[]) =>
+    terms
+      .filter(t => matches(t, needle))
+      .map(t => ({ ...t, isNew: !known.has(contextTermKey(c.name, t.name)) }))
   const usedTerms = mergedTerms(contexts)
     .filter(t => used.includes(termKey(t.name)))
     .map(t => (map === null ? { name: t.name, definition: t.definition, avoid: t.avoid } : t))
   if (map === null) {
-    const doc = contexts[0]?.glossary
-    if (doc?.state !== 'ok')
+    const only = contexts[0]
+    const doc = only?.glossary
+    if (only === undefined || doc?.state !== 'ok')
       return {
         groups: [],
         total: 0,
@@ -341,7 +344,7 @@ export function glossaryView(args: {
         problems: [],
       }
     return {
-      groups: [{ name: null, note: null, terms: withNew(termsOf(doc.value)) }],
+      groups: [{ name: null, note: null, terms: withNew(only, termsOf(doc.value)) }],
       total: all.length,
       summary: `${path} · ${added} added this session`,
       used: usedTerms,
@@ -362,7 +365,7 @@ export function glossaryView(args: {
           : c.glossary.state === 'invalid'
             ? `${c.path} could not be read`
             : 'No glossary yet'
-      const terms = c.glossary.state === 'ok' ? withNew(termsOf(c.glossary.value)) : []
+      const terms = c.glossary.state === 'ok' ? withNew(c, termsOf(c.glossary.value)) : []
       return { name: c.name, note: needle === '' ? note : null, terms }
     })
     .filter(g => g.note !== null || g.terms.length > 0)
