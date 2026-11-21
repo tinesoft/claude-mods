@@ -11,6 +11,7 @@ import type {
 } from '../types'
 import { CONFIG_PATH, configOf, parseConfig, patchConfig } from './config'
 import { AGENT_DOCS, GITIGNORE, type FileWrite, STATE_FILE } from './files'
+import { GLOSSARY_MAP } from './glossary-map'
 import { TEMPLATES } from './templates'
 
 export { AGENT_DOCS, GITIGNORE }
@@ -67,7 +68,8 @@ export function parseTriageLabels(text: string): TriageLabels {
 
 export function parseDomainDoc(text: string): DocsLayout {
   const named = /^- \*\*`([^`]+)`\*\* at the repo root/m.exec(text)?.[1]
-  const isMap = named !== undefined && /(^|\/)GLOSSARY-MAP\.md$/.test(named)
+  const isMap =
+    named !== undefined && (named === GLOSSARY_MAP || named.endsWith(`/${GLOSSARY_MAP}`))
   return {
     glossary: named === undefined || isMap ? DEFAULT_DOCS.glossary : named,
     ...(isMap && { map: named }),
@@ -138,7 +140,7 @@ export function renderTriageLabels(labels: TriageLabels, previous: string | null
 
 export function renderDomainDoc(docs: DocsLayout): string {
   return TEMPLATES.domain
-    .replaceAll('GLOSSARY-MAP.md', docs.map ?? 'GLOSSARY-MAP.md')
+    .replaceAll(GLOSSARY_MAP, docs.map ?? GLOSSARY_MAP)
     .replaceAll(DEFAULT_DOCS.glossary, docs.glossary)
     .replaceAll(DEFAULT_DOCS.adr, docs.adr)
 }
