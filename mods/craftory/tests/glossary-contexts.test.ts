@@ -1,6 +1,15 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { allText, featureWorld, mountPane, startSession, texts, type WorldOptions } from './harness'
+import { fakeGit } from './build-harness'
+import {
+  allText,
+  featureWorld,
+  mountPane,
+  skillPrompt,
+  startSession,
+  texts,
+  type WorldOptions,
+} from './harness'
 
 const MAP = [
   '# Glossary Map',
@@ -76,6 +85,31 @@ test('search spans every context', async ($, on) => {
   const words = await texts(pane)
   expect(words).toContain('Parcel')
   expect(words).not.toContain('Customer')
+})
+
+test("drift checks a file against its own context's avoid-words, and a root file against every context's", async ($, on) => {
+  const git = fakeGit({ extra: [{ path: '/repo/.claude/worktrees/_spec-42', branch: 'feat/csv' }] })
+  const diff = [
+    '+++ b/shipping/route.ts',
+    '+const client = 1',
+    '+++ b/billing/invoice.ts',
+    '+ship the package',
+    '+bill the client',
+    '+++ b/README.md',
+    '+a package',
+  ].join('\n')
+  const { w } = await open(on, $, {
+    ...files({ 'shipping/GLOSSARY.md': `${SHIPPING}_Avoid_: package\n` }),
+    shell: (argv, cwd) =>
+      argv[1] === 'diff' && argv[4] === 'main...feat/csv'
+        ? { exitCode: 0, stdout: diff }
+        : git.shell(argv, cwd),
+  })
+  await skillPrompt($, 'code-review')
+  expect(w.toasts.filter(t => t.startsWith('Glossary drift')).sort()).toEqual([
+    'Glossary drift · the diff says "client" 1 time',
+    'Glossary drift · the diff says "package" 1 time',
+  ])
 })
 
 test('Settings, Glossary shows the map read-only', async ($, on) => {
