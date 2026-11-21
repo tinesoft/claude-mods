@@ -24,7 +24,13 @@ import {
   pluginStatus,
   PROBE_TIMEOUT_MS,
 } from '../../src/plugin'
-import type { ContextSnapshot, DocsLayout, InstallState, RepoSnapshot } from '../../types'
+import type {
+  AgentSetup,
+  ContextSnapshot,
+  DocsLayout,
+  InstallState,
+  RepoSnapshot,
+} from '../../types'
 import { GLOSSARY_MAP, parseGlossaryMap, titleOf } from '../../src/glossary-map'
 
 const repoState = atom({ plugin: 'craftory', key: 'repo' } as const, null)
@@ -122,6 +128,10 @@ async function loadContexts($: EngineInterface, docs: DocsLayout) {
   return { contexts, glossaryMap }
 }
 
+/** A setup in a repo whose glossary map is on disk: its docs name the map. */
+export const withMap = (setup: AgentSetup): AgentSetup =>
+  setup.docs.map === undefined ? { ...setup, docs: { ...setup.docs, map: GLOSSARY_MAP } } : setup
+
 export async function loadRepo($: EngineInterface) {
   const [configText, files] = await Promise.all([readText($, CONFIG_PATH), readSetupFiles($)])
   const config = parseConfig(configText)
@@ -139,7 +149,11 @@ export async function loadRepo($: EngineInterface) {
   const { worktrees } = configOf(config)
   const snapshot: RepoSnapshot = {
     config,
-    setup,
+    // the map on disk decides the layout, so a domain.md that lists GLOSSARY.md first cannot hide it
+    setup:
+      setup.state === 'ok' && glossaryMap !== null
+        ? { ...setup, value: withMap(setup.value) }
+        : setup,
     contexts,
     glossaryMap,
     steering: { file, hasBlock: steering !== null && /^## Agent skills\s*$/m.test(steering) },

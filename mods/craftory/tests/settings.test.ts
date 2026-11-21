@@ -560,6 +560,32 @@ test('the Retry on row refuses text that is no model id', () => {
   expect(checkCustom(row, 'my best model')).toHaveProperty('problem')
 })
 
+const MAP_FILES = {
+  'GLOSSARY-MAP.md':
+    '# Glossary Map\n\n## Contexts\n\n- [Billing](./billing/GLOSSARY.md): invoices\n',
+  'billing/GLOSSARY.md': '# Billing\n\n## Language\n',
+}
+
+const MULTI_BLOCK =
+  '# Rules\n\n## Agent skills\n\n### Issue tracker\n\nx. See `docs/agents/issue-tracker.md`.\n\n### Domain docs\n\nMulti-context: `GLOSSARY-MAP.md` points to the mods. See `docs/agents/domain.md`.\n'
+
+test("a Settings save keeps the block's multi-context line when the map is on disk, whatever domain.md lists first", async ($, on) => {
+  const files = { ...MAP_FILES, 'CLAUDE.md': MULTI_BLOCK }
+  const { w, pane } = await settings(on, $, 'local', { files }, 'terminal', 'docs')
+  await pane.input({ key: 'set-docs-adr', text: 'adr/' })
+  const saved = w.files.get('CLAUDE.md')!
+  expect(saved).toContain('Multi-context: `GLOSSARY-MAP.md` points to the mods.')
+  expect(saved).not.toContain('Single-context')
+})
+
+test('a Settings save writes the multi-context line in a repo whose map is on disk', async ($, on) => {
+  const { w, pane } = await settings(on, $, 'local', { files: MAP_FILES }, 'terminal', 'docs')
+  await pane.input({ key: 'set-docs-adr', text: 'adr/' })
+  const saved = w.files.get('CLAUDE.md')!
+  expect(saved).toContain('Multi-context: `GLOSSARY-MAP.md` at the repo root')
+  expect(saved).not.toContain('Single-context')
+})
+
 test('Automation › routing the main session is off, warns of the re-read, and writes routing.mainThread', async ($, on) => {
   const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'automation')
   const text = await allText(pane)

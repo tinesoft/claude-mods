@@ -47,6 +47,7 @@ import {
   repoFacts,
   repoSnapshot,
   sh,
+  withMap,
   writableContext,
 } from './repo'
 import { copyWithToast, openPane, resetPrefs, resolvedPrefs, savePrefs } from './ui'
@@ -94,7 +95,8 @@ async function currentSetup($: EngineInterface): Promise<{ setup: AgentSetup; is
     read($, setupDraftState),
   ])
   if (repo?.setup.state === 'ok') return { setup: repo.setup.value, isDraft: false }
-  return { setup: draft ?? draftSetup(signalsOf(repo, plugin)), isDraft: true }
+  const setup = draft ?? draftSetup(signalsOf(repo, plugin))
+  return { setup: repo?.glossaryMap ? withMap(setup) : setup, isDraft: true }
 }
 
 async function settingsFacts(
