@@ -9,8 +9,9 @@
 - [x] README screenshots taken and committed
 - [x] End-to-end Local-tracker fixture run result reviewed
 - [ ] GitHub and GitLab sandbox live check done
-- [ ] `craftory@1.0.0` released via `nx release` from `main`
+- [x] `craftory@1.0.0` released via `nx release` from `main`
 
 ## Notes
 
+- Release (2026-11-16): tag `craftory@1.0.0` on `d705c2a` (`chore(release): publish`), on `main`. The sandbox live check was not done before it and stays open.
 - Screenshots (2026-11-13): the terminal GIF `assets/screenshots/craftory.gif` and the Desktop GIF `assets/screenshots/craftory-desktop.gif` are in the Craftory README. Both were recorded from `mods/craftory/demo/` with the repo's `screen-recording` skill.
