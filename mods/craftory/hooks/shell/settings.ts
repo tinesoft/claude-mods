@@ -363,11 +363,11 @@ async function changeGlossary(
   const loaded = parseGlossary(raw)
   if (loaded.state === 'invalid') return update($, termErrorState, () => unreadableNote(path))
   // a missing file of a mapped context starts in Matt's format, not as a bare heading
-  const fresh =
+  const startingGlossary =
     loaded.state === 'absent' && repo?.glossaryMap && target
       ? parseGlossary(newGlossary(target.name, target.description))
       : loaded
-  const next = edit(fresh.state === 'ok' ? fresh.value : null)
+  const next = edit(startingGlossary.state === 'ok' ? startingGlossary.value : null)
   if (typeof next === 'string') {
     await update($, termErrorState, () => TERM_ERRORS[next])
     return $.ui.invalidate('ui.render')

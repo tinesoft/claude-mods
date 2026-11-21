@@ -224,8 +224,8 @@ const GlossarySection = ({
   const { Box, Text } = ui
   const { draft } = glossary
   const t = tone === undefined ? undefined : TOKENS[tone]
-  const multi = glossary.map !== null
-  const card = (term: Term, context: string | null) => {
+  const isMultiContext = glossary.map !== null
+  const termCard = (term: Term, context: string | null) => {
     const suffix = context === null ? term.name : `${context}-${term.name}`
     return (
       <Box
@@ -283,10 +283,10 @@ const GlossarySection = ({
       {glossary.map !== null && (
         <GlossaryMapView ui={ui} tone={tone} map={glossary.map} path={glossary.path} />
       )}
-      {!multi && glossary.terms.length === 0 && (
+      {!isMultiContext && glossary.terms.length === 0 && (
         <Text {...inkOf(tone, 'text2')}>{`No terms in ${glossary.path} yet.`}</Text>
       )}
-      {multi
+      {isMultiContext
         ? glossary.contexts.map(c => (
             <Box key={`gl-context-${c.name}`} flexDirection="column" rowGap={SPACE.paneGap}>
               <Text bold {...inkOf(tone, 'ink')}>
@@ -298,10 +298,10 @@ const GlossarySection = ({
                   {unreadableNote(c.path)}
                 </Text>
               )}
-              {c.terms.map(term => card(term, c.name))}
+              {c.terms.map(term => termCard(term, c.name))}
             </Box>
           ))
-        : glossary.terms.map(term => card(term, null))}
+        : glossary.terms.map(term => termCard(term, null))}
       {!readOnly && (
         <Box key="gl-form" flexDirection="column" rowGap={SPACE.fieldGap}>
           <Eyebrow

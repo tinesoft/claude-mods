@@ -331,7 +331,8 @@ export function glossaryView(args: {
   const known = new Set(atStart ?? contextTermKeys(contexts))
   const added = contextTermKeys(contexts).filter(k => !known.has(k)).length
   const needle = query.trim().toLowerCase()
-  const withNew = (c: ContextSnapshot, terms: Term[]) =>
+  // the terms the search shows, each marked New when this session added it
+  const shownTerms = (c: ContextSnapshot, terms: Term[]) =>
     terms
       .filter(t => matches(t, needle))
       .map(t => ({ ...t, isNew: !known.has(contextTermKey(c.name, t.name)) }))
@@ -353,7 +354,7 @@ export function glossaryView(args: {
         problems: [],
       }
     return {
-      groups: [{ name: null, note: null, terms: withNew(only, termsOf(doc.value)) }],
+      groups: [{ name: null, note: null, terms: shownTerms(only, termsOf(doc.value)) }],
       total: all.length,
       summary: `${path} · ${added} added this session`,
       used: usedTerms,
@@ -369,7 +370,7 @@ export function glossaryView(args: {
     .filter(c => filter === ALL_CONTEXTS || c.name === filter)
     .map((c): GlossaryGroup => {
       const note = glossaryNote(c)
-      const terms = withNew(c, contextTerms(c))
+      const terms = shownTerms(c, contextTerms(c))
       return { name: c.name, note: needle === '' ? note : null, terms }
     })
     .filter(g => g.note !== null || g.terms.length > 0)

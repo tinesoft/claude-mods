@@ -70,11 +70,11 @@ export function findDriftByContext(
   return countDrift(addedWithFiles(diff, skipFiles), termsFor)
 }
 
-function countDrift(lines: readonly AddedLine[], termsOf: (file: string) => readonly Term[]) {
+function countDrift(lines: readonly AddedLine[], termsForFile: (file: string) => readonly Term[]) {
   const counts = new Map<string, DriftFinding>()
   for (const { file, text } of lines) {
     const skipped = skippedRanges(text, { links: false })
-    for (const term of termsOf(file))
+    for (const term of termsForFile(file))
       for (const avoided of term.avoid) {
         const hits = findWord(text, avoided, skipped).length
         if (hits === 0) continue
