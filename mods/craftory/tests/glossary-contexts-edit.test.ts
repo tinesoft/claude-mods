@@ -139,6 +139,25 @@ test("Add term defaults to the context the Feature's diff touches most", async (
   expect(w.files.get('billing/GLOSSARY.md')).toBe(BILLING)
 })
 
+test('Settings reads the integration diff once, not on every render and save', async ($, on) => {
+  const git = fakeGit({ extra: [{ path: '/repo/.claude/worktrees/_spec-42', branch: 'feat/csv' }] })
+  let diffs = 0
+  const { w, pane } = await open(on, $, {
+    shell: (argv, cwd) => {
+      if (argv[1] !== 'diff' || argv[4] !== 'main...feat/csv') return git.shell(argv, cwd)
+      diffs++
+      return { exitCode: 0, stdout: '+++ b/shipping/a.ts\n+one\n' }
+    },
+  })
+  await pane.redraw()
+  await pane.redraw()
+  await fill(pane, 'Route')
+  await pane.press({ key: 'gl-save' })
+  await pane.redraw()
+  expect(w.files.get('shipping/GLOSSARY.md')).toContain('**Route**:')
+  expect(diffs).toBe(1)
+})
+
 test("Add term on a missing glossary creates the file in Matt's format, then adds the term", async ($, on) => {
   const { w, pane } = await open(on, $)
   await pane.press({ key: 'gl-context-Ghost' })

@@ -852,6 +852,8 @@ declare module 'claude-code' {
       isPickingFeature: boolean
       paneTab: PaneTab
       diffs: Record<string, string>
+      /** The active Feature's integration diff, and the branches and tip it was read for. */
+      featureDiff: { key: string; diff: string | null } | null
       settingsSection: SettingsSection
       termDraft: TermDraft
       termError: string | null

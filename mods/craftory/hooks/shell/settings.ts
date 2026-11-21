@@ -32,7 +32,7 @@ import {
 import type { SettingsData } from '../../src/settings'
 import type { AgentSetup, GlossaryDoc, PluginStatus, RepoSnapshot, TermDraft } from '../../types'
 import { settle } from './flow'
-import { featureDiff } from './git'
+import { featureDiff, heldFeatureDiff } from './git'
 import { hasCostOf } from './spend'
 import { refreshTracker } from './sync'
 import {
@@ -47,7 +47,7 @@ import {
   withMap,
   writableContext,
 } from './repo'
-import { copyWithToast, openPane, resetPrefs, resolvedPrefs, savePrefs } from './ui'
+import { copyWithToast, openPane, paneTabOf, resetPrefs, resolvedPrefs, savePrefs } from './ui'
 
 const setupNoteState = atom({ plugin: 'craftory', key: 'setupNote' } as const, null)
 
@@ -336,11 +336,15 @@ const TERM_ERRORS: Record<GlossaryEditError, string> = {
 
 const EMPTY_DRAFT: TermDraft = { name: '', definition: '', avoid: '', editing: null, context: null }
 
-/** The context a new term goes to: the one picked, else where the Feature's diff works most. */
-async function chosenContext($: EngineInterface, picked: string | null) {
+/**
+ * The context a new term goes to: the one picked, else where the Feature's diff works most.
+ * A render may not keep the diff it reads, so it reads the held one (`heldFeatureDiff`).
+ */
+async function chosenContext($: EngineInterface, picked: string | null, isRender = false) {
   const contexts = (await repoSnapshot($))?.contexts ?? []
   if (picked !== null && contexts.some(c => c.name === picked)) return picked
-  return defaultContextOf(await featureDiff($), contexts)
+  const diff = isRender ? await heldFeatureDiff($) : await featureDiff($)
+  return defaultContextOf(diff, contexts)
 }
 
 async function changeGlossary(
@@ -470,10 +474,11 @@ export async function settingsArgs(
   $: EngineInterface,
   options: Readonly<Record<string, unknown>>,
 ): Promise<SettingsData> {
-  const [facts, repo, plugin, section, draft, error, note] = await Promise.all([
+  const [facts, repo, plugin, tab, section, draft, error, note] = await Promise.all([
     settingsFacts($, options),
     repoSnapshot($),
     pluginOf($),
+    paneTabOf($),
     read($, settingsSectionState),
     read($, termDraftState),
     read($, termErrorState),
@@ -492,7 +497,11 @@ export async function settingsArgs(
         state: c.glossary.state,
         terms: c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
       })),
-      context: repo?.glossaryMap ? await chosenContext($, draft.context) : null,
+      // only the Settings tab shows it, so no other tab's render runs the diff
+      context:
+        repo?.glossaryMap && tab === 'settings'
+          ? await chosenContext($, draft.context, true)
+          : null,
       draft,
       path: facts.setup.docs.map ?? facts.setup.docs.glossary,
       hasContextMd: repo?.hasContextMd ?? false,

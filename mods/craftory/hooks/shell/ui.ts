@@ -24,6 +24,7 @@ import { resolveTone, type Tone } from '../../src/theme'
 import { TRACKERS } from '../../src/tracker'
 import type { IssueRef, PaneTab, PhaseId, PrefOverrides, SkillName } from '../../types'
 import { featuresOf } from './features'
+import { featureDiff } from './git'
 import {
   currentFlow,
   holdForGate,
@@ -269,6 +270,8 @@ export async function openPane($: EngineInterface, tab: PaneTab) {
   await refreshFiles($)
   await refreshTracker($)
   if (tab === 'worktrees') await refreshGit($)
+  // the Add-term default reads it on every Settings render, which may not keep it
+  if (tab === 'settings') await featureDiff($)
   await $.ui.open({ id: PANE, title: 'Craftory', focus: true, closeOnEscape: true })
 }
 

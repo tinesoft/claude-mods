@@ -18,21 +18,54 @@ import { trackerOf } from './tracker'
 
 const gitState = atom({ plugin: 'craftory', key: 'git' } as const, null)
 
+/** The last integration diff read, and what it was read for. */
+const featureDiffState = atom({ plugin: 'craftory', key: 'featureDiff' } as const, null)
+
 export function gitOf($: EngineInterface) {
   return read($, gitState)
+}
+
+/** The branches the active Feature's integration diff runs between, and what a read of it is held by. */
+async function featureDiffRange($: EngineInterface) {
+  const [record, git] = await Promise.all([activeRecord($), gitOf($)])
+  const integration = record?.integrationBranch
+  const base = git?.branch
+  if (!integration || !base || integration === base) return null
+  // `base...integration` moves with the integration tip; without one, with each git refresh
+  return { base, integration, key: `${base}...${integration}@${git.tips[integration] ?? git.at}` }
+}
+
+async function readFeatureDiff($: EngineInterface, base: string, integration: string) {
+  const ran = await sh($, driftDiffArgv(base, integration))
+  return ran?.exitCode === 0 ? ran.stdout : null
 }
 
 /**
  * The active Feature's integration diff against the checked-out branch, as the drift scan and
  * the Add-term default read it; null when there is no Feature branch apart from it, or git fails.
+ * Read once per branch tip and held, so only call it where state may be written (not a render).
  */
 export async function featureDiff($: EngineInterface): Promise<string | null> {
-  const [record, git] = await Promise.all([activeRecord($), gitOf($)])
-  const integration = record?.integrationBranch
-  const base = git?.branch
-  if (!integration || !base || integration === base) return null
-  const diff = await sh($, driftDiffArgv(base, integration))
-  return diff?.exitCode === 0 ? diff.stdout : null
+  const range = await featureDiffRange($)
+  if (range === null) return null
+  const held = await read($, featureDiffState)
+  if (held?.key === range.key) return held.diff
+  const diff = await readFeatureDiff($, range.base, range.integration)
+  await update($, featureDiffState, () => ({ key: range.key, diff }))
+  return diff
+}
+
+/** `featureDiff` for a render: the held read when it is current, else a fresh one it cannot keep. */
+export async function heldFeatureDiff($: EngineInterface): Promise<string | null> {
+  const range = await featureDiffRange($)
+  if (range === null) return null
+  const held = await read($, featureDiffState)
+  return held?.key === range.key ? held.diff : readFeatureDiff($, range.base, range.integration)
+}
+
+/** After git moves, reads the diff again if one was held, so the next render finds it current. */
+export async function refreshFeatureDiff($: EngineInterface) {
+  if ((await read($, featureDiffState)) !== null) await featureDiff($)
 }
 
 /** Reads the worktrees and branches into the snapshot; null when git is not there to ask. */

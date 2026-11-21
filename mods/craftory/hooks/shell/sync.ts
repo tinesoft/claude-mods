@@ -10,7 +10,7 @@ import { noteMergedPr, nudgeUnmetDone } from './automations'
 import { activeKey, draftsOf, featureOfTicket, featuresOf, reloadFeatures } from './features'
 import { bindDrafts, settle } from './flow'
 import { reloadSpendFiles } from './spend'
-import { cleanupInputs, gitOf, loadGit } from './git'
+import { cleanupInputs, gitOf, loadGit, refreshFeatureDiff } from './git'
 import { ledgerOf, stopForConflict } from './ledger'
 import { addNotice } from './notices'
 import { loadRepo, repoFacts, repoSnapshot, sh } from './repo'
@@ -88,6 +88,7 @@ export async function refreshGit($: EngineInterface) {
   const snapshot = await loadGit($)
   if (snapshot === null) return
   await afterGit($, snapshot, (await repoFacts($)).config.worktrees.rebaseOnMove)
+  await refreshFeatureDiff($)
   $.ui.invalidate('ui.render')
 }
 
