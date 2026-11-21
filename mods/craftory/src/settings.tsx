@@ -16,6 +16,7 @@ import {
   type SettingsFacts,
   type SettingsRow,
 } from './sections'
+import { NO_GLOSSARY_NOTE, unreadableNote } from './glossary'
 import { paint, SPACE, TOKENS } from './theme'
 import { inkOf, isRich, type Ui } from './ui'
 import { CardButton, Entry, Eyebrow, Field, Segments, SwitchRow, type Typed } from './widgets'
@@ -291,12 +292,11 @@ const GlossarySection = ({
               <Text bold {...inkOf(tone, 'ink')}>
                 {c.name}
               </Text>
-              {c.state === 'absent' && <Text {...inkOf(tone, 'text2')}>No glossary yet</Text>}
+              {c.state === 'absent' && <Text {...inkOf(tone, 'text2')}>{NO_GLOSSARY_NOTE}</Text>}
               {c.state === 'invalid' && (
-                <Text
-                  wrap="wrap"
-                  color={paint('danger', tone).fg}
-                >{`${c.path} could not be read`}</Text>
+                <Text wrap="wrap" color={paint('danger', tone).fg}>
+                  {unreadableNote(c.path)}
+                </Text>
               )}
               {c.terms.map(term => card(term, c.name))}
             </Box>

@@ -20,9 +20,11 @@ import {
   contextTermKey,
   contextTermKeys,
   contextTerms,
+  glossaryNote,
   mergedTerms,
   termKey,
   termsOf,
+  unreadableNote,
 } from './glossary'
 import { argFor, byNumber } from './tracker/refs'
 import type { Term } from '../types'
@@ -343,7 +345,7 @@ export function glossaryView(args: {
       return {
         groups: [],
         total: 0,
-        summary: doc?.state === 'invalid' ? `${path} could not be read` : `No ${path} yet`,
+        summary: doc?.state === 'invalid' ? unreadableNote(path) : `No ${path} yet`,
         used: [],
         hasFile: false,
         chips: [],
@@ -366,12 +368,7 @@ export function glossaryView(args: {
   const groups = contexts
     .filter(c => filter === ALL_CONTEXTS || c.name === filter)
     .map((c): GlossaryGroup => {
-      const note =
-        c.glossary.state === 'ok'
-          ? null
-          : c.glossary.state === 'invalid'
-            ? `${c.path} could not be read`
-            : 'No glossary yet'
+      const note = glossaryNote(c)
       const terms = withNew(c, contextTerms(c))
       return { name: c.name, note: needle === '' ? note : null, terms }
     })

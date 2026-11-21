@@ -102,6 +102,20 @@ export const serialiseGlossary = (doc: GlossaryDoc) => doc.slices.map(s => s.raw
 export const termsOf = (doc: GlossaryDoc): Term[] =>
   doc.slices.flatMap(s => (s.kind === 'term' ? [s.term] : []))
 
+/** What the Glossary tab and Settings say of a glossary file that exists but does not parse. */
+export const unreadableNote = (path: string) => `${path} could not be read`
+
+/** What they say of a context whose glossary file is not written yet. */
+export const NO_GLOSSARY_NOTE = 'No glossary yet'
+
+/** Why a context lists no terms: no file yet, or one that could not be read; null when it loaded. */
+export const glossaryNote = (context: { path: string; glossary: Loaded<GlossaryDoc> }) =>
+  context.glossary.state === 'ok'
+    ? null
+    : context.glossary.state === 'invalid'
+      ? unreadableNote(context.path)
+      : NO_GLOSSARY_NOTE
+
 /** A context's terms; none when its glossary is missing or could not be read. */
 export const contextTerms = (context: { glossary: Loaded<GlossaryDoc> }): Term[] =>
   context.glossary.state === 'ok' ? termsOf(context.glossary.value) : []

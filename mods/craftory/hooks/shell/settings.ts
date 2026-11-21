@@ -19,6 +19,7 @@ import {
   serialiseGlossary,
   termKey,
   termsOf,
+  unreadableNote,
 } from '../../src/glossary'
 import { defaultContextOf, newGlossary } from '../../src/glossary-map'
 import { namespaced, SKILLS } from '../../src/phases'
@@ -360,8 +361,7 @@ async function changeGlossary(
   const path = target?.path ?? setup.docs.glossary
   const raw = await readText($, path)
   const loaded = parseGlossary(raw)
-  if (loaded.state === 'invalid')
-    return update($, termErrorState, () => `${path} could not be read`)
+  if (loaded.state === 'invalid') return update($, termErrorState, () => unreadableNote(path))
   // a missing file of a mapped context starts in Matt's format, not as a bare heading
   const fresh =
     loaded.state === 'absent' && repo?.glossaryMap && target
