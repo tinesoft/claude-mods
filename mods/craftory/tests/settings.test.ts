@@ -564,7 +564,7 @@ test('Automation › routing the main session is off, warns of the re-read, and 
   const { w, pane } = await settings(on, $, 'local', {}, 'terminal', 'automation')
   const text = await allText(pane)
   expect(text).toContain('Route the main session by phase')
-  expect(text).toContain('re-reads the context once')
+  expect(text).toContain('re-reads the context window once')
   await pane.press({ key: 'set-routing-main-thread' })
   expect(JSON.parse(w.files.get('.craftory/config.json')!).routing).toMatchObject({
     mainThread: true,

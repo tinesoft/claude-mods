@@ -53,7 +53,7 @@ An SDLC framework, built on top of Matt Pocock's skills, as a Claude Code mod. I
 - ⚙️ **Settings that edit the repo's own files.** The tracker, triage labels, docs layout and glossary are written where Matt's skills read them, exactly as `/setup-matt-pocock-skills` writes them.
 - 🗺️ **Wayfinder maps.** A map chip in the rail and a frontier card list the tickets you can take next, with **Take** and **Work next ticket**, and a switcher when several maps are open.
 - 🗄️ **Archiving.** A shipped feature leaves the switcher and the rail, and can be brought back.
-- 🔔 **Opt-in automations.** Offer `/handoff` at 80% context, `/retro` when the PR merges, a weekly architecture check, and a nudge when a phase's Done when is unmet. All off by default.
+- 🔔 **Opt-in automations.** Offer `/handoff` at 80% of the context window, `/retro` when the PR merges, a weekly architecture check, and a nudge when a phase's Done when is unmet. All off by default.
 - 📖 **Glossary in replies.** On Desktop and mobile, glossary terms in Claude's replies link to `/wait-what` and have a hover card. The terminal never rewrites a reply.
 - 🔎 **Glossary drift.** When Review or Ship starts, Craftory flags words the glossary says to avoid in the lines the integration branch adds.
 - ♿ **Never colour alone.** Every state is also a word, and `ascii_glyphs` draws the rail with plain characters.
@@ -172,7 +172,7 @@ The Build card lists every agent with its ticket, status, TDD step when the agen
 
 Four opt-in automations, all off by default, each turned on in Settings › Automation. Each one shows a band notice before it does anything, only while no turn is running, with one action and **Dismiss**. A dismissed notice stays gone for its scope.
 
-- **Handoff at 80%** (`automation.handoffAt80`). When the main session's context reaches 80%, the notice offers **Write handoff**, which submits `/handoff`. Once per session, never for a subagent. The handoff document it writes is linked from the active feature's card.
+- **Handoff at 80%** (`automation.handoffAt80`). When the main session's context window reaches 80%, the notice offers **Write handoff**, which submits `/handoff`. Once per session, never for a subagent. The handoff document it writes is linked from the active feature's card.
 - **Retro on PR** (`automation.retroOnPr`). When the active feature's PR merges, during the session or while you were away, the notice offers `/retro`. Once per feature. Retro is done when `/retro` has produced its ranked suggestions, or reported that it has none.
 - **Weekly architecture check** (`automation.weeklyArchitecture`). At session start, when the last run is over 7 days old and no feature is mid-Build, the notice offers `/improve-codebase-architecture`. Its findings land in the Inbox as `needs-triage` items. The date of the last finished run is kept in `.craftory/state.json`, so a cancelled run does not count.
 - **Nudge on unmet Done when** (`automation.nudgeUnmetDone`). When a turn ends in a running phase whose Done when is not met, the notice names the phase and what is missing, with no action but **Dismiss**. Once per phase per feature.
@@ -229,7 +229,7 @@ Each phase has a **model** and an **effort** for its subagents, in Settings › 
 - **Effort.** `low`, `medium`, `high`, `xhigh` or `max`, given to every step of the agent. The route is fixed at spawn, so changing a setting mid-run does not change a running agent.
 - **Left alone.** An Agent call where Claude named a model, a fork (it inherits) and a resumed run keep what they have, model and effort.
 - **Where it shows.** Once a phase routes something, its card has a **Runs on** row, such as `sonnet · medium`, `sonnet` or `high effort`.
-- **The main session.** Turn on Settings › Automation › Route the main session by phase (`routing.mainThread`) and, while a phase runs, each main step gets that phase's model and effort. A grill waiting for your answer is still running, so its next turn stays routed. Steps between phases are left alone, so the session's own model comes back by itself. While it applies, the band says `Align runs on opus · high` (or `Build runs on low effort`); the note goes when the phase ends and has no **Dismiss**, and the pane shows it too. Switching the main model re-reads the context once, so the first step after each switch costs more.
+- **The main session.** Turn on Settings › Automation › Route the main session by phase (`routing.mainThread`) and, while a phase runs, each main step gets that phase's model and effort. A grill waiting for your answer is still running, so its next turn stays routed. Steps between phases are left alone, so the session's own model comes back by itself. While it applies, the band says `Align runs on opus · high` (or `Build runs on low effort`); the note goes when the phase ends and has no **Dismiss**, and the pane shows it too. Switching the main model re-reads the context window once, so the first step after each switch costs more.
 
 ### Forecast
 
@@ -263,17 +263,26 @@ Open it with `/craftory`, the gear, **Open panel** or a card button. The tabs ha
 - **Flow** (`1`). The seven phases with their command and a one-line result. On mobile the tab starts with the rail. A **Budget** row shows the active feature's spend of its budget, such as `$9.80 of $20`, and says where the budget comes from. Its field, with **Set**, writes the feature's own budget in whole dollars; `0` gives the feature no budget, even over a default, and an empty field drops its own budget, so the default applies again. A draft shows the default and "set once the spec binds".
 - **Tickets** (`2`). The tracker header, the **Inbox**, then the spec's tickets with status, blocking edges and `/implement <ticket>` on ready ones, and `/implement-spec <spec> · run all in parallel`. On a Local tracker the argument is the file's path, such as `.scratch/csv/issues/01-button.md`; on GitHub it is `#n`. In the Inbox, a `needs-triage` item offers `/triage <issue>`, a `ready-for-agent` item offers **Start feature**, and so does a `ready-for-agent` spec that no feature points at, which enters at Tickets, and a `ready-for-human` item gets no agent. A started feature enters at the phase set in Settings › Entry points. By default a bug enters at Build and anything else at Align. GitLab and Other trackers show links only.
 - **Worktrees** (`3`). Your checkout, the integration worktree, one per agent and stale ones, each with its branch and sync state. **Diff** shows the change size, **Open terminal** copies `cd '<path>'`, quoted for the shell (a mod cannot open a terminal), **Remove** asks first for a kept worktree, and **Prune** removes stale ones.
-- **Glossary** (`4`). Search, the terms added this session, **Used in last reply**, then every term with its definition and the words to avoid. **Edit** jumps to Settings › Glossary.
+- **Glossary** (`4`). Search, the terms added this session, **Used in last reply**, then every term with its definition and the words to avoid. **Edit** jumps to Settings › Glossary. In a repo with a `GLOSSARY-MAP.md`, the terms are grouped under each context's name, filter chips (All, then one per context) narrow them, search spans every context, and a term defined in several contexts shows each definition labelled with its context. The chip you pick is kept on your machine, per repo.
 - **Settings** (`5`). See below.
 - **Spend** (`6`). The active feature's total, broken down by **Phase** (tickets under Build and Review), **Model** or **Person** (git's `user.name <user.email>`). Then the other features, archived ones last, then Outside features and any spend file that could not be read. The choice of breakdown is kept on your machine. Read-only on mobile, by phase.
 
 ### Glossary in replies
 
-On Desktop and mobile, the first mention of each glossary term in Claude's reply is a link that runs `/wait-what <term>`. A row of terms under the reply has a hover card on Desktop with the definition, the words to avoid, `/wait-what` and **Edit term**. The terminal never rewrites a reply. Use **Used in last reply** in the Glossary tab instead. Turn this off with Settings › Automation › Underline glossary terms.
+On Desktop and mobile, the first mention of each glossary term in Claude's reply is a link that runs `/wait-what <term>`. A row of terms under the reply has a hover card on Desktop with the definition (every context's definition, each labelled, when the term is defined in more than one context), the words to avoid, `/wait-what` and **Edit term**. The terminal never rewrites a reply. Use **Used in last reply** in the Glossary tab instead. Turn this off with Settings › Automation › Underline glossary terms.
 
-When Review or Ship starts, Craftory scans the lines the integration branch adds for words the glossary says to avoid. A hit shows a toast such as `Glossary drift · the diff says "line item" 4 times` and a **Rename** action in the band.
+When Review or Ship starts, Craftory scans the lines the integration branch adds for words the glossary says to avoid. In a multi-context repo a file is checked against the avoid-words of the context whose folder holds it, so one context's avoid-list never flags another's correct usage. A file outside every context's folder, such as a root doc or `tools/`, is checked against every context's avoid-words. A hit shows a toast such as `Glossary drift · the diff says "line item" 4 times` and a **Rename** action in the band.
 
 ---
+
+### Glossary in a multi-context repo
+
+If `GLOSSARY-MAP.md` exists at the repo root, Craftory reads it and treats each context's `GLOSSARY.md` as its own glossary. A repo without a map is one context and works as before.
+
+- **Settings › Glossary.** List, add, edit and delete work in each context's file, and the rest of each file is left byte for byte as it was. **Add term** asks which context. It suggests the context whose folder holds most of the active Feature's changed lines, or the first in the map when there is no diff. The map is shown read-only: its contexts and relationships.
+- **A context with no glossary yet.** It shows "No glossary yet", and **Add term** there creates the file in Matt's format (title, the map's one-line description, `## Language`).
+- **A file that does not parse.** It shows a problem line and stays read-only, so Craftory never overwrites it. A map entry that points outside the repo, or a line that does not match the map's format, is reported the same way and the rest of the map still loads.
+- **Saving Settings.** The `## Agent skills` block keeps its multi-context line instead of turning the repo back into a single-context one.
 
 ## ⚙️ Settings
 
@@ -284,7 +293,7 @@ The Settings tab writes each value where it belongs and saves as you go. The fir
 | Entry points  | Triage on or off and the phase a ready-for-agent item enters at, the wayfinder suggestion, which fires after `afterQuestions` (12) Align questions                                       | `.craftory/config.json`                                                 |
 | Issue tracker | Local Markdown, GitHub, GitLab or Other with their fields, and the label for each triage role                                                                                            | `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`          |
 | Docs layout   | Glossary file, ADR folder, research notes, steering file (`CLAUDE.md` by default, or `AGENTS.md`)                                                                                        | `docs/agents/domain.md` and the steering file's `## Agent skills` block |
-| Glossary      | Add, edit and delete terms, and import terms from `CONTEXT.md`                                                                                                                           | `GLOSSARY.md`                                                           |
+| Glossary      | Add, edit and delete terms in each context, and import terms from `CONTEXT.md`                                                                                                           | `GLOSSARY.md`                                                           |
 | Pipeline      | Feature budget, Near budget at, then each phase on or off, its command, its gate, its model, its effort and its budget, then Retry stuck tickets on. Helper skills are shown, not edited | `.craftory/config.json`                                                 |
 | Worktrees     | Folder, integration branch, ticket branch, parallel limit, Throttle at, While throttled, token budget, setup command, files to copy, test command and timeout, and four switches         | `.craftory/config.json`                                                 |
 | Automation    | Suggest the next phase, live agents, underline glossary terms, the four automations, Route the main session by phase, Hard gates and the three deny rules                                | `.craftory/config.json`                                                 |
@@ -309,7 +318,7 @@ These `.craftory/config.json` keys sit behind the Pipeline, Worktrees and Automa
 | `rateLimits.throttledParallel`  | `1`         | Implementers at once while Throttled (1 to 16), never more than `worktrees.maxParallel`     |
 | `worktrees.test`                | `""`        | Test command run in a ticket's worktree after its implementer's turn. Empty runs nothing    |
 | `worktrees.testTimeoutSec`      | `600`       | Seconds before a test run is stopped and the ticket is Failed, timed out (10 to 600)        |
-| `automation.handoffAt80`        | `false`     | Offer `/handoff` at 80% context                                                             |
+| `automation.handoffAt80`        | `false`     | Offer `/handoff` at 80% of the context window                                               |
 | `automation.retroOnPr`          | `false`     | Offer `/retro` when the feature's PR merges                                                 |
 | `automation.weeklyArchitecture` | `false`     | Offer `/improve-codebase-architecture` when the last run is over 7 days old                 |
 | `automation.nudgeUnmetDone`     | `false`     | Say what is missing when a turn ends in a running phase whose Done when is not met          |
@@ -414,7 +423,7 @@ It starts no other program. The `setup` and `test` commands are the ones in `.cr
 - Copying files into a worktree uses `cp`, which Windows lacks outside WSL.
 - Glyphs such as `▲`, `◐` and `–` are one cell wide in Claude Code's layout. A terminal that draws them two cells wide misaligns the rail. Turn on `ascii_glyphs`.
 - GitLab and Other trackers show links only, so their Spec, Tickets and Build states come from the skills that ran and from **Mark done**.
-- The Glossary tab edits one `GLOSSARY.md`. A multi-context `GLOSSARY-MAP.md` is left out of 1.0.0 on purpose: a repo with several contexts can point the glossary file at one of them.
+- `GLOSSARY-MAP.md` is read-only: Craftory shows its contexts and relationships but never adds, renames or removes a context. Do that with `/domain-modeling`.
 
 ---
 

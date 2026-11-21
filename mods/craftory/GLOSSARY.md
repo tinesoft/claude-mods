@@ -186,5 +186,13 @@ The one-line summary under the prompt, such as `Export invoices as CSV · Build 
 
 ### Glossary
 
+**Context**:
+One area of a repo with a language of its own, and its own `GLOSSARY.md`. A repo with no Glossary map is one Context. The same term can mean different things in two Contexts, and Craftory shows each definition labelled with its Context.
+_Avoid_: Domain, module, bounded context
+
+**Glossary map**:
+The `GLOSSARY-MAP.md` at a repo's root, listing each Context with its glossary file, and how Contexts relate. Craftory reads it and never edits it.
+_Avoid_: Index, glossary index
+
 **Glossary drift**:
-Words a diff adds that the repo's glossary says to avoid. Craftory scans for it when Review or Ship starts.
+Words a diff adds that the glossary of the Context holding the file says to avoid. A file outside every Context is checked against all of them. Craftory scans for it when Review or Ship starts.

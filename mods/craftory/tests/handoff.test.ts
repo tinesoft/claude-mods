@@ -50,7 +50,7 @@ const working = ($: Engine) =>
     props: { ...bandProps(200), isWorking: true },
   })
 
-const HANDOFF = 'Context is 80% full · write a handoff so a fresh session can pick up'
+const HANDOFF = 'Context window is 80% full · write a handoff so a fresh session can pick up'
 
 test('at 80% of the main context the band offers Write handoff, which submits /handoff', async ($, on) => {
   const w = await session(on, $, 160_000)

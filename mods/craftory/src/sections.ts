@@ -817,8 +817,8 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
   ),
   toggle(
     'auto-handoff',
-    'Write a handoff before context runs out',
-    'At 80% context, condense the session so a fresh one can pick up the ticket.',
+    'Write a handoff before the context window runs out',
+    'At 80% of the context window, condense the session so a fresh one can pick up the ticket.',
     c => au(c).handoffAt80,
     on => ({ automation: { handoffAt80: on } }),
   ),
@@ -839,7 +839,7 @@ const AUTOMATION_ROWS: readonly SettingsRow[] = [
   toggle(
     'routing-main-thread',
     'Route the main session by phase',
-    'While a phase runs, the main session’s steps run on that phase’s model and effort, and the band says so; between phases they go back to the session’s own. Switching the main model re-reads the context once, so the first step after each switch costs more.',
+    'While a phase runs, the main session’s steps run on that phase’s model and effort, and the band says so; between phases they go back to the session’s own. Switching the main model re-reads the context window once, so the first step after each switch costs more.',
     c => c.routing.mainThread,
     on => ({ routing: { mainThread: on } }),
   ),

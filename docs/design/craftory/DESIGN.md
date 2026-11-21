@@ -75,7 +75,7 @@ switch. A press in the rail or the pane still asks.
 | --- | --- | --- |
 | Triage (`/triage`) | Triage button at the left of the rail; Inbox in the Tickets tab | Issues from outside the flow. A `ready-for-agent` item starts a feature at the phase set in Settings › Entry points; `ready-for-human` never gets an agent |
 | Wayfinder (`/wayfinder`) | Parent chip in the rail, left of the seven phases | Tracks decision tickets (decided, open) and child specs; each child spec gets its own rail |
-| Handoff | Automation | At 80% context, `handoff` writes a handoff document (off by default) |
+| Handoff | Automation | At 80% of the context window, `handoff` writes a handoff document (off by default) |
 | improve-codebase-architecture | Automation | At session start when the last run is more than 7 days old; findings filed as `needs-triage` (off by default) |
 
 ## Phase states

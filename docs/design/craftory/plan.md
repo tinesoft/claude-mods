@@ -61,7 +61,7 @@ All resolved while grilling (Oct 24–25, 2026).
 | 16 | Feature state | Several features in flight, one active per session (switcher in the rail). State in committed `.craftory/features/<spec-id>.json`; phase "done" from evidence |
 | 17 | Command submission | Rail buttons show short names and submit the namespaced command with `$.prompt.submit`; typed namespaced commands are recognised too |
 | 18 | Glossary in replies | Rich surfaces: underline, hover card, `/wait-what` on click. Terminal: no rewriting; "Used in last reply" in the Glossary tab |
-| 19 | Glossary scope | Single-context `GLOSSARY.md` in v1: list, add, edit, delete terms; relationships and flagged ambiguities read-only. `GLOSSARY-MAP.md` later |
+| 19 | Glossary scope | Single-context `GLOSSARY.md` in v1: list, add, edit, delete terms; relationships and flagged ambiguities read-only. Lifted after 1.0.0: Craftory reads `GLOSSARY-MAP.md` and each context's `GLOSSARY.md` (see `.scratch/craftory-multi-context-glossary/`); the map stays read-only |
 | 20 | Onboarding | A "Set up Craftory" step opens Settings pre-filled from the repo; saving writes what `/setup-matt-pocock-skills` would |
 | 21 | Automations | Run at session start (weekly check if the last run is over 7 days old). Glossary drift scans the integration diff when Review starts and before Ship |
 | 22 | Everything else | As session-activity: MIT, conventional commits, `nx release`, VS Code and mobile get pane + status line, cloud gets text at most |
@@ -314,7 +314,7 @@ Not yet observed on a live client: the band and pane on a terminal or Desktop, l
 
 - [x] Automations: handoff at 80%, retro on PR, weekly architecture check
 - [x] Wayfinder parent rail; cloud text summary
-- Multi-context `GLOSSARY-MAP.md` is left out of 1.0.0 on purpose (Decision 19): the Glossary tab edits one `GLOSSARY.md`
+- Multi-context `GLOSSARY-MAP.md` was left out of 1.0.0 on purpose (Decision 19) and is now supported: the Glossary tab reads and edits each context's `GLOSSARY.md`
 
 ## Risks and references
 

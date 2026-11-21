@@ -8,7 +8,7 @@ Craftory 1.0.0 released: the wayfinder parent rail (Local, GitHub and GitLab map
 
 - Domain: `mods/craftory/GLOSSARY.md`. Plan and design: `docs/design/craftory/plan.md`, `DESIGN.md`.
 - Principle: Matt's skills do the work; Craftory submits commands, observes and edits configuration files only.
-- Out of the MVP by the user's call: multi-context `GLOSSARY-MAP.md` in the Craftory Glossary tab.
+- Out of the MVP by the user's call, since lifted: multi-context `GLOSSARY-MAP.md` in the Craftory Glossary tab (see `.scratch/craftory-multi-context-glossary/`).
 - Plan, don't do: tickets produce decisions, not code. Execution items below stay in the fog until a decision makes them specific.
 
 ## Decisions so far
@@ -39,4 +39,4 @@ Only the human-only release bar is left; every agent ticket under `craftory-wayf
 
 ## Out of scope
 
-- Multi-context `GLOSSARY-MAP.md` in the Craftory Glossary tab: ruled out of the 1.0.0 MVP by the user.
+- ~~Multi-context `GLOSSARY-MAP.md` in the Craftory Glossary tab: ruled out of the 1.0.0 MVP by the user.~~ Lifted after 1.0.0: see `.scratch/craftory-multi-context-glossary/`.

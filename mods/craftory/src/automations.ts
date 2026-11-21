@@ -52,7 +52,7 @@ export const handoffNotice = (): AutomationNotice => ({
   kind: 'automation',
   id: 'handoff',
   scope: HANDOFF_SCOPE,
-  text: 'Context is 80% full · write a handoff so a fresh session can pick up',
+  text: 'Context window is 80% full · write a handoff so a fresh session can pick up',
   run: { label: 'Write handoff', skill: SKILLS.handoff, args: '' },
 })
 

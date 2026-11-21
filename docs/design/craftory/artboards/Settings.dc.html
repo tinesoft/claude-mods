@@ -370,7 +370,7 @@ class Component extends DCLogic {
       { id: 'agents', label: 'Live agents in phase details', desc: 'For phases that run subagents (Build, Review): each agent’s ticket, TDD step, token use against its budget, and status, updating as they work.', def: true },
       { id: 'terms', label: 'Underline glossary terms in replies', desc: 'Hover a term for its definition; click to re-explain it in plain words with wait-what.', def: true },
       { id: 'retro', label: 'Run retro when the PR opens', desc: 'Otherwise retro waits until you end the session or run /retro.', def: false },
-      { id: 'handoff', label: 'Write a handoff before context runs out', desc: 'At 80% context, condense the session so a fresh one can pick up the ticket.', def: false },
+      { id: 'handoff', label: 'Write a handoff before the context window runs out', desc: 'At 80% of the context window, condense the session so a fresh one can pick up the ticket.', def: false },
       { id: 'arch', label: 'Weekly architecture check', desc: 'Runs improve-codebase-architecture and files what it finds with the needs-triage label.', def: false }
     ];
     var au = st.au || { next: true, agents: true, terms: true };

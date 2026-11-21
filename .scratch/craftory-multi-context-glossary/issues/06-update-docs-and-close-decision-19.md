@@ -4,10 +4,10 @@
 
 **Blocked by:** 02, 03, 04, 05
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The README Glossary section describes the map, per-context grouping, per-context editing and drift
-- [ ] The glossary has **Context** and **Glossary map** entries
-- [ ] Every remaining use of "context" for the model's window reads **context window**
-- [ ] Decision 19 and the MVP map's out-of-scope line are marked as lifted
-- [ ] No versions or `CHANGELOG.md` edited by hand
+- [x] The README Glossary section describes the map, per-context grouping, per-context editing and drift
+- [x] The glossary has **Context** and **Glossary map** entries
+- [x] Every remaining use of "context" for the model's window reads **context window**
+- [x] Decision 19 and the MVP map's out-of-scope line are marked as lifted
+- [x] No versions or `CHANGELOG.md` edited by hand
