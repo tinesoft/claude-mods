@@ -274,3 +274,30 @@ test('a Local setup is kept as written and its block names .scratch', () => {
   expect(claude).toContain('under `.scratch/<feature-slug>/`')
   expect(claude).not.toContain('docs/issues/')
 })
+
+const MULTI: AgentSetup = {
+  ...GITHUB,
+  docs: { glossary: 'GLOSSARY.md', adr: 'docs/adr/', map: 'GLOSSARY-MAP.md' },
+}
+
+test('a block written fresh in a repo with a map says multi-context', () => {
+  const block = renderAgentSkillsBlock(MULTI)
+  expect(block).toContain(
+    'Multi-context: `GLOSSARY-MAP.md` at the repo root points to one `GLOSSARY.md` per context, with `docs/adr/` for repo-wide decisions. See `docs/agents/domain.md`.',
+  )
+  expect(block).not.toContain('Single-context')
+})
+
+test('a Settings save keeps the multi-context line already in the block', () => {
+  const custom =
+    '## Agent skills\n\n### Issue tracker\n\nx. See `docs/agents/issue-tracker.md`.\n\n### Triage labels\n\nx. See `docs/agents/triage-labels.md`.\n\n### Domain docs\n\nMulti-context: `GLOSSARY-MAP.md` points to the mods. See `docs/agents/domain.md`.\n'
+  const files = { ...EMPTY, claudeMd: custom }
+  const writes = planSetup(MULTI, files, { ...OPTIONS, refreshBlock: true })
+  const after = textOf(writes, 'CLAUDE.md') ?? custom
+  expect(after).toContain('Multi-context: `GLOSSARY-MAP.md` points to the mods.')
+  expect(after).not.toContain('Single-context')
+})
+
+test('a single-context repo still gets the single-context line', () => {
+  expect(renderAgentSkillsBlock(GITHUB)).toContain('Single-context: one `GLOSSARY.md`')
+})

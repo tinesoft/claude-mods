@@ -138,6 +138,7 @@ export function renderTriageLabels(labels: TriageLabels, previous: string | null
 
 export function renderDomainDoc(docs: DocsLayout): string {
   return TEMPLATES.domain
+    .replaceAll('GLOSSARY-MAP.md', docs.map ?? 'GLOSSARY-MAP.md')
     .replaceAll(DEFAULT_DOCS.glossary, docs.glossary)
     .replaceAll(DEFAULT_DOCS.adr, docs.adr)
 }
@@ -164,6 +165,21 @@ const labelsSummary = (labels: TriageLabels) =>
     ? 'Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`'
     : 'Custom label vocabulary mapped onto the five triage roles'
 
+/** The `### Domain docs` line: Matt's setup skill names the layout "single-context" or "multi-context". */
+const domainLine = (docs: DocsLayout) =>
+  docs.map === undefined
+    ? `Single-context: one \`${docs.glossary}\` and \`${docs.adr}\` at the repo root. See \`${AGENT_DOCS.domain}\`.`
+    : `Multi-context: \`${docs.map}\` at the repo root points to one \`${docs.glossary}\` per context, with \`${docs.adr}\` for repo-wide decisions. See \`${AGENT_DOCS.domain}\`.`
+
+/** The multi-context line a steering file's block already holds, if any. */
+const MULTI_LINE = /^### Domain docs[ \t]*\r?\n(?:[ \t]*\r?\n)*(Multi-context\b[^\r\n]*)/m
+const keptMultiLine = (steering: string | null) => {
+  const heading = steering === null ? null : /^## Agent skills[ \t]*\r?$/m.exec(steering)
+  if (steering === null || heading === null) return null
+  const body = steering.slice(heading.index + heading[0].length).split(/^## /m)[0]!
+  return MULTI_LINE.exec(body)?.[1]?.trimEnd() ?? null
+}
+
 export function renderAgentSkillsBlock(setup: AgentSetup): string {
   const parts = [
     '## Agent skills',
@@ -173,7 +189,7 @@ export function renderAgentSkillsBlock(setup: AgentSetup): string {
       ? ['### Triage labels', `${labelsSummary(setup.triage)}. See \`${AGENT_DOCS.triage}\`.`]
       : []),
     '### Domain docs',
-    `Single-context: one \`${setup.docs.glossary}\` and \`${setup.docs.adr}\` at the repo root. See \`${AGENT_DOCS.domain}\`.`,
+    domainLine(setup.docs),
   ]
   return `${parts.join('\n\n')}\n`
 }
@@ -197,6 +213,12 @@ export function upsertBlock(steering: string | null, block: string): string {
   }
   const gap = steering.endsWith(`${eol}${eol}`) ? '' : steering.endsWith(eol) ? eol : eol + eol
   return steering + gap + text
+}
+
+const renderBlockKeeping = (setup: AgentSetup, steering: string | null) => {
+  const block = renderAgentSkillsBlock(setup)
+  const kept = setup.docs.map === undefined ? null : keptMultiLine(steering)
+  return kept === null ? block : block.replace(domainLine(setup.docs), () => kept)
 }
 
 const blockCovers = (steering: string | null, setup: AgentSetup) => {
@@ -281,7 +303,7 @@ export function planSetup(
     steering,
     blockCovers(steering, setup) && options.refreshBlock !== true
       ? steering!
-      : upsertBlock(steering, renderAgentSkillsBlock(setup)),
+      : upsertBlock(steering, renderBlockKeeping(setup, steering)),
   )
 
   put(GITIGNORE, files.gitignore, ensureCraftoryIgnores(files.gitignore, options.worktreeFolder))
