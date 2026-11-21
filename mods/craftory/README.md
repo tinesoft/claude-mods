@@ -325,13 +325,13 @@ The Map readers are tested against fixture sets of what `/wayfinder` writes, und
 
 The personal options are plugin options (`/config`, or `pluginConfigs` in settings). Changes made in the pane override them and persist across sessions.
 
-| Option         | Default | Effect                                                                                                                                                                           |
-| -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rail`         | `true`  | Show the phase rail above the prompt                                                                                                                                             |
-| `rail_layout`  | `row`   | `row` of phases, or one `summary` chip                                                                                                                                           |
-| `theme`        | `auto`  | `light` or `dark` colours in the terminal, or `auto` to follow the Claude Code theme, then the terminal, then the system. Desktop and mobile always follow the system appearance |
-| `ascii_glyphs` | `false` | Draw the rail with plain characters for terminals that draw symbols two cells wide                                                                                               |
-| `hook_events`  | `true`  | Watch `skill.prompt`. Turn it off if your organization's security guard skips it (see Limits); skill starts then come from Skill calls and typed commands                        |
+| Option         | Default | Effect                                                                                                                                                                                                 |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `rail`         | `true`  | Show the phase rail above the prompt                                                                                                                                                                   |
+| `rail_layout`  | `row`   | `row` of phases, or one `summary` chip                                                                                                                                                                 |
+| `theme`        | `auto`  | `light` or `dark` colours in the terminal, or `auto` to follow the Claude Code theme, then the terminal, then the system. Desktop and mobile always follow the system appearance                       |
+| `ascii_glyphs` | `false` | Draw the rail with plain characters for terminals that draw symbols two cells wide                                                                                                                     |
+| `hook_events`  | `true`  | Watch `skill.prompt`. Turn it off if your organization's security guard skips it (see Limits; Craftory offers to after two skipped starts); skill starts then come from Skill calls and typed commands |
 
 The Personal tab also has **Ask what to add before a button runs a command**, on by default. It is set in the pane only. Turn it off and a button that runs a skill skips the "Anything to add for /<command>?" question.
 
@@ -396,7 +396,7 @@ It starts no other program. The `setup` and `test` commands are the ones in `.cr
 - Craftory reads the tracker and git on a short timer after the session starts and after a turn or an agent ends, so the first draw may show the previous state for about a second. It never holds a turn or the session start for those reads.
 - The kept-worktree guard on Bash is best-effort. A command that builds the path with a variable, a glob or a `cd` is not caught.
 - VS Code passes no light or dark appearance a mod can read, so Craftory draws there with Claude Code's theme colours unless the `theme` setting names one. The 2.1.325 type declarations still list the band for the terminal, desktop and mobile only, though VS Code draws it.
-- On Team and Enterprise plans, or under managed settings, Claude Code's security guard can send `skill.prompt` past every plugin and print a notice such as `its skill.prompt hook was skipped` for each hook this plugin registers, and phases started by a skill are then missed. Set `hook_events` to `false` to register none: Craftory then notes a skill start from the Skill tool call and from a typed `/skill` instead. A typed skill that runs as a fork raises no prompt event and is seen only through the tracker.
+- On Team and Enterprise plans, or under managed settings, Claude Code's security guard can send `skill.prompt` past every plugin and print a notice such as `its skill.prompt hook was skipped` for each hook this plugin registers, and phases started by a skill are then missed. After two Matt skill starts in one session whose turn ends with no `skill.prompt`, the band offers **Turn off hook events**, which sets `hook_events` to `false` as `/config` would (run `/reload-plugins` to apply; a locked row says where to change it), and **Not now**, which asks again next session. Setting `hook_events` to `false` registers none: Craftory then notes a skill start from the Skill tool call and from a typed `/skill` instead. A typed skill that runs as a fork raises no prompt event and is seen only through the tracker.
 - A toast cannot carry a button, so each toast's action sits in the band or the pane.
 - The `Q6 of ~14` progress of a grill is not visible to a mod. The phase shows Needs you without a count.
 - An agent's TDD step shows only when the agent writes it as `red · test 4 of 5`.

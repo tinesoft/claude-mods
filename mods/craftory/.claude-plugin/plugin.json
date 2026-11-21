@@ -42,7 +42,7 @@
     "hook_events": {
       "type": "boolean",
       "title": "Skill prompt events",
-      "description": "Turn off if your organization's security guard skips them and prints a notice per hook. Skill starts are then read from Skill calls and typed commands",
+      "description": "Turn off if your organization's security guard skips them and prints a notice per hook; Craftory offers to after two skipped skill starts. Skill starts are then read from Skill calls and typed commands",
       "default": true
     }
   }

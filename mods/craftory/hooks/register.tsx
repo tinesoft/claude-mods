@@ -98,6 +98,13 @@ import {
   subagentSkillCall,
 } from './shell/automations'
 import { gitOf } from './shell/git'
+import {
+  noteHookSkipTurnEnd,
+  noteSkillPrompt,
+  noteSkillSeen,
+  resetHookSkip,
+  turnOffHookEvents,
+} from './shell/hook-skip'
 import { noteRateLimits, noteUseReading, rateWindowsOf, startRateLimits } from './shell/limits'
 import { forgetSeat, markStopDelivered, pendingSeat, runOf } from './shell/ledger'
 import { dismissedOf, dismissNotice, heldNotices } from './shell/notices'
@@ -252,6 +259,8 @@ async function dispatch($: EngineInterface, action: Action) {
     }
     case 'dismiss':
       return dropNotice($, action.noticeId)
+    case 'turn-off-hook-events':
+      return turnOffHookEvents($, action.noticeId)
     case 'automation-run': {
       await dropNotice($, action.noticeId)
       return requestRun($, action.skill, action.args)
@@ -355,7 +364,13 @@ export const register: Register = (on, options) => {
     if (!(await isSupported($))) {
       $.ui.toast(unsupportedText)
     }
-    await Promise.all([loadRepo($), loadFeatures($), detectPlugin($), rearmAutomations($)])
+    await Promise.all([
+      loadRepo($),
+      loadFeatures($),
+      detectPlugin($),
+      rearmAutomations($),
+      resetHookSkip($),
+    ])
     // After the features load: a draft's spend is found by its id.
     await startSpend($)
     await startRateLimits($)
@@ -379,10 +394,13 @@ export const register: Register = (on, options) => {
   })
 
   // An organization's security guard may send `skill.prompt` past every mod and print a notice
-  // per hook registered for it. A mod cannot detect that, so `hook_events: false` registers none;
-  // the Skill call and the typed command report each start instead.
+  // per hook registered for it. A mod cannot see the skip itself, but it sees its effect: a Matt
+  // skill started by a typed command or a Skill call whose turn ends with no `skill.prompt`. Two
+  // such misses raise a notice offering `hook_events: false`, which registers no `skill.prompt`
+  // hook; the Skill call and the typed command then report each start instead.
   if (options.hook_events !== false) {
     on('skill.prompt', async ($, e, next) => {
+      await noteSkillPrompt($, e.skill)
       await onSkillStart($, e.skill)
       return next(e)
     })
@@ -391,9 +409,12 @@ export const register: Register = (on, options) => {
   on('prompt.submit', async ($, e, next) => {
     const drop = await gatePrompt($, e, await canAskInBand($))
     if (drop !== undefined) return { drop }
-    // `skill.prompt` is not registered: a typed `/skill` stands in for it.
-    if (options.hook_events === false && e.command !== undefined)
-      await onSkillStart($, e.command.name)
+    // With `hook_events` off `skill.prompt` is not registered: a typed `/skill` stands in for it.
+    // With it on, the typed `/skill` is only watched, to see whether `skill.prompt` follows.
+    if (e.command !== undefined) {
+      if (options.hook_events === false) await onSkillStart($, e.command.name)
+      else await noteSkillSeen($, e.command.name)
+    }
     const context = await startContext($, e)
     return next(context === undefined ? e : { ...e, context: [...(e.context ?? []), ...context] })
   })
@@ -404,6 +425,7 @@ export const register: Register = (on, options) => {
       await finishAgent($, e.agentId as AgentId, e.reason)
       return result
     }
+    await noteHookSkipTurnEnd($, e, await drawsAnything($))
     await noteReplyTerms($, e.answer)
     await noteTurnEnded($, await finishTurn($, e))
     await noteMainTurnEnd($, e.isAborted === true)
@@ -578,14 +600,13 @@ export const register: Register = (on, options) => {
     return answer === DIAGNOSE_FIRST ? { deny: DIAGNOSE_REASON } : next(e)
   })
 
-  // `skill.prompt` is not registered: the Skill call stands in for it, beneath the gates above so a
-  // denied call starts nothing.
-  if (options.hook_events === false) {
-    on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
-      await onSkillStart($, e.skill)
-      return next(e)
-    })
-  }
+  // With `hook_events` off the Skill call stands in for `skill.prompt`; with it on, it is only
+  // watched. Beneath the gates above, so a denied call starts nothing.
+  on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
+    if (options.hook_events === false) await onSkillStart($, e.skill)
+    else await noteSkillSeen($, e.skill)
+    return next(e)
+  })
 
   on('tool.call', { tool: 'Edit' }, denyIntegrationEdit)
   on('tool.call', { tool: 'Write' }, denyIntegrationEdit)

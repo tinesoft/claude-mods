@@ -1,6 +1,6 @@
 # Craftory hook-skip notice
 
-Status: needs-triage
+**Status:** resolved
 
 Source: grilling thread on 2026-11-21 ("what next for craftory"), decisions Q6, Q7 and Q10. Seen live: in that session `cc-plugin-sec-default` ran first and sent `skill.prompt` past Craftory, and Craftory said nothing. Builds on the `hook_events` option in `mods/craftory/.claude-plugin/plugin.json` and the fallback paths in `mods/craftory/hooks/register.tsx` (`prompt.submit` and `tool.call` `{ tool: 'Skill' }`).
 

@@ -30,6 +30,7 @@ export const PANE_NOTICES: ReadonlySet<EventNotice['kind']> = new Set([
   'over-budget-refusal',
   'throttle',
   'forecast-window',
+  'hook-skip',
 ])
 
 export type NoticeButton = { id: string; label: string; action: Action; primary?: true }
@@ -432,6 +433,32 @@ export function eventNotice(notice: EventNotice, offer?: WayfinderOffer): Notice
             action: { kind: 'dismiss-wayfinder', noticeId: notice.id },
           },
         ],
+      }
+    case 'hook-skip':
+      return {
+        id: notice.id,
+        role: 'hook',
+        text:
+          notice.state === 'ask'
+            ? "A security guard skips Craftory's `skill.prompt` hook, so phases may not show as Running."
+            : notice.text,
+        replacesRail: false,
+        actions:
+          notice.state === 'ask'
+            ? [
+                {
+                  id: 'turn-off-hook-events',
+                  label: 'Turn off hook events',
+                  action: { kind: 'turn-off-hook-events', noticeId: notice.id },
+                  primary: true,
+                },
+                {
+                  id: 'not-now-hook-skip',
+                  label: 'Not now',
+                  action: { kind: 'dismiss', noticeId: notice.id },
+                },
+              ]
+            : [dismiss(notice.id)],
       }
     case 'spend-budget':
       return spendBudgetNotice(notice)

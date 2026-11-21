@@ -640,6 +640,7 @@ export type EventNotice =
   | { kind: 'spec-published'; id: string; spec: IssueRef; stories: number | null }
   | { kind: 'retro-ready'; id: string; suggestions: number | null }
   | { kind: 'suggest-wayfinder'; id: string }
+  | HookSkipNotice
   | ThrottleNotice
   | ForecastWindowNotice
   | SpendBudgetNotice
@@ -707,6 +708,14 @@ export type ForecastWindowNotice = {
  * `scope` is the key Craftory records as fired: `session:<what>` re-arms in a new session,
  * other scopes (`feature:<key>:<what>`, `repo:<what>`) are kept by the automation that raises them.
  */
+/**
+ * `skill.prompt` looks skipped: `ask` offers to turn `hook_events` off, `done` says what happened
+ * after the press (the reload line, or why the switch was refused).
+ */
+export type HookSkipNotice =
+  | { kind: 'hook-skip'; id: string; state: 'ask' }
+  | { kind: 'hook-skip'; id: string; state: 'done'; text: string }
+
 export type AutomationNotice = {
   kind: 'automation'
   id: string
@@ -789,6 +798,10 @@ declare module 'claude-code' {
       passes: GatePass[]
       notices: EventNotice[]
       dismissed: NoticeKey[]
+      /** Matt skills started by a typed command or a Skill call that no `skill.prompt` has answered yet. */
+      hookSkipPending: string[]
+      /** Skill starts this session whose turn ended with no `skill.prompt` for them. */
+      hookSkipMisses: number
       /** Automation scopes that already raised their notice (AutomationNotice `scope`). */
       automationsFired: string[]
       /** The architecture check started in the main session and has not reported yet. */

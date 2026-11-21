@@ -37,6 +37,7 @@ export type Action =
   | { kind: 'rename'; noticeId: string; term: string }
   | { kind: 'review-retro'; noticeId: string }
   | { kind: 'dismiss'; noticeId: string }
+  | { kind: 'turn-off-hook-events'; noticeId: string }
   | { kind: 'automation-run'; noticeId: string; skill: SkillName; args: string }
   | { kind: 'wayfinder'; noticeId: string; args: string; map?: IssueRef }
   | { kind: 'dismiss-wayfinder'; noticeId: string }
