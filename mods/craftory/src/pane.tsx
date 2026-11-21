@@ -11,6 +11,7 @@ import {
   type SpendTabView,
 } from './spend-view'
 import {
+  ALL_CONTEXTS,
   flowRows,
   paneHeader,
   type FlowRowView,
@@ -45,7 +46,7 @@ import {
 } from './theme'
 import { Chip, figureInk, Icon, inkOf, isRich, padRowsOf, roleInk, type Ui } from './ui'
 import type { ArchiveView } from './archive'
-import { Badge, CardButton, Entry } from './widgets'
+import { Badge, CardButton, Entry, Segments } from './widgets'
 
 export type PaneActions = {
   tab: (tab: PaneTab) => void
@@ -58,6 +59,7 @@ export type PaneActions = {
   implement: (arg: string) => void
   implementSpec: () => void
   search: (text: string) => void
+  filterGlossary: (context: string) => void
   editTerm: (name: string) => void
   rail: Pick<BandActions, 'phase' | 'triage'>
   map: () => void
@@ -1012,9 +1014,25 @@ const GlossaryTab = ({
           onSubmit={text => on.search(text)}
         />
       )}
+      {view.chips.length > 0 && (
+        <Segments
+          ui={ui}
+          tone={tone}
+          id="chip"
+          prefix="glossary"
+          choices={[[ALL_CONTEXTS, 'All'], ...view.chips.map(c => [c, c] as const)]}
+          current={view.filter}
+          onPick={context => on.filterGlossary(context)}
+        />
+      )}
       <Text key="glossary-summary" mono={rich} {...inkOf(tone, 'muted')}>
         {view.summary}
       </Text>
+      {view.problems.map(problem => (
+        <Text key={`glossary-problem-${problem}`} wrap="wrap" color={paint('danger', tone).fg}>
+          {problem}
+        </Text>
+      ))}
       {view.hasFile && (
         <Box
           key="glossary-used"
@@ -1046,35 +1064,56 @@ const GlossaryTab = ({
           </Text>
         </Box>
       )}
-      {view.terms.map(term => (
-        <Box key={`term-${term.name}`} flexDirection="column" rowGap={SPACE.lineGap}>
-          <Box
-            flexDirection="row"
-            justifyContent="space-between"
-            columnGap={SPACE.rowLabelGap}
-            alignItems="center"
-          >
-            <Box flexDirection="row" columnGap={SPACE.rowLabelGap}>
-              <Text bold {...inkOf(tone, 'ink')}>
-                {term.name}
-              </Text>
-              {term.isNew && <Badge ui={ui} tone={tone} role="perm" text="New" id={term.name} />}
-            </Box>
-            <CardButton
-              padY
-              ui={ui}
-              tone={tone}
-              id={`term-edit-${term.name}`}
-              label="Edit"
-              onPress={() => on.editTerm(term.name)}
-            />
-          </Box>
-          <Text wrap="wrap" {...inkOf(tone, 'text2')}>
-            {term.definition}
-          </Text>
-          {term.avoid.length > 0 && (
-            <Text wrap="wrap" {...inkOf(tone, 'muted')}>{`Avoid: ${term.avoid.join(', ')}`}</Text>
+      {view.groups.map(group => (
+        <Box key={`group-${group.name ?? ''}`} flexDirection="column" rowGap={SPACE.paneGap}>
+          {group.name !== null && (
+            <Text bold {...inkOf(tone, 'ink')}>
+              {group.name}
+            </Text>
           )}
+          {group.note !== null && (
+            <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+              {group.note}
+            </Text>
+          )}
+          {group.terms.map(term => (
+            <Box key={`term-${term.name}`} flexDirection="column" rowGap={SPACE.lineGap}>
+              <Box
+                flexDirection="row"
+                justifyContent="space-between"
+                columnGap={SPACE.rowLabelGap}
+                alignItems="center"
+              >
+                <Box flexDirection="row" columnGap={SPACE.rowLabelGap}>
+                  <Text bold {...inkOf(tone, 'ink')}>
+                    {term.name}
+                  </Text>
+                  {term.isNew && (
+                    <Badge ui={ui} tone={tone} role="perm" text="New" id={term.name} />
+                  )}
+                </Box>
+                {group.name === null && (
+                  <CardButton
+                    padY
+                    ui={ui}
+                    tone={tone}
+                    id={`term-edit-${term.name}`}
+                    label="Edit"
+                    onPress={() => on.editTerm(term.name)}
+                  />
+                )}
+              </Box>
+              <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+                {term.definition}
+              </Text>
+              {term.avoid.length > 0 && (
+                <Text
+                  wrap="wrap"
+                  {...inkOf(tone, 'muted')}
+                >{`Avoid: ${term.avoid.join(', ')}`}</Text>
+              )}
+            </Box>
+          ))}
         </Box>
       ))}
     </Box>

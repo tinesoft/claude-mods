@@ -1,10 +1,10 @@
 import type {
+  ContextSnapshot,
   CraftoryConfig,
   EnterAt,
-  GlossaryDoc,
+  GlossaryMap,
   Issue,
   IssueRef,
-  Loaded,
   PaneTab,
   PhaseId,
   TrackerLink,
@@ -277,47 +277,106 @@ export function ticketsView(args: {
   }
 }
 
-export type GlossaryView = {
+/** The filter chip that shows every context. */
+export const ALL_CONTEXTS = '*'
+
+export type GlossaryGroup = {
+  /** The context's name; null in a repo without a map, where the one glossary has no heading. */
+  name: string | null
+  /** Why the group has no terms to list: no file yet, or one that could not be read. */
+  note: string | null
   terms: (Term & { isNew: boolean })[]
+}
+
+export type GlossaryView = {
+  groups: GlossaryGroup[]
   total: number
   summary: string
   used: Term[]
   hasFile: boolean
+  /** Context names for the filter chips; empty in a repo without a map. */
+  chips: string[]
+  /** The selected chip: a context name, or ALL_CONTEXTS. */
+  filter: string
+  /** Map lines Craftory could not use. */
+  problems: string[]
 }
 
+const matches = (t: Term, needle: string) =>
+  needle === '' ||
+  [t.name, t.definition, ...t.avoid].some(text => text.toLowerCase().includes(needle))
+
 export function glossaryView(args: {
-  doc: Loaded<GlossaryDoc> | undefined
+  contexts: readonly ContextSnapshot[] | undefined
+  map: GlossaryMap | null
+  mapPath: string
+  /** The glossary path of a repo without a map. */
   path: string
   query: string
+  filter: string | null
   used: readonly string[]
   atStart: readonly string[] | null
 }): GlossaryView {
-  const { doc, path, query, used, atStart } = args
-  if (doc?.state !== 'ok')
-    return {
-      terms: [],
-      total: 0,
-      summary: doc?.state === 'invalid' ? `${path} could not be read` : `No ${path} yet`,
-      used: [],
-      hasFile: false,
-    }
-  const all = termsOf(doc.value)
+  const { contexts = [], map, mapPath, path, query, used, atStart } = args
+  const all = contexts.flatMap(c => (c.glossary.state === 'ok' ? termsOf(c.glossary.value) : []))
   const known = new Set(atStart ?? all.map(t => termKey(t.name)))
   const added = all.filter(t => !known.has(termKey(t.name))).length
   const needle = query.trim().toLowerCase()
-  const shown = all
-    .filter(
-      t =>
-        needle === '' ||
-        [t.name, t.definition, ...t.avoid].some(text => text.toLowerCase().includes(needle)),
-    )
-    .map(t => ({ ...t, isNew: !known.has(termKey(t.name)) }))
+  const withNew = (terms: Term[]) =>
+    terms.filter(t => matches(t, needle)).map(t => ({ ...t, isNew: !known.has(termKey(t.name)) }))
+  const usedTerms = [
+    ...new Map(
+      all.filter(t => used.includes(termKey(t.name))).map(t => [termKey(t.name), t]),
+    ).values(),
+  ]
+  if (map === null) {
+    const doc = contexts[0]?.glossary
+    if (doc?.state !== 'ok')
+      return {
+        groups: [],
+        total: 0,
+        summary: doc?.state === 'invalid' ? `${path} could not be read` : `No ${path} yet`,
+        used: [],
+        hasFile: false,
+        chips: [],
+        filter: ALL_CONTEXTS,
+        problems: [],
+      }
+    return {
+      groups: [{ name: null, note: null, terms: withNew(termsOf(doc.value)) }],
+      total: all.length,
+      summary: `${path} · ${added} added this session`,
+      used: usedTerms,
+      hasFile: true,
+      chips: [],
+      filter: ALL_CONTEXTS,
+      problems: [],
+    }
+  }
+  const filter =
+    args.filter !== null && contexts.some(c => c.name === args.filter) ? args.filter : ALL_CONTEXTS
+  const groups = contexts
+    .filter(c => filter === ALL_CONTEXTS || c.name === filter)
+    .map((c): GlossaryGroup => {
+      const note =
+        c.glossary.state === 'ok'
+          ? null
+          : c.glossary.state === 'invalid'
+            ? `${c.path} could not be read`
+            : 'No glossary yet'
+      const terms = c.glossary.state === 'ok' ? withNew(termsOf(c.glossary.value)) : []
+      return { name: c.name, note: needle === '' ? note : null, terms }
+    })
+    .filter(g => g.note !== null || g.terms.length > 0)
   return {
-    terms: shown,
+    groups,
     total: all.length,
-    summary: `${path} · ${added} added this session`,
-    used: all.filter(t => used.includes(termKey(t.name))),
+    summary: `${mapPath} · ${contexts.length} ${contexts.length === 1 ? 'context' : 'contexts'} · ${added} added this session`,
+    used: usedTerms,
     hasFile: true,
+    chips: contexts.map(c => c.name),
+    filter,
+    problems: map.problems,
   }
 }
 

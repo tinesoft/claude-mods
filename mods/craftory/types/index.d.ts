@@ -175,7 +175,23 @@ export type TriageLabels = Record<TriageRole, string>
 
 export type SteeringFile = 'AGENTS.md' | 'CLAUDE.md'
 
-export type DocsLayout = { glossary: string; adr: string }
+/** `map` is set when docs/agents/domain.md names a glossary map: the repo is multi-context. */
+export type DocsLayout = { glossary: string; adr: string; map?: string }
+
+export type GlossaryMapContext = { name: string; description: string; path: string; folder: string }
+
+/** A read GLOSSARY-MAP.md: its contexts, its relationships and the lines it could not use. */
+export type GlossaryMap = {
+  contexts: GlossaryMapContext[]
+  relationships: string[]
+  problems: string[]
+}
+
+/**
+ * One glossary of a repo. A single-context repo has exactly one, named after its title, with
+ * folder ".". `glossary` is `absent` when the file does not exist yet.
+ */
+export type ContextSnapshot = GlossaryMapContext & { glossary: Loaded<GlossaryDoc> }
 
 /**
  * What /setup-matt-pocock-skills would have asked. `triage: null` means the triage skill is
@@ -757,7 +773,10 @@ export type TermDraft = { name: string; definition: string; avoid: string; editi
 export type RepoSnapshot = {
   config: Loaded<CraftoryConfig>
   setup: Loaded<AgentSetup>
-  glossary: Loaded<GlossaryDoc>
+  /** Every context's glossary; one for a repo without a map. All readers go through this. */
+  contexts: ContextSnapshot[]
+  /** The glossary map, read-only, or null in a single-context repo. */
+  glossaryMap: GlossaryMap | null
   steering: { file: SteeringFile | null; hasBlock: boolean }
   remoteHost: 'github' | 'gitlab' | 'other' | null
   hasContextMd: boolean

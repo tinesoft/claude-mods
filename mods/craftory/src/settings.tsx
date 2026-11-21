@@ -1,5 +1,5 @@
 import type { RenderSurface } from 'claude-code'
-import type { SettingsSection, Term, TermDraft, Tone } from '../types'
+import type { GlossaryMap, SettingsSection, Term, TermDraft, Tone } from '../types'
 import {
   HELPERS,
   SECTIONS,
@@ -18,6 +18,8 @@ export type GlossaryEdit = {
   path: string
   hasContextMd: boolean
   error: string | null
+  /** The glossary map, shown read-only; null in a repo without one. */
+  map: GlossaryMap | null
 }
 
 export type SettingsActions = {
@@ -162,6 +164,37 @@ const RowView = ({
   }
 }
 
+const GlossaryMapView = ({
+  ui,
+  tone,
+  map,
+  path,
+}: Pick<SettingsArgs, 'ui' | 'tone'> & { map: GlossaryMap; path: string }) => {
+  const { Box, Text } = ui
+  return (
+    <Box key="settings-glossary-map" flexDirection="column" rowGap={SPACE.paneGap}>
+      <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+        {`${path} lists each context's glossary. Add, rename or remove contexts with /domain-modeling.`}
+      </Text>
+      {map.contexts.map(c => (
+        <Text key={`map-${c.name}`} wrap="wrap" {...inkOf(tone, 'ink2')}>
+          {`${c.name}: ${c.description} (${c.path})`}
+        </Text>
+      ))}
+      {map.relationships.map(r => (
+        <Text key={`rel-${r}`} wrap="wrap" {...inkOf(tone, 'text2')}>
+          {r.replaceAll('**', '')}
+        </Text>
+      ))}
+      {map.problems.map(p => (
+        <Text key={`problem-${p}`} wrap="wrap" color={paint('danger', tone).fg}>
+          {p}
+        </Text>
+      ))}
+    </Box>
+  )
+}
+
 const GlossarySection = ({
   ui,
   tone,
@@ -172,6 +205,8 @@ const GlossarySection = ({
   const { Box, Text } = ui
   const { draft } = glossary
   const t = tone === undefined ? undefined : TOKENS[tone]
+  if (glossary.map !== null)
+    return <GlossaryMapView ui={ui} tone={tone} map={glossary.map} path={glossary.path} />
   return (
     <Box key="settings-glossary" flexDirection="column" rowGap={SPACE.paneGap}>
       {glossary.terms.length === 0 && (

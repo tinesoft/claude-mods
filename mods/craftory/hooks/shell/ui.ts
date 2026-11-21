@@ -32,7 +32,8 @@ import {
   requestOf,
   warnBeforeBuild,
 } from './flow'
-import { glossaryTerms, repoFacts } from './repo'
+import { GLOSSARY_MAP } from '../../src/glossary-map'
+import { glossaryTerms, repoFacts, repoRoot } from './repo'
 import { readContext, refreshFiles, refreshGit, refreshTracker } from './sync'
 import { trackerKindOf, trackerOf } from './tracker'
 
@@ -282,11 +283,25 @@ export async function togglePane($: EngineInterface, tab: PaneTab) {
   else await openPane($, tab)
 }
 
+/** The chip a person picked is theirs and this repo's: it lives in the store, never in the repo. */
+async function glossaryFilterKey($: EngineInterface) {
+  return `glossaryFilter:${(await repoRoot($)) ?? ''}`
+}
+
+export async function filterGlossary($: EngineInterface, context: string) {
+  await $.store.set(await glossaryFilterKey($), context)
+  $.ui.invalidate('ui.render')
+}
+
 export async function glossaryViewOf($: EngineInterface) {
   const { repo, docs } = await repoFacts($)
+  const filter = await $.store.get(await glossaryFilterKey($)).catch(() => undefined)
   return glossaryView({
-    doc: repo?.glossary,
+    contexts: repo?.contexts,
+    map: repo?.glossaryMap ?? null,
+    mapPath: docs.map ?? GLOSSARY_MAP,
     path: docs.glossary,
+    filter: typeof filter === 'string' ? filter : null,
     query: await read($, glossaryQueryState),
     used: await read($, lastReplyTermsState),
     atStart: await read($, glossaryAtStartState),

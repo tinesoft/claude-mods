@@ -24,7 +24,8 @@ import {
   pluginStatus,
   PROBE_TIMEOUT_MS,
 } from '../../src/plugin'
-import type { InstallState, RepoSnapshot } from '../../types'
+import type { ContextSnapshot, DocsLayout, InstallState, RepoSnapshot } from '../../types'
+import { GLOSSARY_MAP, parseGlossaryMap, titleOf } from '../../src/glossary-map'
 
 const repoState = atom({ plugin: 'craftory', key: 'repo' } as const, null)
 
@@ -98,12 +99,36 @@ export async function readSetupFiles($: EngineInterface): Promise<SetupFiles> {
   return { tracker, triage, domain, claudeMd, agentsMd, gitignore }
 }
 
+/**
+ * The glossary map when it exists on disk, whatever docs/agents/domain.md says, with each
+ * context's glossary; else the one glossary of a single-context repo.
+ */
+async function loadContexts($: EngineInterface, docs: DocsLayout) {
+  const mapText = await readText($, docs.map ?? GLOSSARY_MAP)
+  const glossaryMap = mapText === null ? null : parseGlossaryMap(mapText)
+  const entries = glossaryMap?.contexts ?? [
+    { name: '', description: '', path: docs.glossary, folder: '.' },
+  ]
+  const contexts = await Promise.all(
+    entries.map(async (entry): Promise<ContextSnapshot> => {
+      const text = await readText($, entry.path)
+      return {
+        ...entry,
+        name: glossaryMap === null ? titleOf(text) : entry.name,
+        glossary: parseGlossary(text),
+      }
+    }),
+  )
+  return { contexts, glossaryMap }
+}
+
 export async function loadRepo($: EngineInterface) {
   const [configText, files] = await Promise.all([readText($, CONFIG_PATH), readSetupFiles($)])
   const config = parseConfig(configText)
   const setup = readSetup(files)
-  const [glossaryText, hasContextMd, hasScratch, url, at] = await Promise.all([
-    readText($, docsOf(setup).glossary),
+  const docs = docsOf(setup)
+  const [{ contexts, glossaryMap }, hasContextMd, hasScratch, url, at] = await Promise.all([
+    loadContexts($, docs),
     exists($, 'CONTEXT.md'),
     exists($, '.scratch'),
     remoteUrl($),
@@ -115,7 +140,8 @@ export async function loadRepo($: EngineInterface) {
   const snapshot: RepoSnapshot = {
     config,
     setup,
-    glossary: parseGlossary(glossaryText),
+    contexts,
+    glossaryMap,
     steering: { file, hasBlock: steering !== null && /^## Agent skills\s*$/m.test(steering) },
     remoteHost: remoteHostOf(url),
     hasContextMd,
@@ -191,7 +217,9 @@ export async function applyWrites(
 
 export async function glossaryTerms($: EngineInterface) {
   const repo = await repoSnapshot($)
-  return repo?.glossary.state === 'ok' ? termsOf(repo.glossary.value) : []
+  return (repo?.contexts ?? []).flatMap(c =>
+    c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
+  )
 }
 
 const GIT_MS = 15_000

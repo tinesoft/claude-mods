@@ -66,8 +66,11 @@ export function parseTriageLabels(text: string): TriageLabels {
 }
 
 export function parseDomainDoc(text: string): DocsLayout {
+  const named = /^- \*\*`([^`]+)`\*\* at the repo root/m.exec(text)?.[1]
+  const isMap = named !== undefined && /(^|\/)GLOSSARY-MAP\.md$/.test(named)
   return {
-    glossary: /^- \*\*`([^`]+)`\*\* at the repo root/m.exec(text)?.[1] ?? DEFAULT_DOCS.glossary,
+    glossary: named === undefined || isMap ? DEFAULT_DOCS.glossary : named,
+    ...(isMap && { map: named }),
     adr: /^- \*\*`([^`]+)`\*\*: read ADRs/m.exec(text)?.[1] ?? DEFAULT_DOCS.adr,
   }
 }

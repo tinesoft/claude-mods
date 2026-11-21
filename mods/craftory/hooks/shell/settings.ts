@@ -336,6 +336,8 @@ async function changeGlossary(
   done?: (path: string) => string,
 ) {
   const { setup } = await currentSetup($)
+  if ((await repoSnapshot($))?.glossaryMap)
+    return update($, termErrorState, () => 'Editing a context glossary is not available yet.')
   const path = setup.docs.glossary
   const raw = await readText($, path)
   const loaded = parseGlossary(raw)
@@ -454,9 +456,10 @@ export async function settingsArgs(
     glossary: {
       terms: await glossaryTerms($),
       draft,
-      path: facts.setup.docs.glossary,
+      path: facts.setup.docs.map ?? facts.setup.docs.glossary,
       hasContextMd: repo?.hasContextMd ?? false,
       error,
+      map: repo?.glossaryMap ?? null,
     },
     note,
     on: {
