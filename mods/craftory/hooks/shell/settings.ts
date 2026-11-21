@@ -20,7 +20,6 @@ import {
   termsOf,
 } from '../../src/glossary'
 import { defaultContextOf, newGlossary } from '../../src/glossary-map'
-import { driftDiffArgv } from '../../src/drift'
 import { namespaced, SKILLS } from '../../src/phases'
 import { hasSkill } from '../../src/plugin'
 import {
@@ -32,9 +31,8 @@ import {
 } from '../../src/sections'
 import type { SettingsData } from '../../src/settings'
 import type { AgentSetup, GlossaryDoc, PluginStatus, RepoSnapshot, TermDraft } from '../../types'
-import { activeRecord } from './features'
 import { settle } from './flow'
-import { gitOf } from './git'
+import { featureDiff } from './git'
 import { hasCostOf } from './spend'
 import { refreshTracker } from './sync'
 import {
@@ -46,7 +44,6 @@ import {
   readText,
   repoFacts,
   repoSnapshot,
-  sh,
   withMap,
   writableContext,
 } from './repo'
@@ -343,14 +340,7 @@ const EMPTY_DRAFT: TermDraft = { name: '', definition: '', avoid: '', editing: n
 async function chosenContext($: EngineInterface, picked: string | null) {
   const contexts = (await repoSnapshot($))?.contexts ?? []
   if (picked !== null && contexts.some(c => c.name === picked)) return picked
-  const [record, git] = await Promise.all([activeRecord($), gitOf($)])
-  const integration = record?.integrationBranch
-  const base = git?.branch
-  const diff =
-    integration && base && integration !== base
-      ? await sh($, driftDiffArgv(base, integration))
-      : null
-  return defaultContextOf(diff?.exitCode === 0 ? diff.stdout : null, contexts)
+  return defaultContextOf(await featureDiff($), contexts)
 }
 
 async function changeGlossary(

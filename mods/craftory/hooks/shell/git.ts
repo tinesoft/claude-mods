@@ -10,7 +10,8 @@ import {
 } from '../../src/git'
 import { parentOf } from '../../src/tracker'
 import type { GitSnapshot } from '../../types'
-import { featuresOf } from './features'
+import { driftDiffArgv } from '../../src/drift'
+import { activeRecord, featuresOf } from './features'
 import { ledgerOf } from './ledger'
 import { remoteUrl, repoFacts, sh } from './repo'
 import { trackerOf } from './tracker'
@@ -19,6 +20,19 @@ const gitState = atom({ plugin: 'craftory', key: 'git' } as const, null)
 
 export function gitOf($: EngineInterface) {
   return read($, gitState)
+}
+
+/**
+ * The active Feature's integration diff against the checked-out branch, as the drift scan and
+ * the Add-term default read it; null when there is no Feature branch apart from it, or git fails.
+ */
+export async function featureDiff($: EngineInterface): Promise<string | null> {
+  const [record, git] = await Promise.all([activeRecord($), gitOf($)])
+  const integration = record?.integrationBranch
+  const base = git?.branch
+  if (!integration || !base || integration === base) return null
+  const diff = await sh($, driftDiffArgv(base, integration))
+  return diff?.exitCode === 0 ? diff.stdout : null
 }
 
 /** Reads the worktrees and branches into the snapshot; null when git is not there to ask. */

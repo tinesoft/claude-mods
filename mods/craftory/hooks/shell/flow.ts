@@ -2,7 +2,7 @@ import { atom, type EngineInterface, read, type Timer, update } from 'claude-cod
 import { archiveRisks, canArchive, isAutoArchivable, shipFactsOf } from '../../src/archive'
 import { integrationContext, isoOf } from '../../src/build'
 import { integrationBranchFor } from '../../src/config'
-import { driftDiffArgv, findDriftByContext, rankedText, retroSuggestions } from '../../src/drift'
+import { findDriftByContext, rankedText, retroSuggestions } from '../../src/drift'
 import {
   overBudgetDenial,
   overBudgetVerdict,
@@ -49,7 +49,7 @@ import {
 import { pendingEscalations } from './escalation'
 import { buildForecastNow, saveForecast } from './forecast'
 import { retroContextOf, writeSpendSummary } from './spend-summary'
-import { gitOf } from './git'
+import { featureDiff, gitOf } from './git'
 import { pointsPerDollarNow, throttleNow, windowReadingOf } from './limits'
 import { ledgerOf, runOf } from './ledger'
 import {
@@ -62,7 +62,7 @@ import {
   pruneGateNotices,
   removeNotices,
 } from './notices'
-import { pluginOf, repoFacts, sh } from './repo'
+import { pluginOf, repoFacts } from './repo'
 import { budgetStandingsOf, featureSpendOf, moveDraftSpend, overrunNow } from './spend'
 import { checkSpendBudgets } from './spend-budgets'
 import { trackerOf } from './tracker'
@@ -587,24 +587,16 @@ export async function markDone($: EngineInterface, phase: PhaseId) {
 }
 
 async function scanDrift($: EngineInterface) {
-  const [git, record, { docs, repo }] = await Promise.all([gitOf($), activeRecord($), repoFacts($)])
+  const { docs, repo } = await repoFacts($)
   const contexts = repo?.contexts ?? []
   const scopes = contexts.map(c => ({
     folder: c.folder,
     terms: c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
   }))
-  const integration = record?.integrationBranch
-  const base = git?.branch
-  if (
-    !integration ||
-    !base ||
-    integration === base ||
-    !scopes.some(s => s.terms.some(t => t.avoid.length > 0))
-  )
-    return
-  const diff = await sh($, driftDiffArgv(base, integration))
-  if (diff === null || diff.exitCode !== 0) return
-  for (const f of findDriftByContext(diff.stdout, scopes, [
+  if (!scopes.some(s => s.terms.some(t => t.avoid.length > 0))) return
+  const diff = await featureDiff($)
+  if (diff === null) return
+  for (const f of findDriftByContext(diff, scopes, [
     docs.glossary,
     ...contexts.map(c => c.path),
     'CONTEXT.md',
