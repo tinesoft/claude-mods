@@ -53,7 +53,8 @@ export function findDriftByContext(
     let best: DriftScope | undefined
     for (const s of scopes)
       if (holds(s.folder, file) && (!best || s.folder.length > best.folder.length)) best = s
-    return best ? best.terms : everyTerm
+    // a root context holds every file, so a file only it holds is a shared one: every context's
+    return best && best.folder !== '.' ? best.terms : everyTerm
   }
   return countDrift(addedWithFiles(diff, skipFiles), termsFor)
 }

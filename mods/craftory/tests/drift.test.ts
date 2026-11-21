@@ -72,6 +72,18 @@ test('with nested contexts the deepest folder wins', () => {
   ])
 })
 
+test("a root context's folder does not claim the files no other context holds", () => {
+  const withRoot = [
+    { folder: '.', terms: [{ name: 'Mod', definition: 'd', avoid: ['plugin'] }] },
+    ...scopes,
+  ]
+  const diff = '+++ b/tools/x.mjs\n+a plugin, a line item and a client\n'
+  expect(findDriftByContext(diff, withRoot)).toHaveLength(3)
+  expect(findDriftByContext(`+++ b/mods/b/x.ts\n+a plugin and a client\n`, withRoot)).toEqual([
+    { term: 'Customer', avoided: 'client', count: 1 },
+  ])
+})
+
 test('a folder prefix is not a match: mods/ab is not under mods/a', () => {
   expect(findDriftByContext(both('mods/ab/x.ts'), scopes)).toHaveLength(2)
 })
