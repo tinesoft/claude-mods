@@ -226,7 +226,10 @@ const GlossarySection = ({
         {...(isRich(ui) &&
           t !== undefined && {
             borderStyle: 'round' as const,
-            borderColor: draft.editing === term.name ? t.lineStrong : t.line,
+            borderColor:
+              draft.editing === term.name && (context === null || draft.context === context)
+                ? t.lineStrong
+                : t.line,
             backgroundColor: t.surface,
             paddingX: SPACE.agentsPadX,
             paddingY: SPACE.agentsPadY,

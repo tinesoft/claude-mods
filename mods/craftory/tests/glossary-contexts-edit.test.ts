@@ -34,8 +34,9 @@ const open = async (
     ...options,
     files: { ...FILES, ...options.files },
   })
-  await startSession($, 'terminal')
-  const pane = await mountPane($, 'terminal')
+  const surface = options.surfaces?.[0] ?? 'terminal'
+  await startSession($, surface)
+  const pane = await mountPane($, surface)
   await pane.press({ key: 'tab-settings' })
   await pane.press({ key: 'section-section-glossary' })
   return { w, pane }
@@ -99,6 +100,20 @@ test('a name added to a second context this session is New there and only there'
   expect(all).toContain('1 added this session')
   expect(all.split('[New]')).toHaveLength(2)
   expect(all.indexOf('[New]')).toBeGreaterThan(all.indexOf('Shipping Parcel'))
+})
+
+test('editing a name two contexts define highlights only the card being edited', async ($, on) => {
+  const shipping = `${SHIPPING}\n**Customer**:\nThe receiver.\n`
+  const { pane } = await open(on, $, {
+    surfaces: ['desktop'],
+    files: { 'shipping/GLOSSARY.md': shipping },
+  })
+  const border = async (key: string) => (await pane.find({ key }))?.props.borderColor
+  const plain = await border('gl-Shipping-Customer')
+  await pane.press({ key: 'gl-edit-Billing-Customer' })
+  await pane.redraw()
+  expect(await border('gl-Billing-Customer')).not.toBe(plain)
+  expect(await border('gl-Shipping-Customer')).toBe(plain)
 })
 
 test('Add term with nothing picked goes to the first context in the map when there is no diff', async ($, on) => {
