@@ -1,5 +1,12 @@
 import { expect, test } from 'claude-code/testing'
-import { addedLines, driftText, findDrift, retroSuggestions, retroText } from '../src/drift'
+import {
+  addedLines,
+  driftText,
+  findDrift,
+  findDriftByContext,
+  retroSuggestions,
+  retroText,
+} from '../src/drift'
 import { fakeGit } from './build-harness'
 import {
   allText,
@@ -37,6 +44,36 @@ test('only added lines count, whole words only, code spans and the glossary file
     { term: 'Customer', avoided: 'client', count: 3 },
     { term: 'Ledger line', avoided: 'line item', count: 2 },
   ])
+})
+
+const scopes = [
+  { folder: 'mods/a', terms: [{ name: 'Ledger line', definition: 'd', avoid: ['line item'] }] },
+  { folder: 'mods/b', terms: [{ name: 'Customer', definition: 'd', avoid: ['client'] }] },
+]
+const both = (file: string) => `+++ b/${file}\n+a line item and a client\n`
+
+test("a file under a context is flagged only for that context's avoid-words", () => {
+  expect(findDriftByContext(both('mods/a/x.ts'), scopes)).toEqual([
+    { term: 'Ledger line', avoided: 'line item', count: 1 },
+  ])
+})
+
+test('a file outside every context is flagged for all of them', () => {
+  expect(findDriftByContext(both('README.md'), scopes)).toHaveLength(2)
+})
+
+test('with nested contexts the deepest folder wins', () => {
+  const nested = [
+    ...scopes,
+    { folder: 'mods/a/deep', terms: [{ name: 'Customer', definition: 'd', avoid: ['client'] }] },
+  ]
+  expect(findDriftByContext(both('mods/a/deep/x.ts'), nested)).toEqual([
+    { term: 'Customer', avoided: 'client', count: 1 },
+  ])
+})
+
+test('a folder prefix is not a match: mods/ab is not under mods/a', () => {
+  expect(findDriftByContext(both('mods/ab/x.ts'), scopes)).toHaveLength(2)
 })
 
 test('removed lines and diff headers never count', () => {

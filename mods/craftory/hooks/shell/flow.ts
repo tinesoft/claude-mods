@@ -2,7 +2,7 @@ import { atom, type EngineInterface, read, type Timer, update } from 'claude-cod
 import { archiveRisks, canArchive, isAutoArchivable, shipFactsOf } from '../../src/archive'
 import { integrationContext, isoOf } from '../../src/build'
 import { integrationBranchFor } from '../../src/config'
-import { driftDiffArgv, findDrift, rankedText, retroSuggestions } from '../../src/drift'
+import { driftDiffArgv, findDriftByContext, rankedText, retroSuggestions } from '../../src/drift'
 import {
   overBudgetDenial,
   overBudgetVerdict,
@@ -13,7 +13,7 @@ import {
 import { deriveFlow, type Flow } from '../../src/evidence'
 import { draftKey, enteredRecord, featureOf, isArchived, specKey } from '../../src/features'
 import { dropText, type RunRequest } from '../../src/gates'
-import { termKey } from '../../src/glossary'
+import { termKey, termsOf } from '../../src/glossary'
 import type { InboxAction } from '../../src/pane-view'
 import { namespaced, recognise } from '../../src/phases'
 import { bareIsOurs } from '../../src/plugin'
@@ -62,7 +62,7 @@ import {
   pruneGateNotices,
   removeNotices,
 } from './notices'
-import { glossaryTerms, pluginOf, repoFacts, sh } from './repo'
+import { pluginOf, repoFacts, sh } from './repo'
 import { budgetStandingsOf, featureSpendOf, moveDraftSpend, overrunNow } from './spend'
 import { checkSpendBudgets } from './spend-budgets'
 import { trackerOf } from './tracker'
@@ -587,18 +587,28 @@ export async function markDone($: EngineInterface, phase: PhaseId) {
 }
 
 async function scanDrift($: EngineInterface) {
-  const [git, record, terms, { docs }] = await Promise.all([
-    gitOf($),
-    activeRecord($),
-    glossaryTerms($),
-    repoFacts($),
-  ])
+  const [git, record, { docs, repo }] = await Promise.all([gitOf($), activeRecord($), repoFacts($)])
+  const contexts = repo?.contexts ?? []
+  const scopes = contexts.map(c => ({
+    folder: c.folder,
+    terms: c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
+  }))
   const integration = record?.integrationBranch
   const base = git?.branch
-  if (!integration || !base || integration === base || !terms.some(t => t.avoid.length > 0)) return
+  if (
+    !integration ||
+    !base ||
+    integration === base ||
+    !scopes.some(s => s.terms.some(t => t.avoid.length > 0))
+  )
+    return
   const diff = await sh($, driftDiffArgv(base, integration))
   if (diff === null || diff.exitCode !== 0) return
-  for (const f of findDrift(diff.stdout, terms, [docs.glossary, 'CONTEXT.md']).slice(0, 3))
+  for (const f of findDriftByContext(diff.stdout, scopes, [
+    docs.glossary,
+    ...contexts.map(c => c.path),
+    'CONTEXT.md',
+  ]).slice(0, 3))
     await addNotice($, {
       kind: 'drift',
       id: `drift-${termKey(f.term)}-${termKey(f.avoided)}`,

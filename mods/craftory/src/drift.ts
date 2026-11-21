@@ -9,30 +9,62 @@ export const driftDiffArgv = (base: string, branch: string) =>
 /** `+++ b/path` names the file the following hunks belong to. */
 const fileOf = (line: string) => /^\+\+\+ (?:b\/)?(.+)$/.exec(line)?.[1]
 
-export function addedLines(diff: string, skipFiles: readonly string[]): string[] {
-  const added: string[] = []
+type AddedLine = { file: string; text: string }
+
+function addedWithFiles(diff: string, skipFiles: readonly string[]): AddedLine[] {
+  const added: AddedLine[] = []
   let file = ''
   for (const line of diff.split('\n')) {
     const named = fileOf(line)
     if (named !== undefined) file = named
     else if (line.startsWith('+') && !line.startsWith('+++') && !skipFiles.includes(file))
-      added.push(line.slice(1))
+      added.push({ file, text: line.slice(1) })
   }
   return added
 }
+
+export const addedLines = (diff: string, skipFiles: readonly string[]): string[] =>
+  addedWithFiles(diff, skipFiles).map(l => l.text)
 
 export function findDrift(
   diff: string,
   terms: readonly Term[],
   skipFiles: readonly string[] = [],
 ): DriftFinding[] {
-  const lines = addedLines(diff, skipFiles)
+  return countDrift(addedWithFiles(diff, skipFiles), () => terms)
+}
+
+/** A context's folder ("." for the repo root) and its terms. */
+export type DriftScope = { folder: string; terms: readonly Term[] }
+
+const holds = (folder: string, file: string) => folder === '.' || file.startsWith(`${folder}/`)
+
+/**
+ * Like findDrift, but each file is checked against the context whose folder holds it (the
+ * deepest wins); a file no context holds is checked against every context.
+ */
+export function findDriftByContext(
+  diff: string,
+  scopes: readonly DriftScope[],
+  skipFiles: readonly string[] = [],
+): DriftFinding[] {
+  const everyTerm = scopes.flatMap(s => s.terms)
+  const termsFor = (file: string) => {
+    let best: DriftScope | undefined
+    for (const s of scopes)
+      if (holds(s.folder, file) && (!best || s.folder.length > best.folder.length)) best = s
+    return best ? best.terms : everyTerm
+  }
+  return countDrift(addedWithFiles(diff, skipFiles), termsFor)
+}
+
+function countDrift(lines: readonly AddedLine[], termsOf: (file: string) => readonly Term[]) {
   const counts = new Map<string, DriftFinding>()
-  for (const line of lines) {
-    const skipped = skippedRanges(line, { links: false })
-    for (const term of terms)
+  for (const { file, text } of lines) {
+    const skipped = skippedRanges(text, { links: false })
+    for (const term of termsOf(file))
       for (const avoided of term.avoid) {
-        const hits = findWord(line, avoided, skipped).length
+        const hits = findWord(text, avoided, skipped).length
         if (hits === 0) continue
         const key = `${term.name}\0${avoided}`
         const old = counts.get(key)
