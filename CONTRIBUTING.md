@@ -71,6 +71,8 @@ npm install -g @anthropic-ai/claude-code@2.1.325
 
 Nx caches `lint`, `typecheck`, `validate` and `test` per `claude --version`, so changing versions reruns them.
 
+A test file imports only its own files by relative path and `claude-code`: `node:fs` fails the file. Hold fixtures as inline literals or in a `.ts` module next to the tests (see `upstream-fixtures.ts`). `claude plugin test` takes a folder and runs every test file in it; there is no single-file flag. When other agents share the machine, a run can time out on load: `tools/claude-pinned.mjs` prints the load average when it does, so rerun once it is quiet.
+
 ## Adding a mod
 
 1. Create `mods/<name>/` with `package.json`, `project.json`, `tsconfig.json` and `.claude-plugin/plugin.json`. Copy the shape of `mods/session-activity`.

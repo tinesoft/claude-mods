@@ -8,6 +8,7 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { cpus, loadavg } from 'node:os'
 import { createInterface } from 'node:readline'
 import { fileURLToPath } from 'node:url'
 
@@ -38,9 +39,12 @@ const child = spawn(cmd, argv, {
   stdio: ['inherit', quiet ? 'pipe' : 'inherit', quiet ? 'pipe' : 'inherit'],
 })
 
+let timeouts = 0
+
 function filter(input, output) {
   let header = null
   createInterface({ input }).on('line', line => {
+    if (/timed out after \d+ ?ms/.test(line)) timeouts++
     if (/^\s*\(pass\)/.test(line) || line.trim() === '') return
     if (/^\S.*\.test\.tsx?:$/.test(line)) {
       header = line
@@ -57,4 +61,13 @@ if (quiet) {
   filter(child.stdout, process.stdout)
   filter(child.stderr, process.stderr)
 }
-child.on('close', status => process.exit(status ?? 1))
+child.on('close', status => {
+  // Tests share the machine with whatever else runs: under load a slow test times out, which
+  // reads as a failure. Say so, with the load, so a rerun when it is quiet is the first move.
+  const load = loadavg()[0]
+  if (timeouts > 0 && load > cpus().length)
+    console.error(
+      `\n${timeouts} timeout(s) while the load average was ${load.toFixed(0)} on ${cpus().length} CPUs: likely load, not the code. Rerun when it is quiet.`,
+    )
+  process.exit(status ?? 1)
+})
