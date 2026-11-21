@@ -16,7 +16,7 @@ import {
   isWritable,
   type WritableContext,
 } from '../../src/files'
-import { parseGlossary, termsOf } from '../../src/glossary'
+import { mergedTerms, parseGlossary, termsOf } from '../../src/glossary'
 import {
   INSTALL_TIMEOUT_MS,
   installOutcome,
@@ -220,6 +220,16 @@ export async function glossaryTerms($: EngineInterface) {
   return (repo?.contexts ?? []).flatMap(c =>
     c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
   )
+}
+
+/**
+ * The reply's terms: one entry per name, with every context's definition labelled when the repo
+ * has a map; a repo without one reads as the flat list.
+ */
+export async function glossaryEntries($: EngineInterface) {
+  const repo = await repoSnapshot($)
+  if (repo?.glossaryMap == null) return glossaryTerms($)
+  return mergedTerms(repo.contexts)
 }
 
 const GIT_MS = 15_000

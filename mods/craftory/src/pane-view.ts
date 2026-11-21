@@ -16,7 +16,7 @@ import { budgetK } from './build'
 import { phaseButtons, type CardView } from './card-model'
 import type { Flow, SkipReason, TicketStatus } from './evidence'
 import { PHASES } from './phases'
-import { termKey, termsOf } from './glossary'
+import { mergedTerms, termKey, termsOf } from './glossary'
 import { argFor, byNumber } from './tracker/refs'
 import type { Term } from '../types'
 
@@ -324,11 +324,9 @@ export function glossaryView(args: {
   const needle = query.trim().toLowerCase()
   const withNew = (terms: Term[]) =>
     terms.filter(t => matches(t, needle)).map(t => ({ ...t, isNew: !known.has(termKey(t.name)) }))
-  const usedTerms = [
-    ...new Map(
-      all.filter(t => used.includes(termKey(t.name))).map(t => [termKey(t.name), t]),
-    ).values(),
-  ]
+  const usedTerms = mergedTerms(contexts)
+    .filter(t => used.includes(termKey(t.name)))
+    .map(t => (map === null ? { name: t.name, definition: t.definition, avoid: t.avoid } : t))
   if (map === null) {
     const doc = contexts[0]?.glossary
     if (doc?.state !== 'ok')

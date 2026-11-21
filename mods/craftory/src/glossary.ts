@@ -93,6 +93,26 @@ export const serialiseGlossary = (doc: GlossaryDoc) => doc.slices.map(s => s.raw
 export const termsOf = (doc: GlossaryDoc): Term[] =>
   doc.slices.flatMap(s => (s.kind === 'term' ? [s.term] : []))
 
+/**
+ * One entry per term name across the contexts, each carrying every definition labelled with its
+ * context. The entry reads as its first definition, so a term of one context is that term.
+ */
+export function mergedTerms(
+  contexts: readonly { name: string; glossary: Loaded<GlossaryDoc> }[],
+): Term[] {
+  const byKey = new Map<string, Term>()
+  for (const c of contexts) {
+    if (c.glossary.state !== 'ok') continue
+    for (const t of termsOf(c.glossary.value)) {
+      const def = { context: c.name, definition: t.definition, avoid: t.avoid }
+      const seen = byKey.get(termKey(t.name))
+      if (seen === undefined) byKey.set(termKey(t.name), { ...t, definitions: [def] })
+      else seen.definitions?.push(def)
+    }
+  }
+  return [...byKey.values()]
+}
+
 export const relationshipsOf = (doc: GlossaryDoc) =>
   doc.slices.flatMap(s => (s.kind === 'relationship' ? [s.text] : []))
 

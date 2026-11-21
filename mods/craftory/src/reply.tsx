@@ -82,12 +82,21 @@ const TermCard = ({
       <Text bold {...inkOf(tone, 'ink')}>
         {term.name}
       </Text>
-      <Text wrap="wrap" {...inkOf(tone, 'text2')}>
-        {term.definition}
-      </Text>
-      {term.avoid.length > 0 && (
-        <Text wrap="wrap" {...inkOf(tone, 'muted')}>{`Avoid: ${term.avoid.join(', ')}`}</Text>
-      )}
+      {(term.definitions ?? [{ context: null, ...term }]).map(def => (
+        <Box key={`def-${def.context ?? ''}`} flexDirection="column">
+          {def.context !== null && (
+            <Text mono size="caption" {...inkOf(tone, 'muted')}>
+              {def.context}
+            </Text>
+          )}
+          <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+            {def.definition}
+          </Text>
+          {def.avoid.length > 0 && (
+            <Text wrap="wrap" {...inkOf(tone, 'muted')}>{`Avoid: ${def.avoid.join(', ')}`}</Text>
+          )}
+        </Box>
+      ))}
       <Box flexDirection="row" columnGap={SPACE.buttonsGap}>
         <Button key={`term-wait-${key}`} plain onPress={() => on.ask(term)}>
           <Text mono color={paint('skill', tone).fg}>

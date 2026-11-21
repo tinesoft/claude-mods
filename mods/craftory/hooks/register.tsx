@@ -134,7 +134,7 @@ import { continueSpendBudget, raiseSpendBudget } from './shell/spend-budgets'
 import { mapViewOf, trackerOf, wayfinderOfferOf } from './shell/tracker'
 import {
   detectPlugin,
-  glossaryTerms,
+  glossaryEntries,
   installOf,
   installPlugin,
   loadRepo,
@@ -687,7 +687,7 @@ export const register: Register = (on, options) => {
       return next(e)
     const { config, docs } = await repoFacts($)
     if (!config.automation.underlineTerms) return next(e)
-    const linked = linkTerms(e.props.text, await glossaryTerms($))
+    const linked = linkTerms(e.props.text, await glossaryEntries($))
     if (linked.found.length === 0) return next(e)
     const table = $.ui.resolve(e)
     return (

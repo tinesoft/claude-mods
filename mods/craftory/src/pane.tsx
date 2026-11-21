@@ -1053,12 +1053,26 @@ const GlossaryTab = ({
           {view.used.length === 0 && (
             <Text {...inkOf(tone, 'text2')}>No glossary term in the last reply.</Text>
           )}
-          {view.used.map(term => (
-            <Text key={`used-${term.name}`} wrap="wrap" {...inkOf(tone, 'ink2')}>
-              <Text bold>{term.name}</Text>
-              {` ${term.definition}`}
-            </Text>
-          ))}
+          {view.used.map(term =>
+            term.definitions === undefined ? (
+              <Text key={`used-${term.name}`} wrap="wrap" {...inkOf(tone, 'ink2')}>
+                <Text bold>{term.name}</Text>
+                {` ${term.definition}`}
+              </Text>
+            ) : (
+              term.definitions.map(def => (
+                <Box key={`used-${term.name}-${def.context}`} flexDirection="column">
+                  <Text mono={rich} {...inkOf(tone, 'muted')}>
+                    {def.context}
+                  </Text>
+                  <Text wrap="wrap" {...inkOf(tone, 'ink2')}>
+                    <Text bold>{term.name}</Text>
+                    {` ${def.definition}`}
+                  </Text>
+                </Box>
+              ))
+            ),
+          )}
           <Text wrap="wrap" {...inkOf(tone, 'text2')}>
             On the terminal this list stands in for underlined terms.
           </Text>

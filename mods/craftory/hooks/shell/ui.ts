@@ -33,7 +33,7 @@ import {
   warnBeforeBuild,
 } from './flow'
 import { GLOSSARY_MAP } from '../../src/glossary-map'
-import { glossaryTerms, repoFacts, repoRoot } from './repo'
+import { glossaryEntries, glossaryTerms, repoFacts, repoRoot } from './repo'
 import { readContext, refreshFiles, refreshGit, refreshTracker } from './sync'
 import { trackerKindOf, trackerOf } from './tracker'
 
@@ -249,7 +249,7 @@ export async function rememberGlossaryAtStart($: EngineInterface) {
 }
 
 export async function noteReplyTerms($: EngineInterface, answer: string) {
-  const terms = await glossaryTerms($)
+  const terms = await glossaryEntries($)
   await update($, lastReplyTermsState, () => termKeysIn(answer, terms))
 }
 

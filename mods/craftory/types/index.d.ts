@@ -216,7 +216,11 @@ export type Term = {
   name: string
   definition: string
   avoid: string[]
+  /** Every definition of a term kept in a repo with a map, each labelled with its context. */
+  definitions?: TermDefinition[]
 }
+
+export type TermDefinition = { context: string; definition: string; avoid: string[] }
 
 export type IssueKind = 'spec' | 'ticket' | 'issue'
 export type IssueStatus = 'open' | 'in-progress' | 'done' | 'closed'

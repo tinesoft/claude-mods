@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { termHref, linkTerms } from '../src/reply'
 import { parseGlossary, termsOf } from '../src/glossary'
-import { featureWorld, mountPane, mountReply, startSession, texts } from './harness'
+import { featureWorld, mountPane, mountReply, startSession, texts, turnComplete } from './harness'
 
 const GLOSSARY =
   '## Language\n\n**Ledger line**:\nA priced row on an invoice.\n_Avoid_: line item\n\n**Customer**:\nThe paying account.\n'
@@ -112,4 +112,45 @@ test('Settings › underline glossary terms off leaves the reply alone', async (
   })
   const reply = await mountReply($, 'desktop', 'A ledger line is a row.')
   expect(await reply.find({ key: 'reply' })).toBeUndefined()
+})
+
+const MAP =
+  '# Map\n\n## Contexts\n\n- [Billing](./billing/GLOSSARY.md): money\n- [Shipping](./shipping/GLOSSARY.md): parcels\n'
+const BILLING = '# Billing\n\n## Language\n\n**Order**:\nA paid request.\n\n**Invoice**:\nA bill.\n'
+const SHIPPING = '# Shipping\n\n## Language\n\n**Order**:\nA parcel to pack.\n'
+const multi = {
+  'GLOSSARY-MAP.md': MAP,
+  'billing/GLOSSARY.md': BILLING,
+  'shipping/GLOSSARY.md': SHIPPING,
+}
+
+test('desktop: a term in two contexts underlines once and its card shows both labelled definitions', async ($, on) => {
+  featureWorld(on, { surfaces: ['desktop'], files: multi })
+  await startSession($, 'desktop')
+  const reply = await mountReply($, 'desktop', 'The order is packed. The order ships.')
+  const md = await reply.find({ type: 'Markdown' })
+  expect(String(md?.props.text).match(/\]\(/g)).toHaveLength(1)
+  const words = await texts(reply)
+  for (const line of ['Billing', 'A paid request.', 'Shipping', 'A parcel to pack.'])
+    expect(words).toContain(line)
+})
+
+test('desktop: a term in one context shows that context label', async ($, on) => {
+  featureWorld(on, { surfaces: ['desktop'], files: multi })
+  await startSession($, 'desktop')
+  const reply = await mountReply($, 'desktop', 'An invoice is sent.')
+  const words = await texts(reply)
+  expect(words).toContain('Billing')
+  expect(words).not.toContain('Shipping')
+})
+
+test('Used in last reply labels each definition with its context', async ($, on) => {
+  featureWorld(on, { surfaces: ['terminal'], files: multi })
+  await startSession($, 'terminal')
+  const pane = await mountPane($, 'terminal')
+  await pane.press({ key: 'tab-glossary' })
+  await turnComplete($, { answer: 'The order is billed.' })
+  await pane.redraw()
+  expect(await pane.find({ key: 'used-Order-Billing' })).toBeDefined()
+  expect(await pane.find({ key: 'used-Order-Shipping' })).toBeDefined()
 })
