@@ -124,6 +124,23 @@ test("Add term on a missing glossary creates the file in Matt's format, then add
   expect(await allText(pane)).not.toContain('No glossary yet')
 })
 
+test('a context glossary that names a term twice is reported, read-only and never written', async ($, on) => {
+  const broken = `${SHIPPING}\n**Parcel**:\nA second, different box.\n`
+  const { w, pane } = await open(on, $, { files: { 'shipping/GLOSSARY.md': broken } })
+  expect(await allText(pane)).toContain('shipping/GLOSSARY.md could not be read')
+  expect(await pane.find({ key: 'gl-edit-Shipping-Parcel' })).toBeUndefined()
+  await pane.press({ key: 'gl-context-Shipping' })
+  await fill(pane, 'Route')
+  await pane.press({ key: 'gl-save' })
+  await pane.redraw()
+  expect(w.files.get('shipping/GLOSSARY.md')).toBe(broken)
+  expect(w.writes).toEqual([])
+  expect(await allText(pane)).toContain('shipping/GLOSSARY.md could not be read')
+  await pane.press({ key: 'tab-glossary' })
+  await pane.redraw()
+  expect(await allText(pane)).toContain('shipping/GLOSSARY.md could not be read')
+})
+
 test('the Glossary tab Edit jumps to the form with that context chosen', async ($, on) => {
   const { pane } = await open(on, $)
   await pane.press({ key: 'tab-glossary' })

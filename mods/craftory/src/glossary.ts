@@ -85,6 +85,15 @@ export function parseGlossary(raw: string | null): Loaded<GlossaryDoc> {
     i = end
   }
   flush()
+  // Edits find a term by its name, so a name defined twice would let a write change the wrong one.
+  const seen = new Set<string>()
+  for (const slice of slices) {
+    if (slice.kind !== 'term') continue
+    const key = termKey(slice.term.name)
+    if (seen.has(key))
+      return { state: 'invalid', raw, problem: `${slice.term.name} is defined twice` }
+    seen.add(key)
+  }
   return { state: 'ok', value: { slices }, raw }
 }
 
