@@ -589,14 +589,14 @@ export async function markDone($: EngineInterface, phase: PhaseId) {
 async function scanDrift($: EngineInterface) {
   const { docs, repo } = await repoFacts($)
   const contexts = repo?.contexts ?? []
-  const scopes = contexts.map(c => ({
+  const driftContexts = contexts.map(c => ({
     folder: c.folder,
     terms: c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
   }))
-  if (!scopes.some(s => s.terms.some(t => t.avoid.length > 0))) return
+  if (!driftContexts.some(c => c.terms.some(t => t.avoid.length > 0))) return
   const diff = await featureDiff($)
   if (diff === null) return
-  for (const f of findDriftByContext(diff, scopes, [
+  for (const f of findDriftByContext(diff, driftContexts, [
     docs.glossary,
     ...contexts.map(c => c.path),
     'CONTEXT.md',

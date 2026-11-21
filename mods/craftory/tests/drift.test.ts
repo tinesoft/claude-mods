@@ -46,25 +46,25 @@ test('only added lines count, whole words only, code spans and the glossary file
   ])
 })
 
-const scopes = [
+const contexts = [
   { folder: 'mods/a', terms: [{ name: 'Ledger line', definition: 'd', avoid: ['line item'] }] },
   { folder: 'mods/b', terms: [{ name: 'Customer', definition: 'd', avoid: ['client'] }] },
 ]
 const both = (file: string) => `+++ b/${file}\n+a line item and a client\n`
 
 test("a file under a context is flagged only for that context's avoid-words", () => {
-  expect(findDriftByContext(both('mods/a/x.ts'), scopes)).toEqual([
+  expect(findDriftByContext(both('mods/a/x.ts'), contexts)).toEqual([
     { term: 'Ledger line', avoided: 'line item', count: 1 },
   ])
 })
 
 test('a file outside every context is flagged for all of them', () => {
-  expect(findDriftByContext(both('README.md'), scopes)).toHaveLength(2)
+  expect(findDriftByContext(both('README.md'), contexts)).toHaveLength(2)
 })
 
 test('with nested contexts the deepest folder wins', () => {
   const nested = [
-    ...scopes,
+    ...contexts,
     { folder: 'mods/a/deep', terms: [{ name: 'Customer', definition: 'd', avoid: ['client'] }] },
   ]
   expect(findDriftByContext(both('mods/a/deep/x.ts'), nested)).toEqual([
@@ -75,7 +75,7 @@ test('with nested contexts the deepest folder wins', () => {
 test("a root context's folder does not claim the files no other context holds", () => {
   const withRoot = [
     { folder: '.', terms: [{ name: 'Mod', definition: 'd', avoid: ['plugin'] }] },
-    ...scopes,
+    ...contexts,
   ]
   const diff = '+++ b/tools/x.mjs\n+a plugin, a line item and a client\n'
   expect(findDriftByContext(diff, withRoot)).toHaveLength(3)
@@ -85,7 +85,7 @@ test("a root context's folder does not claim the files no other context holds", 
 })
 
 test('a folder prefix is not a match: mods/ab is not under mods/a', () => {
-  expect(findDriftByContext(both('mods/ab/x.ts'), scopes)).toHaveLength(2)
+  expect(findDriftByContext(both('mods/ab/x.ts'), contexts)).toHaveLength(2)
 })
 
 test('removed lines and diff headers never count', () => {

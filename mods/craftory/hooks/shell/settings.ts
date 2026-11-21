@@ -409,15 +409,15 @@ async function saveTerm($: EngineInterface, patch: Partial<TermDraft> = {}) {
 
 async function editTermInForm($: EngineInterface, name: string, context?: string) {
   const contexts = (await repoSnapshot($))?.contexts ?? []
-  const holder = contexts.find(
+  const definingContext = contexts.find(
     c =>
       (context === undefined || c.name === context) &&
       c.glossary.state === 'ok' &&
       termsOf(c.glossary.value).some(t => termKey(t.name) === termKey(name)),
   )
   const term =
-    holder?.glossary.state === 'ok'
-      ? termsOf(holder.glossary.value).find(t => termKey(t.name) === termKey(name))
+    definingContext?.glossary.state === 'ok'
+      ? termsOf(definingContext.glossary.value).find(t => termKey(t.name) === termKey(name))
       : undefined
   if (term === undefined) return
   await update($, termErrorState, () => null)
@@ -426,7 +426,7 @@ async function editTermInForm($: EngineInterface, name: string, context?: string
     definition: term.definition,
     avoid: term.avoid.join(', '),
     editing: term.name,
-    context: holder?.name ?? null,
+    context: definingContext?.name ?? null,
   }))
   $.ui.invalidate('ui.render')
 }

@@ -35,7 +35,7 @@ export function findDrift(
 }
 
 /** A context's folder ("." for the repo root) and its terms. */
-export type DriftScope = { folder: string; terms: readonly Term[] }
+export type DriftContext = { folder: string; terms: readonly Term[] }
 
 const holds = (folder: string, file: string) => folder === '.' || file.startsWith(`${folder}/`)
 
@@ -45,14 +45,14 @@ const holds = (folder: string, file: string) => folder === '.' || file.startsWit
  */
 export function findDriftByContext(
   diff: string,
-  scopes: readonly DriftScope[],
+  contexts: readonly DriftContext[],
   skipFiles: readonly string[] = [],
 ): DriftFinding[] {
-  const everyTerm = scopes.flatMap(s => s.terms)
+  const everyTerm = contexts.flatMap(c => c.terms)
   const termsFor = (file: string) => {
-    let best: DriftScope | undefined
-    for (const s of scopes)
-      if (holds(s.folder, file) && (!best || s.folder.length > best.folder.length)) best = s
+    let best: DriftContext | undefined
+    for (const c of contexts)
+      if (holds(c.folder, file) && (!best || c.folder.length > best.folder.length)) best = c
     // a root context holds every file, so a file only it holds is a shared one: every context's
     return best && best.folder !== '.' ? best.terms : everyTerm
   }
