@@ -144,6 +144,20 @@ test('desktop: a term in one context shows that context label', async ($, on) =>
   expect(words).not.toContain('Shipping')
 })
 
+test("a card's Edit opens the form on the context of that definition", async ($, on) => {
+  const w = featureWorld(on, { surfaces: ['desktop'], files: multi })
+  await startSession($, 'desktop')
+  const reply = await mountReply($, 'desktop', 'The order is packed.')
+  const pane = await mountPane($, 'desktop')
+  await reply.press({ key: 'term-edit-order-Shipping' })
+  await pane.redraw()
+  expect((await pane.find({ key: 'set-gl-definition' }))?.props.value).toBe('A parcel to pack.')
+  await pane.input({ key: 'set-gl-definition', text: 'A box to pack.', kind: 'change' })
+  await pane.press({ key: 'gl-save' })
+  expect(w.files.get('shipping/GLOSSARY.md')).toBe(SHIPPING.replace('A parcel', 'A box'))
+  expect(w.files.get('billing/GLOSSARY.md')).toBe(BILLING)
+})
+
 test('Used in last reply labels each definition with its context', async ($, on) => {
   featureWorld(on, { surfaces: ['terminal'], files: multi })
   await startSession($, 'terminal')

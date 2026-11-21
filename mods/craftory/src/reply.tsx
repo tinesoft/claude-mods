@@ -48,7 +48,8 @@ export type ReplyUi = Ui & { Markdown: ElementTable['Markdown'] }
 
 export type ReplyActions = {
   ask: (term: Term) => void
-  edit: (term: Term) => void
+  /** `context` is the context of the definition the Edit belongs to; none in a repo without a map. */
+  edit: (term: Term, context?: string) => void
 }
 
 const TermCard = ({
@@ -61,6 +62,7 @@ const TermCard = ({
   const { Box, Button, Text } = ui
   const t = tone === undefined ? undefined : TOKENS[tone]
   const key = termKey(term.name)
+  const several = (term.definitions?.length ?? 0) > 1
   return (
     <Box
       display="none"
@@ -95,6 +97,15 @@ const TermCard = ({
           {def.avoid.length > 0 && (
             <Text wrap="wrap" {...inkOf(tone, 'muted')}>{`Avoid: ${def.avoid.join(', ')}`}</Text>
           )}
+          {several && def.context !== null && (
+            <Button
+              key={`term-edit-${key}-${def.context}`}
+              plain
+              onPress={() => on.edit(term, def.context ?? undefined)}
+            >
+              <Text {...inkOf(tone, 'ink2')}>Edit term</Text>
+            </Button>
+          )}
         </Box>
       ))}
       <Box flexDirection="row" columnGap={SPACE.buttonsGap}>
@@ -103,9 +114,15 @@ const TermCard = ({
             /wait-what
           </Text>
         </Button>
-        <Button key={`term-edit-${key}`} plain onPress={() => on.edit(term)}>
-          <Text {...inkOf(tone, 'ink2')}>Edit term</Text>
-        </Button>
+        {!several && (
+          <Button
+            key={`term-edit-${key}`}
+            plain
+            onPress={() => on.edit(term, term.definitions?.[0]?.context)}
+          >
+            <Text {...inkOf(tone, 'ink2')}>Edit term</Text>
+          </Button>
+        )}
       </Box>
     </Box>
   )

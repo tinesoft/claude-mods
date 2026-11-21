@@ -700,7 +700,7 @@ export const register: Register = (on, options) => {
         on={{
           ask: term =>
             void $.command.run({ command: namespaced(SKILLS.waitWhat), args: term.name }),
-          edit: term => void jumpToTerm($, term.name),
+          edit: (term, context) => void jumpToTerm($, term.name, context),
         }}
       />
     )
