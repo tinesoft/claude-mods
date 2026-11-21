@@ -16,7 +16,14 @@ import { budgetK } from './build'
 import { phaseButtons, type CardView } from './card-model'
 import type { Flow, SkipReason, TicketStatus } from './evidence'
 import { PHASES } from './phases'
-import { contextTermKey, contextTermKeys, mergedTerms, termKey, termsOf } from './glossary'
+import {
+  contextTermKey,
+  contextTermKeys,
+  contextTerms,
+  mergedTerms,
+  termKey,
+  termsOf,
+} from './glossary'
 import { argFor, byNumber } from './tracker/refs'
 import type { Term } from '../types'
 
@@ -318,7 +325,7 @@ export function glossaryView(args: {
   atStart: readonly string[] | null
 }): GlossaryView {
   const { contexts = [], map, mapPath, path, query, used, atStart } = args
-  const all = contexts.flatMap(c => (c.glossary.state === 'ok' ? termsOf(c.glossary.value) : []))
+  const all = contexts.flatMap(contextTerms)
   const known = new Set(atStart ?? contextTermKeys(contexts))
   const added = contextTermKeys(contexts).filter(k => !known.has(k)).length
   const needle = query.trim().toLowerCase()
@@ -365,7 +372,7 @@ export function glossaryView(args: {
           : c.glossary.state === 'invalid'
             ? `${c.path} could not be read`
             : 'No glossary yet'
-      const terms = c.glossary.state === 'ok' ? withNew(c, termsOf(c.glossary.value)) : []
+      const terms = withNew(c, contextTerms(c))
       return { name: c.name, note: needle === '' ? note : null, terms }
     })
     .filter(g => g.note !== null || g.terms.length > 0)

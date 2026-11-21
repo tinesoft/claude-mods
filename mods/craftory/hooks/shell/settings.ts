@@ -11,6 +11,7 @@ import { CONFIG_PATH, configOf, configWrite, parseConfig, patchConfig } from '..
 import { diffSummary, type FileWrite, isShared, type WritableContext } from '../../src/files'
 import {
   addTerm,
+  contextTerms,
   deleteTerm,
   editTerm,
   type GlossaryEditError,
@@ -412,13 +413,10 @@ async function editTermInForm($: EngineInterface, name: string, context?: string
   const definingContext = contexts.find(
     c =>
       (context === undefined || c.name === context) &&
-      c.glossary.state === 'ok' &&
-      termsOf(c.glossary.value).some(t => termKey(t.name) === termKey(name)),
+      contextTerms(c).some(t => termKey(t.name) === termKey(name)),
   )
   const term =
-    definingContext?.glossary.state === 'ok'
-      ? termsOf(definingContext.glossary.value).find(t => termKey(t.name) === termKey(name))
-      : undefined
+    definingContext && contextTerms(definingContext).find(t => termKey(t.name) === termKey(name))
   if (term === undefined) return
   await update($, termErrorState, () => null)
   await update($, termDraftState, () => ({
@@ -495,7 +493,7 @@ export async function settingsArgs(
         name: c.name,
         path: c.path,
         state: c.glossary.state,
-        terms: c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
+        terms: contextTerms(c),
       })),
       // only the Settings tab shows it, so no other tab's render runs the diff
       context:

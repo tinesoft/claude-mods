@@ -102,6 +102,10 @@ export const serialiseGlossary = (doc: GlossaryDoc) => doc.slices.map(s => s.raw
 export const termsOf = (doc: GlossaryDoc): Term[] =>
   doc.slices.flatMap(s => (s.kind === 'term' ? [s.term] : []))
 
+/** A context's terms; none when its glossary is missing or could not be read. */
+export const contextTerms = (context: { glossary: Loaded<GlossaryDoc> }): Term[] =>
+  context.glossary.state === 'ok' ? termsOf(context.glossary.value) : []
+
 /**
  * One entry per term name across the contexts, each carrying every definition labelled with its
  * context. The entry reads as its first definition, so a term of one context is that term.
@@ -128,12 +132,7 @@ export const contextTermKey = (context: string, name: string) => `${context}\0${
 /** Every term of the contexts, keyed by context and name. */
 export const contextTermKeys = (
   contexts: readonly { name: string; glossary: Loaded<GlossaryDoc> }[],
-): string[] =>
-  contexts.flatMap(c =>
-    c.glossary.state === 'ok'
-      ? termsOf(c.glossary.value).map(t => contextTermKey(c.name, t.name))
-      : [],
-  )
+): string[] => contexts.flatMap(c => contextTerms(c).map(t => contextTermKey(c.name, t.name)))
 
 export const relationshipsOf = (doc: GlossaryDoc) =>
   doc.slices.flatMap(s => (s.kind === 'relationship' ? [s.text] : []))

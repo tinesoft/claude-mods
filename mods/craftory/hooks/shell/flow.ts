@@ -13,7 +13,7 @@ import {
 import { deriveFlow, type Flow } from '../../src/evidence'
 import { draftKey, enteredRecord, featureOf, isArchived, specKey } from '../../src/features'
 import { dropText, type RunRequest } from '../../src/gates'
-import { termKey, termsOf } from '../../src/glossary'
+import { contextTerms, termKey } from '../../src/glossary'
 import type { InboxAction } from '../../src/pane-view'
 import { namespaced, recognise } from '../../src/phases'
 import { bareIsOurs } from '../../src/plugin'
@@ -591,7 +591,7 @@ async function scanDrift($: EngineInterface) {
   const contexts = repo?.contexts ?? []
   const driftContexts = contexts.map(c => ({
     folder: c.folder,
-    terms: c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
+    terms: contextTerms(c),
   }))
   if (!driftContexts.some(c => c.terms.some(t => t.avoid.length > 0))) return
   const diff = await featureDiff($)

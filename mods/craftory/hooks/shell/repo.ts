@@ -16,7 +16,7 @@ import {
   isWritable,
   type WritableContext,
 } from '../../src/files'
-import { mergedTerms, parseGlossary, termsOf } from '../../src/glossary'
+import { contextTerms, mergedTerms, parseGlossary } from '../../src/glossary'
 import {
   INSTALL_TIMEOUT_MS,
   installOutcome,
@@ -231,9 +231,7 @@ export async function applyWrites(
 
 export async function glossaryTerms($: EngineInterface) {
   const repo = await repoSnapshot($)
-  return (repo?.contexts ?? []).flatMap(c =>
-    c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
-  )
+  return (repo?.contexts ?? []).flatMap(contextTerms)
 }
 
 /**
