@@ -13,5 +13,17 @@
         "repo": "karanb192/claude-code-mods"
       }
     }
+  },
+  "hooks": {
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/tools/worktree-create.mjs\""
+          }
+        ]
+      }
+    ]
   }
 }
