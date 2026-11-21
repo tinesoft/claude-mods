@@ -1,6 +1,6 @@
 # Craftory multi-context glossary
 
-Status: needs-triage
+Status: ready-for-agent
 
 Source: grilling thread on 2026-11-21 ("what next for craftory"), decisions Q1, Q3, Q4, Q5, Q8 and Q9. Lifts the 1.0.0 cut in Decision 19 of `docs/design/craftory/plan.md` and the "Out of scope" line in `.scratch/craftory-mvp/map.md`. Builds on `src/glossary.ts`, `src/drift.ts`, `src/reply.tsx`, `src/agents-md.ts` and the glossary paths in `hooks/shell/repo.ts` and `hooks/shell/settings.ts`.
 
