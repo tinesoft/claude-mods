@@ -1,5 +1,13 @@
 import type { RenderSurface } from 'claude-code'
-import type { GlossaryMap, SettingsSection, Term, TermDraft, Tone } from '../types'
+import type {
+  GlossaryDoc,
+  GlossaryMap,
+  Loaded,
+  SettingsSection,
+  Term,
+  TermDraft,
+  Tone,
+} from '../types'
 import {
   HELPERS,
   SECTIONS,
@@ -24,7 +32,7 @@ export type GlossaryEdit = {
   contexts: readonly {
     name: string
     path: string
-    state: 'ok' | 'absent' | 'invalid'
+    state: Loaded<GlossaryDoc>['state']
     terms: readonly Term[]
   }[]
   /** The context a new term goes to (picked, else the default); null in a single-context repo. */
