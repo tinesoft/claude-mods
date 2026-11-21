@@ -1,0 +1,133 @@
+import { expect, test } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
+import { fakeGit } from './build-harness'
+import { allText, featureWorld, mountPane, startSession, texts, type WorldOptions } from './harness'
+
+const MAP = [
+  '# Glossary Map',
+  '',
+  '## Contexts',
+  '',
+  '- [Billing](./billing/GLOSSARY.md): invoices and payments',
+  '- [Shipping](./shipping/GLOSSARY.md): parcels and routes',
+  '- [Ghost](./ghost/GLOSSARY.md): not written yet',
+  '',
+].join('\n')
+
+const BILLING =
+  '# Billing\n\nIntro.\n\n## Language\n\n**Customer**:\nThe paying account.\n_Avoid_: client\n\n**Ledger line**:\nA priced row.\n\n## Relationships\n\n- **Customer** pays\n'
+const SHIPPING = '# Shipping\n\n## Language\n\n**Parcel**:\nA box that travels.\n'
+
+const FILES = {
+  'GLOSSARY-MAP.md': MAP,
+  'billing/GLOSSARY.md': BILLING,
+  'shipping/GLOSSARY.md': SHIPPING,
+}
+
+const open = async (
+  on: Parameters<typeof featureWorld>[0],
+  $: Engine,
+  options: WorldOptions = {},
+) => {
+  const w = featureWorld(on, {
+    surfaces: ['terminal'],
+    ...options,
+    files: { ...FILES, ...options.files },
+  })
+  await startSession($, 'terminal')
+  const pane = await mountPane($, 'terminal')
+  await pane.press({ key: 'tab-settings' })
+  await pane.press({ key: 'section-section-glossary' })
+  return { w, pane }
+}
+
+const fill = async (pane: Awaited<ReturnType<typeof open>>['pane'], name: string) => {
+  await pane.input({ key: 'set-gl-name', text: name, kind: 'change' })
+  await pane.input({ key: 'set-gl-definition', text: 'A definition.', kind: 'change' })
+}
+
+test('Settings lists each context with its own Edit and Delete', async ($, on) => {
+  const { pane } = await open(on, $)
+  expect(await pane.find({ key: 'gl-edit-Billing-Customer' })).toBeDefined()
+  expect(await pane.find({ key: 'gl-delete-Shipping-Parcel' })).toBeDefined()
+  expect(await texts(pane)).toContain('No glossary yet')
+})
+
+test('adding a term to a chosen context writes only that file, and deleting it restores it', async ($, on) => {
+  const { w, pane } = await open(on, $)
+  await pane.press({ key: 'gl-context-Shipping' })
+  await fill(pane, 'Route')
+  await pane.press({ key: 'gl-save' })
+  expect(w.files.get('shipping/GLOSSARY.md')).toBe(`${SHIPPING}\n**Route**:\nA definition.\n`)
+  expect(w.files.get('billing/GLOSSARY.md')).toBe(BILLING)
+  expect(w.files.get('GLOSSARY-MAP.md')).toBe(MAP)
+  expect(w.writes.map(x => x.path)).toEqual(['shipping/GLOSSARY.md'])
+  await pane.redraw()
+  await pane.press({ key: 'gl-delete-Shipping-Route' })
+  expect(w.files.get('shipping/GLOSSARY.md')).toBe(SHIPPING)
+})
+
+test('editing a term rewrites only its lines in its own context', async ($, on) => {
+  const { w, pane } = await open(on, $)
+  await pane.press({ key: 'gl-edit-Billing-Customer' })
+  await pane.redraw()
+  expect((await pane.find({ key: 'set-gl-name' }))?.props.value).toBe('Customer')
+  await pane.input({ key: 'set-gl-definition', text: 'The organisation.', kind: 'change' })
+  await pane.press({ key: 'gl-save' })
+  expect(w.files.get('billing/GLOSSARY.md')).toBe(
+    BILLING.replace('The paying account.', 'The organisation.'),
+  )
+  expect(w.files.get('shipping/GLOSSARY.md')).toBe(SHIPPING)
+})
+
+test('the same name may live in two contexts', async ($, on) => {
+  const { w, pane } = await open(on, $)
+  await pane.press({ key: 'gl-context-Shipping' })
+  await fill(pane, 'Customer')
+  await pane.press({ key: 'gl-save' })
+  expect(w.files.get('shipping/GLOSSARY.md')).toContain('**Customer**:\nA definition.\n')
+})
+
+test('Add term with nothing picked goes to the first context in the map when there is no diff', async ($, on) => {
+  const { w, pane } = await open(on, $)
+  await fill(pane, 'Invoice run')
+  await pane.press({ key: 'gl-save' })
+  expect(w.files.get('billing/GLOSSARY.md')).toContain('**Invoice run**:')
+  expect(w.files.get('shipping/GLOSSARY.md')).toBe(SHIPPING)
+})
+
+test("Add term defaults to the context the Feature's diff touches most", async ($, on) => {
+  const git = fakeGit({ extra: [{ path: '/repo/.claude/worktrees/_spec-42', branch: 'feat/csv' }] })
+  const diff = '+++ b/shipping/a.ts\n+one\n+two\n+++ b/billing/b.ts\n+x\n'
+  const { w, pane } = await open(on, $, {
+    shell: (argv, cwd) =>
+      argv[1] === 'diff' && argv[4] === 'main...feat/csv'
+        ? { exitCode: 0, stdout: diff }
+        : git.shell(argv, cwd),
+  })
+  await fill(pane, 'Route')
+  await pane.press({ key: 'gl-save' })
+  expect(w.files.get('shipping/GLOSSARY.md')).toContain('**Route**:')
+  expect(w.files.get('billing/GLOSSARY.md')).toBe(BILLING)
+})
+
+test("Add term on a missing glossary creates the file in Matt's format, then adds the term", async ($, on) => {
+  const { w, pane } = await open(on, $)
+  await pane.press({ key: 'gl-context-Ghost' })
+  await fill(pane, 'Spirit')
+  await pane.press({ key: 'gl-save' })
+  expect(w.files.get('ghost/GLOSSARY.md')).toBe(
+    '# Ghost\n\nnot written yet\n\n## Language\n\n**Spirit**:\nA definition.\n',
+  )
+  expect(w.files.get('billing/GLOSSARY.md')).toBe(BILLING)
+  await pane.redraw()
+  expect(await allText(pane)).not.toContain('No glossary yet')
+})
+
+test('the Glossary tab Edit jumps to the form with that context chosen', async ($, on) => {
+  const { pane } = await open(on, $)
+  await pane.press({ key: 'tab-glossary' })
+  await pane.press({ key: 'term-edit-Shipping-Parcel' })
+  await pane.redraw()
+  expect((await pane.find({ key: 'set-gl-name' }))?.props.value).toBe('Parcel')
+})

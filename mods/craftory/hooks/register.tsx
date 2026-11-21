@@ -780,7 +780,7 @@ export const register: Register = (on, options) => {
           })(),
         search: text => void searchGlossary($, text),
         filterGlossary: context => void filterGlossary($, context),
-        editTerm: name => void jumpToTerm($, name),
+        editTerm: (name, context) => void jumpToTerm($, name, context),
         // the pane has no card to open: a press on its phase strip goes to the Flow tab
         rail: { phase: () => void openPane($, 'flow'), triage: () => void openPane($, 'flow') },
         map: actions.map,

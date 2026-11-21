@@ -59,3 +59,39 @@ export function parseGlossaryMap(text: string): GlossaryMap {
   }
   return map
 }
+
+/** A context's file as Matt's `domain-modeling` skill starts it: title, one line, `## Language`. */
+export const newGlossary = (name: string, description: string) =>
+  `# ${name}\n\n${description === '' ? `The language of ${name}.` : description}\n\n## Language\n`
+
+/**
+ * The context whose folder holds the most changed lines of a unified diff; the deepest folder
+ * wins a file. Ties, no diff and a diff outside every folder give the first context.
+ */
+export function defaultContextOf(
+  diff: string | null,
+  contexts: readonly { name: string; folder: string }[],
+): string {
+  const counts = new Map<string, number>()
+  let owner: string | null = null
+  for (const line of (diff ?? '').split('\n')) {
+    const file = /^\+\+\+ (?:b\/)?(.+)$/.exec(line)?.[1]
+    if (file !== undefined) {
+      owner =
+        contexts
+          .filter(c => c.folder === '.' || file === c.folder || file.startsWith(`${c.folder}/`))
+          .sort((a, b) => b.folder.length - a.folder.length)[0]?.name ?? null
+    } else if (owner !== null && /^[+-](?![+-]{2} )/.test(line))
+      counts.set(owner, (counts.get(owner) ?? 0) + 1)
+  }
+  let best = contexts[0]?.name ?? ''
+  let most = counts.get(best) ?? 0
+  for (const c of contexts) {
+    const n = counts.get(c.name) ?? 0
+    if (n > most) {
+      best = c.name
+      most = n
+    }
+  }
+  return best
+}

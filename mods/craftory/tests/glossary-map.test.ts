@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { parseDomainDoc } from '../src/agents-md'
-import { parseGlossaryMap } from '../src/glossary-map'
+import { addTerm, parseGlossary, serialiseGlossary } from '../src/glossary'
+import { defaultContextOf, newGlossary, parseGlossaryMap } from '../src/glossary-map'
 
 const MAP = [
   '# Glossary Map',
@@ -81,4 +82,43 @@ test('a malformed line and a path outside the repo become problems; the rest sti
 test('parseDomainDoc reports the multi layout of this repo, and the single one by default', () => {
   expect(parseDomainDoc(DOMAIN).map).toBe('GLOSSARY-MAP.md')
   expect(parseDomainDoc('- **`GLOSSARY.md`** at the repo root\n').map).toBeUndefined()
+})
+
+test("a new glossary is Matt's format, and a term lands under its Language heading", () => {
+  const text = newGlossary('Ghost', 'not written yet')
+  expect(text).toBe('# Ghost\n\nnot written yet\n\n## Language\n')
+  const parsed = parseGlossary(text)
+  if (parsed.state !== 'ok') throw new Error('unreadable')
+  const next = addTerm(parsed.value, { name: 'Spirit', definition: 'A thing.', avoid: [] })
+  if (typeof next === 'string') throw new Error(next)
+  expect(serialiseGlossary(next)).toBe(
+    '# Ghost\n\nnot written yet\n\n## Language\n\n**Spirit**:\nA thing.\n',
+  )
+})
+
+const FOLDERS = [
+  { name: 'Billing', folder: 'billing' },
+  { name: 'Shipping', folder: 'shipping' },
+]
+
+test('the default context is the one whose folder holds most changed lines; ties and no diff give the first', () => {
+  const diff = [
+    '+++ b/shipping/a.ts',
+    '+one',
+    '+two',
+    '-three',
+    '+++ b/billing/b.ts',
+    '+x',
+    '+++ b/README.md',
+    '+a',
+    '+b',
+    '+c',
+    '+d',
+  ].join('\n')
+  expect(defaultContextOf(diff, FOLDERS)).toBe('Shipping')
+  expect(defaultContextOf('+++ b/billing/b.ts\n+x\n+++ b/shipping/a.ts\n+y\n', FOLDERS)).toBe(
+    'Billing',
+  )
+  expect(defaultContextOf('', FOLDERS)).toBe('Billing')
+  expect(defaultContextOf(null, FOLDERS)).toBe('Billing')
 })

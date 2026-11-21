@@ -20,6 +20,15 @@ export type GlossaryEdit = {
   error: string | null
   /** The glossary map, shown read-only; null in a repo without one. */
   map: GlossaryMap | null
+  /** Each context of a multi-context repo with its own terms; empty in a single-context repo. */
+  contexts: readonly {
+    name: string
+    path: string
+    state: 'ok' | 'absent' | 'invalid'
+    terms: readonly Term[]
+  }[]
+  /** The context a new term goes to (picked, else the default); null in a single-context repo. */
+  context: string | null
 }
 
 export type SettingsActions = {
@@ -36,8 +45,9 @@ export type SettingsActions = {
     draft: (patch: Partial<TermDraft>) => void
     save: (patch?: Partial<TermDraft>) => void
     cancel: () => void
-    edit: (name: string) => void
-    remove: (name: string) => void
+    edit: (name: string, context?: string) => void
+    remove: (name: string, context?: string) => void
+    pick: (context: string) => void
     importContext: () => void
     copyPath: (surface: RenderSurface) => void
   }
@@ -205,60 +215,82 @@ const GlossarySection = ({
   const { Box, Text } = ui
   const { draft } = glossary
   const t = tone === undefined ? undefined : TOKENS[tone]
-  if (glossary.map !== null)
-    return <GlossaryMapView ui={ui} tone={tone} map={glossary.map} path={glossary.path} />
-  return (
-    <Box key="settings-glossary" flexDirection="column" rowGap={SPACE.paneGap}>
-      {glossary.terms.length === 0 && (
-        <Text {...inkOf(tone, 'text2')}>{`No terms in ${glossary.path} yet.`}</Text>
-      )}
-      {glossary.terms.map(term => (
-        <Box
-          key={`gl-${term.name}`}
-          flexDirection="column"
-          rowGap={SPACE.lineGap}
-          {...(isRich(ui) &&
-            t !== undefined && {
-              borderStyle: 'round' as const,
-              borderColor: draft.editing === term.name ? t.lineStrong : t.line,
-              backgroundColor: t.surface,
-              paddingX: SPACE.agentsPadX,
-              paddingY: SPACE.agentsPadY,
-            })}
-        >
-          <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowLabelGap}>
-            <Text bold {...inkOf(tone, 'ink')}>
-              {term.name}
-            </Text>
-            {!readOnly && (
-              <Box flexDirection="row" columnGap={SPACE.buttonsGap}>
-                <CardButton
-                  padY
-                  ui={ui}
-                  tone={tone}
-                  id={`gl-edit-${term.name}`}
-                  label="Edit"
-                  onPress={() => on.term.edit(term.name)}
-                />
-                <CardButton
-                  padY
-                  ui={ui}
-                  tone={tone}
-                  id={`gl-delete-${term.name}`}
-                  label="Delete"
-                  onPress={() => on.term.remove(term.name)}
-                />
-              </Box>
-            )}
-          </Box>
-          <Text wrap="wrap" {...inkOf(tone, 'text2')}>
-            {term.definition}
+  const multi = glossary.map !== null
+  const card = (term: Term, context: string | null) => {
+    const suffix = context === null ? term.name : `${context}-${term.name}`
+    return (
+      <Box
+        key={`gl-${suffix}`}
+        flexDirection="column"
+        rowGap={SPACE.lineGap}
+        {...(isRich(ui) &&
+          t !== undefined && {
+            borderStyle: 'round' as const,
+            borderColor: draft.editing === term.name ? t.lineStrong : t.line,
+            backgroundColor: t.surface,
+            paddingX: SPACE.agentsPadX,
+            paddingY: SPACE.agentsPadY,
+          })}
+      >
+        <Box flexDirection="row" justifyContent="space-between" columnGap={SPACE.rowLabelGap}>
+          <Text bold {...inkOf(tone, 'ink')}>
+            {term.name}
           </Text>
-          {term.avoid.length > 0 && (
-            <Text wrap="wrap" {...inkOf(tone, 'muted')}>{`Avoid: ${term.avoid.join(', ')}`}</Text>
+          {!readOnly && (
+            <Box flexDirection="row" columnGap={SPACE.buttonsGap}>
+              <CardButton
+                padY
+                ui={ui}
+                tone={tone}
+                id={`gl-edit-${suffix}`}
+                label="Edit"
+                onPress={() => on.term.edit(term.name, context ?? undefined)}
+              />
+              <CardButton
+                padY
+                ui={ui}
+                tone={tone}
+                id={`gl-delete-${suffix}`}
+                label="Delete"
+                onPress={() => on.term.remove(term.name, context ?? undefined)}
+              />
+            </Box>
           )}
         </Box>
-      ))}
+        <Text wrap="wrap" {...inkOf(tone, 'text2')}>
+          {term.definition}
+        </Text>
+        {term.avoid.length > 0 && (
+          <Text wrap="wrap" {...inkOf(tone, 'muted')}>{`Avoid: ${term.avoid.join(', ')}`}</Text>
+        )}
+      </Box>
+    )
+  }
+  return (
+    <Box key="settings-glossary" flexDirection="column" rowGap={SPACE.paneGap}>
+      {glossary.map !== null && (
+        <GlossaryMapView ui={ui} tone={tone} map={glossary.map} path={glossary.path} />
+      )}
+      {!multi && glossary.terms.length === 0 && (
+        <Text {...inkOf(tone, 'text2')}>{`No terms in ${glossary.path} yet.`}</Text>
+      )}
+      {multi
+        ? glossary.contexts.map(c => (
+            <Box key={`gl-context-${c.name}`} flexDirection="column" rowGap={SPACE.paneGap}>
+              <Text bold {...inkOf(tone, 'ink')}>
+                {c.name}
+              </Text>
+              {c.state === 'absent' && <Text {...inkOf(tone, 'text2')}>No glossary yet</Text>}
+              {c.state === 'invalid' && (
+                <Text
+                  wrap="wrap"
+                  color={paint('danger', tone).fg}
+                >{`${c.path} could not be read`}</Text>
+              )}
+              {c.terms.map(term => card(term, c.name))}
+            </Box>
+          ))
+        : glossary.terms.map(term => card(term, null))}
       {!readOnly && (
         <Box key="gl-form" flexDirection="column" rowGap={SPACE.fieldGap}>
           <Eyebrow
@@ -266,6 +298,17 @@ const GlossarySection = ({
             tone={tone}
             text={draft.editing === null ? 'New term' : `Editing ${draft.editing}`}
           />
+          {glossary.context !== null && (
+            <Segments
+              ui={ui}
+              tone={tone}
+              id="context"
+              prefix="gl"
+              choices={glossary.contexts.map(c => [c.name, c.name] as const)}
+              current={glossary.context}
+              onPick={draft.editing === null ? context => on.term.pick(context) : undefined}
+            />
+          )}
           <Field
             ui={ui}
             tone={tone}

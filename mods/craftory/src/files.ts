@@ -3,6 +3,8 @@ import type { DocsLayout, SteeringFile } from '../types'
 export type WritableContext = {
   steering: SteeringFile | null
   docs: DocsLayout
+  /** Each context's glossary in a multi-context repo. */
+  glossaries?: readonly string[]
 }
 
 export type FileWrite = {
@@ -56,6 +58,10 @@ export function isWritable(path: string, ctx: WritableContext): boolean {
     GITIGNORE,
     ...(ctx.steering ? [ctx.steering] : []),
     ...(hasGlossary ? [glossary] : []),
+    ...(ctx.glossaries ?? []).flatMap(g => {
+      const own = normalise(g)
+      return own !== undefined && own.endsWith('.md') && !inside(own, OWN_DIR) ? [own] : []
+    }),
   ]
   if (exact.includes(clean)) return true
   if (clean.startsWith(FEATURES_DIR))

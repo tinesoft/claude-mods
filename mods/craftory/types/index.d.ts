@@ -772,7 +772,14 @@ export type PaneTab = 'flow' | 'tickets' | 'worktrees' | 'glossary' | 'settings'
 export type SettingsSection =
   'entry' | 'tracker' | 'docs' | 'glossary' | 'pipeline' | 'worktrees' | 'automation' | 'personal'
 
-export type TermDraft = { name: string; definition: string; avoid: string; editing: string | null }
+/** `context` is the context a new term goes to, by name; null takes the default. */
+export type TermDraft = {
+  name: string
+  definition: string
+  avoid: string
+  editing: string | null
+  context: string | null
+}
 
 export type RepoSnapshot = {
   config: Loaded<CraftoryConfig>

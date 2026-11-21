@@ -19,6 +19,8 @@ import {
   termKey,
   termsOf,
 } from '../../src/glossary'
+import { defaultContextOf, newGlossary } from '../../src/glossary-map'
+import { driftDiffArgv } from '../../src/drift'
 import { namespaced, SKILLS } from '../../src/phases'
 import { hasSkill } from '../../src/plugin'
 import {
@@ -30,7 +32,9 @@ import {
 } from '../../src/sections'
 import type { SettingsData } from '../../src/settings'
 import type { AgentSetup, GlossaryDoc, PluginStatus, RepoSnapshot, TermDraft } from '../../types'
+import { activeRecord } from './features'
 import { settle } from './flow'
+import { gitOf } from './git'
 import { hasCostOf } from './spend'
 import { refreshTracker } from './sync'
 import {
@@ -42,6 +46,7 @@ import {
   readText,
   repoFacts,
   repoSnapshot,
+  sh,
   writableContext,
 } from './repo'
 import { copyWithToast, openPane, resetPrefs, resolvedPrefs, savePrefs } from './ui'
@@ -58,6 +63,7 @@ const termDraftState = atom({ plugin: 'craftory', key: 'termDraft' } as const, {
   definition: '',
   avoid: '',
   editing: null,
+  context: null,
 })
 
 const setupDraftState = atom({ plugin: 'craftory', key: 'setupDraft' } as const, null)
@@ -194,6 +200,7 @@ async function settingsContext($: EngineInterface, setup: AgentSetup) {
     ...(await writableContext($)),
     steering: setup.steering,
     docs: setup.docs,
+    glossaries: ((await repoSnapshot($))?.contexts ?? []).map(c => c.path),
   } satisfies WritableContext
 }
 
@@ -328,22 +335,42 @@ const TERM_ERRORS: Record<GlossaryEditError, string> = {
   'empty-name': 'A term needs a name.',
 }
 
-const EMPTY_DRAFT: TermDraft = { name: '', definition: '', avoid: '', editing: null }
+const EMPTY_DRAFT: TermDraft = { name: '', definition: '', avoid: '', editing: null, context: null }
+
+/** The context a new term goes to: the one picked, else where the Feature's diff works most. */
+async function chosenContext($: EngineInterface, picked: string | null) {
+  const contexts = (await repoSnapshot($))?.contexts ?? []
+  if (picked !== null && contexts.some(c => c.name === picked)) return picked
+  const [record, git] = await Promise.all([activeRecord($), gitOf($)])
+  const integration = record?.integrationBranch
+  const base = git?.branch
+  const diff =
+    integration && base && integration !== base
+      ? await sh($, driftDiffArgv(base, integration))
+      : null
+  return defaultContextOf(diff?.exitCode === 0 ? diff.stdout : null, contexts)
+}
 
 async function changeGlossary(
   $: EngineInterface,
+  context: string | null,
   edit: (doc: GlossaryDoc | null) => GlossaryDoc | GlossaryEditError,
   done?: (path: string) => string,
 ) {
   const { setup } = await currentSetup($)
-  if ((await repoSnapshot($))?.glossaryMap)
-    return update($, termErrorState, () => 'Editing a context glossary is not available yet.')
-  const path = setup.docs.glossary
+  const repo = await repoSnapshot($)
+  const target = repo?.contexts.find(c => c.name === context) ?? repo?.contexts[0]
+  const path = target?.path ?? setup.docs.glossary
   const raw = await readText($, path)
   const loaded = parseGlossary(raw)
   if (loaded.state === 'invalid')
     return update($, termErrorState, () => `${path} could not be read`)
-  const next = edit(loaded.state === 'ok' ? loaded.value : null)
+  // a missing file of a mapped context starts in Matt's format, not as a bare heading
+  const fresh =
+    loaded.state === 'absent' && repo?.glossaryMap && target
+      ? parseGlossary(newGlossary(target.name, target.description))
+      : loaded
+  const next = edit(fresh.state === 'ok' ? fresh.value : null)
   if (typeof next === 'string') {
     await update($, termErrorState, () => TERM_ERRORS[next])
     return $.ui.invalidate('ui.render')
@@ -375,7 +402,7 @@ async function saveTerm($: EngineInterface, patch: Partial<TermDraft> = {}) {
       .filter(Boolean),
   }
   const editing = draft.editing
-  await changeGlossary($, doc =>
+  await changeGlossary($, await chosenContext($, draft.context), doc =>
     editing === null
       ? addTerm(doc, term)
       : doc === null
@@ -384,8 +411,18 @@ async function saveTerm($: EngineInterface, patch: Partial<TermDraft> = {}) {
   )
 }
 
-async function editTermInForm($: EngineInterface, name: string) {
-  const term = (await glossaryTerms($)).find(t => termKey(t.name) === termKey(name))
+async function editTermInForm($: EngineInterface, name: string, context?: string) {
+  const contexts = (await repoSnapshot($))?.contexts ?? []
+  const holder = contexts.find(
+    c =>
+      (context === undefined || c.name === context) &&
+      c.glossary.state === 'ok' &&
+      termsOf(c.glossary.value).some(t => termKey(t.name) === termKey(name)),
+  )
+  const term =
+    holder?.glossary.state === 'ok'
+      ? termsOf(holder.glossary.value).find(t => termKey(t.name) === termKey(name))
+      : undefined
   if (term === undefined) return
   await update($, termErrorState, () => null)
   await update($, termDraftState, () => ({
@@ -393,6 +430,7 @@ async function editTermInForm($: EngineInterface, name: string) {
     definition: term.definition,
     avoid: term.avoid.join(', '),
     editing: term.name,
+    context: holder?.name ?? null,
   }))
   $.ui.invalidate('ui.render')
 }
@@ -404,6 +442,7 @@ async function importContext($: EngineInterface) {
   let added = 0
   await changeGlossary(
     $,
+    await chosenContext($, (await read($, termDraftState)).context),
     doc => {
       let current: GlossaryDoc | null = doc
       for (const term of incoming) {
@@ -429,9 +468,9 @@ async function copyGlossaryPath($: EngineInterface, surface: RenderSurface) {
   })
 }
 
-export async function jumpToTerm($: EngineInterface, name: string) {
+export async function jumpToTerm($: EngineInterface, name: string, context?: string) {
   await update($, settingsSectionState, () => 'glossary')
-  await editTermInForm($, name)
+  await editTermInForm($, name, context)
   await openPane($, 'settings')
 }
 
@@ -455,6 +494,13 @@ export async function settingsArgs(
     firstRun: firstRunText(signalsOf(repo, plugin)),
     glossary: {
       terms: await glossaryTerms($),
+      contexts: (repo?.glossaryMap ? repo.contexts : []).map(c => ({
+        name: c.name,
+        path: c.path,
+        state: c.glossary.state,
+        terms: c.glossary.state === 'ok' ? termsOf(c.glossary.value) : [],
+      })),
+      context: repo?.glossaryMap ? await chosenContext($, draft.context) : null,
       draft,
       path: facts.setup.docs.map ?? facts.setup.docs.glossary,
       hasContextMd: repo?.hasContextMd ?? false,
@@ -493,11 +539,16 @@ export async function settingsArgs(
         cancel: () => {
           void update($, termDraftState, () => EMPTY_DRAFT).then(() => $.ui.invalidate('ui.render'))
         },
-        edit: name => void editTermInForm($, name),
-        remove: name =>
-          void changeGlossary($, doc =>
+        edit: (name, context) => void editTermInForm($, name, context),
+        remove: (name, context) =>
+          void changeGlossary($, context ?? null, doc =>
             doc === null ? 'unknown-term' : deleteTerm(doc, termKey(name)),
           ),
+        pick: context => {
+          void update($, termDraftState, held => ({ ...held, context })).then(() =>
+            $.ui.invalidate('ui.render'),
+          )
+        },
         importContext: () => void importContext($),
         copyPath: surface => void copyGlossaryPath($, surface),
       },

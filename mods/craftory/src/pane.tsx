@@ -60,7 +60,7 @@ export type PaneActions = {
   implementSpec: () => void
   search: (text: string) => void
   filterGlossary: (context: string) => void
-  editTerm: (name: string) => void
+  editTerm: (name: string, context?: string) => void
   rail: Pick<BandActions, 'phase' | 'triage'>
   map: () => void
   wayfinder: (arg: string) => void
@@ -1106,16 +1106,14 @@ const GlossaryTab = ({
                     <Badge ui={ui} tone={tone} role="perm" text="New" id={term.name} />
                   )}
                 </Box>
-                {group.name === null && (
-                  <CardButton
-                    padY
-                    ui={ui}
-                    tone={tone}
-                    id={`term-edit-${term.name}`}
-                    label="Edit"
-                    onPress={() => on.editTerm(term.name)}
-                  />
-                )}
+                <CardButton
+                  padY
+                  ui={ui}
+                  tone={tone}
+                  id={`term-edit-${group.name === null ? term.name : `${group.name}-${term.name}`}`}
+                  label="Edit"
+                  onPress={() => on.editTerm(term.name, group.name ?? undefined)}
+                />
               </Box>
               <Text wrap="wrap" {...inkOf(tone, 'text2')}>
                 {term.definition}
