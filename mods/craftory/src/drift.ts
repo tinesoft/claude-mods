@@ -7,7 +7,7 @@ export const driftDiffArgv = (base: string, branch: string) =>
   ['git', 'diff', '--unified=0', '--no-color', `${base}...${branch}`] as const
 
 /** `+++ b/path` names the file the following hunks belong to. */
-const fileOf = (line: string) => /^\+\+\+ (?:b\/)?(.+)$/.exec(line)?.[1]
+export const fileOf = (line: string) => /^\+\+\+ (?:b\/)?(.+)$/.exec(line)?.[1]
 
 type AddedLine = { file: string; text: string }
 
@@ -37,7 +37,20 @@ export function findDrift(
 /** A context's folder ("." for the repo root) and its terms. */
 export type DriftContext = { folder: string; terms: readonly Term[] }
 
-const holds = (folder: string, file: string) => folder === '.' || file.startsWith(`${folder}/`)
+/** The context whose folder holds `file`, the deepest one when folders nest; "." holds every file. */
+export function deepestContextOf<C extends { folder: string }>(
+  file: string,
+  contexts: readonly C[],
+): C | undefined {
+  let deepest: C | undefined
+  for (const c of contexts)
+    if (
+      (c.folder === '.' || file.startsWith(`${c.folder}/`)) &&
+      (!deepest || c.folder.length > deepest.folder.length)
+    )
+      deepest = c
+  return deepest
+}
 
 /**
  * Like findDrift, but each file is checked against the context whose folder holds it (the
@@ -50,11 +63,9 @@ export function findDriftByContext(
 ): DriftFinding[] {
   const everyTerm = contexts.flatMap(c => c.terms)
   const termsFor = (file: string) => {
-    let best: DriftContext | undefined
-    for (const c of contexts)
-      if (holds(c.folder, file) && (!best || c.folder.length > best.folder.length)) best = c
+    const context = deepestContextOf(file, contexts)
     // a root context holds every file, so a file only it holds is a shared one: every context's
-    return best && best.folder !== '.' ? best.terms : everyTerm
+    return context && context.folder !== '.' ? context.terms : everyTerm
   }
   return countDrift(addedWithFiles(diff, skipFiles), termsFor)
 }

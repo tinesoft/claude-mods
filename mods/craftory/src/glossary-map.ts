@@ -1,4 +1,5 @@
 import type { GlossaryMap } from '../types'
+import { deepestContextOf, fileOf } from './drift'
 
 /** Where Matt's `domain-modeling` skill keeps the map of contexts. */
 export const GLOSSARY_MAP = 'GLOSSARY-MAP.md'
@@ -75,13 +76,9 @@ export function defaultContextOf(
   const counts = new Map<string, number>()
   let owner: string | null = null
   for (const line of (diff ?? '').split('\n')) {
-    const file = /^\+\+\+ (?:b\/)?(.+)$/.exec(line)?.[1]
-    if (file !== undefined) {
-      owner =
-        contexts
-          .filter(c => c.folder === '.' || file === c.folder || file.startsWith(`${c.folder}/`))
-          .sort((a, b) => b.folder.length - a.folder.length)[0]?.name ?? null
-    } else if (owner !== null && /^[+-](?![+-]{2} )/.test(line))
+    const file = fileOf(line)
+    if (file !== undefined) owner = deepestContextOf(file, contexts)?.name ?? null
+    else if (owner !== null && /^[+-](?![+-]{2} )/.test(line))
       counts.set(owner, (counts.get(owner) ?? 0) + 1)
   }
   let best = contexts[0]?.name ?? ''

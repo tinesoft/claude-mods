@@ -122,3 +122,12 @@ test('the default context is the one whose folder holds most changed lines; ties
   expect(defaultContextOf('', FOLDERS)).toBe('Billing')
   expect(defaultContextOf(null, FOLDERS)).toBe('Billing')
 })
+
+test('the default context counts a file by the deepest folder that holds it, as drift does', () => {
+  const nested = [...FOLDERS, { name: 'Rates', folder: 'shipping/rates' }]
+  expect(defaultContextOf('+++ b/shipping/rates/r.ts\n+x\n', nested)).toBe('Rates')
+  // a file named like a folder is not inside it
+  expect(defaultContextOf('+++ b/billing/b.ts\n+x\n+++ b/shipping\n+y\n+z\n', FOLDERS)).toBe(
+    'Billing',
+  )
+})
