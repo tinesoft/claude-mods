@@ -1,3 +1,50 @@
+## 1.1.0 (2026-11-22)
+
+### 🚀 Features
+
+- **craftory:** edit glossary terms in each context ([324130f](https://github.com/tinesoft/claude-mods/commit/324130f))
+- **craftory:** run the drift scan against the context a file belongs to ([5caf11d](https://github.com/tinesoft/claude-mods/commit/5caf11d))
+- **craftory:** show every context's definition of a term in reply hover cards ([885ec0e](https://github.com/tinesoft/claude-mods/commit/885ec0e))
+- **craftory:** read each context's glossary in a multi-context repo ([ead0a84](https://github.com/tinesoft/claude-mods/commit/ead0a84))
+- **craftory:** offer to turn off hook events when skill.prompt looks skipped ([e6fe85e](https://github.com/tinesoft/claude-mods/commit/e6fe85e))
+- **craftory:** merge ticket 05, warn when the forecast would use up a window ([cccd0fb](https://github.com/tinesoft/claude-mods/commit/cccd0fb))
+- **craftory:** merge ticket 06, the spend summary at retro ([2c81f85](https://github.com/tinesoft/claude-mods/commit/2c81f85))
+- **craftory:** merge ticket 03, retry a stuck ticket on a stronger model ([8b05354](https://github.com/tinesoft/claude-mods/commit/8b05354))
+- **craftory:** merge ticket 02, route the main session by phase ([afe7223](https://github.com/tinesoft/claude-mods/commit/afe7223))
+- **craftory:** merge ticket 04, forecast build and each phase ([e4215ca](https://github.com/tinesoft/claude-mods/commit/e4215ca))
+- **craftory:** merge ticket 01, model and effort per phase for subagents ([86010c4](https://github.com/tinesoft/claude-mods/commit/86010c4))
+- **craftory:** add the hook_events setting to skip the skill.prompt hook ([17000fa](https://github.com/tinesoft/claude-mods/commit/17000fa))
+- **craftory:** add tokenomics v2, budgets and rate limits ([e2c9b1d](https://github.com/tinesoft/claude-mods/commit/e2c9b1d))
+- **craftory:** add spend to the text reply, the glossary and the README ([57c819b](https://github.com/tinesoft/claude-mods/commit/57c819b))
+- **craftory:** show the git name and email in the Spend tab ([f740df4](https://github.com/tinesoft/claude-mods/commit/f740df4))
+- **craftory:** add the Spend tab to the pane ([7bb8d3c](https://github.com/tinesoft/claude-mods/commit/7bb8d3c))
+- **craftory:** show spend on the phase cards and beside each Build agent ([9b91ccb](https://github.com/tinesoft/claude-mods/commit/9b91ccb))
+- **craftory:** keep draft and outside spend local, and move a draft's to its spec ([b9b2fb6](https://github.com/tinesoft/claude-mods/commit/b9b2fb6))
+- **craftory:** commit each session's spend and add it up across sessions ([e407647](https://github.com/tinesoft/claude-mods/commit/e407647))
+- **craftory:** track what each step costs and show it on the status line ([45bbfe2](https://github.com/tinesoft/claude-mods/commit/45bbfe2))
+
+### 🩹 Fixes
+
+- **craftory:** read the Feature's integration diff once per branch tip ([9e3e370](https://github.com/tinesoft/claude-mods/commit/9e3e370))
+- **craftory:** highlight only the Settings card being edited ([59db236](https://github.com/tinesoft/claude-mods/commit/59db236))
+- **craftory:** open a hover card's Edit on its definition's context ([5e0cc37](https://github.com/tinesoft/claude-mods/commit/5e0cc37))
+- **craftory:** mark a term New by its context and name ([e4b8932](https://github.com/tinesoft/claude-mods/commit/e4b8932))
+- **craftory:** check files only a root context holds against every context ([d36601c](https://github.com/tinesoft/claude-mods/commit/d36601c))
+- **craftory:** let the glossary map on disk decide the layout a Settings save writes ([54f2847](https://github.com/tinesoft/claude-mods/commit/54f2847))
+- **craftory:** report a glossary that names a term twice and never write it ([7ff31b9](https://github.com/tinesoft/claude-mods/commit/7ff31b9))
+- **craftory:** keep the multi-context line when Settings saves the agent skills block ([7244189](https://github.com/tinesoft/claude-mods/commit/7244189))
+- **craftory:** keep a draft in the repo it was started in ([4ec34b1](https://github.com/tinesoft/claude-mods/commit/4ec34b1))
+- **craftory:** pick the Feature on the checked-out branch and keep the remembered one per repo ([90bf351](https://github.com/tinesoft/claude-mods/commit/90bf351))
+- **craftory:** drop the command.run context fallback that never reaches the turn ([ee570cd](https://github.com/tinesoft/claude-mods/commit/ee570cd))
+- **craftory:** merge the code review fixes for tokenomics v3 ([7703a73](https://github.com/tinesoft/claude-mods/commit/7703a73))
+- **craftory:** rebuild a config held in memory from before routing existed ([f315118](https://github.com/tinesoft/claude-mods/commit/f315118))
+- **craftory:** register the skill-start fallback only when hook_events is off ([d50e682](https://github.com/tinesoft/claude-mods/commit/d50e682))
+- **craftory:** note a skill start from the Skill call and the typed command too ([76caff2](https://github.com/tinesoft/claude-mods/commit/76caff2))
+
+### ❤️ Thank You
+
+- Tine Kondo @tinesoft
+
 # 1.0.0 (2026-11-16)
 
 ### 🚀 Features
